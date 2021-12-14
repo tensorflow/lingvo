@@ -238,13 +238,14 @@ class RecurrentTest(test_util.JaxTestCase):
         y = theta.delta + xs_t.x + carry_0.y
         z = y + 1
         carry_1 = NestedMap(y=y)
+        base_layer.add_summary('test_summary', z)
         return carry_1, NestedMap(z=z)
 
-      carry_final, ys = recurrent.scan(carry, xs, cell_fn)
+      carry_final, ys, summaries = recurrent.scan(carry, xs, cell_fn)
 
       loss = jnp.sum(carry_final.y) + jnp.sum(ys.z)
 
-      return loss, (carry_final, ys)
+      return loss, (carry_final, ys, summaries)
 
     grad_fn_01 = jax.value_and_grad(comp01, [0, 1, 2], has_aux=True)
 
@@ -256,10 +257,11 @@ class RecurrentTest(test_util.JaxTestCase):
 
     with base_layer.JaxContext.new_context(
         prng_key=prng_key, global_step=global_step):
-      loss, (carry_final, ys) = comp01(theta, carry_initial, xs)
+      loss, (carry_final, ys, summaries) = comp01(theta, carry_initial, xs)
       logging.info('loss: %s', loss)
       logging.info('carry_final: %s', carry_final)
       logging.info('ys: %s', ys)
+      logging.info('summaries: %s', summaries)
       expected_carry_final = np.zeros([3, 4]) + 11.0
       self.assertAllClose(to_np(expected_carry_final), to_np(carry_final.y))
       self.assertAllClose(612.0, loss)

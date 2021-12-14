@@ -139,11 +139,13 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
 
     # Loop over num_microbatches + (num_stages - 1), where input to each iter
     # has the same shape as the loop state.
-    _, accum = recurrent.scan(
+    _, accum, summaries = recurrent.scan(
         NestedMap(data=state0),
         NestedMap(data=padded_inputs),
         _ScanFn,
         root_layer=self)
+    # TODO(xxx): deal with summaries.
+    del summaries
 
     # Extract output from the last stage after num_stages-1 bubbles.
     output = jax.tree_map(lambda x: x[L - 1:, -1, ...], accum.data)

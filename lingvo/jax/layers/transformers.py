@@ -32,6 +32,7 @@ from lingvo.jax.layers import linears
 from lingvo.jax.layers import normalizations
 from lingvo.jax.layers import recurrent
 from lingvo.jax.layers import repeats
+from lingvo.jax.layers import stats
 from lingvo.jax.layers import stochastics
 import numpy as np
 import tensorflow.compat.v2 as tf
@@ -916,6 +917,12 @@ class Transformer(base_layer.BaseLayer):
     """
     # Layer normalize input
     p = self.params
+
+    inputs_stats = stats.compute_stats(inputs, jnp.expand_dims(paddings, -1))
+    base_layer.add_summary('xformer_input_mean', inputs_stats.mean_v)
+    base_layer.add_summary('xformer_input_std', inputs_stats.std_v)
+    base_layer.add_summary('xformer_input_abs_max', inputs_stats.max_v)
+
     if p.norm_policy == 'primer_hybrid':
       inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
                                                     inputs)
@@ -1312,12 +1319,16 @@ class StackedTransformer(base_layer.BaseLayer):
         return py_utils.NestedMap(
             x_in=x_out, aux_loss=aux_loss), py_utils.NestedMap()
 
-      carry_final, _ = recurrent.scan(
+      carry_final, _, summaries = recurrent.scan(
           carry,
           stacked_vars,
           _scan_fn,
           root_layer=self,
           checkpoint_policy=p.checkpoint_policy)
+
+      # TODO(yonghui): unpack summaries to the out-context.
+      del summaries
+
       x_out = carry_final.x_in
       aux_loss_ctx = py_utils.AuxLossContext.Current()
       # Scan can not have sideeffects so we have to capture side effect

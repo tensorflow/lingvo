@@ -113,8 +113,10 @@ class Repeat(base_layer.BaseLayer):
       tf.nest.assert_same_structure(layer_in.carry, layer_out)
       return NestedMap(carry=layer_out), py_utils.NestedMap()
 
-    out_final, _ = recurrent.scan(
+    out_final, _, summaries = recurrent.scan(
         inputs_mp, theta.sub, _scan_fn, root_layer=self)
+    # TODO(yonghui): propagate summaries to the caller.
+    del summaries
 
     return out_final.carry
 
@@ -186,6 +188,8 @@ class Repeat(base_layer.BaseLayer):
     vars_and_states = py_utils.NestedMap(
         layer_vars=theta.sub, layer_states=cached_states)
 
-    final_out, new_states = recurrent.scan(
+    final_out, new_states, summaries = recurrent.scan(
         step_inputs_mp, vars_and_states, _scan_fn, root_layer=self)
+    # TODO(yonghui): Propagate summaries
+    del summaries
     return new_states, final_out.carry

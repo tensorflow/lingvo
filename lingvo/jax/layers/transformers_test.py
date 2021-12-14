@@ -827,6 +827,9 @@ class TransformersTest(test_util.JaxTestCase):
           cross_inputs=cross_inputs,
           cross_paddings=cross_paddings,
           cross_segment_mask=cross_segment_mask)
+      all_summaries = base_layer.all_summaries()
+      for key, value in all_summaries.items():
+        logging.info('summary: %s', f'key:{key}, value:{value}')
 
     np_fprop_outputs_1 = test_utils.to_np(fprop_outputs_1)
     np_fprop_outputs_2 = test_utils.to_np(fprop_outputs_2)

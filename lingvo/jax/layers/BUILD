@@ -159,6 +159,34 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "stats",
+    srcs = ["stats.py"],
+    srcs_version = "PY3",
+    deps = [
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+    ],
+)
+
+py_strict_test(
+    name = "stats_test",
+    srcs = ["stats_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":stats",
+        # Implicit absl.logging dependency.
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit jax dependency.
+        "//lingvo/jax:py_utils",
+        # Implicit numpy dependency.
+    ],
+)
+
+pytype_strict_library(
     name = "pipeline",
     srcs = ["pipeline.py"],
     srcs_version = "PY3",
@@ -306,6 +334,7 @@ pytype_strict_library(
         ":normalizations",
         ":recurrent",
         ":repeats",
+        ":stats",
         ":stochastics",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.

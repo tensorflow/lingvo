@@ -406,7 +406,7 @@ class _SummaryDict:
       tensor: value of the summary.
       summary_type: type of the summary.
     """
-    prefix = '/'.join(_NAMESPACE_STACK.stack)
+    prefix = '/'.join(_get_namespace_stack())
     summary_name = prefix + '/' + name
     next_iter = 0
     full_name = summary_name + get_summary_type_suffix(summary_type)
@@ -448,10 +448,15 @@ class JaxContext:
     self._params = params.Copy()
     self._prng_key = _PrngKey()
     self._summary_dict = _SummaryDict()
+    self._namespace_stack = []
 
   @property
   def prng_key(self) -> _PrngKey:
     return self._prng_key
+
+  @property
+  def namespace_stack(self) -> List[str]:
+    return self._namespace_stack
 
   @property
   def summary_dict(self) -> _SummaryDict:
@@ -559,17 +564,26 @@ def cur_global_step() -> JTensor:
   return context.prng_key.global_step
 
 
-_NAMESPACE_STACK = py_utils.ThreadLocalStack()
+# _GLOBAL_NAMESPACE_STACK is used only if computation is carried outside a
+# JaxContext.
+_GLOBAL_NAMESPACE_STACK = py_utils.ThreadLocalStack()
+
+
+def _get_namespace_stack():
+  if JaxContext.top() is None:
+    return _GLOBAL_NAMESPACE_STACK.stack
+  else:
+    return cur_jax_context().namespace_stack
 
 
 @contextlib.contextmanager
 def namespace(name: str):
   NestedMap.CheckKey(name)
-  _NAMESPACE_STACK.stack.append(name)
+  _get_namespace_stack().append(name)
   try:
     yield
   finally:
-    _NAMESPACE_STACK.stack.pop()
+    _get_namespace_stack().pop()
 
 
 def _base_layer_init_wrapper(func):

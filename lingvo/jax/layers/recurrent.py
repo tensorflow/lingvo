@@ -394,7 +394,7 @@ def scan(carry_init: NestedMap,
       SAVE_NOTHING, SAVE_DOT_ONLY, SAVE_DOT_WITH_NO_BATCH_DIM.
 
   Returns:
-    final 'carry' as well as 'ys'.
+    (final 'carry', 'ys', stacked summaries).
   """
   assert isinstance(carry_init, py_utils.NestedMap)
   assert isinstance(xs, py_utils.NestedMap)
@@ -455,6 +455,7 @@ def scan(carry_init: NestedMap,
       carry_new.global_step = carry.global_step
 
       tf.nest.assert_same_structure(carry_new, carry)
+      summaries = base_layer.all_summaries()
 
       if root_layer is not None:
         forward_updated_vars_after = tf.nest.map_structure(
@@ -468,7 +469,7 @@ def scan(carry_init: NestedMap,
         tf.nest.map_structure(assert_no_change, forward_updated_vars_before,
                               forward_updated_vars_after)
 
-      return carry_new, ys_t
+    return carry_new, (ys_t, summaries)
 
   # The initial time step.
   time_step = jnp.array(0, dtype=jnp.uint32)
@@ -478,9 +479,9 @@ def scan(carry_init: NestedMap,
   carry_init.prng_key = prng_key
   carry_init.global_step = global_step
 
-  carry_final, ys = jax.lax.scan(fn_wrap, carry_init, xs)
+  carry_final, (ys, summaries) = jax.lax.scan(fn_wrap, carry_init, xs)
 
   del carry_final.time_step
   del carry_final.global_step
   del carry_final.prng_key
-  return carry_final, ys
+  return carry_final, ys, summaries
