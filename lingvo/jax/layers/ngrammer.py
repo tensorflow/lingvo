@@ -120,7 +120,7 @@ class VectorQuantization(base_layer.BaseLayer):
     means = weight_params(
         shape=[p.num_heads, p.num_clusters, p.dim_per_head],
         init=p.params_init,
-        dtype=self.fprop_dtype,
+        dtype=p.dtype,
         collections=[base_layer.REQUIRES_MEAN_SYNC])
     self.create_variable('means', means, trainable=False)
 
@@ -144,7 +144,7 @@ class VectorQuantization(base_layer.BaseLayer):
              [B, L, N, H].
     """
     p = self.params
-    inputs = jnp.array(inputs, dtype=theta.means.dtype)
+    inputs = self._cast_to_fprop_dtype(inputs)
     inputs_shape = inputs.shape
     if len(inputs_shape) == 3:
       inputs = jnp.reshape(
@@ -297,6 +297,8 @@ class Ngrammer(base_layer.BaseLayer):
       # Shape [B, L, 1]
       paddings_3d = paddings[:, :, jnp.newaxis]
 
+    # Cast input embeddings to fprop dtype.
+    input_embs = self._cast_to_fprop_dtype(input_embs)
     inputs_shape = input_ids.shape
     batch_size = inputs_shape[0]
     seq_length = inputs_shape[1]
@@ -452,6 +454,9 @@ class VQNgrammer(base_layer.BaseLayer):
       outputs: Input embedding with the VQ ngram added of shape [B, L, D].
     """
     del input_ids
+
+    # Cast input embeddings to fprop dtype.
+    input_embs = self._cast_to_fprop_dtype(input_embs)
 
     # Distances of shape [B, L, N, K].
     distances, _ = self.vq_layer.fprop(
