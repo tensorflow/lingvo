@@ -1433,3 +1433,47 @@ class ConcatLayer(base_layer.BaseLayer):
     """
     assert self.params.axis is not None
     return tf.concat(inps, axis=self.params.axis)
+
+
+class SliceLayer(base_layer.BaseLayer):
+  """Slice the inputs using numpy notation."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'key', [], 'A list of ints of triples to construct slices from. '
+        'Do not set this param directly, prefer using '
+        'SliceHelper instead.')
+    return p
+
+  def FProp(self, theta, inp):
+    """Slice the inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values.
+      inp: A tensor or `.NestedMap` object containing inputs to reshape.
+
+    Returns:
+      A tensor or `.NestedMap` with the same structure as the input.
+    """
+    key = []
+    for k in self.params.key:
+      if isinstance(k, tuple):
+        key.append(slice(*k))
+      else:
+        key.append(k)
+    return tf.nest.map_structure(lambda t: t[key], inp)
+
+
+class SliceHelper:
+  """A helper for the SliceLayer above. Usage: SliceHelper()[:, 0]."""
+
+  def __getitem__(self, args):
+    key = []
+    for k in args:
+      if isinstance(k, slice):
+        key.append((k.start, k.stop, k.step))
+      else:
+        key.append(k)
+    return SliceLayer.Params().Set(key=key)

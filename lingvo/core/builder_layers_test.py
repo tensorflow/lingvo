@@ -19,6 +19,7 @@ from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import builder_layers as layers
 from lingvo.core import cluster_factory
+from lingvo.core import hyperparams
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
@@ -757,6 +758,25 @@ class BuilderLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(
           self.evaluate(y), [[1.0, 2.0, 41.0, 42.0], [3.0, 4.0, 43.0, 44.0]])
+
+  def testSliceLayer(self):
+    g = tf.Graph()
+    with g.as_default():
+      p1 = layers.SliceHelper()[:, 0].Set(name='test1')
+      l1 = p1.Instantiate()
+      p2 = layers.SliceHelper()[:, 1:3].Set(name='test2')
+      # Test serialization/deserialization.
+      rebuilt_p2 = hyperparams.InstantiableParams.FromProto(p2.ToProto())
+      l2 = rebuilt_p2.Instantiate()
+
+      x = tf.constant([[1.0, 2.0, 3.0], [3.0, 2.0, 1.0]])
+      y1 = l1.FPropDefaultTheta(x)
+      y2 = l2.FPropDefaultTheta(x)
+
+    with self.session(graph=g):
+      self.evaluate(tf.global_variables_initializer())
+      self.assertAllEqual(self.evaluate(y1), [1.0, 3.0])
+      self.assertAllEqual(self.evaluate(y2), [[2.0, 3.0], [2.0, 1.0]])
 
 
 if __name__ == '__main__':
