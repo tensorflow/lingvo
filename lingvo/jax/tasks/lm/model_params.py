@@ -260,10 +260,14 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
   WEIGHT_DECAY = 1e-3
   ENABLE_WHILE_LOOP = True
 
+  PACKED_INPUT = True
+  ATTEN_LOGIT_CAP = 50.0
+  USE_BIAS = False
+
   def task(self) -> InstantiableParams:
     """Returns the task parameters."""
     model_p = model.LanguageModel.Params().Set(name='xformer_lm')
-    model_p.lm.packed_input = True
+    model_p.lm.packed_input = self.PACKED_INPUT
     model_p.lm.model_dims = self.MODEL_DIMS
     model_p.lm.hidden_dims = self.HIDDEN_DIMS
     model_p.lm.num_layers = self.NUM_LAYERS
@@ -276,8 +280,8 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
     model_p.lm.stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
     transformer_layer_p = (
         model_p.lm.stacked_transformer_tpl.transformer_layer_params_tpl)
-    transformer_layer_p.tr_atten_tpl.atten_logit_cap = 50.0
-    transformer_layer_p.tr_atten_tpl.use_bias = False
+    transformer_layer_p.tr_atten_tpl.atten_logit_cap = self.ATTEN_LOGIT_CAP
+    transformer_layer_p.tr_atten_tpl.use_bias = self.USE_BIAS
     softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(self.MODEL_DIMS))
     model_p.lm.softmax_tpl.params_init = softmax_init
 
@@ -286,18 +290,28 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
     return model_p
 
 
-class TransformerLmSpmdAdam(base_model_params.BaseModelParams):
+class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
   """Base SPMD Transformer LM configuration using Adam."""
 
   NUM_LAYERS = 10
   VOCAB_SIZE = 32000
   DIMS_PER_HEAD = 128
+  NUM_HEADS = None
   MODEL_DIMS = 2048
   HIDDEN_DIMS = MODEL_DIMS * 4
   DROPOUT_PROB = 0.0
+  ATTEN_LOGIT_CAP = 50.0
   LEARNING_RATE = 2.5e-4
   WEIGHT_DECAY = 1e-3
   ENABLE_WHILE_LOOP = True
+  USE_REPEATED_LAYER = False
+  SOFTMAX_CAP_LOGITS = 30.0
+  ATTEN_LOGIT_CAP = 50.0
+  FPROP_DTYPE = jnp.bfloat16
+  COMBINE_QKV = True
+  ACTIVATION = 'RELU'
+
+  CHECKPOINT_EVERY_N_STEPS = 5000
 
   # Autodiff remat.
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
@@ -307,8 +321,15 @@ class TransformerLmSpmdAdam(base_model_params.BaseModelParams):
 
   def task(self) -> InstantiableParams:
     """Returns the task parameters."""
-    assert self.MODEL_DIMS % self.DIMS_PER_HEAD == 0
-    num_heads = int(self.MODEL_DIMS / self.DIMS_PER_HEAD)
+    if self.DIMS_PER_HEAD is not None:
+      assert self.NUM_HEADS is None
+      assert self.MODEL_DIMS % self.DIMS_PER_HEAD == 0
+      num_heads = int(self.MODEL_DIMS / self.DIMS_PER_HEAD)
+    else:
+      assert self.NUM_HEADS is not None
+      assert self.DIMS_PER_HEAD is None
+      num_heads = self.NUM_HEADS
+
     dropout_prob = self.DROPOUT_PROB
 
     model_p = model.LanguageModel.Params().Set(name='xformer_lm')
@@ -319,9 +340,13 @@ class TransformerLmSpmdAdam(base_model_params.BaseModelParams):
     model_p.lm.num_heads = num_heads
     model_p.lm.vocab_size = self.VOCAB_SIZE
     model_p.lm.softmax_tpl.scale_sqrt_depth = True
-    model_p.lm.softmax_tpl.soft_cap_logits = 30.0
+    model_p.lm.softmax_tpl.soft_cap_logits = self.SOFTMAX_CAP_LOGITS
 
-    model_p.lm.stacked_transformer_tpl = layers.StackedTransformer.Params()
+    if self.USE_REPEATED_LAYER:
+      model_p.lm.stacked_transformer_tpl = (
+          layers.StackedTransformerRepeated.Params())
+    else:
+      model_p.lm.stacked_transformer_tpl = layers.StackedTransformer.Params()
     model_p.lm.stacked_transformer_tpl.enable_while_loop = (
         self.ENABLE_WHILE_LOOP)
     model_p.lm.stacked_transformer_tpl.checkpoint_policy = (
@@ -330,19 +355,19 @@ class TransformerLmSpmdAdam(base_model_params.BaseModelParams):
     model_p.lm.stacked_transformer_tpl.dropout_prob = dropout_prob
     transformer_layer_p = (
         model_p.lm.stacked_transformer_tpl.transformer_layer_params_tpl)
-    transformer_layer_p.tr_atten_tpl.atten_logit_cap = 50.0
+    transformer_layer_p.tr_atten_tpl.atten_logit_cap = self.ATTEN_LOGIT_CAP
     transformer_layer_p.tr_atten_tpl.use_bias = False
-    transformer_layer_p.tr_atten_tpl.combine_qkv = True
-    transformer_layer_p.tr_fflayer_tpl.activation = 'GELU'
+    transformer_layer_p.tr_atten_tpl.combine_qkv = self.COMBINE_QKV
+    transformer_layer_p.tr_fflayer_tpl.activation = self.ACTIVATION
     softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(self.MODEL_DIMS))
     model_p.lm.softmax_tpl.params_init = softmax_init
 
     # Enable bf16.
-    model_p.fprop_dtype = jnp.bfloat16
+    model_p.fprop_dtype = self.FPROP_DTYPE
 
-    set_default_adam(model_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
+    set_default_adafactor(model_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
 
-    model_p.train.save_interval_steps = 5000
+    model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
 
     set_sharding_annotations_v1(model_p, self.MESH_SHAPE)
 

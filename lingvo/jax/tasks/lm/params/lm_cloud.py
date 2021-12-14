@@ -83,18 +83,26 @@ class LmCloudTransformerAdamTest(LmCloudTransformerAdam):
 ## SPMD Model parallel training.
 
 
-class LmCloudSpmd(model_params.TransformerLmSpmdAdam, SyntheticDataset):
+class LmCloudSpmd(model_params.TransformerLmSpmdAdafactor, SyntheticDataset):
   """Base config for an SPMD model."""
 
   NUM_LAYERS = 10
   MODEL_DIMS = 2048
   HIDDEN_DIMS = MODEL_DIMS * 4
+  ACTIVATION = 'GELU'
 
   # Autodiff remat.
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
 
   # Sub-class has to specify a mesh.
   MESH_SHAPE = None
+
+  def task(self) -> InstantiableParams:
+    """Returns the task parameters."""
+    model_p = super().task()
+    model_params.set_default_adam(model_p, self.LEARNING_RATE,
+                                  self.WEIGHT_DECAY)
+    return model_p
 
 
 @model_registry.register_model
