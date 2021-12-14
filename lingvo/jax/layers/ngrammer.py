@@ -266,6 +266,7 @@ class Ngrammer(base_layer.BaseLayer):
       embedding_p.name = f'embedding_{i}'
       embedding_p.vocab_size = p.ngram_vocab_size
       embedding_p.embedding_dims = p.ngram_emb_dim
+      embedding_p.params_init = p.params_init
       ngram_emb_table_p.append(embedding_p)
 
     self.create_children('emb_layer_norm', emb_layer_norm_p)
@@ -418,7 +419,8 @@ class VQNgrammer(base_layer.BaseLayer):
         num_heads=p.num_heads,
         dim_per_head=p.dim_per_head,
         decay=p.decay,
-        epsilon=p.epsilon)
+        epsilon=p.epsilon,
+        params_init=p.params_init)
     self.create_child('vq_layer', vq_layer_p)
 
     # Create N-gram lookup layer.
@@ -429,7 +431,7 @@ class VQNgrammer(base_layer.BaseLayer):
         concat_ngrams=p.concat_ngrams,
         num_heads=p.num_heads,
         dim_per_head=p.dim_per_head,
-    )
+        params_init=p.params_init)
     self.create_child('ngram_layer', ngram_layer_p)
 
   def fprop(self,
