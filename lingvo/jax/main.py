@@ -182,7 +182,8 @@ if __name__ == '__main__':
     task_id, _, _ = _TASK_HANDLE_RE.match(handle).groups()
     if int(task_id) == 0:
       dump_dir = os.getenv('XLA_DUMP_TO')
-      os.environ['XLA_FLAGS'] = f'--xla_dump_to={dump_dir}'
+      if dump_dir:
+        os.environ['XLA_FLAGS'] = f'--xla_dump_to={dump_dir}'
 
   # Provide access to --jax_backend_target and --jax_xla_backend flags.
   jax.config.config_with_absl()
