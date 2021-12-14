@@ -26,6 +26,7 @@ from absl import logging
 import jax
 from jax import numpy as jnp
 from lingvo.jax import base_layer
+from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 from lingvo.jax import train_states
 import numpy as np
@@ -80,7 +81,8 @@ def pretty_repr_shapes(replicated_vars: NestedJTensor,
       return 'x'.join(str(e) for e in x.shape[1:])
     else:
       # If var is not replicated, no need to remove the first dim.
-      return 'x'.join(str(e) for e in x.shape)
+      x_sda = py_utils.maybe_gda_to_sda(x)
+      return 'x'.join(str(e) for e in x_sda.shape)
 
   out = jax.tree_map(pps, replicated_vars)
   out = pretty_repr(out)
@@ -239,6 +241,11 @@ def write_summary_entry(summary_writer: SummaryWriter,
     # data are replicated over all cores. Here we explicitly unreplicate the
     # metric value before logging or being added to summaries.
     metrics = jax.tree_map(lambda x: x[0], metrics)
+  else:
+    # SPMD training may produce GDA.
+    loss = py_utils.maybe_gda_to_sda(loss)
+    metrics = py_utils.maybe_gda_to_sda(metrics)
+    summary_tensors = py_utils.maybe_gda_to_sda(summary_tensors)
 
   mean_loss = np.mean(loss).item()
   with summary_writer.as_default():
@@ -310,6 +317,10 @@ def write_summary_every_n_steps(train_state: TrainState,
   result = False
 
   if step_i % summary_every_n_steps == summary_every_n_steps - 1:
+    loss = py_utils.maybe_gda_to_sda(loss)
+    metrics = py_utils.maybe_gda_to_sda(metrics)
+    per_example_out = py_utils.maybe_gda_to_sda(per_example_out)
+    summary_tensors = py_utils.maybe_gda_to_sda(summary_tensors)
     logging.info('step_i: %d, training loss: %s', step_i, loss)
     logging.info('metrics: %s', metrics)
     logging.info('per_example_out: %s', per_example_out)
@@ -333,6 +344,7 @@ def write_summary_every_n_steps(train_state: TrainState,
     else:
       # This is an SPMD model, mdl_vars can be sharded, not replicated.
       mdl_vars = train_state.mdl_vars
+      mdl_vars = py_utils.maybe_gda_to_sda(mdl_vars)
     norms = l2_norms(mdl_vars, prefix='Vars', max_level=10)
     with train_summary_writer.as_default():
       for name in norms:

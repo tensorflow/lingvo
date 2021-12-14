@@ -93,11 +93,16 @@ pytype_strict_library(
     srcs = ["checkpoints.py"],
     srcs_version = "PY3",
     deps = [
+        ":py_utils",
         ":train_states",
         # Implicit absl.logging dependency.
         # Implicit flax's core dependency.
         # Implicit flax's training dependency.
         # Implicit jax dependency.
+        "//third_party/py/jax/experimental/gda_serialization:google_spec",
+        "//third_party/py/jax/experimental/gda_serialization:serialization",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -285,12 +290,14 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":py_utils",
         ":pytypes",
         ":train_states",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
+        "//third_party/py/tensorflow:tensorflow_no_contrib",
     ],
 )
 

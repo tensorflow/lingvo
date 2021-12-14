@@ -21,6 +21,9 @@ import zlib
 
 from absl import logging
 import jax
+from jax.experimental import pjit
+import jax.experimental.global_device_array as gda_lib
+from jax.interpreters import pxla
 import jax.numpy as jnp
 from lingvo.core import cluster
 from lingvo.core import hyperparams
@@ -80,8 +83,65 @@ def reshard(array: jnp.ndarray) -> np.ndarray:
                     (num_devices, batch_size // num_devices) + array.shape[1:])
 
 
+def maybe_unreplicate_gda(data):
+  """Returns the first local shard in `data`.
+
+  This is typically used when `data` is fully replicated and we only want one
+  unreplicated shard.
+
+  Args:
+    data: A Pytree of fully replicated GlobalDeviceArray or other arrays.
+  Returns: A Pytree of DeviceArray or the original input.
+  """
+  leaves, _ = jax.tree_flatten(data)
+  if all(
+      isinstance(x, gda_lib.GlobalDeviceArray) and x.is_fully_replicated
+      for x in leaves):
+    return jax.tree_map(lambda x: x.local_data(0), data)
+  else:
+    return data
+
+
+def maybe_gda_to_sda(data):
+  """Returns a ShardedDeviceArray with local shards from GlobalDeviceArray.
+
+  This is typically used when `data` is partially replicated and we only want
+  one SDA gathering all local shards from GDA.
+
+  Args:
+    data: A Pytree of partially or fully replicated GlobalDeviceArray or other
+      arrays.
+  Returns: A Pytree of SDA or original input.
+  """
+  leaves, _ = jax.tree_flatten(data)
+  if all(isinstance(x, gda_lib.GlobalDeviceArray) for x in leaves):
+
+    def gda_to_sda(gda):
+      mesh_axes = gda._mesh_axes  # pylint: disable=protected-access
+      if not isinstance(mesh_axes, pjit.PartitionSpec):
+        pspec = pjit.PartitionSpec(*mesh_axes)
+      else:
+        pspec = mesh_axes
+      parsed_pspec, _, _ = pjit._prepare_axis_resources(pspec, 'mesh_axes')  # pylint: disable=protected-access
+      array_mapping = pjit.get_array_mapping(parsed_pspec)
+      global_aval = jax.core.ShapedArray(gda.shape, gda.dtype)
+      # Will convert to host local shape
+      global_mesh = gda._global_mesh  # pylint: disable=protected-access
+      local_aval = global_mesh.global_to_local(array_mapping, global_aval)
+      sharding_spec = pxla.mesh_sharding_specs(
+          global_mesh.local_mesh.shape,
+          global_mesh.local_mesh.axis_names)(local_aval, array_mapping)
+      return pxla.make_sharded_device_array(local_aval, sharding_spec,
+                                            [s.data for s in gda.local_shards])
+
+    return jax.tree_map(gda_to_sda, data)
+  else:
+    return data
+
+
 def extract_prefixed_keys_from_nested_map(node: Any,
                                           prefix: str = '',
+                                          key_separator: str = '/',
                                           left_separator: str = '[',
                                           right_separator: str = ']') -> Any:
   """Extracts a NestedMap with the nested prefix keys from its NestedMap node."""
@@ -89,13 +149,17 @@ def extract_prefixed_keys_from_nested_map(node: Any,
   def extract_keys(n, p):
     """Alias long function call with fixed separators."""
     return extract_prefixed_keys_from_nested_map(
-        n, p, left_separator=left_separator, right_separator=right_separator)
+        n,
+        p,
+        key_separator=key_separator,
+        left_separator=left_separator,
+        right_separator=right_separator)
 
   if isinstance(node, dict):  # NestedMap inherits from dict.
     result = {}
     for key, value in node.items():
       if prefix:
-        path = f'{prefix}/{key}'
+        path = f'{prefix}{key_separator}{key}'
       else:
         path = key
       result[key] = extract_keys(value, path)
@@ -105,7 +169,7 @@ def extract_prefixed_keys_from_nested_map(node: Any,
     # Check if it is a NamedTuple.
     if hasattr(node, '_fields'):
       if prefix:
-        prefix += '/'
+        prefix += f'{key_separator}'
       return type(node)(**{
           field: extract_keys(getattr(node, field), f'{prefix}{field}')
           for field in node._fields
@@ -117,6 +181,11 @@ def extract_prefixed_keys_from_nested_map(node: Any,
   if not prefix:
     return None
   return prefix
+
+
+# Use top-level named function to avoid recompilation.
+def _sync_global_devices_f(x):
+  return jax.lax.psum(x, 'i')
 
 
 def sync_global_devices(name: str) -> None:
@@ -131,7 +200,7 @@ def sync_global_devices(name: str) -> None:
   x = jnp.ones(
       shape=(local_device_count), dtype=np.int32) * (
           h // global_device_count)
-  actual = jax.device_get(jax.pmap(lambda x: jax.lax.psum(x, 'i'), 'i')(x))
+  actual = jax.device_get(jax.pmap(_sync_global_devices_f, 'i')(x))
   if actual[0] != expected:
     raise ValueError(f'Sync point {name} expected: {expected}; got: {actual}')
   logging.info('Finished sync_global_devices %s across %s devices globally',

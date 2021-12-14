@@ -77,6 +77,7 @@ flags.DEFINE_integer(
     'jax_profiler_port', None,
     'If set, the jax.profiler port to use. Only needed for profiling in open source.'
 )
+# Flag --jax_parallel_functions_output_gda is available through JAX.
 # Flags --jax_backend_target and --jax_xla_backend are available through JAX.
 
 
@@ -91,7 +92,7 @@ def globally_use_rbg_prng_key() -> None:
   jax.random.PRNGKey = rbg_key
 
 
-def setup_jax(globally_use_hardware_rng: bool,
+def setup_jax(globally_use_hardware_rng: bool, jax_use_gda: bool,
               jax_backend_target: Optional[str],
               jax_xla_backend: Optional[str]) -> None:
   """Setups JAX and logs information about this job."""
@@ -101,6 +102,9 @@ def setup_jax(globally_use_hardware_rng: bool,
   if globally_use_hardware_rng:
     jax.config.update('jax_enable_custom_prng', True)
     globally_use_rbg_prng_key()
+
+  if jax_use_gda:
+    logging.info('Using JAX GSDA for pjit and checkpointing')
 
   if jax_backend_target:
     logging.info('Using JAX backend target %s', jax_backend_target)
@@ -123,7 +127,8 @@ def main(argv: Sequence[str]) -> None:
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  setup_jax(FLAGS.globally_use_hardware_rng, FLAGS.jax_backend_target,
+  setup_jax(FLAGS.globally_use_hardware_rng,
+            FLAGS.jax_parallel_functions_output_gda, FLAGS.jax_backend_target,
             FLAGS.jax_xla_backend)
 
   # Add a note so that we can tell which Borg task is which JAX host.

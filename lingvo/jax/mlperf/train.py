@@ -127,6 +127,9 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
     mllogger: ML Perf logger.
   """
   logging.info('Using pmap for data parallelism.')
+  if jax.config.jax_parallel_functions_output_gda:
+    raise NotImplementedError(
+        'jax.pmap does not yet support GloballyShardedArray')
   jax_model = model_p.Instantiate()
 
   train_input_pipeline = train_input_p.Instantiate()
@@ -141,7 +144,11 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
   restore_checkpoint_dir = restore_checkpoint_dir or checkpoint_dir
   model_states = trainer_lib.initialize_model_state(jax_model, init_key)
   model_states = checkpoints.restore_checkpoint(
-      model_states, restore_checkpoint_dir, step=restore_checkpoint_step)
+      model_states,
+      restore_checkpoint_dir,
+      global_mesh=None,
+      mesh_axes=None,
+      step=restore_checkpoint_step)
   total_num_params = jax_model.total_num_vars
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
   # Unreplicated model states are not needed anymore at that point.
@@ -365,7 +372,10 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
   restore_checkpoint_dir = restore_checkpoint_dir or checkpoint_dir
-  if multi_host_checkpointing:
+  # Note that GDA checkpoint requires all processes to participate in
+  # checkpointing but it does not require a separate checkpoint_dir per process.
+  if (multi_host_checkpointing and
+      not jax.config.jax_parallel_functions_output_gda):
     checkpoint_task_dir = os.path.join(checkpoint_dir,
                                        f'{jax.process_index():03d}')
     restore_checkpoint_task_dir = os.path.join(restore_checkpoint_dir,
@@ -396,17 +406,24 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
+  global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
-    (partitioned_train_state, _, train_step, eval_step,
-     total_num_params) = trainer_lib.partition_spmd_model(
+    (partitioned_train_state, train_state_partition_specs, train_step,
+     eval_step, total_num_params) = trainer_lib.partition_spmd_model(
          model_p, init_key, inputs_shape)
 
     partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
         restore_checkpoint_task_dir,
+        global_mesh=global_mesh,
+        mesh_axes=train_state_partition_specs,
         step=restore_checkpoint_step)
-    logging.info('partitioned_train_state shapes: %s',
-                 jax.tree_map(lambda x: x.shape, partitioned_train_state))
+    # Print local sharded shape of train_state, and not the global shape if
+    # it is a GDA.
+    logging.info(
+        'partitioned_train_state shapes: %s',
+        jax.tree_map(lambda x: x.shape,
+                     py_utils.maybe_gda_to_sda(partitioned_train_state)))
     if multi_host_checkpointing:
       py_utils.sync_global_devices(f'checkpointer:restored:{checkpoint_dir}')
 
@@ -458,7 +475,9 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
       summary_last_time = time.time()
       summary_last_step = None
 
-      step_i = int(jax.device_get(partitioned_train_state.step))
+      step_i = int(
+          jax.device_get(
+              py_utils.maybe_unreplicate_gda(partitioned_train_state.step)))
 
       index_eval_p, _ = mllogger.extract_mlperf_eval_pipeline(eval_input_p)
       mllogger.log_run_start()
@@ -522,7 +541,9 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
             unreplicate_metrics=False):
           summary_last_time = time.time()
           summary_last_step = step_i
-          step_i = int(jax.device_get(partitioned_train_state.step))
+          step_i = int(
+              jax.device_get(
+                  py_utils.maybe_unreplicate_gda(partitioned_train_state.step)))
         else:
           # Increment train step locally to avoid an explicit device sync.
           step_i += 1

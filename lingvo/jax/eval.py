@@ -98,8 +98,13 @@ def evaluate_pmap_model(
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
   model_states = trainer_lib.initialize_model_state(jax_model, init_key)
+  # Pmap does not use GDA, and so global_mesh and mesh_axes are None.
   model_states = checkpoints.restore_checkpoint(
-      model_states, checkpoint_dir, checkpoint_type=checkpoint_type)
+      model_states,
+      checkpoint_dir,
+      global_mesh=None,
+      mesh_axes=None,
+      checkpoint_type=checkpoint_type)
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
   logging.info('replicated_model_states: %s',
                jax.tree_map(lambda x: x.shape, replicated_model_states))
@@ -173,7 +178,11 @@ def evaluate_pmap_model(
       # There must be a new checkpoint here.
       logging.info('Found new checkpoint: %s', new_checkpoint)
       model_states = checkpoints.restore_checkpoint(
-          model_states, checkpoint_dir, checkpoint_type=checkpoint_type)
+          model_states,
+          checkpoint_dir,
+          global_mesh=None,
+          mesh_axes=None,
+          checkpoint_type=checkpoint_type)
       replicated_model_states = trainer_lib.replicate_model_state(model_states)
       last_checkpoint = new_checkpoint
 
@@ -217,12 +226,15 @@ def evaluate_spmd_model(
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
+  global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     partitioned_train_state, partitioned_specs, _, eval_step, _ = (
         trainer_lib.partition_spmd_model(model_p, init_key, inputs_shape))
     partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
         checkpoint_task_dir,
+        global_mesh=global_mesh,
+        mesh_axes=partitioned_specs,
         checkpoint_type=checkpoint_type,
         state_specs=partitioned_specs)
     logging.info('partitioned_train_state: %s',
@@ -280,6 +292,8 @@ def evaluate_spmd_model(
         partitioned_train_state = checkpoints.restore_checkpoint(
             partitioned_train_state,
             checkpoint_task_dir,
+            global_mesh=global_mesh,
+            mesh_axes=partitioned_specs,
             checkpoint_type=checkpoint_type,
             state_specs=partitioned_specs)
         if multi_host_checkpointing:
@@ -386,6 +400,8 @@ def decode_once_pmap_model(
     model_states = checkpoints.restore_checkpoint(
         model_states,
         restore_checkpoint_dir,
+        global_mesh=None,
+        mesh_axes=None,
         step=restore_checkpoint_step,
         checkpoint_type=checkpoint_type)
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
@@ -524,6 +540,7 @@ def decode_once_spmd_model(
     # The instantiated model is only used for processing decode
     # outputs, which only happens on process 0.
     jax_model = model_p.Instantiate()
+  global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     partitioned_train_state, partitioned_specs, decode_step_fn = (
         trainer_lib.partition_spmd_model_decode(model_p, init_key,
@@ -532,6 +549,8 @@ def decode_once_spmd_model(
       partitioned_train_state = checkpoints.restore_checkpoint(
           partitioned_train_state,
           restore_checkpoint_dir,
+          global_mesh=global_mesh,
+          mesh_axes=partitioned_specs,
           checkpoint_type=checkpoint_type,
           state_specs=partitioned_specs,
           step=restore_checkpoint_step)
@@ -566,6 +585,8 @@ def decode_once_spmd_model(
         except tf.errors.OutOfRangeError:
           break
         out = spmd_decode_step_fn(batch)
+        # Gathers all local shards to a SDA.
+        out = py_utils.maybe_gda_to_sda(out)
         if jax.process_index() == 0:
           processed = jax_model.process_decode_out(inputs[split], out)
           decodes[split].extend(processed)

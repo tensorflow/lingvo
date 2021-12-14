@@ -15,14 +15,54 @@
 # ==============================================================================
 """Checkpointing-related utilities to handle TrainState instances."""
 
+import asyncio
 import enum
+import os
+import re
 from typing import Optional
 
 from absl import logging
 from flax import jax_utils
 from flax.training import checkpoints
 import jax
+from jax.experimental import maps
+from jax.experimental.gda_serialization import serialization as gda_serialization
+# Internal import
+from lingvo.jax import py_utils
 from lingvo.jax import train_states
+import tensorflow.compat.v2 as tf
+
+_CHECKPOINT_DIR_PREFIX = 'checkpoint_'
+_TMP_DIR_KEYWORD = '.tmp'
+CHECKPOINT_SUBDIR_RE = re.compile(r'checkpoint_[\d]+$')
+TMP_CHECKPOINT_SUBDIR_RE = re.compile(r'checkpoint_[\d]+.tmp_[\d]+$')
+
+
+def _is_checkpoint_dir(x: str) -> bool:
+  return bool(CHECKPOINT_SUBDIR_RE.match(x))
+
+
+def _is_tmp_checkpoint_dir(x: str) -> bool:
+  return bool(TMP_CHECKPOINT_SUBDIR_RE.match(x))
+
+
+def _make_checkpoint_step_dir(
+    checkpoint_dir: str,
+    step: int,
+) -> str:
+  return os.path.join(checkpoint_dir, f'{_CHECKPOINT_DIR_PREFIX}{step:08}')
+
+
+def _make_tmp_checkpoint_dir(checkpoint_dir: str, step: int) -> str:
+  return os.path.join(checkpoint_dir,
+                      f'{_CHECKPOINT_DIR_PREFIX}{step:08}{_TMP_DIR_KEYWORD}')
+
+
+def _get_step_from_checkpoint_dirname(checkpoint_dir: str) -> int:
+  if _TMP_DIR_KEYWORD in checkpoint_dir:
+    start_of_tmp = checkpoint_dir.find(_TMP_DIR_KEYWORD)
+    return int(checkpoint_dir[len(_CHECKPOINT_DIR_PREFIX):start_of_tmp])
+  return int(checkpoint_dir[len(_CHECKPOINT_DIR_PREFIX):])
 
 
 @enum.unique
@@ -50,8 +90,8 @@ def save_checkpoint(train_state: train_states.TrainState,
       at the current or a later step already exists.
     unreplicate: Whether to unreplicate variables (Optional). If using SPMD
       sharding, then this should be set to False.
-    checkpoint_type: The checkpoint type (implementation) to save. Currently,
-      it must be `CheckpointType.FLAX`.
+    checkpoint_type: The checkpoint type (implementation) to save. Currently, it
+      must be `CheckpointType.FLAX`.
     state_specs: Currently unused.
     max_checkpoints: The number of past checkpoint files to keep.
 
@@ -60,6 +100,14 @@ def save_checkpoint(train_state: train_states.TrainState,
     is not specified for persistence-based checkpointing or if
     `checkpoint_type` is invalid.
   """
+  del state_specs
+
+  if jax.config.jax_parallel_functions_output_gda:
+    step = int(jax.device_get(py_utils.maybe_unreplicate_gda(train_state.step)))
+    _save_checkpoint_gda(train_state, checkpoint_dir, overwrite,
+                         max_checkpoints, step)
+    return
+
   if train_state.step.ndim == 0:
     step = jax.device_get(train_state.step)
   elif train_state.step.ndim == 1:
@@ -90,6 +138,8 @@ def latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
 
 def restore_checkpoint(train_state: train_states.TrainState,
                        checkpoint_dir: str,
+                       global_mesh: Optional[maps.Mesh],
+                       mesh_axes: Optional[train_states.TrainState],
                        checkpoint_type: CheckpointType = CheckpointType.FLAX,
                        state_specs: Optional[train_states.TrainState] = None,
                        step: Optional[int] = None) -> train_states.TrainState:
@@ -100,6 +150,8 @@ def restore_checkpoint(train_state: train_states.TrainState,
   Args:
     train_state: The TrainState instance to restore.
     checkpoint_dir: The base directory from where to retrieve checkpoints.
+    global_mesh: The global mesh representing devices across multiple processes.
+    mesh_axes: The PartitionSpec fo train_state.
     checkpoint_type: The checkpoint type (implementation) to restore. Currently,
       it must be `CheckpointType.FLAX`.
     state_specs: Currently unused.
@@ -113,6 +165,10 @@ def restore_checkpoint(train_state: train_states.TrainState,
     the saved checkpoint one is detected.
   """
   del state_specs  # Unused.
+
+  if jax.config.jax_parallel_functions_output_gda:
+    return _restore_checkpoint_gda(train_state, checkpoint_dir, global_mesh,
+                                   mesh_axes, step)
 
   if train_state.step.ndim != 0:
     raise ValueError('Expecting an unreplicated scalar global step (got '
@@ -188,3 +244,198 @@ def _restore_checkpoint_flax(
         'checkpoint structure and the current one has been detected '
         f'(`{restored_str_pytree_state}` vs `{str_pytree_state}`).')
   return jax.tree_unflatten(pytree_state, restored_state)
+
+
+def _extract_nested_prefix_names(
+    state: train_states.TrainState) -> train_states.TrainState:
+  """Extracts prefix names from a TrainState data structure."""
+  # CNS doesn't support square bracket in filenames.
+  key_separator = '.'
+  left_separator = '_'
+  right_separator = ''
+  return train_states.TrainState(
+      step=py_utils.extract_prefixed_keys_from_nested_map(
+          state.step,
+          'step',
+          key_separator=key_separator,
+          left_separator=left_separator,
+          right_separator=right_separator),
+      mdl_vars=py_utils.extract_prefixed_keys_from_nested_map(
+          state.mdl_vars,
+          'mdl_vars',
+          key_separator=key_separator,
+          left_separator=left_separator,
+          right_separator=right_separator),
+      opt_states=py_utils.extract_prefixed_keys_from_nested_map(
+          state.opt_states,
+          'opt_states',
+          key_separator=key_separator,
+          left_separator=left_separator,
+          right_separator=right_separator))
+
+
+def _save_checkpoint_gda(train_state: train_states.TrainState,
+                         checkpoint_dir: str, overwrite: bool,
+                         max_checkpoints: int, step: int) -> None:
+  """Saves a checkpoint using JAX GDA serialization mechanism.
+
+  Note that all JAX processes must call _save_checkpoint_gda in sync because
+  each process may only have a slice of the global data.
+
+  Args:
+    train_state: A partitioned train_state that is a Pytree of
+      GlobalDeviceArray.
+    checkpoint_dir: Full path to parent checkpoint_dir.
+    overwrite: Whether to allow overwriting an existing target directory.
+    max_checkpoints: Unsupported.
+    step: Step to save checkpoint for.
+  """
+  # TODO(zhangqiaorjc): Support max_checkpoints.
+  del max_checkpoints
+
+  if not overwrite:
+    # Does not contain directory path, only dirname is returned.
+    checkpoint_dirnames = tf.io.gfile.listdir(checkpoint_dir)
+    # Delete tmp directories if any.
+    if jax.process_index() == 0:
+      tmp_checkpoint_dirnames = [
+          x for x in checkpoint_dirnames if _is_tmp_checkpoint_dir(x)
+      ]
+      if tmp_checkpoint_dirnames:
+        logging.warn('Found incompletely saved checkpoints %s; deleting them',
+                     tmp_checkpoint_dirnames)
+        for x in tmp_checkpoint_dirnames:
+          tf.io.gfile.rmtree(x)
+    # Note we must barrier across all processes after the tmp directory delete.
+    py_utils.sync_global_devices('Wait for checkpoint tmp dir deletions to '
+                                 'finish.')
+
+    sorted_dirnames = sorted([
+        x for x in checkpoint_dirnames
+        if _is_checkpoint_dir(x) and not _is_tmp_checkpoint_dir(x)
+    ])
+    if sorted_dirnames:
+      latest_checkpoint_dirname = sorted_dirnames[-1]
+      previous_step = _get_step_from_checkpoint_dirname(
+          latest_checkpoint_dirname)
+      if previous_step >= step:
+        logging.warning(
+            'A more recent checkpoint `%d` has already been saved compared '
+            'to the current timestep `%d`. Skip saving a checkpoint.',
+            previous_step, step)
+        return
+
+  checkpoint_step_dir = _make_checkpoint_step_dir(checkpoint_dir, step)
+  checkpoint_step_tmp_dir = _make_tmp_checkpoint_dir(checkpoint_dir, step)
+  if jax.process_index() == 0:
+    # Create the tmp parent dir.
+    tf.io.gfile.makedirs(checkpoint_step_tmp_dir)
+  # Note we must barrier across all processes after the directory creation.
+  py_utils.sync_global_devices('Wait for checkpoint tmp dir creation '
+                               f'{checkpoint_step_tmp_dir} to finish.')
+
+  logging.info('Saving to a tmp checkpoint dir %s', checkpoint_step_tmp_dir)
+
+  nested_names = _extract_nested_prefix_names(train_state)
+  flattened_nested_names, _ = jax.tree_util.tree_flatten(nested_names)
+
+  ckpt_paths = []
+  for name in flattened_nested_names:
+    # Tensorstore does not want a trailing / in dirname.
+    path = os.path.join(checkpoint_step_tmp_dir, name).rstrip('/')
+    # Avoid recursively create parent dir.
+    tf.io.gfile.mkdir(path)
+    ckpt_paths.append(path)
+  tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
+
+  leaves, _ = jax.tree_util.tree_flatten(train_state)
+
+  async def run_serializer():
+    future_writer = jax.tree_map(gda_serialization.async_serialize, ckpt_paths,
+                                 leaves, tspecs)
+    return await asyncio.gather(*future_writer)
+
+  asyncio.run(run_serializer())
+
+  # Note we must barrier across all processes before the directory rename.
+  py_utils.sync_global_devices('Wait for checkpoint chunk writes to '
+                               f'{checkpoint_step_tmp_dir} to finish.')
+
+  if jax.process_index() == 0:
+    # Rename temporary checkpoint directory to its final location.
+    logging.info('Renaming %s to %s', checkpoint_step_tmp_dir,
+                 checkpoint_step_dir)
+    tf.io.gfile.rename(checkpoint_step_tmp_dir, checkpoint_step_dir)
+
+  logging.info('Finished saving GDA checkpoint for step `%s` to `%s`.', step,
+               checkpoint_step_dir)
+
+
+def _restore_checkpoint_gda(
+    train_state: train_states.TrainState,
+    checkpoint_dir: str,
+    global_mesh: Optional[maps.Mesh],
+    mesh_axes: Optional[train_states.TrainState],
+    step: Optional[int] = None) -> train_states.TrainState:
+  """Restores a checkpoint using JAX GDA deserialization mechanism."""
+  if not tf.io.gfile.exists(checkpoint_dir) or not tf.io.gfile.listdir(
+      checkpoint_dir):
+    logging.info(
+        'GDA checkpoint restore did not find checkpoint_dir %s; '
+        'Return train_state passed in', checkpoint_dir)
+    return train_state
+
+  if step is None:
+    checkpoint_dirnames = tf.io.gfile.listdir(checkpoint_dir)
+    tmp_checkpoint_dirnames = [
+        x for x in checkpoint_dirnames if _is_tmp_checkpoint_dir(x)
+    ]
+    if tmp_checkpoint_dirnames:
+      logging.warn('Found incompletely saved checkpoints %s; skipping them',
+                   tmp_checkpoint_dirnames)
+    sorted_dirnames = sorted([
+        x for x in checkpoint_dirnames
+        if _is_checkpoint_dir(x) and not _is_tmp_checkpoint_dir(x)
+    ])
+    if not sorted_dirnames:
+      raise FileNotFoundError(
+          f'No checkpoint found for restore in {checkpoint_dir}')
+    latest_checkpoint_dirname = sorted_dirnames[-1]
+    step = _get_step_from_checkpoint_dirname(latest_checkpoint_dirname)
+    checkpoint_step_dir = _make_checkpoint_step_dir(checkpoint_dir, step)
+    logging.info('Found latest checkpoint: %s', checkpoint_step_dir)
+  else:
+    checkpoint_step_dir = _make_checkpoint_step_dir(checkpoint_dir, step)
+    if not tf.io.gfile.exists(checkpoint_step_dir) or not tf.io.gfile.listdir(
+        checkpoint_step_dir):
+      raise FileNotFoundError(
+          f'No checkpoint found for restore in {checkpoint_step_dir}')
+
+  logging.info('GDA checkpoint restore started...')
+  leaves, treedef = jax.tree_util.tree_flatten(train_state)
+  partition_spec_leaves, _ = jax.tree_util.tree_flatten(mesh_axes)
+
+  nested_names = _extract_nested_prefix_names(train_state)
+  flattened_nested_names, _ = jax.tree_util.tree_flatten(nested_names)
+
+  ckpt_paths = [
+      os.path.join(checkpoint_step_dir, x).rstrip('/')
+      for x in flattened_nested_names
+  ]
+
+  async def run_deserializer():
+    tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec,
+                          ckpt_paths)
+    future_gdas = jax.tree_map(gda_serialization.async_deserialize, ckpt_paths,
+                               [global_mesh] * len(leaves),
+                               partition_spec_leaves, tspecs)
+    return await asyncio.gather(*future_gdas)
+
+  train_state_gda = asyncio.run(run_deserializer())
+  restored_train_state = jax.tree_util.tree_unflatten(treedef, train_state_gda)
+  # Barrier across all processes to ensure all restore finish.
+  py_utils.sync_global_devices('Wait for checkpoint restore from '
+                               f'{checkpoint_step_dir} to finish.')
+  logging.info('Successfully restored GDA checkpoint at %s!',
+               checkpoint_step_dir)
+  return restored_train_state
