@@ -961,8 +961,8 @@ class GPipeTransformerLmTest(test_utils.TestCase):
         p, time, batch, vocab, return_grad=True)
     with self.session() as sess:
       self.evaluate(tf.global_variables_initializer())
-      for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = self.evaluate(grad_x)
+      grads_symbolic = self.evaluate(grads)
+      for x, grad_symbolic in zip(lm_vars, grads_symbolic):
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, delta=1e-6)
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.05)
