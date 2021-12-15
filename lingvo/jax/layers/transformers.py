@@ -674,8 +674,9 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
         mask_dtype=jnp.int32)
 
     aux_loss, combine_tensor, dispatch_tensor, summary = gating
-    over_capacity_1, over_capacity_2 = summary
-    del over_capacity_1, over_capacity_2  # TODO(lepikhin): propagate
+    over_capacity_1_ratio, over_capacity_2_ratio = summary
+    base_layer.add_summary('over_capacity_1_ratio', over_capacity_1_ratio)
+    base_layer.add_summary('over_capacity_2_ratio', over_capacity_2_ratio)
 
     if fprop_dtype != np.float32:
       aux_loss = aux_loss.astype(fprop_dtype)
@@ -1256,6 +1257,8 @@ class StackedTransformer(base_layer.BaseLayer):
 
     if p.enable_while_loop:
 
+      num_blocks = p.num_layers // p.num_layers_per_block
+
       def _stack_vars(*args):
         args = [x[jnp.newaxis, :] for x in args]
         return jnp.vstack(args)
@@ -1313,8 +1316,9 @@ class StackedTransformer(base_layer.BaseLayer):
                                               cross_attention_mask)
           if al_ctx.aux_losses:
             assert isinstance(al_ctx.aux_losses, list)
-            aux_loss = aux_loss + sum(al_ctx.aux_losses).astype(
-                self.fprop_dtype)
+            aux_loss_inc = sum(al_ctx.aux_losses).astype(self.fprop_dtype)
+            base_layer.add_summary('aux_loss_inc', aux_loss_inc)
+            aux_loss = aux_loss + aux_loss_inc
 
         return py_utils.NestedMap(
             x_in=x_out, aux_loss=aux_loss), py_utils.NestedMap()
@@ -1326,8 +1330,17 @@ class StackedTransformer(base_layer.BaseLayer):
           root_layer=self,
           checkpoint_policy=p.checkpoint_policy)
 
-      # TODO(yonghui): unpack summaries to the out-context.
-      del summaries
+      # Now unpack summaries to the out-context.
+      # Q(yonghui): Shall we move summary handling to be within recurrent.scan?
+      for summary_key, summary_value in summaries.items():
+        # unstack summary_value
+        logging.info((summary_key, summary_value))
+        assert summary_value.shape[0] == num_blocks
+        unstacked_values = jnp.split(summary_value, num_blocks)
+        # Q(yonghui): shall we keep the summaries packed instead?
+        for i, v in enumerate(unstacked_values):
+          # TODO(yonghui): Here we assume summaries are all scalar values.
+          base_layer.add_summary(f'{summary_key}/{i}', v)
 
       x_out = carry_final.x_in
       aux_loss_ctx = py_utils.AuxLossContext.Current()
