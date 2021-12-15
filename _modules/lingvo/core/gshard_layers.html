@@ -2273,23 +2273,93 @@
   <span class="k">return</span> <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span></div>
 
 
-<div class="viewcode-block" id="Top2Gating"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Top2Gating">[docs]</a><span class="k">def</span> <span class="nf">Top2Gating</span><span class="p">(</span><span class="n">w</span><span class="p">,</span>
-               <span class="n">inputs</span><span class="p">,</span>
-               <span class="n">paddings</span><span class="p">,</span>
-               <span class="n">num_devices</span><span class="p">,</span>
-               <span class="n">experts_dim</span><span class="p">,</span>
-               <span class="n">expert_capacity_dim</span><span class="p">,</span>
-               <span class="n">local_dispatch</span><span class="p">,</span>
-               <span class="n">fprop_dtype</span><span class="p">,</span>
-               <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-               <span class="n">second_expert_policy</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span>
-               <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-               <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-               <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">mask_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">gating_logits_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Computes Top-2 gating for Mixture-of-Experts.</span>
+<div class="viewcode-block" id="TokenShufflingOnlogits"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.TokenShufflingOnlogits">[docs]</a><span class="k">def</span> <span class="nf">TokenShufflingOnlogits</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span>
+                           <span class="n">logits</span><span class="p">,</span>
+                           <span class="n">experts_dim</span><span class="p">,</span>
+                           <span class="n">fprop_dtype</span><span class="p">,</span>
+                           <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                           <span class="n">mask_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute gating with token shuffling.</span>
+
+<span class="sd">  There are two expected usages of this function:</span>
+
+<span class="sd">  This function implements a token shuffling method where experts select top-k</span>
+<span class="sd">  tokens, instead of letting tokens select experts. The advantage include:</span>
+<span class="sd">  1. Enable variable expert size for each token, as multiple expert can select</span>
+<span class="sd">  the same token. 2. Load balance: Each expert will select the same number of</span>
+<span class="sd">  tokens thus removes the need of auxiliary loss.</span>
+
+<span class="sd">  Dimensions cheat sheet::</span>
+
+<span class="sd">    G: group_dim</span>
+<span class="sd">    S: group_size_dim</span>
+<span class="sd">    E: number of experts</span>
+<span class="sd">    C: capacity per expert</span>
+<span class="sd">    M: model_dim (same as input_dim, same as output_dim)</span>
+<span class="sd">    B: original batch_dim</span>
+<span class="sd">    L: original sequence_length_dim</span>
+
+<span class="sd">  Note that for local_dispatch original batch BLM is reshaped into GSM, each</span>
+<span class="sd">  group `g = 0...G-1` is being dispatched independently.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    inputs: G`SM Tensor.</span>
+<span class="sd">    logits: G`SE Tensor.</span>
+<span class="sd">    experts_dim: number of experts.</span>
+<span class="sd">    fprop_dtype: activations datatype to use.</span>
+<span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
+<span class="sd">      case.</span>
+<span class="sd">    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask</span>
+<span class="sd">      tensors, mask_dtype is a special dtype for such tensors.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple (combine_tensor, dispatch_tensor).</span>
+
+<span class="sd">    - combine_tensor: G`EC Tensor for combining expert outputs.</span>
+<span class="sd">    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to</span>
+<span class="sd">      experts.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">mask_dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">mask_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span>
+  <span class="k">if</span> <span class="n">use_xla_sharding</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Sharding propagation should be sufficient and Splits &#39;</span>
+                       <span class="s1">&#39;within Top2GatingOnLogits are generally redundant.&#39;</span><span class="p">)</span>
+  <span class="k">del</span> <span class="n">inputs</span>  <span class="c1"># inputs is currently not used.</span>
+  <span class="c1"># logits.dtype could be tf.float32</span>
+  <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>  <span class="c1"># along E dim</span>
+  <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+
+  <span class="n">seq_len</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="c1"># number of ffn layers for each expert</span>
+  <span class="n">bucket_size</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="n">experts_dim</span>
+
+  <span class="n">gate</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">k</span><span class="o">=</span><span class="n">bucket_size</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+  <span class="c1"># b x num_experts(k) x bucket_size(c) x seq_len(n)</span>
+  <span class="c1"># GECS</span>
+  <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+  <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">perm</span><span class="p">,</span> <span class="n">gate</span></div>
+
+
+<div class="viewcode-block" id="ComputeGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ComputeGating">[docs]</a><span class="k">def</span> <span class="nf">ComputeGating</span><span class="p">(</span><span class="n">w</span><span class="p">,</span>
+                  <span class="n">inputs</span><span class="p">,</span>
+                  <span class="n">paddings</span><span class="p">,</span>
+                  <span class="n">num_devices</span><span class="p">,</span>
+                  <span class="n">experts_dim</span><span class="p">,</span>
+                  <span class="n">expert_capacity_dim</span><span class="p">,</span>
+                  <span class="n">local_dispatch</span><span class="p">,</span>
+                  <span class="n">fprop_dtype</span><span class="p">,</span>
+                  <span class="n">gating_func</span><span class="o">=</span><span class="s1">&#39;top_2&#39;</span><span class="p">,</span>
+                  <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                  <span class="n">second_expert_policy</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                  <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                  <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                  <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">mask_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">gating_logits_dtype</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes gating for Mixture-of-Experts.</span>
 
 <span class="sd">  See Top2GatingOnLogits for more details.</span>
 
@@ -2298,7 +2368,7 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    w: gating weights for each experts with shape ME. w was reshaped accordingly</span>
-<span class="sd">        if model_dim_reshape_segments is not None,</span>
+<span class="sd">      if model_dim_reshape_segments is not None,</span>
 <span class="sd">    inputs: G`SM Tensor.</span>
 <span class="sd">    paddings: G`S Tensor.</span>
 <span class="sd">    num_devices: number of MoE devices for local dispatch</span>
@@ -2308,8 +2378,9 @@
 <span class="sd">      embedded token or an element of Transformer layer output.</span>
 <span class="sd">    local_dispatch: whether dispatch is local to the group (G dim)</span>
 <span class="sd">    fprop_dtype: activations datatype to use.</span>
+<span class="sd">    gating_func: gating function; can be &#39;top_2&#39;, or &#39;token_shuffle&#39;.</span>
 <span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
-<span class="sd">        case.</span>
+<span class="sd">      case.</span>
 <span class="sd">    second_expert_policy: &#39;all&#39; or &#39;random&#39;, we optionally &#39;random&#39;-ize dispatch</span>
 <span class="sd">      to second-best expert proportional to (weight / second_expert_threshold).</span>
 <span class="sd">    second_expert_threshold: threshold for probability normalization for</span>
@@ -2318,9 +2389,9 @@
 <span class="sd">      expert assignment weights if we go over capacity or randomly decide to not</span>
 <span class="sd">      dispatch to second expert.</span>
 <span class="sd">    capacity_factor: if set, increases expert_capacity_dim to at least</span>
-<span class="sd">      `(group_size * capacity_factor) / experts_dim`</span>
-<span class="sd">      where `group_size` is the size of G dimension of `inputs`. If the</span>
-<span class="sd">      value of expert_capacity_dim is already big enough no change is made.</span>
+<span class="sd">      `(group_size * capacity_factor) / experts_dim` where `group_size` is the</span>
+<span class="sd">      size of G dimension of `inputs`. If the value of expert_capacity_dim is</span>
+<span class="sd">      already big enough no change is made.</span>
 <span class="sd">    model_dim_reshape_segments: none or a list, reshaping model dimension M to</span>
 <span class="sd">      that + [-1]</span>
 <span class="sd">    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask</span>
@@ -2358,11 +2429,18 @@
 
   <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;top1_expert&#39;</span><span class="p">,</span> <span class="n">top1_expert_per_example</span><span class="p">)</span>
 
-  <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">Top2GatingOnLogits</span><span class="p">(</span>
-      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">expert_capacity_dim</span><span class="p">,</span>
-      <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="p">,</span> <span class="n">second_expert_policy</span><span class="p">,</span>
-      <span class="n">second_expert_threshold</span><span class="p">,</span> <span class="n">legacy_mtf_behavior</span><span class="p">,</span> <span class="n">capacity_factor</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-      <span class="n">mask_dtype</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">gating_func</span> <span class="o">==</span> <span class="s1">&#39;token_shuffle&#39;</span><span class="p">:</span>
+    <span class="n">aux_loss</span> <span class="o">=</span> <span class="mi">0</span>  <span class="c1"># We don&#39;t need an aux_loss in this method.</span>
+    <span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">combine_tensor</span> <span class="o">=</span> <span class="n">TokenShufflingOnlogits</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="p">,</span> <span class="n">mask_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">gating_func</span> <span class="o">==</span> <span class="s1">&#39;top_2&#39;</span><span class="p">:</span>
+    <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">Top2GatingOnLogits</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">expert_capacity_dim</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="p">,</span> <span class="n">second_expert_policy</span><span class="p">,</span>
+        <span class="n">second_expert_threshold</span><span class="p">,</span> <span class="n">legacy_mtf_behavior</span><span class="p">,</span> <span class="n">capacity_factor</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">mask_dtype</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Gating function: </span><span class="si">%s</span><span class="s1"> not supported yet!&#39;</span> <span class="o">%</span> <span class="n">gating_func</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="ow">not</span> <span class="n">local_dispatch</span><span class="p">:</span>
     <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
@@ -2374,6 +2452,16 @@
       <span class="n">combine_tensor</span><span class="o">=</span><span class="n">combine_tensor</span><span class="p">,</span>
       <span class="n">dispatch_tensor</span><span class="o">=</span><span class="n">dispatch_tensor</span><span class="p">,</span>
       <span class="n">aux_loss</span><span class="o">=</span><span class="n">aux_loss</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Top2Gating"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Top2Gating">[docs]</a><span class="k">def</span> <span class="nf">Top2Gating</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes Top-2 gating for Mixture-of-Experts.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">ComputeGating</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gating_func</span><span class="o">=</span><span class="s1">&#39;top_2&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TokenShuffleGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.TokenShuffleGating">[docs]</a><span class="k">def</span> <span class="nf">TokenShuffleGating</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes token shuffle based gating for Mixture-of-Experts.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">ComputeGating</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gating_func</span><span class="o">=</span><span class="s1">&#39;token_shuffle&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="FeedForwardNetworksApplyGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.FeedForwardNetworksApplyGating">[docs]</a><span class="k">def</span> <span class="nf">FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="n">gating</span><span class="p">,</span>
@@ -2391,10 +2479,13 @@
                                    <span class="n">egcm_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">gecm_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">gsec_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">gecs_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">gec_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">eah_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">eam_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">model_dim_reshape_segments</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                    <span class="n">use_glu</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                   <span class="n">gating_func</span><span class="o">=</span><span class="s1">&#39;top_2&#39;</span><span class="p">,</span>
                                    <span class="n">activation_name</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Apply top_2 gating to feedforward networks.</span>
 
@@ -2419,10 +2510,13 @@
 <span class="sd">    egcm_split: Mesh split for EGCM tensors.</span>
 <span class="sd">    gecm_split: Mesh split for GECM tensors.</span>
 <span class="sd">    gsec_split: Mesh split for GSEC tensors.</span>
+<span class="sd">    gecs_split: Mesh split for GECS tensors.</span>
+<span class="sd">    gec_split: Mesh split for GEC tensors.</span>
 <span class="sd">    eah_split: Mesh split for EAH tensors.</span>
 <span class="sd">    eam_split: Mesh split for EAM tensors.</span>
 <span class="sd">    model_dim_reshape_segments: Reshaping model dimension M to that + [-1]</span>
 <span class="sd">    use_glu: Whether to use the GLU expert, default to False.</span>
+<span class="sd">    gating_func: Gating function; can be &#39;top_2&#39; or &#39;token_shuffle&#39;.</span>
 <span class="sd">    activation_name: Default: `RELU`. Activation function for feed-forward.</span>
 
 <span class="sd">  Returns:</span>
@@ -2436,6 +2530,8 @@
     <span class="k">assert</span> <span class="n">gsec_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="n">eah_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="n">eam_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">gecs_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">assert</span> <span class="n">gec_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
   <span class="k">def</span> <span class="nf">_Einsum</span><span class="p">(</span><span class="n">eq</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="n">eq</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">model_dim_reshape_segments</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
@@ -2447,11 +2543,18 @@
     <span class="k">return</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
 
   <span class="c1"># dispatch_tensor: G`SEC</span>
+  <span class="n">equation</span> <span class="o">=</span> <span class="s1">&#39;GSEC,GSM-&gt;EGCM&#39;</span>
+  <span class="n">dispatch_tensor_split</span> <span class="o">=</span> <span class="n">gsec_split</span>
+  <span class="k">if</span> <span class="n">gating_func</span> <span class="o">==</span> <span class="s1">&#39;token_shuffle&#39;</span><span class="p">:</span>
+    <span class="c1"># dispatch_tensor: G`ECS</span>
+    <span class="n">equation</span> <span class="o">=</span> <span class="s1">&#39;GECS,GSM-&gt;EGCM&#39;</span>
+    <span class="n">dispatch_tensor_split</span> <span class="o">=</span> <span class="n">gecs_split</span>
   <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_Einsum</span><span class="p">(</span>
-      <span class="s1">&#39;GSEC,GSM-&gt;EGCM&#39;</span><span class="p">,</span>
-      <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">gsec_split</span><span class="p">),</span>
+      <span class="n">equation</span><span class="p">,</span>
+      <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor_split</span><span class="p">),</span>
       <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">gsm_split</span><span class="p">),</span>
       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;expert_inputs_egcm&#39;</span><span class="p">)</span>
+
   <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="n">egcm_split</span><span class="p">)</span>
 
   <span class="c1"># pylint: disable=invalid-name</span>
@@ -2512,11 +2615,20 @@
       <span class="n">expert_outputs</span><span class="p">,</span>
       <span class="n">name</span><span class="o">=</span><span class="s1">&#39;expert_outputs_gecm&#39;</span><span class="p">)</span>
 
-  <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">_Einsum</span><span class="p">(</span>
-      <span class="s1">&#39;GSEC,GECM-&gt;GSM&#39;</span><span class="p">,</span>
-      <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">gsec_split</span><span class="p">),</span>
-      <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="n">gecm_split</span><span class="p">),</span>
-      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;combined_outputs_gsm&#39;</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">gating_func</span> <span class="o">==</span> <span class="s1">&#39;token_shuffle&#39;</span><span class="p">:</span>
+    <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+        <span class="s1">&#39;GECM,GECS,GEC-&gt;GSM&#39;</span><span class="p">,</span>
+        <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="n">gecm_split</span><span class="p">),</span>
+        <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">gecs_split</span><span class="p">),</span>
+        <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">gec_split</span><span class="p">),</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;combined_outputs_gsm&#39;</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">_Einsum</span><span class="p">(</span>
+        <span class="s1">&#39;GSEC,GECM-&gt;GSM&#39;</span><span class="p">,</span>
+        <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">gsec_split</span><span class="p">),</span>
+        <span class="n">_NewOrHistoricSplit</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="n">gecm_split</span><span class="p">),</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;combined_outputs_gsm&#39;</span><span class="p">)</span>
+
   <span class="n">outputs</span> <span class="o">=</span> <span class="n">_NewOrHistoricSplit</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">combined_outputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)),</span> <span class="n">gsm_split</span><span class="p">)</span>
   <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">gating</span><span class="o">.</span><span class="n">aux_loss</span>
