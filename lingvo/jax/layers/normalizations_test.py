@@ -32,6 +32,15 @@ import tensorflow.compat.v2 as tf
 to_np = test_utils.to_np
 
 
+def _JaxToTfDtype(jax_dtype):
+  if jax_dtype == jnp.bfloat16:
+    return tf.bfloat16
+  elif jax_dtype == jax.dtypes.float0:
+    return tf.float32
+  else:
+    return tf.dtypes.as_dtype(jax_dtype)
+
+
 class NormalizationsTest(test_util.JaxTestCase):
 
   def setUp(self):
@@ -209,6 +218,74 @@ class NormalizationsTest(test_util.JaxTestCase):
     self.assertAllClose(bias, np_outputs.mean(), atol=1e-3)
     self.assertAllClose((1.0 + scale)**2, np.var(np_outputs), atol=5e-3)
     self.assertAllClose(tf_np_outputs, np_outputs, atol=6e-5)
+
+  @parameterized.named_parameters(
+      ('_epsilon_1e-3', 4, 2, False, 4, 1e-3, [2, 2, 2, 4], jnp.float32, None,
+       jnp.float32),
+      ('_epsilon_1e-6', 4, 2, False, 4, 1e-6, [2, 2, 2, 4], jnp.float32, None,
+       jnp.float32),
+      ('_f32_input_f32_fprop', 4, 2, False, 4, 1e-3, [2, 2, 2, 4], jnp.float32,
+       [[0, 0], [0, 1]], jnp.float32),
+      ('_bf16_input_f32_fprop', 4, 2, False, 4, 1e-3, [2, 2, 2, 4],
+       jnp.bfloat16, [[0, 0], [0, 1]], jnp.float32),
+      ('_f32_input_bf16_fprop', 4, 2, False, 4, 1e-3, [2, 2, 2, 4], jnp.float32,
+       [[0, 0], [0, 1]], jnp.bfloat16),
+      ('_bf16_input_bf16_fprop', 4, 2, False, 4, 1e-3, [2, 2, 2, 4],
+       jnp.bfloat16, [[0, 0], [0, 1]], jnp.bfloat16),
+      ('_3d_input', 4, 2, False, 3, 1e-3, [2, 2, 4], jnp.float32,
+       [[0, 0], [0, 1]], jnp.float32),
+      ('_4d_input_cumulative_mode', 2, 2, True, 4, 1e-3, [2, 4, 1, 2],
+       jnp.float32, [[0, 0, 0, 0], [0, 0, 0, 0]], jnp.float32),
+      ('_3d_input_cumulative_mode', 2, 2, True, 3, 1e-3, [2, 4, 2], jnp.float32,
+       [[0, 0, 0, 0], [0, 0, 0, 0]], jnp.float32),
+  )
+  def test_group_norm(self, dim, num_groups, cumulative, input_rank, epsilon,
+                      input_shape, input_dtype, paddings, fprop_dtype):
+    p = normalizations.GroupNorm.Params().Set(
+        name='jax_gn',
+        dim=dim,
+        num_groups=num_groups,
+        cumulative=cumulative,
+        input_rank=input_rank,
+        epsilon=epsilon,
+        fprop_dtype=fprop_dtype)
+    group_norm = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123456)
+    prng_key, init_key = jax.random.split(prng_key)
+    initial_vars = group_norm.instantiate_variables(init_key)
+    npy_input = np.random.normal(1.0, 0.5, input_shape).astype(np.float32)
+    inputs = jnp.asarray(npy_input, dtype=input_dtype)
+    if paddings is None:
+      output = group_norm.fprop(initial_vars, inputs, paddings=None)
+    else:
+      output, output_paddings = group_norm.fprop(
+          initial_vars,
+          inputs,
+          paddings=jnp.asarray(paddings, dtype=input_dtype))
+
+    # Now test whether tf layer norm returns same output.
+    tf_p = bn_layers.GroupNormLayer.Params().Set(
+        name='tf_gn',
+        dim=dim,
+        num_groups=num_groups,
+        cumulative=cumulative,
+        input_rank=input_rank,
+        epsilon=epsilon,
+        fprop_dtype=_JaxToTfDtype(fprop_dtype))
+    tf_group_norm = tf_p.Instantiate()
+    tf_inputs = tf.constant(inputs, dtype=_JaxToTfDtype(input_dtype))
+    if paddings is None:
+      tf_output = tf_group_norm.FProp(initial_vars, tf_inputs, paddings=None)
+    else:
+      tf_output, tf_output_paddings = tf_group_norm.FProp(
+          initial_vars,
+          tf_inputs,
+          paddings=tf.convert_to_tensor(
+              paddings, dtype=_JaxToTfDtype(input_dtype)))
+
+    self.assertAllClose(to_np(tf_output), to_np(output))
+    if paddings is not None:
+      self.assertAllClose(to_np(tf_output_paddings), to_np(output_paddings))
 
 
 if __name__ == '__main__':

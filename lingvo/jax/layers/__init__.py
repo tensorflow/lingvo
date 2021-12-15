@@ -53,6 +53,7 @@ from lingvo.jax.layers.ngrammer import VQNgrammer
 
 from lingvo.jax.layers.normalizations import BatchNorm
 from lingvo.jax.layers.normalizations import compute_moments
+from lingvo.jax.layers.normalizations import GroupNorm
 from lingvo.jax.layers.normalizations import LayerNorm
 
 from lingvo.jax.layers.pipeline import LayerwiseShardablePipelined

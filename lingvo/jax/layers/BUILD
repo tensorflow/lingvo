@@ -153,6 +153,7 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         # Implicit jax dependency.
+        "//lingvo/jax:asserts",
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
