@@ -2755,7 +2755,7 @@
     <span class="k">return</span> <span class="n">tape</span><span class="o">.</span><span class="n">gradient</span><span class="p">(</span>
         <span class="n">loss_or_activations</span><span class="p">,</span>
         <span class="n">all_vars</span><span class="p">,</span>
-        <span class="n">unconnected_gradients</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">UnconnectedGradients</span><span class="o">.</span><span class="n">ZERO</span><span class="p">)</span>
+        <span class="n">unconnected_gradients</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">UnconnectedGradients</span><span class="o">.</span><span class="n">NONE</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span>
       <span class="n">loss_or_activations</span><span class="p">,</span>
@@ -3956,6 +3956,7 @@
 
 
 <div class="viewcode-block" id="_TransformAndSum"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._TransformAndSum">[docs]</a><span class="k">def</span> <span class="nf">_TransformAndSum</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">,</span> <span class="n">transform</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Apply a transform then sum the list.&quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;TransformAndSum&#39;</span><span class="p">):</span>
     <span class="n">sum_transform</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensor_list</span><span class="p">:</span>
@@ -3964,6 +3965,8 @@
           <span class="n">sum_transform</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">transform</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">values</span><span class="p">))]</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">sum_transform</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">transform</span><span class="p">(</span><span class="n">t</span><span class="p">))]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">sum_transform</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">sum_transform</span><span class="p">)</span></div>
 
 
