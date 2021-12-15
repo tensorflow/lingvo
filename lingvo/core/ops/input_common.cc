@@ -44,6 +44,7 @@ std::vector<BasicRecordYielder::Options> CreatePerFileYielderOptions(
     const std::vector<string>& file_patterns,
     const BasicRecordYielder::Options& yopts_tpl) {
   std::vector<BasicRecordYielder::Options> yielder_options;
+  yielder_options.reserve(file_patterns.size());
 
   for (int i = 0; i < file_patterns.size(); ++i) {
     BasicRecordYielder::Options yopts(yopts_tpl);
