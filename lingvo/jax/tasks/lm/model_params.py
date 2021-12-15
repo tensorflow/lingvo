@@ -259,6 +259,7 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
   LEARNING_RATE = 1e-3
   WEIGHT_DECAY = 1e-3
   ENABLE_WHILE_LOOP = True
+  ACTIVATION_FUNCTION = 'RELU'
 
   PACKED_INPUT = True
   ATTEN_LOGIT_CAP = 50.0
@@ -282,6 +283,7 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
         model_p.lm.stacked_transformer_tpl.transformer_layer_params_tpl)
     transformer_layer_p.tr_atten_tpl.atten_logit_cap = self.ATTEN_LOGIT_CAP
     transformer_layer_p.tr_atten_tpl.use_bias = self.USE_BIAS
+    transformer_layer_p.tr_fflayer_tpl.activation = self.ACTIVATION_FUNCTION
     softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(self.MODEL_DIMS))
     model_p.lm.softmax_tpl.params_init = softmax_init
 
