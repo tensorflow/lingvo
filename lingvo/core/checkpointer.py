@@ -512,9 +512,8 @@ class EagerCheckpointerV1(_EagerCheckpointer):
 
     assert not self._save_only
     tf.logging.info('Load from checkpoint (V1) %s.', checkpoint_path)
-    load_status = self._saver.restore(sess=None, save_path=checkpoint_path)
-    # Check all model vars are matched from the checkpoint
-    load_status.assert_existing_objects_matched()
+    self._saver.restore(sess=None, save_path=checkpoint_path)
+    # TODO(panzf): Check all model vars are matched from the checkpoint
     tf.logging.info('Load checkpoint done.')
 
   def Save(self, sess=None, gsteps=None):
