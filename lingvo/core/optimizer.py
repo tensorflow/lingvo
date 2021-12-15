@@ -106,6 +106,10 @@ class Base(base_layer.BaseLayer):
       self._optimizer = self.GetOptimizer(lr)
 
     def _Apply():
+      if not var_grad.Flatten():
+        tf.logging.warning('No gradients are available for optimizer.Apply(). '
+                           'Make sure this is expected.')
+        return tf.no_op()
       if self.params.use_bf16_gradients_ar:
         return self._optimizer.apply_gradients(
             [(tf.cast(g, tf.float32), v) for (v, g) in var_grad.Flatten()],

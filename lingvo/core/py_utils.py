@@ -2690,7 +2690,7 @@ def ComputeGradientsSimple(loss_or_activations,
     return tape.gradient(
         loss_or_activations,
         all_vars,
-        unconnected_gradients=tf.UnconnectedGradients.ZERO)
+        unconnected_gradients=tf.UnconnectedGradients.NONE)
 
   return tf.gradients(
       loss_or_activations,
@@ -3891,6 +3891,7 @@ def clip_by_value(t, clip_value_min, clip_value_max, name=None):  # pylint: disa
 
 
 def _TransformAndSum(tensor_list, transform):
+  """Apply a transform then sum the list."""
   with tf.name_scope('TransformAndSum'):
     sum_transform = []
     for t in tensor_list:
@@ -3899,6 +3900,8 @@ def _TransformAndSum(tensor_list, transform):
           sum_transform += [tf.reduce_sum(transform(t.values))]
         else:
           sum_transform += [tf.reduce_sum(transform(t))]
+    if not sum_transform:
+      return tf.constant(0.0)
     return tf.add_n(sum_transform)
 
 
