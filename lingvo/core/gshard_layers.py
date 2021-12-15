@@ -2208,23 +2208,93 @@ def Top2GatingOnLogits(inputs,
   return aux_loss, combine_tensor, dispatch_tensor
 
 
-def Top2Gating(w,
-               inputs,
-               paddings,
-               num_devices,
-               experts_dim,
-               expert_capacity_dim,
-               local_dispatch,
-               fprop_dtype,
-               use_xla_sharding=True,
-               second_expert_policy='all',
-               second_expert_threshold=0.0,
-               legacy_mtf_behavior=True,
-               capacity_factor=None,
-               model_dim_reshape_segments=None,
-               mask_dtype=None,
-               gating_logits_dtype=None):
-  """Computes Top-2 gating for Mixture-of-Experts.
+def TokenShufflingOnlogits(inputs,
+                           logits,
+                           experts_dim,
+                           fprop_dtype,
+                           use_xla_sharding=True,
+                           mask_dtype=None):
+  """Compute gating with token shuffling.
+
+  There are two expected usages of this function:
+
+  This function implements a token shuffling method where experts select top-k
+  tokens, instead of letting tokens select experts. The advantage include:
+  1. Enable variable expert size for each token, as multiple expert can select
+  the same token. 2. Load balance: Each expert will select the same number of
+  tokens thus removes the need of auxiliary loss.
+
+  Dimensions cheat sheet::
+
+    G: group_dim
+    S: group_size_dim
+    E: number of experts
+    C: capacity per expert
+    M: model_dim (same as input_dim, same as output_dim)
+    B: original batch_dim
+    L: original sequence_length_dim
+
+  Note that for local_dispatch original batch BLM is reshaped into GSM, each
+  group `g = 0...G-1` is being dispatched independently.
+
+  Args:
+    inputs: G`SM Tensor.
+    logits: G`SE Tensor.
+    experts_dim: number of experts.
+    fprop_dtype: activations datatype to use.
+    use_xla_sharding: bool, True if this function is used for the xla_sharding
+      case.
+    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
+      tensors, mask_dtype is a special dtype for such tensors.
+
+  Returns:
+    A tuple (combine_tensor, dispatch_tensor).
+
+    - combine_tensor: G`EC Tensor for combining expert outputs.
+    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to
+      experts.
+  """
+  if mask_dtype is None:
+    mask_dtype = fprop_dtype
+  if use_xla_sharding:
+    tf.logging.warning('Sharding propagation should be sufficient and Splits '
+                       'within Top2GatingOnLogits are generally redundant.')
+  del inputs  # inputs is currently not used.
+  # logits.dtype could be tf.float32
+  scores = tf.nn.softmax(logits)  # along E dim
+  scores = tf.cast(scores, tf.bfloat16)
+
+  seq_len = logits.shape[1]
+  # number of ffn layers for each expert
+  bucket_size = seq_len // experts_dim
+
+  gate, indices = tf.math.top_k(
+      tf.transpose(scores, [0, 2, 1]), k=bucket_size, sorted=False)
+  # b x num_experts(k) x bucket_size(c) x seq_len(n)
+  # GECS
+  perm = tf.one_hot(indices, seq_len)
+  perm = tf.cast(perm, tf.bfloat16)
+  return perm, gate
+
+
+def ComputeGating(w,
+                  inputs,
+                  paddings,
+                  num_devices,
+                  experts_dim,
+                  expert_capacity_dim,
+                  local_dispatch,
+                  fprop_dtype,
+                  gating_func='top_2',
+                  use_xla_sharding=True,
+                  second_expert_policy='all',
+                  second_expert_threshold=0.0,
+                  legacy_mtf_behavior=True,
+                  capacity_factor=None,
+                  model_dim_reshape_segments=None,
+                  mask_dtype=None,
+                  gating_logits_dtype=None):
+  """Computes gating for Mixture-of-Experts.
 
   See Top2GatingOnLogits for more details.
 
@@ -2233,7 +2303,7 @@ def Top2Gating(w,
 
   Args:
     w: gating weights for each experts with shape ME. w was reshaped accordingly
-        if model_dim_reshape_segments is not None,
+      if model_dim_reshape_segments is not None,
     inputs: G`SM Tensor.
     paddings: G`S Tensor.
     num_devices: number of MoE devices for local dispatch
@@ -2243,8 +2313,9 @@ def Top2Gating(w,
       embedded token or an element of Transformer layer output.
     local_dispatch: whether dispatch is local to the group (G dim)
     fprop_dtype: activations datatype to use.
+    gating_func: gating function; can be 'top_2', or 'token_shuffle'.
     use_xla_sharding: bool, True if this function is used for the xla_sharding
-        case.
+      case.
     second_expert_policy: 'all' or 'random', we optionally 'random'-ize dispatch
       to second-best expert proportional to (weight / second_expert_threshold).
     second_expert_threshold: threshold for probability normalization for
@@ -2253,9 +2324,9 @@ def Top2Gating(w,
       expert assignment weights if we go over capacity or randomly decide to not
       dispatch to second expert.
     capacity_factor: if set, increases expert_capacity_dim to at least
-      `(group_size * capacity_factor) / experts_dim`
-      where `group_size` is the size of G dimension of `inputs`. If the
-      value of expert_capacity_dim is already big enough no change is made.
+      `(group_size * capacity_factor) / experts_dim` where `group_size` is the
+      size of G dimension of `inputs`. If the value of expert_capacity_dim is
+      already big enough no change is made.
     model_dim_reshape_segments: none or a list, reshaping model dimension M to
       that + [-1]
     mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
@@ -2293,11 +2364,18 @@ def Top2Gating(w,
 
   tpu_summary.tensor('top1_expert', top1_expert_per_example)
 
-  aux_loss, combine_tensor, dispatch_tensor = Top2GatingOnLogits(
-      inputs, paddings, logits, num_devices, experts_dim, expert_capacity_dim,
-      fprop_dtype, use_xla_sharding, second_expert_policy,
-      second_expert_threshold, legacy_mtf_behavior, capacity_factor, None,
-      mask_dtype)
+  if gating_func == 'token_shuffle':
+    aux_loss = 0  # We don't need an aux_loss in this method.
+    dispatch_tensor, combine_tensor = TokenShufflingOnlogits(
+        inputs, logits, experts_dim, fprop_dtype, use_xla_sharding, mask_dtype)
+  elif gating_func == 'top_2':
+    aux_loss, combine_tensor, dispatch_tensor = Top2GatingOnLogits(
+        inputs, paddings, logits, num_devices, experts_dim, expert_capacity_dim,
+        fprop_dtype, use_xla_sharding, second_expert_policy,
+        second_expert_threshold, legacy_mtf_behavior, capacity_factor, None,
+        mask_dtype)
+  else:
+    raise ValueError('Gating function: %s not supported yet!' % gating_func)
 
   if not local_dispatch:
     dispatch_tensor = tf.reshape(
@@ -2309,6 +2387,16 @@ def Top2Gating(w,
       combine_tensor=combine_tensor,
       dispatch_tensor=dispatch_tensor,
       aux_loss=aux_loss)
+
+
+def Top2Gating(*args, **kargs):
+  """Computes Top-2 gating for Mixture-of-Experts."""
+  return ComputeGating(*args, gating_func='top_2', **kargs)
+
+
+def TokenShuffleGating(*args, **kargs):
+  """Computes token shuffle based gating for Mixture-of-Experts."""
+  return ComputeGating(*args, gating_func='token_shuffle', **kargs)
 
 
 def FeedForwardNetworksApplyGating(gating,
@@ -2326,10 +2414,13 @@ def FeedForwardNetworksApplyGating(gating,
                                    egcm_split=None,
                                    gecm_split=None,
                                    gsec_split=None,
+                                   gecs_split=None,
+                                   gec_split=None,
                                    eah_split=None,
                                    eam_split=None,
                                    model_dim_reshape_segments=None,
                                    use_glu=False,
+                                   gating_func='top_2',
                                    activation_name='RELU'):
   """Apply top_2 gating to feedforward networks.
 
@@ -2354,10 +2445,13 @@ def FeedForwardNetworksApplyGating(gating,
     egcm_split: Mesh split for EGCM tensors.
     gecm_split: Mesh split for GECM tensors.
     gsec_split: Mesh split for GSEC tensors.
+    gecs_split: Mesh split for GECS tensors.
+    gec_split: Mesh split for GEC tensors.
     eah_split: Mesh split for EAH tensors.
     eam_split: Mesh split for EAM tensors.
     model_dim_reshape_segments: Reshaping model dimension M to that + [-1]
     use_glu: Whether to use the GLU expert, default to False.
+    gating_func: Gating function; can be 'top_2' or 'token_shuffle'.
     activation_name: Default: `RELU`. Activation function for feed-forward.
 
   Returns:
@@ -2371,6 +2465,8 @@ def FeedForwardNetworksApplyGating(gating,
     assert gsec_split is not None
     assert eah_split is not None
     assert eam_split is not None
+    assert gecs_split is not None
+    assert gec_split is not None
 
   def _Einsum(eq, x, y, name=None):
     return EinsumWithModelDim(eq, x, y, model_dim_reshape_segments, name)
@@ -2382,11 +2478,18 @@ def FeedForwardNetworksApplyGating(gating,
     return gshard_utils.Split(t, 0, num_devices)
 
   # dispatch_tensor: G`SEC
+  equation = 'GSEC,GSM->EGCM'
+  dispatch_tensor_split = gsec_split
+  if gating_func == 'token_shuffle':
+    # dispatch_tensor: G`ECS
+    equation = 'GECS,GSM->EGCM'
+    dispatch_tensor_split = gecs_split
   expert_inputs = _Einsum(
-      'GSEC,GSM->EGCM',
-      _NewOrHistoricSplit(gating.dispatch_tensor, gsec_split),
+      equation,
+      _NewOrHistoricSplit(gating.dispatch_tensor, dispatch_tensor_split),
       _NewOrHistoricSplit(reshaped_inputs, gsm_split),
       name='expert_inputs_egcm')
+
   expert_inputs = _NewOrHistoricSplit(expert_inputs, egcm_split)
 
   # pylint: disable=invalid-name
@@ -2447,11 +2550,20 @@ def FeedForwardNetworksApplyGating(gating,
       expert_outputs,
       name='expert_outputs_gecm')
 
-  combined_outputs = _Einsum(
-      'GSEC,GECM->GSM',
-      _NewOrHistoricSplit(gating.combine_tensor, gsec_split),
-      _NewOrHistoricSplit(expert_outputs, gecm_split),
-      name='combined_outputs_gsm')
+  if gating_func == 'token_shuffle':
+    combined_outputs = tf.einsum(
+        'GECM,GECS,GEC->GSM',
+        _NewOrHistoricSplit(expert_outputs, gecm_split),
+        _NewOrHistoricSplit(gating.dispatch_tensor, gecs_split),
+        _NewOrHistoricSplit(gating.combine_tensor, gec_split),
+        name='combined_outputs_gsm')
+  else:
+    combined_outputs = _Einsum(
+        'GSEC,GECM->GSM',
+        _NewOrHistoricSplit(gating.combine_tensor, gsec_split),
+        _NewOrHistoricSplit(expert_outputs, gecm_split),
+        name='combined_outputs_gsm')
+
   outputs = _NewOrHistoricSplit(
       tf.reshape(combined_outputs, py_utils.GetShape(inputs)), gsm_split)
   aux_loss = gating.aux_loss

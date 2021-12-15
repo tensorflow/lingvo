@@ -225,6 +225,8 @@ class MoEBuilder(builder.Base):
     p.Define('model_dim_reshape_segments', None,
              'Size of N when reshaping model dimension M to Nm')
     p.Define('use_xla_dynamic_update_slice', True, 'internal optimization')
+    p.Define('gating_func', 'top_2',
+             'Gating function. Can be top_2 or token_shuffle')
     return p
 
   @classmethod
@@ -1769,11 +1771,11 @@ class MoEBuilder(builder.Base):
                       init=py_utils.WeightInit.Uniform(init_scale),
                       dtype=p.dtype))])
 
-  def _ComputeTopKGating(self, name):
+  def _ComputeGating(self, name):
     p = self.params
 
     def _Compute(w, inputs, paddings):
-      return gshard_layers.Top2Gating(
+      return gshard_layers.ComputeGating(
           w=w,
           inputs=inputs,
           paddings=paddings,
@@ -1788,12 +1790,12 @@ class MoEBuilder(builder.Base):
           # We rely on sharding propagation here, Top2Gating is done
           # independently for each group and inputs are typically sharded by
           # group dimension.
+          gating_func=p.gating_func,
           use_xla_sharding=False,
           second_expert_policy=p.second_expert_policy,
           second_expert_threshold=p.second_expert_threshold,
           legacy_mtf_behavior=p.legacy_mtf_behavior,
           capacity_factor=p.capacity_factor)
-
     return self._Fn(name, _Compute)
 
   def _ShardedFeedForwardNetworksWeights(self, name):
@@ -1853,6 +1855,8 @@ class MoEBuilder(builder.Base):
           egcm_split=self._AdjustMSplitByName('egcm_split'),
           gecm_split=self._AdjustMSplitByName('gecm_split'),
           gsec_split=self._AdjustMSplitByName('gsec_split'),
+          gecs_split=self._AdjustMSplitByName('gecs_split'),
+          gec_split=self._AdjustMSplitByName('gec_split'),
           eah_split=self._AdjustMSplitByName('eah_split'),
           eam_split=self._AdjustMSplitByName('eam_split'),
           activation_name=p.moe_activation)
@@ -1874,7 +1878,7 @@ class MoEBuilder(builder.Base):
         ('inputs,segment_id->reshaped_inputs, paddings', reshape_input),
         ('->gw', self._Top2GatingWeights('top_2_gating')),
         ('gw,reshaped_inputs,paddings->gating',
-         self._ComputeTopKGating('compute_gating')),
+         self._ComputeGating('compute_gating')),
         ('gating,inputs,reshaped_inputs,wi,wo->outputs,aux_loss',
          self._FeedForwardNetworksApplyGating('process_gating')))
 
@@ -1958,6 +1962,9 @@ class DenseBuilder(MoEBuilder):
     p.Define('egcm_split', [0, -1, -1, -1], 'Mesh split for EGCM.')
     p.Define('gecm_split', [0, -1, -1, -1], 'Mesh split for GECM.')
     p.Define('gsec_split', [0, -1, -1, -1], 'Mesh split for GSEC.')
+    # dispatch_tensor_split for token shuffle gating.
+    p.Define('gecs_split', [0, -1, -1, -1], 'Mesh split for GECS.')
+    p.Define('gec_split', [0, -1, -1], 'Mesh split for GEC.')
     p.Define('eah_split', [0, -1, -1], 'Mesh split for EAH.')
     p.Define('eam_split', [0, -1, -1], 'Mesh split for EAM.')
     p.Define('emh_split', [0, -1, -1], 'Mesh split for EMH.')
@@ -2172,7 +2179,7 @@ class DenseBuilder(MoEBuilder):
         ('wo->wo_reshaped',
          self._Fn('reshape_wo', fn=lambda x: self._ReshapeM(x, 2))),
         ('gw_reshaped,reshaped_inputs,paddings->gating',
-         self._ComputeTopKGating('compute_gating')),
+         self._ComputeGating('compute_gating')),
         ('gating,inputs,reshaped_inputs,wi_reshaped,wo_reshaped'
          '->outputs,aux_loss',
          self._FeedForwardNetworksApplyGating('process_gating')))
@@ -2220,11 +2227,6 @@ class DenseBuilder(MoEBuilder):
     return super().DecSelfAttention(name, self._device_mesh,
                                     self.params.mhd_w_split,
                                     self._attention_output_hdm_w_split)
-
-  def DecMultiDconvHeadAttention(self, name):
-    return super().DecMultiDconvHeadAttention(
-        name, self._device_mesh, self.params.mhd_w_split,
-        self._attention_output_hdm_w_split)
 
   def SelfAttentionRelativeBias(self, name):
     return super().SelfAttentionRelativeBias(name, self._device_mesh,
@@ -2682,6 +2684,8 @@ class DenseBuilder(MoEBuilder):
           egcm_split=self._AdjustMSplitByName('egcm_split'),
           gecm_split=self._AdjustMSplitByName('gecm_split'),
           gsec_split=self._AdjustMSplitByName('gsec_split'),
+          gecs_split=self._AdjustMSplitByName('gecs_split'),
+          gec_split=self._AdjustMSplitByName('gec_split'),
           eah_split=self._AdjustMSplitByName('eah_split'),
           eam_split=self._AdjustMSplitByName('eam_split'),
           use_glu=True,
@@ -2701,7 +2705,7 @@ class DenseBuilder(MoEBuilder):
         ('wo->wo_reshaped',
          self._Fn('reshape_wo', fn=lambda x: self._ReshapeM(x, 2))),
         ('gw_reshaped,reshaped_inputs,paddings->gating',
-         self._ComputeTopKGating('compute_gating')),
+         self._ComputeGating('compute_gating')),
         ('gating,inputs,reshaped_inputs,wi0_reshaped,wi1_reshaped,wo_reshaped'
          '->outputs,aux_loss', self._Fn('process_gating', _GLUApplyGating)))
 
