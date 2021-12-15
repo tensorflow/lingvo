@@ -268,6 +268,37 @@ def get_fan_in_fan_out(
     return fan_in, fan_out
 
 
+def scaled_orthogonal(key: JTensor,
+                      shape: Sequence[int],
+                      dtype: jnp.dtype = jnp.float32):
+  """Scaled orthogonal initialization."""
+  scale = max(np.sqrt(float(shape[-2]) / shape[-1]), 1)
+  ortho_init = jax.nn.initializers.orthogonal(
+      scale=scale, column_axis=-1, dtype=dtype)
+  return ortho_init(key, shape)
+
+
+def scaled_delta_orthogonal(key: JTensor,
+                            shape: Sequence[int],
+                            dtype: jnp.dtype = jnp.float32):
+  """Delta orthogonal kernels; see arXiv:1806.05393 / arxiv:2110.01765."""
+  if len(shape) not in [3, 4, 5]:
+    raise ValueError(
+        'Delta orthogonal initializer requires a 3D, 4D or 5D shape.')
+  ortho_matrix = scaled_orthogonal(key, shape[-2:], dtype=dtype)
+  w = jnp.zeros(shape, dtype=dtype)
+  if len(shape) == 3:
+    k = shape[0]
+    return w.at[(k - 1) // 2, ...].set(ortho_matrix)
+  elif len(shape) == 4:
+    k1, k2 = shape[:2]
+    return w.at[(k1 - 1) // 2, (k2 - 1) // 2, ...].set(ortho_matrix)
+  else:
+    k1, k2, k3 = shape[:3]
+    return w.at[(k1 - 1) // 2, (k2 - 1) // 2, (k3 - 1) // 2,
+                ...].set(ortho_matrix)
+
+
 def init_var(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
   """Creates an initial value of a var."""
   method = var_p.init.method
@@ -292,6 +323,10 @@ def init_var(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
     logging.warning(
         'WARNING!!! var %s is using the default xavier initializer.'
         ' Make sure this is intended.', var_full_name)
+
+  if method in ['delta_orthogonal']:
+    if len(shape) < 2:
+      logging.warning('WARNING!! Delta orthogonal applied to 0/1D vars.')
 
   if (method in [
       'gaussian_sqrt_dim', 'uniform_sqrt_dim', 'truncated_gaussian_sqrt_dim'
@@ -319,6 +354,13 @@ def init_var(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
   name_hash = generate_seed_from_name(var_full_name)
   prng_key = jax.random.fold_in(prng_key, name_hash)
 
+  if method in ['delta_orthogonal']:
+    if len(shape) <= 2:
+      return scale * jrandom.normal(prng_key, final_shape, init_dtype)
+    elif len(shape) == 2:
+      return scaled_orthogonal(prng_key, final_shape, init_dtype)
+    else:
+      return scaled_delta_orthogonal(prng_key, final_shape, init_dtype)
   if method in [
       'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
       'gaussian_sqrt_fanout', 'gaussian_sqrt_fanavg'
