@@ -19,22 +19,38 @@ from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 
+import numpy as np
 
 # Supported activation functions.
 _ACTIVATIONS = {
-    'RELU': tf.nn.relu,
-    'RELU6': tf.nn.relu6,
-    'LEAKY_RELU': tf.nn.leaky_relu,
-    'SIGMOID': tf.sigmoid,
-    'TANH': tf.tanh,
-    'GELU': tf.nn.gelu,
-    'GELU_APPROXIMATE': lambda x: tf.nn.gelu(x, approximate=True),
-    'SWISH': tf.nn.swish,
-    'SOFTPLUS': tf.nn.softplus,
+    'RELU':
+        tf.nn.relu,
+    'RELU6':
+        tf.nn.relu6,
+    'LEAKY_RELU':
+        tf.nn.leaky_relu,
+    'SIGMOID':
+        tf.sigmoid,
+    'TANH':
+        tf.tanh,
+    'GELU':
+        tf.nn.gelu,
+    'GELU_APPROXIMATE':
+        lambda x: tf.nn.gelu(x, approximate=True),
+    'GELU_RAW':
+        lambda x: 0.5 * x * (  # pylint: disable=g-long-lambda
+            1 + tf.tanh(np.sqrt(2 / np.pi) * (x + 0.044715 * tf.pow(x, 3)))),
+    'SWISH':
+        tf.nn.swish,
+    'SOFTPLUS':
+        tf.nn.softplus,
     # Squared ReLU from the Primer paper: https://arxiv.org/abs/2109.08668
-    'SQUARED_RELU': lambda x: tf.math.square(tf.nn.relu(x)),
-    'SILU': tf.nn.silu,
-    'NONE': tf.identity,
+    'SQUARED_RELU':
+        lambda x: tf.math.square(tf.nn.relu(x)),
+    'SILU':
+        tf.nn.silu,
+    'NONE':
+        tf.identity,
 }
 
 _ACTIVATIONS_FLOPS = {
@@ -51,6 +67,7 @@ _ACTIVATIONS_FLOPS = {
     # Gelu is tough, let's assume it is
     # .5 * x * (1 + tanh(x * 0.7978845608 * (1 + 0.044715 * x * x)))
     'GELU': 15,  # mul, mul, add, tanh, mul, mul, add, mul, mul
+    'GELU_RAW': 15,  # same as GELU
     # Or approximated as x * sigmoid(1.702 * x).
     'GELU_APPROXIMATE': 6,  # mul, sigmoid, mul
     # x * sigmoid(x)

@@ -4321,6 +4321,10 @@ class LayerNorm(base_layer.BaseLayer):
     p.Define('center', True,
              'Whether to subtract the mean when computing variance.')
     p.Define('use_defun', True, 'Whether to use CallDefun for normalization.')
+    p.Define(
+        'use_batch_norm_backend', False,
+        'Whether to use the implementation based on '
+        'tf.nn.batch_normalization.')
     return p
 
   def __init__(self, params):
@@ -4399,6 +4403,20 @@ class LayerNorm(base_layer.BaseLayer):
             (inputs - mean) * tf.math.rsqrt(variance + p.epsilon),
             dtype=scale.dtype)
         return inputs_norm * scale + cur_bias
+
+      if p.use_batch_norm_backend:
+        # Calculate the moments on the last axis (layer activations).
+        mean, variance = tf.nn.moments(inputs, -1, keepdims=True)
+
+        # Compute layer normalization using the batch_normalization function.
+        output = tf.nn.batch_normalization(
+            inputs,
+            mean,
+            variance,
+            offset=cur_bias,
+            scale=scale,
+            variance_epsilon=p.epsilon)
+        return output
 
       def Normalize(xs):
         """Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift."""

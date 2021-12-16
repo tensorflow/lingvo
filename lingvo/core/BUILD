@@ -23,6 +23,7 @@ py_library(
         ":py_utils",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
     ],
 )
 
