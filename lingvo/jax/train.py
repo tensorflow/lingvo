@@ -123,7 +123,7 @@ def train_and_evaluate_pmap(
   logging.info('Using pmap for data parallelism.')
   if jax.config.jax_parallel_functions_output_gda:
     raise NotImplementedError(
-        'jax.pmap does not yet support GloballyShardedArray')
+        'jax.pmap does not yet support GlobalDeviceArray.')
   jax_model = model_p.Instantiate()
 
   train_input_pipeline = train_input_p.Instantiate()
