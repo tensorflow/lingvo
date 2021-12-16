@@ -275,11 +275,13 @@ def _extract_nested_prefix_names(
           right_separator=right_separator))
 
 
-def _mkdir_path(name, tmp_dir):
+def _mkdir_path(name: str, tmp_dir: str) -> str:
   # Tensorstore does not want a trailing / in dirname.
   path = os.path.join(tmp_dir, name).rstrip('/')
-  # Avoid recursively create parent dir.
-  tf.io.gfile.mkdir(path)
+  # Make the paths only on process 0.
+  if jax.process_index() == 0:
+    # Avoid recursively create parent dir.
+    tf.io.gfile.mkdir(path)
   return path
 
 
@@ -336,32 +338,29 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
 
   checkpoint_step_dir = _make_checkpoint_step_dir(checkpoint_dir, step)
   checkpoint_step_tmp_dir = _make_tmp_checkpoint_dir(checkpoint_dir, step)
-  if jax.process_index() == 0:
-    # Create the tmp parent dir.
-    tf.io.gfile.makedirs(checkpoint_step_tmp_dir)
-  # Note we must barrier across all processes after the directory creation.
-  py_utils.sync_global_devices('Wait for checkpoint tmp dir creation '
-                               f'{checkpoint_step_tmp_dir} to finish.')
-
   logging.info('Saving to a tmp checkpoint dir %s', checkpoint_step_tmp_dir)
 
   nested_names = _extract_nested_prefix_names(train_state)
   flattened_nested_names, _ = jax.tree_util.tree_flatten(nested_names)
 
+  if jax.process_index() == 0:
+    # Create the tmp parent dir.
+    tf.io.gfile.makedirs(checkpoint_step_tmp_dir)
+
   with futures.ThreadPoolExecutor() as executor:
     ckpt_paths = list(
         executor.map(_mkdir_path, flattened_nested_names,
                      [checkpoint_step_tmp_dir] * len(flattened_nested_names)))
+  py_utils.sync_global_devices('Wait for checkpoint tmp dir and subdirs '
+                               f'creation {checkpoint_step_tmp_dir} to finish.')
 
   tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
-
   leaves, _ = jax.tree_util.tree_flatten(train_state)
 
   async def run_serializer():
     future_writer = jax.tree_map(gda_serialization.async_serialize, ckpt_paths,
                                  leaves, tspecs)
     return await asyncio.gather(*future_writer)
-
   asyncio.run(run_serializer())
 
   # Note we must barrier across all processes before the directory rename.
