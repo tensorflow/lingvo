@@ -1030,28 +1030,40 @@
       <span class="c1"># Outermost layer just finished InstantiateVariables.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyVarsAndTheta</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Create variables for child layers.</span>
+<div class="viewcode-block" id="BaseLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+    <span class="sd">&quot;&quot;&quot;Override the variable scope for individual children.</span>
 
-<span class="sd">    Should be rarely overridden, only in cases when control over the context of</span>
-<span class="sd">    children InstantiateVariables calls are needed. eg, if children variables</span>
-<span class="sd">    need to be created inside of a specific context manager.</span>
+<span class="sd">    Should only be overridden for backwards compatibility with old checkpoints.</span>
 
-<span class="sd">    There are a few cases of this in the codebase marked as for backwards</span>
-<span class="sd">    compatibility. This is only to ensure that variable scopes remain compatible</span>
-<span class="sd">    through the code migration. New layers should not copy that pattern, and</span>
-<span class="sd">    instead follow the standard pattern of self.CreateChild() in __init__() and</span>
-<span class="sd">    self.CreateVariable() in _CreateLayerVariables(). If you are okay with</span>
-<span class="sd">    breaking old checkpoints, you can go ahead and delete those functions.</span>
+<span class="sd">    By default, all children will be created in tf.variable_scope(p.name) of</span>
+<span class="sd">    this layer. This can be overridden by providing a list of variable scopes</span>
+<span class="sd">    keyed by a child name.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dict mapping child names to a list of variable scopes to apply.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SelfVariableScope</span><span class="p">():</span>
-      <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">child</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>  <span class="c1"># pylint: disable=protected-access</span>
-          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-              <span class="s1">&#39;Variable free layer </span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">) child </span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">) has variables.&#39;</span> <span class="o">%</span>
-              <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-               <span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">))</span>
-        <span class="n">child</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span></div>
+    <span class="k">return</span> <span class="p">{}</span></div>
+
+<div class="viewcode-block" id="BaseLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Create variables for child layers.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">child</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Variable free layer </span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">) child </span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">) has variables.&#39;</span> <span class="o">%</span>
+            <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+             <span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack</span><span class="p">:</span>
+        <span class="n">scope_overrides</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">scope_overrides</span><span class="p">:</span>
+          <span class="k">for</span> <span class="n">scope</span> <span class="ow">in</span> <span class="n">scope_overrides</span><span class="p">[</span><span class="n">child</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scope</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+              <span class="n">scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+            <span class="n">context_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">scope</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">context_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_SelfVariableScope</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">child</span><span class="p">]):</span>
+          <span class="n">c</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Actually create variables for this layer.</span>

@@ -668,18 +668,24 @@ self.CreateVariable() to create variables.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Mapping</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer._CreateChildrenVariables">
 <span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
 <dd><p>Create variables for child layers.</p>
-<p>Should be rarely overridden, only in cases when control over the context of
-children InstantiateVariables calls are needed. eg, if children variables
-need to be created inside of a specific context manager.</p>
-<p>There are a few cases of this in the codebase marked as for backwards
-compatibility. This is only to ensure that variable scopes remain compatible
-through the code migration. New layers should not copy that pattern, and
-instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateLayerVariables(). If you are okay with
-breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
