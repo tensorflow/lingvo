@@ -965,28 +965,40 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       # Outermost layer just finished InstantiateVariables.
       self._VerifyVarsAndTheta()
 
-  def _CreateChildrenVariables(self) -> None:
-    """Create variables for child layers.
+  def _child_variable_scope_override(self) -> Mapping[str, List[str]]:
+    """Override the variable scope for individual children.
 
-    Should be rarely overridden, only in cases when control over the context of
-    children InstantiateVariables calls are needed. eg, if children variables
-    need to be created inside of a specific context manager.
+    Should only be overridden for backwards compatibility with old checkpoints.
 
-    There are a few cases of this in the codebase marked as for backwards
-    compatibility. This is only to ensure that variable scopes remain compatible
-    through the code migration. New layers should not copy that pattern, and
-    instead follow the standard pattern of self.CreateChild() in __init__() and
-    self.CreateVariable() in _CreateLayerVariables(). If you are okay with
-    breaking old checkpoints, you can go ahead and delete those functions.
+    By default, all children will be created in tf.variable_scope(p.name) of
+    this layer. This can be overridden by providing a list of variable scopes
+    keyed by a child name.
+
+    Returns:
+      A dict mapping child names to a list of variable scopes to apply.
     """
-    with self._SelfVariableScope():
-      for child in self._children_list:
-        if self._is_variable_free and not child._is_variable_free:  # pylint: disable=protected-access
-          raise ValueError(
-              'Variable free layer %s(%s) child %s(%s) has variables.' %
-              (self.params.name, self.params.cls, child.params.name,
-               child.params.cls))
-        child.InstantiateVariables()
+    return {}
+
+  def _CreateChildrenVariables(self) -> None:
+    """Create variables for child layers."""
+    for child in self._children_list:
+      if self._is_variable_free and not child._is_variable_free:  # pylint: disable=protected-access
+        raise ValueError(
+            'Variable free layer %s(%s) child %s(%s) has variables.' %
+            (self.params.name, self.params.cls, child.params.name,
+             child.params.cls))
+    for child in self._private_children:
+      with contextlib.ExitStack() as context_stack:
+        scope_overrides = self._child_variable_scope_override()
+        if child in scope_overrides:
+          for scope in scope_overrides[child]:
+            if isinstance(scope, str):
+              scope = tf.variable_scope(scope)
+            context_stack.enter_context(scope)
+        else:
+          context_stack.enter_context(self._SelfVariableScope())
+        for c in py_utils.Flatten(self._private_children[child]):
+          c.InstantiateVariables()
 
   def _CreateLayerVariables(self) -> None:
     """Actually create variables for this layer.
