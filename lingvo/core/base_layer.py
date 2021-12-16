@@ -965,7 +965,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       # Outermost layer just finished InstantiateVariables.
       self._VerifyVarsAndTheta()
 
-  def _child_variable_scope_override(self) -> Mapping[str, List[str]]:
+  def _child_variable_scope_override(self):
     """Override the variable scope for individual children.
 
     Should only be overridden for backwards compatibility with old checkpoints.

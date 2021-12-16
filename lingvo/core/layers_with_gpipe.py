@@ -714,12 +714,8 @@ class GPipeTransformerStack(PipeliningLayer):
     if p.label_smoothing:
       self.CreateChild('smoother', p.label_smoothing)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    if self.params.label_smoothing:
-      self.smoother.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'smoother': []}
 
   def Logits(self, theta, inputs):
     num_splits = len(self.params.splits)
@@ -1270,12 +1266,8 @@ class GPipeBatchMajorTransformerStack(PipeliningLayer):
     if p.label_smoothing:
       self.CreateChild('smoother', p.label_smoothing)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    if self.params.label_smoothing:
-      self.smoother.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'smoother': []}
 
   def Logits(self, theta, inputs):
     num_splits = len(self.params.splits)

@@ -313,12 +313,8 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
           p.activation != 'NONE'):
         self.TrackQTensor('pre_activation')
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    if self.params.batch_norm:
-      self.bn.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'bn': []}
 
   @property
   def output_channels(self):
@@ -1103,12 +1099,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     if self._pre_activation_qt_name:
       self.TrackQTensor(self._pre_activation_qt_name)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    if self.params.batch_norm:
-      self.bn.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'bn': []}
 
   def AddGlobalVN(self, theta):
     theta = super().AddGlobalVN(theta)
@@ -3825,11 +3817,8 @@ class SharedSoftmaxLayer(base_layer.BaseLayer):
           'Input_dim is not set for scaled embedding! Outputs will be 0s!')
     self.CreateChild('softmax', softmax_params)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: 'softmax' should be created outside of
-    # tf.variable_scope(p.name).
-    self.softmax.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'softmax': []}
 
   def Logits(self, theta, *args, **kwargs):
     return self.softmax.Logits(theta.softmax, *args, **kwargs)

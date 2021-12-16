@@ -93,11 +93,8 @@ class RNN(base_layer.BaseLayer):
     assert p.sequence_length >= 0
     self.CreateChild('cell', p.cell)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.cell.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'cell': []}
 
   def zero_state(self, theta, batch_size):
     return self.cell.zero_state(theta.cell, batch_size)
@@ -106,15 +103,15 @@ class RNN(base_layer.BaseLayer):
     """Compute RNN forward pass.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this
-        layer and its children layers.
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
       inputs: A single tensor or a tuple of tensors with cardinality equal to
-          rnn_cell.inputs_arity. For every input tensor, the first dimension is
-          assumed to be time, second dimension batch, and third dimension depth.
+        rnn_cell.inputs_arity. For every input tensor, the first dimension is
+        assumed to be time, second dimension batch, and third dimension depth.
       paddings: A tensor. First dim is time, second dim is batch, and third dim
-          is expected to be 1.
-      state0: If not None, the initial rnn state in a `.NestedMap`. Defaults
-        to the cell's zero-state.
+        is expected to be 1.
+      state0: If not None, the initial rnn state in a `.NestedMap`. Defaults to
+        the cell's zero-state.
 
     Returns:
       A tensor of [time, batch, dims].
@@ -240,14 +237,11 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     super()._CreateLayerVariables()
     self.TrackQTensor('residual')
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    if self.params.num_layers > 0:
-      for rnn in self.rnn:
-        rnn.InstantiateVariables()
-    self.dropout.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {
+        **super()._child_variable_scope_override(), 'rnn': [],
+        'dropout': []
+    }
 
   def zero_state(self, theta, batch_size):
     p = self.params
@@ -334,13 +328,11 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     super()._CreateLayerVariables()
     self.TrackQTensor('residual')
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    for rnn in self.rnn:
-      rnn.InstantiateVariables()
-    self.dropout.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {
+        **super()._child_variable_scope_override(), 'rnn': [],
+        'dropout': []
+    }
 
   def FProp(self, theta, inputs, paddings):
     """Compute the forward pass.
@@ -389,11 +381,8 @@ class FRNN(base_layer.BaseLayer):
     p.cell.reset_cell_state = p.packed_input
     self.CreateChild('cell', p.cell)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.cell.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'cell': []}
 
   @property
   def rnn_cell(self):
@@ -632,12 +621,11 @@ class BidirectionalRNN(base_layer.BaseLayer):
     params_backward.reverse = True
     self.CreateChild('bak_rnn', params_backward)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.fwd_rnn.InstantiateVariables()
-    self.bak_rnn.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {
+        **super()._child_variable_scope_override(), 'fwd_rnn': [],
+        'bak_rnn': []
+    }
 
   def FProp(self, theta, inputs, paddings):
     """Compute bidi-RNN forward pass.
@@ -694,11 +682,8 @@ class BidirectionalRNNV2(base_layer.BaseLayer):
     p.sequence_length = self.params.sequence_length
     self.CreateChild('brnn', p)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.brnn.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'brnn': []}
 
   def _PadSequenceToLength(self, t_input, length, pad_value):
     t_input = py_utils.with_dependencies(
@@ -813,12 +798,8 @@ class FRNNWithAttention(base_layer.BaseLayer):
     p.attention.atten_dropout_deterministic = True
     self.CreateChild('atten', p.attention)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.cell.InstantiateVariables()
-    self.atten.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'cell': [], 'atten': []}
 
   @property
   def rnn_cell(self):
@@ -1216,14 +1197,12 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     params.name = 'atten_merger'
     self.CreateChild('atten_merger', params)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.cell.InstantiateVariables()
-    for atten in self.attentions:
-      atten.InstantiateVariables()
-    self.atten_merger.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {
+        **super()._child_variable_scope_override(), 'cell': [],
+        'attentions': [],
+        'atten_merger': []
+    }
 
   def InitAttention(self, theta, src_encs, src_paddings, batch_size):
     """Computes initial states for attention layer(s).
@@ -1412,12 +1391,11 @@ class BidirectionalFRNNQuasi(base_layer.BaseLayer):
     params_backward.cell = p.bak.Copy()
     self.CreateChild('bak_rnn', params_backward)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.fwd_rnn.InstantiateVariables()
-    self.bak_rnn.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {
+        **super()._child_variable_scope_override(), 'fwd_rnn': [],
+        'bak_rnn': []
+    }
 
   def FProp(self, theta, inputs, paddings):
     """Compute bidi-quasi-RNN forward pass.

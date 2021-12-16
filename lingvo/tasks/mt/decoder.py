@@ -634,14 +634,13 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     self.CreateChild(name, proj_p)
     return proj_p
 
-  def _CreateChildrenVariables(self):
+  def _child_variable_scope_override(self):
     if self._share_sm_emb:
-      # Taking shared emb/softmax layer out of the decoder variable scope so
-      # that it can also be shared by encoder if needed.
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.InstantiateVariables()
-
-    super()._CreateChildrenVariables()
+      return {
+          **super()._child_variable_scope_override(),
+          'softmax': [tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE)]
+      }
+    return super()._child_variable_scope_override()
 
   def ApplyDropout(self, x_in):
     p = self.params
@@ -1316,13 +1315,13 @@ class TransformerDecoder(MTBaseDecoder):
       params.input_dim = p.model_dim
       self.CreateChild('layer_norm_input', params)
 
-  def _CreateChildrenVariables(self):
+  def _child_variable_scope_override(self):
     if self._share_sm_emb:
-      # Taking shared emb/softmax layer out of the decoder variable scope so
-      # that it can also be shared by encoder if needed.
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.InstantiateVariables()
-    super()._CreateChildrenVariables()
+      return {
+          **super()._child_variable_scope_override(),
+          'softmax': [tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE)]
+      }
+    return super()._child_variable_scope_override()
 
   def _RemoveEOSProbs(self, p, probs, source_enc_len):
     """Remove the attention probs on EOS symbol and renormalize.
@@ -2449,11 +2448,13 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
           fprop_dtype=p.input_dropout_tpl.fprop_dtype)
       self.CreateChild('final_ln', layer_norm_p)
 
-  def _CreateChildrenVariables(self):
+  def _child_variable_scope_override(self):
     if self.params.shared_emb:
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.InstantiateVariables()
-    super()._CreateChildrenVariables()
+      return {
+          **super()._child_variable_scope_override(),
+          'softmax': [tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE)]
+      }
+    return super()._child_variable_scope_override()
 
   def _MaybeTransposeEncoderOutputs(self, encoder_outputs, target_data_format):
     p = self.params

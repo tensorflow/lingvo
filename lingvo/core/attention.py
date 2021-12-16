@@ -3161,17 +3161,12 @@ class MergerLayer(base_layer.BaseLayer):
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('sum_weight', pw)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    if 'atten' in self.children:
-      self.atten.InstantiateVariables()
-    if 'gated_average' in self.children:
-      self.gated_average.InstantiateVariables()
-    if 'pre_proj' in self.children:
-      for proj in self.pre_proj:
-        proj.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {
+        **super()._child_variable_scope_override(), 'atten': [],
+        'gated_average': [],
+        'pre_proj': []
+    }
 
   def FProp(self, theta, inputs, query_vec=None):
     """Combines the list of input tensors into a single tensor.

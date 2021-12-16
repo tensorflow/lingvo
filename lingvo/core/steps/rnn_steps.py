@@ -199,11 +199,8 @@ class RnnStackStep(step.Step):
     stack_params.residual_stride = p.residual_stride
     self.CreateChild('stack', stack_params)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.stack.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'stack': []}
 
   def PrepareExternalInputs(self, theta, external_inputs):
     """Delegates external inputs preparation to sub-layers.

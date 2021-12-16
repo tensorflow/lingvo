@@ -132,18 +132,14 @@ class Learner(base_layer.BaseLayer):
     else:
       assert p.gradient_combiner is None
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    p = self.params
-    if not p.learner_use_variable_scope:
-      # Note: multi learners fail in the legacy mode due to ValueError.
-      # b/184208049
-      if 'grad_norm_tracker' in self.children:
-        self.grad_norm_tracker.InstantiateVariables()
-      self.lr_schedule.InstantiateVariables()
-      self.optimizer.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    if not self.params.learner_use_variable_scope:
+      return {
+          **super()._child_variable_scope_override(), 'grad_norm_tracker': [],
+          'lr_schedule': [],
+          'optimizer': []
+      }
+    return super()._child_variable_scope_override()
 
   def GetVarGrads(self):
     return self._var_grads

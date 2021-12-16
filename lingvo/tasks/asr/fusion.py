@@ -47,11 +47,8 @@ class FusionBase(base_layer.BaseLayer):
     p = self.params
     self.CreateChild('lm', p.lm)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self.lm.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'lm': []}
 
   def zero_state(self, theta, batch_size):
     """Returns initial model state for fusion model."""

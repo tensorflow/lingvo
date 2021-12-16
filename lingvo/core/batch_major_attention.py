@@ -1505,14 +1505,15 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
         self.CreateChild('value_pos_proj', pos_proj_tpl)
     self.CreateChild('pos_atten_logits', params.pos_atten_logits_tpl)
 
-  def _CreateChildrenVariables(self):
-    with tf.variable_scope(
-        self.params.name,
-        reuse=tf.AUTO_REUSE if self.params.use_global_emb else False):
-      for child in ['key_emb', 'key_pos_proj', 'value_emb', 'value_pos_proj']:
-        if child in self.children:
-          self.children[child].InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    res = super()._child_variable_scope_override()
+    for child in ['key_emb', 'key_pos_proj', 'value_emb', 'value_pos_proj']:
+      res[child] = [
+          tf.variable_scope(
+              self.params.name,
+              reuse=tf.AUTO_REUSE if self.params.use_global_emb else False)
+      ]
+    return res
 
   def _RelativePositionValueEmb(self, theta, key):
     """Gets relative positional value embedding.

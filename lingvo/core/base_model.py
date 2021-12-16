@@ -1272,11 +1272,8 @@ class SingleTaskModel(SingleTaskBase):
     super().__init__(p, **kwargs)
     self.CreateChild('_task', self.params.task)
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    self._task.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), '_task': []}
 
 
 class MultiTaskSubModel(SingleTaskBase):
@@ -1390,16 +1387,15 @@ class MultiTaskModel(BaseModel):
 
       self.CreateChild('task_schedule', p.task_schedule)
 
-  def _CreateChildrenVariables(self):
-    with tf.name_scope(self.params.name):
-      for task_name, task in zip(self.task_names, self.tasks):
-        if self.params.task_name_var_scope:
-          with tf.variable_scope(task_name):
-            task.InstantiateVariables()
-        else:
-          task.InstantiateVariables()
-      self.task_schedule.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    p = self.params
+    res = super()._child_variable_scope_override()
+    for task_name in self.task_names:
+      res[task_name] = [tf.name_scope(p.name)]
+      if self.params.task_name_var_scope:
+        res[task_name].append(task_name)
+    res['task_schedule'] = [tf.name_scope(p.name)]
+    return res
 
   @property
   def task_names(self):
