@@ -699,14 +699,13 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">proj_p</span></div>
 
-<div class="viewcode-block" id="MTDecoderV1._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="MTDecoderV1._child_variable_scope_override"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
-      <span class="c1"># Taking shared emb/softmax layer out of the decoder variable scope so</span>
-      <span class="c1"># that it can also be shared by encoder if needed.</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+      <span class="k">return</span> <span class="p">{</span>
+          <span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span>
+          <span class="s1">&#39;softmax&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">)]</span>
+      <span class="p">}</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MTDecoderV1.ApplyDropout"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.ApplyDropout">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyDropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x_in</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1381,13 +1380,13 @@
       <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm_input&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="TransformerDecoder._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerDecoder._child_variable_scope_override"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
-      <span class="c1"># Taking shared emb/softmax layer out of the decoder variable scope so</span>
-      <span class="c1"># that it can also be shared by encoder if needed.</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+      <span class="k">return</span> <span class="p">{</span>
+          <span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span>
+          <span class="s1">&#39;softmax&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">)]</span>
+      <span class="p">}</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder._RemoveEOSProbs"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._RemoveEOSProbs">[docs]</a>  <span class="k">def</span> <span class="nf">_RemoveEOSProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">source_enc_len</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Remove the attention probs on EOS symbol and renormalize.</span>
@@ -2514,11 +2513,13 @@
           <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dropout_tpl</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_ln&#39;</span><span class="p">,</span> <span class="n">layer_norm_p</span><span class="p">)</span>
 
-<div class="viewcode-block" id="TransformerBatchMajorDecoder._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerBatchMajorDecoder._child_variable_scope_override"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+      <span class="k">return</span> <span class="p">{</span>
+          <span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span>
+          <span class="s1">&#39;softmax&#39;</span><span class="p">:</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">)]</span>
+      <span class="p">}</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TransformerBatchMajorDecoder._MaybeTransposeEncoderOutputs"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._MaybeTransposeEncoderOutputs">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeTransposeEncoderOutputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">target_data_format</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>

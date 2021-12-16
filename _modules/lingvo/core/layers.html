@@ -378,12 +378,8 @@
           <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseConv2DLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
-    <span class="c1"># outside of tf.variable_scope(p.name).</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+<div class="viewcode-block" id="BaseConv2DLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;bn&#39;</span><span class="p">:</span> <span class="p">[]}</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1168,12 +1164,8 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="ProjectionLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
-    <span class="c1"># outside of tf.variable_scope(p.name).</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+<div class="viewcode-block" id="ProjectionLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;bn&#39;</span><span class="p">:</span> <span class="p">[]}</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer.AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer.AddGlobalVN">[docs]</a>  <span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
@@ -3890,11 +3882,8 @@
           <span class="s1">&#39;Input_dim is not set for scaled embedding! Outputs will be 0s!&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">softmax_params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="SharedSoftmaxLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: &#39;softmax&#39; should be created outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+<div class="viewcode-block" id="SharedSoftmaxLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;softmax&#39;</span><span class="p">:</span> <span class="p">[]}</span></div>
 
 <div class="viewcode-block" id="SharedSoftmaxLayer.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>

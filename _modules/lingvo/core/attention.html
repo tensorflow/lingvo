@@ -3226,17 +3226,12 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;sum_weight&#39;</span><span class="p">,</span> <span class="n">pw</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MergerLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
-    <span class="c1"># outside of tf.variable_scope(p.name).</span>
-    <span class="k">if</span> <span class="s1">&#39;atten&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="k">if</span> <span class="s1">&#39;gated_average&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">gated_average</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="k">if</span> <span class="s1">&#39;pre_proj&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">proj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_proj</span><span class="p">:</span>
-        <span class="n">proj</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+<div class="viewcode-block" id="MergerLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;atten&#39;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s1">&#39;gated_average&#39;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s1">&#39;pre_proj&#39;</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="p">}</span></div>
 
 <div class="viewcode-block" id="MergerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">query_vec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Combines the list of input tensors into a single tensor.</span>

@@ -133,9 +133,18 @@
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.RNN._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#RNN._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.RNN._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.RNN._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#RNN._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.RNN._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -150,15 +159,15 @@
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</p></li>
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
 <li><p><strong>inputs</strong> – A single tensor or a tuple of tensors with cardinality equal to
 rnn_cell.inputs_arity. For every input tensor, the first dimension is
 assumed to be time, second dimension batch, and third dimension depth.</p></li>
 <li><p><strong>paddings</strong> – A tensor. First dim is time, second dim is batch, and third dim
 is expected to be 1.</p></li>
-<li><p><strong>state0</strong> – If not None, the initial rnn state in a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults
-to the cell’s zero-state.</p></li>
+<li><p><strong>state0</strong> – If not None, the initial rnn state in a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>. Defaults to
+the cell’s zero-state.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -208,9 +217,18 @@ The final recurrent state.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.StackedFRNNLayerByLayer._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedFRNNLayerByLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedFRNNLayerByLayer._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.StackedFRNNLayerByLayer._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedFRNNLayerByLayer._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedFRNNLayerByLayer._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -269,9 +287,18 @@ state1: The final state.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedBiFRNNLayerByLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#StackedBiFRNNLayerByLayer._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -312,9 +339,18 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.FRNN._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNN._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNN._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.FRNN._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNN._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNN._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -416,9 +452,18 @@ dim is batch, and third dim is expected to be 1.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.BidirectionalRNN._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalRNN._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalRNN._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.BidirectionalRNN._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalRNN._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalRNN._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -461,9 +506,18 @@ is expected to be 1.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.BidirectionalRNNV2._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalRNNV2._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalRNNV2._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.BidirectionalRNNV2._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalRNNV2._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalRNNV2._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -529,9 +583,18 @@ is expected to be 1.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.FRNNWithAttention._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNNWithAttention._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNNWithAttention._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.FRNNWithAttention._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#FRNNWithAttention._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.FRNNWithAttention._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py property">
@@ -726,9 +789,18 @@ support masking with packed inputs.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.MultiSourceFRNNWithAttention._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#MultiSourceFRNNWithAttention._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.MultiSourceFRNNWithAttention._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.MultiSourceFRNNWithAttention._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#MultiSourceFRNNWithAttention._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.MultiSourceFRNNWithAttention._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -809,9 +881,18 @@ this uses quasi-rnn instead of LSTM.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_layers.BidirectionalFRNNQuasi._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalFRNNQuasi._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalFRNNQuasi._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
+<dt class="sig sig-object py" id="lingvo.core.rnn_layers.BidirectionalFRNNQuasi._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_layers.html#BidirectionalFRNNQuasi._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_layers.BidirectionalFRNNQuasi._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

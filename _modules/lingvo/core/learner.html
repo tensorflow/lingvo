@@ -197,18 +197,14 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_combiner</span> <span class="ow">is</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="Learner._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
-    <span class="c1"># outside of tf.variable_scope(p.name).</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">learner_use_variable_scope</span><span class="p">:</span>
-      <span class="c1"># Note: multi learners fail in the legacy mode due to ValueError.</span>
-      <span class="c1"># b/184208049</span>
-      <span class="k">if</span> <span class="s1">&#39;grad_norm_tracker&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+<div class="viewcode-block" id="Learner._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">learner_use_variable_scope</span><span class="p">:</span>
+      <span class="k">return</span> <span class="p">{</span>
+          <span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">:</span> <span class="p">[],</span>
+          <span class="s1">&#39;lr_schedule&#39;</span><span class="p">:</span> <span class="p">[],</span>
+          <span class="s1">&#39;optimizer&#39;</span><span class="p">:</span> <span class="p">[]</span>
+      <span class="p">}</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Learner.GetVarGrads"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.GetVarGrads">[docs]</a>  <span class="k">def</span> <span class="nf">GetVarGrads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span></div>
