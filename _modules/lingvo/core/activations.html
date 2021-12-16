@@ -84,22 +84,38 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="c1"># Supported activation functions.</span>
 <span class="n">_ACTIVATIONS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
-    <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span>
-    <span class="s1">&#39;LEAKY_RELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">,</span>
-    <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span>
-    <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span>
-    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">,</span>
-    <span class="s1">&#39;GELU_APPROXIMATE&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-    <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">swish</span><span class="p">,</span>
-    <span class="s1">&#39;SOFTPLUS&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softplus</span><span class="p">,</span>
+    <span class="s1">&#39;RELU&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
+    <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span>
+    <span class="s1">&#39;LEAKY_RELU&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">leaky_relu</span><span class="p">,</span>
+    <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span>
+    <span class="s1">&#39;TANH&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span>
+    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">,</span>
+    <span class="s1">&#39;GELU_APPROXIMATE&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+    <span class="s1">&#39;GELU_RAW&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">x</span> <span class="o">*</span> <span class="p">(</span>  <span class="c1"># pylint: disable=g-long-lambda</span>
+            <span class="mi">1</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mf">0.044715</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))),</span>
+    <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">swish</span><span class="p">,</span>
+    <span class="s1">&#39;SOFTPLUS&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softplus</span><span class="p">,</span>
     <span class="c1"># Squared ReLU from the Primer paper: https://arxiv.org/abs/2109.08668</span>
-    <span class="s1">&#39;SQUARED_RELU&#39;</span><span class="p">:</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span>
-    <span class="s1">&#39;SILU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">silu</span><span class="p">,</span>
-    <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
+    <span class="s1">&#39;SQUARED_RELU&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span>
+    <span class="s1">&#39;SILU&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">silu</span><span class="p">,</span>
+    <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
 <span class="p">}</span>
 
 <span class="n">_ACTIVATIONS_FLOPS</span> <span class="o">=</span> <span class="p">{</span>
@@ -116,6 +132,7 @@
     <span class="c1"># Gelu is tough, let&#39;s assume it is</span>
     <span class="c1"># .5 * x * (1 + tanh(x * 0.7978845608 * (1 + 0.044715 * x * x)))</span>
     <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>  <span class="c1"># mul, mul, add, tanh, mul, mul, add, mul, mul</span>
+    <span class="s1">&#39;GELU_RAW&#39;</span><span class="p">:</span> <span class="mi">15</span><span class="p">,</span>  <span class="c1"># same as GELU</span>
     <span class="c1"># Or approximated as x * sigmoid(1.702 * x).</span>
     <span class="s1">&#39;GELU_APPROXIMATE&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># mul, sigmoid, mul</span>
     <span class="c1"># x * sigmoid(x)</span>
