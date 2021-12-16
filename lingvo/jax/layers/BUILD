@@ -32,6 +32,7 @@ pytype_strict_library(
         ":resnets",
         ":stochastics",
         ":transformers",
+        ":vanillanets",
     ],
 )
 
@@ -275,6 +276,19 @@ pytype_strict_library(
         ":convolutions",
         ":poolings",
         ":stochastics",
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+    ],
+)
+
+pytype_strict_library(
+    name = "vanillanets",
+    srcs = ["vanillanets.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":convolutions",
+        # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",

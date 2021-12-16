@@ -53,6 +53,9 @@ class Conv2D(base_layer.BaseLayer):
         '1-D tensor of length 2. The dilation factor for each dimension '
         'of input. If set to k > 1, there will be k-1 skipped cells '
         'between each filter element on that dimension.')
+    p.Define('bias', False, 'Whether or not to apply a bias before activation.')
+    p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
+             'Bias initializer to use if bias is to be applied.')
     p.Define('padding', 'SAME', 'SAME|VALID')
     return p
 
@@ -78,6 +81,11 @@ class Conv2D(base_layer.BaseLayer):
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp.wt))
+    if p.bias:
+      self.create_variable(
+          'b',
+          weight_params(
+              shape=[p.filter_shape[-1]], dtype=p.dtype, init=p.bias_init))
 
   def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """FProp that supports strided, dilated convolution, depthwise convolution.
@@ -129,6 +137,8 @@ class Conv2D(base_layer.BaseLayer):
         rhs_dilation=p.dilations,
         dimension_numbers=('NHWC', 'HWIO', 'NHWC'),
         feature_group_count=feature_group_count)
+    if p.bias:
+      outputs += jnp.reshape(theta.b, (1,) * (outputs.ndim - 1) + (-1,))
     return outputs
 
 

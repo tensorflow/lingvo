@@ -1150,6 +1150,10 @@ class WeightInit:
   def CustomConstantVarInit(custom_v_init):
     return WeightInit._Params('custom_constant', 1.0, None, custom_v_init)
 
+  @staticmethod
+  def ScaledDeltaOrthogonal(scale=1.0, seed=None):
+    return WeightInit._Params('delta_orthogonal', scale, seed)
+
 
 _DEFAULT_XAVIER_INIT = 1.000001
 
