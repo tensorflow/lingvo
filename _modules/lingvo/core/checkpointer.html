@@ -526,6 +526,7 @@
     <span class="c1"># Set to None; delay the initialization after the model ran at least once</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_restorer</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="EagerCheckpointerV1._GetSaver"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_GetSaveableVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">)</span>
@@ -535,6 +536,16 @@
         <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">saver</span></div>
+
+<div class="viewcode-block" id="EagerCheckpointerV1._GetRestorer"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1._GetRestorer">[docs]</a>  <span class="k">def</span> <span class="nf">_GetRestorer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Use Checkpoint to restore checkpoint files created by Saver.&quot;&quot;&quot;</span>
+    <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_GetSaveableVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">)</span>
+    <span class="c1"># Restore name-based tf.compat.v1.train.Saver checkpoints with Checkpoint.</span>
+    <span class="n">restorer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Checkpoint</span><span class="p">(</span><span class="n">variables</span><span class="o">=</span><span class="n">all_vars</span><span class="p">)</span>
+    <span class="c1"># Use the manager to support features e.g. max number of checkpoints</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_saver_mgr</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">CheckpointManager</span><span class="p">(</span>
+        <span class="n">restorer</span><span class="p">,</span> <span class="n">directory</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="n">checkpoint_name</span><span class="o">=</span><span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">restorer</span></div>
 
 <div class="viewcode-block" id="EagerCheckpointerV1.Restore"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` and `force_reinitialize` are unused in Eager context.&quot;&quot;&quot;</span>
@@ -572,13 +583,14 @@
 
     <span class="c1"># Calling this before `Save` because the optimizer and EMA variables are not</span>
     <span class="c1"># created until at least one training step in the Eager trainer.</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restorer</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_restorer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetRestorer</span><span class="p">()</span>
 
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint (V1) </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
-    <span class="c1"># TODO(panzf): Check all model vars are matched from the checkpoint</span>
+    <span class="n">load_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restorer</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
+    <span class="c1"># Check all model vars are matched from the checkpoint.</span>
+    <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EagerCheckpointerV1.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
