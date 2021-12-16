@@ -461,6 +461,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     # Set to None; delay the initialization after the model ran at least once
     self._saver = None
     self._save_path = os.path.join(self._train_dir, 'ckpt')
+    self._restorer = None
 
   def _GetSaver(self):
     all_vars = _GetSaveableVariablesDict(self._models)
@@ -470,6 +471,16 @@ class EagerCheckpointerV1(_EagerCheckpointer):
         keep_checkpoint_every_n_hours=(
             self._train_params.save_keep_checkpoint_every_n_hours))
     return saver
+
+  def _GetRestorer(self):
+    """Use Checkpoint to restore checkpoint files created by Saver."""
+    all_vars = _GetSaveableVariablesDict(self._models)
+    # Restore name-based tf.compat.v1.train.Saver checkpoints with Checkpoint.
+    restorer = tf.train.Checkpoint(variables=all_vars)
+    # Use the manager to support features e.g. max number of checkpoints
+    self._saver_mgr = tf.train.CheckpointManager(
+        restorer, directory=self._train_dir, checkpoint_name='ckpt')
+    return restorer
 
   def Restore(self, sess=None, force_reinitialize=None):
     """`sess` and `force_reinitialize` are unused in Eager context."""
@@ -507,13 +518,14 @@ class EagerCheckpointerV1(_EagerCheckpointer):
 
     # Calling this before `Save` because the optimizer and EMA variables are not
     # created until at least one training step in the Eager trainer.
-    if not self._saver:
-      self._saver = self._GetSaver()
+    if not self._restorer:
+      self._restorer = self._GetRestorer()
 
     assert not self._save_only
     tf.logging.info('Load from checkpoint (V1) %s.', checkpoint_path)
-    self._saver.restore(sess=None, save_path=checkpoint_path)
-    # TODO(panzf): Check all model vars are matched from the checkpoint
+    load_status = self._restorer.restore(save_path=checkpoint_path)
+    # Check all model vars are matched from the checkpoint.
+    load_status.assert_existing_objects_matched()
     tf.logging.info('Load checkpoint done.')
 
   def Save(self, sess=None, gsteps=None):
