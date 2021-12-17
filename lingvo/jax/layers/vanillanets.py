@@ -23,6 +23,7 @@ from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 from lingvo.jax.layers import convolutions
+from lingvo.jax.layers import poolings
 
 NestedMap = py_utils.NestedMap
 InstantiableParams = py_utils.InstantiableParams
@@ -100,4 +101,173 @@ class VanillaBlock(base_layer.BaseLayer):
     for i in range(len(self.body)):
       outputs = tailored_lrelu(p.negative_slope,
                                self.body[i].fprop(theta.body[i], outputs))
+    return outputs
+
+
+class VanillaNet(base_layer.BaseLayer):
+  """VanillaNet model without skip-connection or batch-norm mirroring ResNets.
+
+  https://openreview.net/forum?id=U0k7XNTiFEq
+
+  Raises:
+    ValueError if length of `strides`, `channels`, `blocks` and `kernels` do
+    not match.
+  """
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define(
+        'conv_params',
+        convolutions.Conv2D.Params().Set(
+            bias=True,
+            params_init=py_utils.WeightInit.ScaledDeltaOrthogonal(1.0)),
+        'A layer params template specifying Conv-BN-Activation template '
+        'used by the VanillaNet model.')
+    p.Define(
+        'block_params', VanillaBlock.Params(),
+        'A layer params template specifying Convolution Block used in '
+        'each stage. We use the same VanillaNetBlock tpl in all stages '
+        '(4 stages in total) in VanillaNet.')
+    p.Define(
+        'strides', [1, 2, 2, 2],
+        'A list of integers specifying the stride for each stage. A stage '
+        'is defined as a stack of Convolution Blocks that share same '
+        'type, channels and kernels. The stride is always applied only at '
+        'the beginning of each stage, while within that stage, all other '
+        'strides are set to 1 (no stride).')
+    p.Define(
+        'channels', [256, 512, 1024, 2048],
+        'A list of integers specifying the number of channels at '
+        'different stages. The first channel is usually 4x the input dim.')
+    p.Define(
+        'blocks', [3, 4, 6, 3],
+        'A list of integers specifying the number of blocks at different '
+        'stages.')
+    p.Define(
+        'kernels', [3, 3, 3, 3],
+        'A list of integers specifying the number of kernel sizes at '
+        'different stages.')
+    p.Define(
+        'entryflow_conv_kernel', (7, 7),
+        'A tuple of two integers as the kernel size of entryflow convolution.')
+    p.Define('entryflow_conv_stride', (2, 2),
+             'A tuple of two integers as the stride of entryflow convolution.')
+    p.Define(
+        'output_spatial_pooling_params', poolings.GlobalPooling.Params(),
+        'A layer params template specifying spatial pooling before output '
+        'If None, spatial pooling is not added.')
+    p.Define('negative_slope', 0.4, 'Negative slope for leaky relu.')
+    return p
+
+  @classmethod
+  def ParamsVanillaNet5(cls) -> InstantiableParams:
+    """Returns VanillaNet5 hyperparams for testing purposes."""
+    return cls.Params().Set(strides=[1], channels=[16], blocks=[1], kernels=[1])
+
+  @classmethod
+  def ParamsVanillaNet50(cls) -> InstantiableParams:
+    """Returns commonly used VanillaNet50 hyperparams."""
+    return cls.Params()
+
+  @classmethod
+  def ParamsVanillaNet101(cls) -> InstantiableParams:
+    """Returns commonly used VanillaNet101 hyperparams."""
+    return cls.Params().Set(blocks=[3, 4, 23, 3])
+
+  @classmethod
+  def ParamsVanillaNet152(cls) -> InstantiableParams:
+    """Returns commonly used VanillaNet152 hyperparams."""
+    return cls.Params().Set(blocks=[3, 8, 36, 3])
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    p = self.params
+    num_stages = len(p.strides)
+    if num_stages != len(p.channels):
+      raise ValueError(
+          f'num_stages {num_stages} != channels {len(p.channels)}.')
+    if num_stages != len(p.blocks):
+      raise ValueError(f'num_stages {num_stages} != blocks {len(p.blocks)}.')
+    if num_stages != len(p.kernels):
+      raise ValueError(f'num_stages {num_stages} != kernels {len(p.kernels)}.')
+
+    _ = p.block_params.Set(negative_slope=p.negative_slope)
+    # Set the convolution type used in the Resnet block.
+    if hasattr(p.block_params, 'conv_params'):
+      _ = p.block_params.Set(conv_params=p.conv_params)
+
+    # Create the entryflow convolution layer.
+    input_dim = p.channels[0] // 4
+    entryflow_conv_params = p.conv_params.Copy()
+    entryflow_conv_params.filter_shape = (p.entryflow_conv_kernel[0],
+                                          p.entryflow_conv_kernel[1], 3,
+                                          input_dim)
+    entryflow_conv_params.filter_stride = p.entryflow_conv_stride
+    self.create_child('entryflow_conv', entryflow_conv_params)
+
+    # Create the entryflow max pooling layer.
+    maxpool_params = poolings.Pooling.Params().Set(
+        name='entryflow_maxpool',
+        window_shape=(3, 3),
+        window_stride=(2, 2),
+        pooling_type='MAX')
+    self.create_child('entryflow_maxpool', maxpool_params)
+
+    # Create the chain of ResNet blocks.
+    for stage_id, (channel, num_blocks, kernel, stride) in enumerate(
+        zip(p.channels, p.blocks, p.kernels, p.strides)):
+      for block_id in range(num_blocks):
+        name = f'stage_{stage_id}_block_{block_id}'
+        output_dim = channel
+        block_p = p.block_params.Copy().Set(
+            name=name,
+            kernel_size=kernel,
+            input_dim=input_dim,
+            output_dim=output_dim,
+            stride=1 if block_id != 0 else stride,
+        )
+        self.create_child(name, block_p)
+        input_dim = output_dim
+
+    # Add optional spatial global pooling.
+    if p.output_spatial_pooling_params is not None:
+      self.create_child('output_spatial_pooling',
+                        p.output_spatial_pooling_params)
+
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+    """Applies the VanillaNet model to the inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: Input image tensor of shape [B, H, W, 3].
+
+    Returns:
+      Output tensor of VanillaNet of shape [B, H, W, D] where D is the last
+      channel
+      dimension. If `output_spatial_pooling_params` is not None, then the
+      output will be of a shape that depends on which dims are pooled. For e.g.,
+      if the pooling dims are [1, 2], then output shape will be [B, D].
+    """
+    p = self.params
+
+    # Apply the entryflow conv.
+    outputs = tailored_lrelu(
+        p.negative_slope, self.entryflow_conv.fprop(theta.entryflow_conv,
+                                                    inputs))
+
+    # Apply the entryflow maxpooling layer.
+    outputs, _ = self.entryflow_maxpool.fprop(theta.entryflow_maxpool, outputs)
+
+    # Apply the VanillaNet blocks.
+    for stage_id, num_blocks in enumerate(p.blocks):
+      for block_id in range(num_blocks):
+        block_name = f'stage_{stage_id}_block_{block_id}'
+        outputs = getattr(self, block_name).fprop(theta[block_name], outputs)
+
+    # Apply optional spatial global pooling.
+    if p.output_spatial_pooling_params is not None:
+      outputs = self.output_spatial_pooling.fprop(theta.output_spatial_pooling,
+                                                  outputs)
     return outputs

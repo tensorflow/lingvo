@@ -288,6 +288,7 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         ":convolutions",
+        ":poolings",
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
