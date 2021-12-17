@@ -99,8 +99,8 @@ pytype_strict_library(
         # Implicit flax's core dependency.
         # Implicit flax's training dependency.
         # Implicit jax dependency.
-        "//third_party/py/jax/experimental/gda_serialization:google_spec",
-        "//third_party/py/jax/experimental/gda_serialization:serialization",
+        # Implicit jax/experimental/gda_serialization:google_spec dependency.
+        # Implicit jax/experimental/gda_serialization:serialization dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
@@ -121,7 +121,7 @@ pytype_strict_library(
         ":trainer_lib",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
-        "//third_party/py/jax:mesh_utils",
+        # Implicit jax:mesh_utils dependency.
         "//lingvo/jax:checkpoints",
         "//lingvo/jax:io_utils",
         "//lingvo/jax:model_imports",
@@ -297,7 +297,6 @@ pytype_strict_library(
         # Implicit jax dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
-        "//third_party/py/tensorflow:tensorflow_no_contrib",
     ],
 )
 
@@ -327,7 +326,7 @@ pytype_strict_library(
         ":trainer_lib",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
-        "//third_party/py/jax:mesh_utils",
+        # Implicit jax:mesh_utils dependency.
         "//lingvo/jax:checkpoints",
         "//lingvo/jax:model_imports",
         # Implicit tensorflow dependency.
