@@ -1060,12 +1060,8 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         feature_names.add(feature)
     self._tpu_embedding_collection.feature_names = feature_names
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.InstantiateVariables()
-    # outside of tf.variable_scope(p.name).
-    for table in self.tables:
-      table.InstantiateVariables()
-    super()._CreateChildrenVariables()
+  def _child_variable_scope_override(self):
+    return {**super()._child_variable_scope_override(), 'tables': []}
 
   def _CheckTPUEmbeddingConfig(self, tpu_embedding, table_to_config_dict,
                                feature_to_config_dict, global_batch_size):

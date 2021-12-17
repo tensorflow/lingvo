@@ -182,13 +182,16 @@ class QuantizableLayer(base_layer.BaseLayer):
       self._qdomains[qdname] = self.children[qdchild_name]
     self._AddQuantizationFunctions()
 
-  def _CreateChildrenVariables(self):
-    # Backwards compatibility: child.InstantiateVariables() in custom scope.
+  def _child_variable_scope_override(self):
     p = self.params
-    with tf.variable_scope(p.name + '/q'):
-      for qdomain in self._qdomains.values():
-        qdomain.InstantiateVariables()
-    super()._CreateChildrenVariables()
+    res = super()._child_variable_scope_override()
+    for qdname in dir(p.qdomain):
+      qdparams = p.qdomain.Get(qdname)
+      if qdparams is None:
+        continue
+      qdchild_name = 'qdomain_' + qdname
+      res[qdchild_name] = [p.name + '/q']
+    return res
 
   def TrackQTensor(self, *t_names, domain='default'):
     r"""Creates one or more QTensors for later use.

@@ -129,9 +129,8 @@ class DualEncoder(base_layer.BaseLayer):
       tf.logging.info('Defaulting DualEncoder joint_embedding_dim to %d',
                       p.joint_embedding_dim)
 
-    self.CreateChildren(
-        'encoders',
-        {name: config.encoder for name, config in p.encoder_configs.items()})
+    for name, config in p.encoder_configs.items():
+      self.CreateChild(f'encoder_{name}', config.encoder)
 
     # Where necessary, create layers to project the encoders' output to the
     # joint space.
@@ -151,13 +150,12 @@ class DualEncoder(base_layer.BaseLayer):
 
     self.CreateChild('score_function', p.score_function)
 
-  def _CreateChildrenVariables(self):
+  def _child_variable_scope_override(self):
     p = self.params
-    with tf.variable_scope(p.name):
-      for modality, config in p.encoder_configs.items():
-        with tf.variable_scope(config.encoder_scope):
-          self.encoders[modality].InstantiateVariables()
-    super()._CreateChildrenVariables()
+    res = super()._child_variable_scope_override()
+    for modality, config in p.encoder_configs.items():
+      res[f'encoder_{modality}'] = [p.name, config.encoder_scope]
+    return res
 
   def EncodeModality(self, modality: str, inputs, batch_shape=None):
     """Runs `inputs` through `modality`'s encoder and optional projection.
@@ -180,7 +178,7 @@ class DualEncoder(base_layer.BaseLayer):
       inputs = (inputs,)
 
     encodings = _EncodeBatch(
-        self.encoders[modality], inputs, batch_shape=batch_shape)
+        self.children[f'encoder_{modality}'], inputs, batch_shape=batch_shape)
 
     # If necessary, project outputs to joint_embedding_dim.
     if modality in self.projections:

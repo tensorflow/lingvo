@@ -473,11 +473,11 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
     xs = self.dropout.FProp(theta.dropout, xs)
     return xs
 
-  def _CreateChildrenVariables(self):
+  def _child_variable_scope_override(self):
+    res = super()._child_variable_scope_override()
     if self.params.shared_emb:
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.InstantiateVariables()
-    super()._CreateChildrenVariables()
+      res['softmax'] = [tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE)]
+    return res
 
   def FProp(self, theta, input_batch):
     p = self.params
@@ -672,12 +672,12 @@ class TransformerEncoder(base_layer.BaseLayer):
       proj_p.output_dim = p.model_dim
       self.CreateChild(proj_p.name, proj_p)
 
-  def _CreateChildrenVariables(self):
+  def _child_variable_scope_override(self):
+    res = super()._child_variable_scope_override()
     if self.params.shared_emb:
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.InstantiateVariables()
-    self.transformer_stack.InstantiateVariables()
-    super()._CreateChildrenVariables()
+      res['softmax'] = [tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE)]
+    res['transformer_stack'] = []
+    return res
 
   def FProp(self, theta, input_batch):
     """Embeds source ids and transforms with TransformerStack.
@@ -918,11 +918,11 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
           fprop_dtype=p.input_dropout_tpl.fprop_dtype)
       self.CreateChild('final_ln', layer_norm_p)
 
-  def _CreateChildrenVariables(self):
+  def _child_variable_scope_override(self):
+    res = super()._child_variable_scope_override()
     if self.params.shared_emb:
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.InstantiateVariables()
-    super()._CreateChildrenVariables()
+      res['softmax'] = [tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE)]
+    return res
 
   def FProp(self, theta, input_batch):
     """Embeds source ids and transforms with TransformerStack.
