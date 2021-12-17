@@ -1125,12 +1125,8 @@
         <span class="n">feature_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">feature</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">feature_names</span> <span class="o">=</span> <span class="n">feature_names</span>
 
-<div class="viewcode-block" id="TPUEmbeddingLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
-    <span class="c1"># outside of tf.variable_scope(p.name).</span>
-    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
-      <span class="n">table</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+<div class="viewcode-block" id="TPUEmbeddingLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;tables&#39;</span><span class="p">:</span> <span class="p">[]}</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer._CheckTPUEmbeddingConfig"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._CheckTPUEmbeddingConfig">[docs]</a>  <span class="k">def</span> <span class="nf">_CheckTPUEmbeddingConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tpu_embedding</span><span class="p">,</span> <span class="n">table_to_config_dict</span><span class="p">,</span>
                                <span class="n">feature_to_config_dict</span><span class="p">,</span> <span class="n">global_batch_size</span><span class="p">):</span>

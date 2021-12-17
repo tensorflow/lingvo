@@ -247,13 +247,16 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span><span class="p">[</span><span class="n">qdname</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">qdchild_name</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_AddQuantizationFunctions</span><span class="p">()</span>
 
-<div class="viewcode-block" id="QuantizableLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: child.InstantiateVariables() in custom scope.</span>
+<div class="viewcode-block" id="QuantizableLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/q&#39;</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">qdomain</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-        <span class="n">qdomain</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+    <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">qdname</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="p">):</span>
+      <span class="n">qdparams</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">qdname</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">qdparams</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">continue</span>
+      <span class="n">qdchild_name</span> <span class="o">=</span> <span class="s1">&#39;qdomain_&#39;</span> <span class="o">+</span> <span class="n">qdname</span>
+      <span class="n">res</span><span class="p">[</span><span class="n">qdchild_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/q&#39;</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">res</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.TrackQTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.TrackQTensor">[docs]</a>  <span class="k">def</span> <span class="nf">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">t_names</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">):</span>
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Creates one or more QTensors for later use.</span>
