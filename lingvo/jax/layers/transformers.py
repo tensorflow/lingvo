@@ -461,6 +461,8 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
         'reduce the size of individual weight params.')
     p.Define('second_expert_policy', 'all',
              'How to pick second expert: all, sampling or random.')
+    p.Define('internal_gshard_variance_scaling_fan_in_init', True,
+             'Internal. Do not use. To study MoE layer init.')
 
     # SPMD partition related params.
     # M - model_dim, for both inputs and outputs
@@ -503,7 +505,8 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     assert (p.expert_capacity_factor or p.expert_capacity_dim)
     assert p.num_experts > 0
     assert p.num_groups > 0
-    assert p.expert_weight_shards > 0
+    assert p.expert_weight_shards == 1, (
+        f'[Deprecated] Should be removed {p.expert_weight_shards} != 1')
 
     if p.norm_policy == 'primer_hybrid':
       params = p.ln_tpl.Copy()
@@ -544,14 +547,20 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
 
     # First create the gating network.
     wp = p.weight_split_dims_mapping
-    stddev = (1.0 / p.input_dims)**0.5
-    gate_scale = stddev * 3.0**0.5
+    gate_init = None  # default xavier init
+    if p.internal_gshard_variance_scaling_fan_in_init:
+      # TODO(lepikhin): this init is related with Adafactor settings, study
+      stddev = (1.0 / p.input_dims)**0.5
+      gate_scale = stddev * 3.0**0.5
+      gate_init = WeightInit.Uniform(gate_scale)
     gate_pc = weight_params(
         shape=[p.input_dims, p.num_experts],
-        init=WeightInit.Uniform(gate_scale),
+        init=gate_init,
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=wp.me)
+    for l in gate_pc.ToText().split('\n'):
+      logging.debug('moe gate weight_params %s', l)
     self.create_variable('gate', gate_pc)
 
     # Next create the expert network.
@@ -561,15 +570,19 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     emh_shape = [
         p.num_experts, p.input_dims // p.expert_weight_shards, p.hidden_dims
     ]
-    stddev = (1.0 / p.input_dims)**0.5
-    wi_init_scale = stddev * 3.0**0.5
+    wi_init = None
+    if p.internal_gshard_variance_scaling_fan_in_init:
+      stddev = (1.0 / p.input_dims)**0.5
+      wi_init_scale = stddev * 3.0**0.5
+      wi_init = WeightInit.Uniform(wi_init_scale)
     wi_pc = weight_params(
         shape=emh_shape,
-        init=WeightInit.Uniform(wi_init_scale),
+        init=wi_init,
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=wp.emh)
-
+    for l in wi_pc.ToText().split('\n'):
+      logging.debug('moe wi weight_params %s', l)
     for ii in range(p.expert_weight_shards):
       self.create_variable('wi_%d' % ii, wi_pc)
 
@@ -579,19 +592,22 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     ehm_shape = [
         p.num_experts, p.hidden_dims, output_dims // p.expert_weight_shards
     ]
-    stddev = (1.0 / p.hidden_dims)**0.5
-    wo_init_scale = stddev * 3.0**0.5
+    wo_init = None
+    if p.internal_gshard_variance_scaling_fan_in_init:
+      wi_init = None
+      stddev = (1.0 / p.hidden_dims)**0.5
+      wo_init_scale = stddev * 3.0**0.5
+      wo_init = WeightInit.Uniform(wo_init_scale)
     wo_pc = weight_params(
         shape=ehm_shape,
-        init=WeightInit.Uniform(wo_init_scale),
+        init=wo_init,
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=wp.ehm)
-
+    for l in wo_pc.ToText().split('\n'):
+      logging.debug('moe wo weight_params %s', l)
     for ii in range(p.expert_weight_shards):
       self.create_variable('wo_%d' % ii, wo_pc)
-
-    # TODO(zhangqiaorjc): Possibly add bias variable.
 
   # TODO(zhangqiaorjc): Allow paddings to be optional?
   def fprop(self, theta: NestedMap, inputs: JTensor,
