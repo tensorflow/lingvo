@@ -241,6 +241,7 @@ pytype_strict_library(
         ":gshard_utils",
         ":py_utils",
         ":pytypes",
+        # Implicit optax_shampoo dependency.
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
         # Implicit optax dependency.

@@ -44,6 +44,7 @@ REQUIRED_PACKAGES = [
     'model-pruning-google-research',
     'numpy',
     'optax',
+    'optax-shampoo',
     'Pillow',
     'protobuf',
     'scipy',

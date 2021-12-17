@@ -21,11 +21,15 @@ from typing import Any, Callable, NamedTuple, Optional, Sequence, Tuple, Union
 
 from absl import logging
 import jax
+from jax import lax
+
 from jax import numpy as jnp
 from lingvo.jax import gshard_utils
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 import optax
+from optax_shampoo import distributed_shampoo
+
 
 NestedMap = py_utils.NestedMap
 InstantiableParams = py_utils.InstantiableParams
@@ -661,6 +665,74 @@ class Adafactor(BaseOptimizer):
         weight_decay_rate=p.weight_decay_rate,
         eps=p.eps,
         factored=p.factored)
+
+
+class DistributedShampoo(BaseOptimizer):
+  """DistributedShampoo optimizer from Optax."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
+    p = super().Params()
+    p.Define('block_size', 1024,
+             'Size of the preconditioner (block size x block size).')
+    p.Define('beta1', 0.9, 'Momentum parameter.')
+    p.Define('beta2', 0.999, 'Second moment averaging parameter.')
+    p.Define('matrix_epsilon', 1e-6,
+             'Epsilon parameter as part of computing the inverse-pth roots.')
+    p.Define('weight_decay', 0.0, 'Weight decay.')
+    p.Define('start_preconditioning_step', 101,
+             'Start preconditionining after N steps.')
+    p.Define('preconditioning_compute_steps', 100,
+             'How often to compute the inverse-pth roots.')
+    p.Define('statistics_compute_steps', 1,
+             'How often to compute the statistics.')
+    p.Define('graft_type', distributed_shampoo.GraftingType.ADAGRAD,
+             'Type of Grafting. 1 for SGD, 2 for AdaGrad, 3 for RMSPROP .')
+    p.Define('batch_axis_name', 'batch', 'Batch axis name for pmap.')
+    p.Define('nesterov', True, 'Use nesterov update for momentum.')
+    p.Define('exponent_override', 0, 'Exponent override.')
+    p.Define('moving_average_for_momentum', False,
+             'Moving average for momentum.')
+    p.Define('skip_preconditioning_dim_size_gt', 4096,
+             'Skips preconditioning if any dim is greater than this value.')
+    return p
+
+  @classmethod
+  def ParamsImageClassification(cls) -> InstantiableParams:  # pylint: disable=invalid-name
+    """Convenient method for a commonly used Adam config."""
+    return cls.Params().Set(
+        beta1=0.9,
+        beta2=0.95,
+        block_size=128,
+        weight_decay=1e-4,
+        nesterov=True,
+        preconditioning_compute_steps=1,
+        statistics_compute_steps=1,
+        graft_type=distributed_shampoo.GraftingType.SGD)
+
+  def _get_raw_grad_transformation(
+      self, lr: optax.Schedule) -> optax.GradientTransformation:
+    p = self._params
+    return distributed_shampoo.distributed_shampoo(
+        learning_rate=lr,
+        block_size=p.block_size,
+        beta1=p.beta1,
+        beta2=p.beta2,
+        diagonal_epsilon=1e-10,
+        matrix_epsilon=p.matrix_epsilon,
+        weight_decay=p.weight_decay,
+        start_preconditioning_step=p.start_preconditioning_step,
+        preconditioning_compute_steps=p.preconditioning_compute_steps,
+        statistics_compute_steps=p.statistics_compute_steps,
+        best_effort_shape_interpretation=True,
+        graft_type=p.graft_type,
+        nesterov=p.nesterov,
+        exponent_override=p.exponent_override,
+        batch_axis_name=p.batch_axis_name,
+        inverse_failure_threshold=0.1,
+        moving_average_for_momentum=p.moving_average_for_momentum,
+        skip_preconditioning_dim_size_gt=p.skip_preconditioning_dim_size_gt,
+        precision=lax.Precision.HIGHEST)
 
 
 class Adagrad(BaseOptimizer):

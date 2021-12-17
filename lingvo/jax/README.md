@@ -28,6 +28,8 @@ More specifically:
 
 *   [optax](http://github.com/deepmind/optax)
 
+*   [optax-shampoo](https://pypi.org/project/optax-shampoo)
+
 *   [abseil](http://github.com/abseil/abseil-py)
 
 *   [clu](http://pypi.org/project/clu/)

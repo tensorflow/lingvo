@@ -38,6 +38,7 @@ RUN for python in python3.7 python3.8 python3.9; do \
         model-pruning-google-research \
         numpy \
         optax \
+        optax-shampoo \
         scipy \
         sentencepiece \
         sympy \
