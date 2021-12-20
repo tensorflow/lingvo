@@ -219,6 +219,33 @@ class NormalizationsTest(test_util.JaxTestCase):
     self.assertAllClose((1.0 + scale)**2, np.var(np_outputs), atol=5e-3)
     self.assertAllClose(tf_np_outputs, np_outputs, atol=6e-5)
 
+  @parameterized.parameters((0.0,), (0.5,))
+  def test_rms_norm(self, scale):
+    input_dims = 3
+    p = normalizations.RmsNorm.Params().Set(
+        name='jax_rmsn', input_dims=input_dims)
+    rms_norm = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123456)
+    prng_key, init_key = jax.random.split(prng_key)
+    initial_vars = rms_norm.instantiate_variables(init_key)
+    initial_vars.scale = scale
+    npy_input = np.random.normal(1.0, 0.5,
+                                 [10, 10, 10, p.input_dims]).astype('float32')
+    inputs = jnp.asarray(npy_input)
+    outputs = rms_norm.fprop(initial_vars, inputs)
+    # Now test whether tf RMS norm returns same output.
+    tf_p = lingvo_layers.LayerNorm.Params().Set(
+        name='tf_rmsn', input_dim=p.input_dims, bias=False, center=False)
+    tf_layer_norm = tf_p.Instantiate()
+    tf_output = tf_layer_norm.FProp(initial_vars,
+                                    tf.constant(inputs, dtype=tf.float32))
+    np_outputs = to_np(outputs)
+    tf_np_outputs = to_np(tf_output)
+    np_norms = np.linalg.norm(np_outputs / np.sqrt(float(input_dims)), axis=-1)
+    self.assertAllClose(
+        (1.0 + scale) * np.ones_like(np_norms), np_norms, atol=5e-3)
+    self.assertAllClose(tf_np_outputs, np_outputs, atol=6e-5)
+
   @parameterized.named_parameters(
       ('_epsilon_1e-3', 4, 2, False, 4, 1e-3, [2, 2, 2, 4], jnp.float32, None,
        jnp.float32),

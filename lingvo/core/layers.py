@@ -4342,7 +4342,12 @@ class LayerNorm(base_layer.BaseLayer):
           collections=[self.__class__.__name__ + '_vars'] +
           [py_utils.SKIP_LP_REGULARIZATION])
     else:
-      scale_pc = pc
+      scale_pc = py_utils.WeightParams(
+          shape=[p.input_dim],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'] +
+          [py_utils.SKIP_LP_REGULARIZATION])
     self.CreateVariable('scale', scale_pc)
 
   def _GetScaleAndBias(self, theta):

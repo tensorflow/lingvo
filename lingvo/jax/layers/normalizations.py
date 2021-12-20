@@ -328,6 +328,53 @@ class LayerNorm(base_layer.BaseLayer):
     return normed_inputs
 
 
+class RmsNorm(base_layer.BaseLayer):
+  """RMS normalization: https://arxiv.org/abs/1910.07467."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    """Returns the layer params with RMS Norm specific params."""
+    p = super().Params()
+    p.Define('input_dims', 0, 'Depth of the input to the network.')
+    p.Define('epsilon', 1e-6, 'Tiny value to guard rsqrt.')
+    return p
+
+  def create_layer_variables(self) -> None:
+    """Creates RMS normalization variables."""
+    super().create_layer_variables()
+    p = self.params
+    wp = p.weight_split_dims_mapping
+    wp_scale = wp.wt
+    if p.device_mesh is not None and wp.wt is None:
+      # Simply replicate the weights.
+      wp_scale = [-1]
+    # Scale variable that scales the RMS norm output by (1 + scale).
+    self.create_variable(
+        'scale',
+        weight_params(
+            shape=[p.input_dims],
+            init=WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            device_mesh=p.device_mesh,
+            tensor_split_dims_mapping=wp_scale))
+
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+    """Apply RMS norm to inputs.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      inputs: The inputs JTensor. Shaped [..., input_dims].
+
+    Returns:
+      RMS normalized input.
+    """
+    var = jnp.mean(jnp.square(inputs), axis=[-1], keepdims=True)
+    normed_inputs = inputs * jax.lax.rsqrt(var + self.params.epsilon)
+    normed_inputs *= (1 + theta.scale)
+    return normed_inputs
+
+
 class GroupNorm(base_layer.BaseLayer):
   """Group normalization layer (https://arxiv.org/abs/1803.08494)."""
 
