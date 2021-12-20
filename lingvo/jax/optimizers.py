@@ -24,6 +24,7 @@ import jax
 from jax import lax
 
 from jax import numpy as jnp
+from lingvo.jax import base_layer
 from lingvo.jax import gshard_utils
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -942,6 +943,7 @@ class _ShardedAdafactorHelper:
       quantized_dtype: jnp.dtype,
       # TODO(bf-jax) Update default value to True, once this is supported.
       respect_skip_lp_regularization: bool,
+      per_var_learning_summary: bool,
   ) -> None:
     """Constructor. See ShardedAdafactor() below."""
     self._learning_rate_fn = learning_rate_fn
@@ -956,6 +958,7 @@ class _ShardedAdafactorHelper:
     self._epsilon1 = epsilon1
     self._quantized_dtype = quantized_dtype
     self._respect_skip_lp_regularization = respect_skip_lp_regularization
+    self._per_var_learning_summary = per_var_learning_summary
 
   def should_use_factored_second_moment_estimate(self, shape):
     """Should we use a factored second moment estimator.
@@ -1139,7 +1142,7 @@ class _ShardedAdafactorHelper:
         array, nan=replacement, posinf=replacement, neginf=replacement)
 
   def compute_var_and_slot_update(self, count, grad, m, m_scale, vr, vc, v,
-                                  param):
+                                  param, var_name):
     """Computes the var and optimizer slots updates for a single variable."""
     # We can probably skip this step
     grad = self.sanitize_values(grad)
@@ -1197,6 +1200,13 @@ class _ShardedAdafactorHelper:
       new_v = decay_rate * v + mixing_rate * grad_squared
       output_v = new_v
       x = grad / jnp.sqrt(new_v)
+
+    if self._per_var_learning_summary:
+      # Add summary for this var.
+      x_l2_scale = jnp.sqrt(reduce_mean(x * x))
+      base_layer.add_summary(f'sharded_adafactor_learning/{var_name}',
+                             x_l2_scale)
+
     if self._clipping_threshold is not None:
       clipping_denom = jnp.maximum(1., reduce_rms(x) / self._clipping_threshold)
       clipping_denom = self.sanitize_values(clipping_denom, replacement=1.)
@@ -1251,7 +1261,8 @@ def sharded_adafactor(
     epsilon1: float = 1e-30,
     quantized_dtype: jnp.dtype = jnp.int8,
     # TODO(bf-jax) Update default value to True, once this is supported.
-    respect_skip_lp_regularization: bool = False
+    respect_skip_lp_regularization: bool = False,
+    per_var_learning_summary=False,
 ) -> ShardedGradientTransformation:
   """AdaFactor optimizer that supports SPMD sharding.
 
@@ -1296,6 +1307,8 @@ def sharded_adafactor(
       are stored as bfloat16, instead of quantized integers.
     respect_skip_lp_regularization: whether or not to respect lingvo
       SKIP_LP_REGULARIZATION var collection that skips decoupled weight decay.
+    per_var_learning_summary: a bool, whether or not to export per-var learning
+      summaries.
 
   Returns:
     A `ShardedGradientTransformation`.
@@ -1322,7 +1335,8 @@ def sharded_adafactor(
       factored=factored,
       epsilon1=epsilon1,
       quantized_dtype=quantized_dtype,
-      respect_skip_lp_regularization=respect_skip_lp_regularization)
+      respect_skip_lp_regularization=respect_skip_lp_regularization,
+      per_var_learning_summary=per_var_learning_summary)
 
   def init_fn(params):
     """Initializes the optimizer's state."""
@@ -1355,9 +1369,10 @@ def sharded_adafactor(
 
     compute_var_and_slot_update_fn = functools.partial(
         sharded_adafactor_helper.compute_var_and_slot_update, state.count)
+    var_names = py_utils.extract_prefixed_keys_from_nested_map(updates)
     output = jax.tree_multimap(compute_var_and_slot_update_fn, updates, state.m,
                                state.m_scale, state.vr, state.vc, state.v,
-                               params)
+                               params, var_names)
     updates = jax.tree_map(lambda o: o.update, output)
     count_plus_one = state.count + jnp.array(1, jnp.int32)
     updated_states = sharded_adafactor_helper.to_state(count_plus_one, output)
@@ -1404,6 +1419,8 @@ class ShardedAdafactor(BaseOptimizer):
         False,
         'Whether or not to respect lingvo SKIP_LP_REGULARIZATION var '
         'collection that skips decoupled weight decay.')
+    p.Define('per_var_learning_summary', False,
+             'If True, output per var learning summary.')
     return p
 
   def _get_raw_grad_transformation(
@@ -1421,4 +1438,5 @@ class ShardedAdafactor(BaseOptimizer):
         factored=p.factored,
         epsilon1=p.epsilon1,
         quantized_dtype=getattr(jnp, p.quantized_dtype),
-        respect_skip_lp_regularization=p.respect_skip_lp_regularization)
+        respect_skip_lp_regularization=p.respect_skip_lp_regularization,
+        per_var_learning_summary=p.per_var_learning_summary)

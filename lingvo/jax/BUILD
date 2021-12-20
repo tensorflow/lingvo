@@ -238,6 +238,7 @@ pytype_strict_library(
     srcs = ["optimizers.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_layer",
         ":gshard_utils",
         ":py_utils",
         ":pytypes",

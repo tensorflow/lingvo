@@ -42,6 +42,7 @@ class LearnersTest(test_util.JaxTestCase):
     learner_p = learners.Learner.Params()
     learner_p.name = 'learner'
     learner_p.loss_name = 'loss'
+    learner_p.grad_norm_individual_vars = True
     learner_p.optimizer = optimizers.Sgd.Params()
     learner_p.optimizer.learning_rate = 1.
     learner_p.optimizer.lr_schedule = schedules.Constant.Params()

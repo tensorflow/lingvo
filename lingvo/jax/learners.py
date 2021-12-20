@@ -49,6 +49,10 @@ class Learner(base_layer.BaseLayer):
         'Possible values are: '
         'None: do not skip zero gradients; '
         '"variable": skip if the entire variable gradients are almost zero.')
+    p.Define(
+        'grad_norm_individual_vars', False,
+        'Whether or not to export grad_norm for each individual variable'
+        ' as summaries.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -78,12 +82,22 @@ class Learner(base_layer.BaseLayer):
      A nested structure with the rescaled gradient values.
     """
     p = self.params
+    learner_name = self.params.name
     # Compute gradient norm.
     grad_squared = jax.tree_map(lambda x: jnp.sum(x * x), grads)
+
+    if p.grad_norm_individual_vars:
+      grad_norms = jax.tree_map(jnp.sqrt, grad_squared)
+      var_keys = py_utils.extract_prefixed_keys_from_nested_map(grad_norms)
+
+      def add_grad_norm_summary(key, value):
+        base_layer.add_summary(f'{learner_name}/var_grad_norm/{key}', value)
+
+      jax.tree_multimap(add_grad_norm_summary, var_keys, grad_norms)
+
     grad_squared, _ = jax.tree_flatten(grad_squared)
     grad_squared = jnp.concatenate([x[jnp.newaxis] for x in grad_squared])
     grad_norm = jnp.sqrt(jnp.sum(grad_squared))
-    learner_name = self.params.name
     base_layer.add_summary(f'{learner_name}/grad_norm', grad_norm)
     if p.optimizer.clip_gradient_norm_to_value:
       assert p.optimizer.clip_gradient_single_norm_to_value == 0.
@@ -91,6 +105,7 @@ class Learner(base_layer.BaseLayer):
           jnp.array(1, grad_norm.dtype),
           jnp.array(p.optimizer.clip_gradient_norm_to_value, grad_norm.dtype) /
           grad_norm)
+      base_layer.add_summary('grad_scale', grad_scale)
       grads = jax.tree_map(lambda g: g * grad_scale, grads)
     elif p.optimizer.clip_gradient_single_norm_to_value:
       assert p.optimizer.clip_gradient_norm_to_value == 0.
@@ -151,6 +166,13 @@ class Learner(base_layer.BaseLayer):
     tf.nest.assert_same_structure(old_vars, var_is_learnable)
 
     assert p.skip_zero_gradients is None
+
+    # Add a summary of total var norm.
+    var_squared = jax.tree_map(lambda x: jnp.sum(x * x), old_vars)
+    var_squared, _ = jax.tree_flatten(var_squared)
+    var_squared = jnp.concatenate([x[jnp.newaxis] for x in var_squared])
+    var_norm = jnp.sqrt(jnp.sum(var_squared))
+    base_layer.add_summary('var_norm', var_norm)
 
     # TODO(yonghui): implement skip_zero_gradients.
     # TODO(yonghui): implement numerical checks.
