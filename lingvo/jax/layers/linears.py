@@ -145,6 +145,7 @@ class FeedForward(base_layer.BaseLayer):
     p = super().Params()
     p.Define('input_dims', 0, 'Depth of the input.')
     p.Define('output_dims', 0, 'Depth of the output.')
+    p.Define('has_bias', True, 'Adds bias weights or not.')
     p.Define(
         'activation', 'RELU', 'Activation function to use.'
         'Options are RELU, RELU6, RELU^2, RELU^3, SIGMOID, TANH, GELU, NONE.')
@@ -161,18 +162,20 @@ class FeedForward(base_layer.BaseLayer):
         weight_split_dims_mapping=wp.Copy(),
         activation_split_dims_mapping=ap.Copy())
     self.create_child('linear', linear_layer_p)
-    bias_layer_p = Bias.Params().Set(dims=p.output_dims)
-    if p.device_mesh is not None and wp.wt is not None:
-      assert len(wp.wt) == 2
-      wp_bias = [wp.wt[1]]
-      bias_layer_p.weight_split_dims_mapping.wt = wp_bias
-    self.create_child('bias', bias_layer_p)
+    if p.has_bias:
+      bias_layer_p = Bias.Params().Set(dims=p.output_dims)
+      if p.device_mesh is not None and wp.wt is not None:
+        assert len(wp.wt) == 2
+        wp_bias = [wp.wt[1]]
+        bias_layer_p.weight_split_dims_mapping.wt = wp_bias
+      self.create_child('bias', bias_layer_p)
     act_p = activations.Activation.Params().Set(activation=p.activation)
     self.create_child('activation', act_p)
 
   def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
-    projected_inputs = self.bias.fprop(theta.bias,
-                                       self.linear.fprop(theta.linear, inputs))
+    projected_inputs = self.linear.fprop(theta.linear, inputs)
+    if self.params.has_bias:
+      projected_inputs = self.bias.fprop(theta.bias, projected_inputs)
     output = self.activation.fprop(theta.activation, projected_inputs)
     return output
 

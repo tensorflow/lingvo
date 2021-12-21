@@ -72,6 +72,42 @@ class LinearsTest(test_util.JaxTestCase):
     tf_np_outputs = to_np(tf_output)
     self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-6)
 
+  @parameterized.parameters(('RELU'), ('TANH'), ('RELU6'), ('SIGMOID'),
+                            ('NONE'))
+  def test_feedforward_layer_no_bias(self, activation):
+    p = linears.FeedForward.Params().Set(
+        name='jax_ffn',
+        input_dims=3,
+        output_dims=20,
+        has_bias=False,
+        activation=activation)
+    ffn = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = ffn.instantiate_variables(prng_key)
+    npy_input = np.random.normal(1.0, 0.5,
+                                 [10, 10, p.input_dims]).astype('float32')
+    inputs = jnp.asarray(npy_input)
+    outputs = ffn.fprop(initial_vars, inputs)
+    logging.info('initial_vars in ffn = %s', initial_vars)
+    # Test whether tf projection layer returns same output
+    # Modify initial_vars to use TF compatible params
+    tf_initial_vars = py_utils.NestedMap()
+    tf_initial_vars.w = initial_vars.linear.w
+    tf_initial_vars = to_tf_nmap(tf_initial_vars)
+    tf_p = lingvo_layers.ProjectionLayer.Params().Set(
+        name='tf_ffn',
+        input_dim=p.input_dims,
+        output_dim=p.output_dims,
+        batch_norm=False,
+        has_bias=False,
+        activation=activation)
+    tf_ffn = tf_p.Instantiate()
+    tf_output = tf_ffn.FProp(tf_initial_vars,
+                             tf.constant(inputs, dtype=tf.float32))
+    np_outputs = to_np(outputs)
+    tf_np_outputs = to_np(tf_output)
+    self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-6)
+
 
 class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
 
