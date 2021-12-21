@@ -27,21 +27,23 @@ script repository for managing GCP resources.
 
 #### Cloud TPU cluster setup
 
-__IMPORTANT: These commands will result in VMs and other GCP resources being
-created and will result in charges to your GCP account! Proceed with care!__
+**IMPORTANT: These commands will result in VMs and other GCP resources being
+created and will result in charges to your GCP account! Proceed with care!**
 
 To properly create the CloudTPU cluster, one should follow the TPU documentation
 above. An example might be:
 
-    gcloud container clusters create tpu_v3_cluster --cluster-version=1.13 --scopes=cloud-platform,gke-default --enable-ip-alias --enable-tpu --zone=europe-west4-a
+```
+gcloud container clusters create tpu_v3_cluster --cluster-version=1.13 --scopes=cloud-platform,gke-default --enable-ip-alias --enable-tpu --zone=europe-west4-a
+```
 
 where we create a TPU-compatible cluster in a zone that contains V3 TPU pods. We
 only need to specify the size of the TPU pod we want when we create the job.
 
 #### GPU cluster setup
 
-__IMPORTANT: These commands will result in VMs and other GCP resources being
-created and will result in charges to your GCP account! Proceed with care!__
+**IMPORTANT: These commands will result in VMs and other GCP resources being
+created and will result in charges to your GCP account! Proceed with care!**
 
 First, create the cluster. You may need to get
 [GPU quota](https://cloud.google.com/compute/quotas#gpus) in the zone you want
@@ -50,17 +52,23 @@ for the GPU type you want.
 For example, here we create a P100 cluster of size 1 using high-memory CPU
 instances (which are useful for evaluating / decoding):
 
-    gcloud container clusters create p100-europe-west4-a-nh16 --accelerator type=nvidia-tesla-p100,count=1 --num-nodes=1 --zone europe-west4-a --scopes=cloud-platform,gke-default --enable-ip-alias --cluster-version=1.13 --machine-type=n1-highmem-16
+```
+gcloud container clusters create p100-europe-west4-a-nh16 --accelerator type=nvidia-tesla-p100,count=1 --num-nodes=1 --zone europe-west4-a --scopes=cloud-platform,gke-default --enable-ip-alias --cluster-version=1.13 --machine-type=n1-highmem-16
+```
 
 To be able to launch GPU jobs on this cluster, one must then install the
 drivers.
 
-    kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
+```
+kubectl apply -f https://raw.githubusercontent.com/GoogleCloudPlatform/container-engine-accelerators/master/nvidia-driver-installer/cos/daemonset-preloaded.yaml
+```
 
 To check that the GPUs have been fully initialized with these drivers, you can
 run:
 
-    kubectl get no -w -o yaml | grep -E 'hostname:|nvidia.com/gpu'
+```
+kubectl get no -w -o yaml | grep -E 'hostname:|nvidia.com/gpu'
+```
 
 #### Docker setup
 
@@ -72,7 +80,9 @@ We have provided a lingvo-compatible dockerfile that comes with the lingvo pip
 package pre-installed. One should build the docker with the GPU nvidia-docker
 base for running on GPUs. For example, from the current repo:
 
-    docker build --tag tensorflow:lingvo_lib_gpu --build-arg base_image=nvidia/cuda:10.0-cudnn7-runtime-ubuntu18.04 - < lingvo/docker/lib.dockerfile
+```
+docker build --tag tensorflow:lingvo_lib_gpu --build-arg base_image=nvidia/cuda:11.0-cudnn8-runtime-ubuntu18.04 - < lingvo/docker/lib.dockerfile
+```
 
 This will be the base docker image you will use to run lingvo jobs on GKE.
 
@@ -96,60 +106,62 @@ StarNetPedCycModel0704 in params/kitti.py.
 To launch training on TPU, decoding for the validation set on GPU, and a
 TensorBoard to monitor it all, one can run:
 
-    # Name of the registered model in params/kitti.py to run.
-    export MODEL=params.kitti.StarNetPedCycModel0704
+```
+# Name of the registered model in params/kitti.py to run.
+export MODEL=params.kitti.StarNetPedCycModel0704
 
-    # Environment variable containing path to input dataset.
-    export DATA_ENV="KITTI_DIR=gs://my-bucket/kitti"
+# Environment variable containing path to input dataset.
+export DATA_ENV="KITTI_DIR=gs://my-bucket/kitti"
 
-    # For waymo, one can use the version generated via generate_waymo_tf.py
-    # graciously hosted by Waymo; you must have registered for access to
-    # the Waymo dataset to be able to access the following bucket.
-    # export DATA_ENV="WAYMO_DIR=gs://waymo_open_dataset_v_1_0_0_tf_example_lingvo/v.1.2.0/"
+# For waymo, one can use the version generated via generate_waymo_tf.py
+# graciously hosted by Waymo; you must have registered for access to
+# the Waymo dataset to be able to access the following bucket.
+# export DATA_ENV="WAYMO_DIR=gs://waymo_open_dataset_v_1_0_0_tf_example_lingvo/v.1.2.0/"
 
-    export SPLIT=dev  # Use 'minidev' for smaller Waymo validation set.
+export SPLIT=dev  # Use 'minidev' for smaller Waymo validation set.
 
-    # Base docker image name to use for packaging the
-    # code to run.
-    export DOCKER_IMAGE=gcr.io/my-project/lingvo-code
+# Base docker image name to use for packaging the
+# code to run.
+export DOCKER_IMAGE=gcr.io/my-project/lingvo-code
 
-    # Location of where the code to be packaged into
-    # the docker file is located.
-    export CODE_DIR=/path/to/base/of/lingvo_repo
+# Location of where the code to be packaged into
+# the docker file is located.
+export CODE_DIR=/path/to/base/of/lingvo_repo
 
-    # Log directory to write checkpoints to.
-    export LOGDIR=gs://my-bucket/logs/starnet.kitti.v0
+# Log directory to write checkpoints to.
+export LOGDIR=gs://my-bucket/logs/starnet.kitti.v0
 
-    # Name (or filter) of the TPU cluster you created above.
-    export TPU_CLUSTER_NAME=tpu_v3_cluster
+# Name (or filter) of the TPU cluster you created above.
+export TPU_CLUSTER_NAME=tpu_v3_cluster
 
-    # Specify using a 4x4 Cloud TPU v3.
-    export TPU_TYPE=v3-32
+# Specify using a 4x4 Cloud TPU v3.
+export TPU_TYPE=v3-32
 
-    # Name (or filter)  of the GPU cluster you created above.
-    export GPU_CLUSTER_NAME=p100
+# Name (or filter)  of the GPU cluster you created above.
+export GPU_CLUSTER_NAME=p100
 
-    # Specify using a p100 GPU.
-    export GPU_TYPE=p100
+# Specify using a p100 GPU.
+export GPU_TYPE=p100
 
-    # The prefix name of the jobs to launch on GKE.
-    export EXP_NAME=kitti.starnet.pedcyc.v0
+# The prefix name of the jobs to launch on GKE.
+export EXP_NAME=kitti.starnet.pedcyc.v0
 
-    python3 lingvo/tools/gke_launch.py \
-    --model=$MODEL \
-    --base_image=tensorflow:lingvo_lib_gpu \
-    --image=$DOCKER_IMAGE \
-    --logdir=$LOGDIR \
-    --tpu_type=$TPU_TYPE \
-    --trainer_cell=$TPU_CLUSTER_NAME \
-    --decoder_cell=$GPU_CLUSTER_NAME \
-    --decoder_gpus=1 \
-    --gpu_type=$GPU_TYPE \
-    --decoder=$SPLIT \
-    --extra_envs=$DATA_ENV \
-    --name=$EXP_NAME \
-    --build=$CODE_DIR/lingvo/tasks/car \
-    reload all
+python3 lingvo/tools/gke_launch.py \
+--model=$MODEL \
+--base_image=tensorflow:lingvo_lib_gpu \
+--image=$DOCKER_IMAGE \
+--logdir=$LOGDIR \
+--tpu_type=$TPU_TYPE \
+--trainer_cell=$TPU_CLUSTER_NAME \
+--decoder_cell=$GPU_CLUSTER_NAME \
+--decoder_gpus=1 \
+--gpu_type=$GPU_TYPE \
+--decoder=$SPLIT \
+--extra_envs=$DATA_ENV \
+--name=$EXP_NAME \
+--build=$CODE_DIR/lingvo/tasks/car \
+reload all
+```
 
 As the model trains, the TPU and GPU jobs will output events to the log
 directory, which the TensorBoard job will visualize.

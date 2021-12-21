@@ -3,7 +3,7 @@
 # docker run --rm -it -p 6006:6006 -p 8888:8888 --name lingvo tensorflow:lingvo_lib bash
 #
 # With GPU support:
-# docker build --tag tensorflow:lingvo_lib_gpu --build-arg base_image=nvidia/cuda:10.0-cudnn7-runtime-ubuntu18.04 - < docker/lib.dockerfile
+# docker build --tag tensorflow:lingvo_lib_gpu --build-arg base_image=nvidia/cuda:11.0-cudnn8-runtime-ubuntu18.04 - < docker/lib.dockerfile
 # docker run --runtime=nvidia --rm -it -p 6006:6006 -p 8888:8888 --name lingvo tensorflow:lingvo_lib_gpu bash
 
 ARG cpu_base_image="ubuntu:18.04"
