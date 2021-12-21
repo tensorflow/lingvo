@@ -2544,6 +2544,11 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
       # Explicitly set the input shape of Transformer layers, to avoid
       # unknown shape error occurred to tf.einsum on nonTPU devices.
       batch, _, dim = py_utils.GetShape(aux_vec, 3)
+      # Keep the decoder's layer input at its own model_dim(e.g.768),
+      # if the aux atten layer uses customized input dims.
+      if ('aux_atten_input_dim' in (self.params.trans_decoder_tpl) and
+          self.params.trans_decoder_tpl.aux_atten_input_dim is not None):
+        dim = self.params.model_dim
       layer_in = tf.reshape(layer_in, [batch, target_time, dim])
       if p.packed_input:
         segment_padding = batch_major_attention.SegmentMask(
