@@ -1712,6 +1712,12 @@ class TransformerLm(base_layer.BaseLayer):
     # Softmax weight is of shape [input_dim, vocab_size].
     softmax_p = lm_p.softmax_tpl
     softmax_p.weight_split_dims_mapping.wt = [data_axis, mdl_axis]
+    # NGrammer embedding table is currently replicated.
+    # TODO(aurkor): Explore different sharding configs for the table.
+    # n-gram table is of shape [ngram_vocab_size, embedding_dims].
+    if lm_p.ngrammer_tpl is not None:
+      ngrammer_p = lm_p.ngrammer_tpl
+      ngrammer_p.weight_split_dims_mapping.wt = [mdl_axis, data_axis]
     if mode == 'train':
       # During training, softmax output is 3d.
       softmax_p.activation_split_dims_mapping.out = [
