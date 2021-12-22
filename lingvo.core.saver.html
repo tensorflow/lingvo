@@ -129,7 +129,7 @@ to carry out extra sanity checks on the checkpoint.</p>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.saver.Saver">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.saver.</span></span><span class="sig-name descname"><span class="pre">Saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sanity_checks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_latest_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_every_n_hours</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.saver.</span></span><span class="sig-name descname"><span class="pre">Saver</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logdir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">variables</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sanity_checks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_latest_n</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_every_n_hours</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_save</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Simpler version of tf.train.Saver with extra sanity checks.</p>
 <p>This version of the Saver has support for sanity checking variable
@@ -199,16 +199,46 @@ that would have otherwise been deleted will live forever.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.saver.Saver.Save">
-<span class="sig-name descname"><span class="pre">Save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver.Save" title="Permalink to this definition"></a></dt>
-<dd><p>Generate a new checkpoint.</p>
+<dt class="sig sig-object py" id="lingvo.core.saver.Saver._SaveAsync">
+<span class="sig-name descname"><span class="pre">_SaveAsync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._SaveAsync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver._SaveAsync" title="Permalink to this definition"></a></dt>
+<dd><p>Saves the graph asynchronously.</p>
+<p>All the variables are first copied, synchronously, in memory to another set
+of vars, and then the saving to disk is done in a different thread.</p>
+<p>The function blocks till the previous saving is done.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>sess</strong> – A session with tf.Graph under which this object is constructed.</p>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>If the checkpoint is successfully generated, returns its global step
-and file prefix. Otherwise, raises an Aborted error.</p>
+<dd class="field-even"><p>Returns the global step and file prefix.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.saver.Saver._SaveSync">
+<span class="sig-name descname"><span class="pre">_SaveSync</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._SaveSync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver._SaveSync" title="Permalink to this definition"></a></dt>
+<dd><p>Saves the graph.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.saver.Saver._FinalizeSave">
+<span class="sig-name descname"><span class="pre">_FinalizeSave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._FinalizeSave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver._FinalizeSave" title="Permalink to this definition"></a></dt>
+<dd><p>Runs sanity check and updates status.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.saver.Saver.Save">
+<span class="sig-name descname"><span class="pre">Save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.saver.Saver.Save" title="Permalink to this definition"></a></dt>
+<dd><p>Generate a new checkpoint.</p>
+<p>May raise exceptions for failures or sanity checks. If using async mode,
+exceptions are raised in the following Save call.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – A session with tf.Graph under which this object is constructed.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Returns the global step and file prefix.</p>
 </dd>
 </dl>
 </dd></dl>

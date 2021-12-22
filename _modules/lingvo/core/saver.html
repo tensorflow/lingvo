@@ -84,6 +84,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
@@ -162,10 +163,16 @@
                <span class="n">variables</span><span class="p">,</span>
                <span class="n">sanity_checks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">keep_latest_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">keep_every_n_hours</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+               <span class="n">keep_every_n_hours</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">async_save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">logdir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_state_file</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/checkpoint&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span> <span class="o">=</span> <span class="n">variables</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_async_save</span> <span class="o">=</span> <span class="n">async_save</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_copying_ops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">sanity_checks</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">(</span>
         <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">SanityCheck</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sanity_checks</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sanity_checks</span> <span class="o">=</span> <span class="n">sanity_checks</span>
@@ -268,21 +275,72 @@
         <span class="n">file_io</span><span class="o">.</span><span class="n">write_string_to_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.failed&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span> <span class="n">msg</span><span class="p">)</span>
         <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Saver.Save"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Generate a new checkpoint.</span>
+<div class="viewcode-block" id="Saver._SaveAsync"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._SaveAsync">[docs]</a>  <span class="k">def</span> <span class="nf">_SaveAsync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Saves the graph asynchronously.</span>
+
+<span class="sd">    All the variables are first copied, synchronously, in memory to another set</span>
+<span class="sd">    of vars, and then the saving to disk is done in a different thread.</span>
+
+<span class="sd">    The function blocks till the previous saving is done.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      sess: A session with tf.Graph under which this object is constructed.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      If the checkpoint is successfully generated, returns its global step</span>
-<span class="sd">      and file prefix. Otherwise, raises an Aborted error.</span>
+<span class="sd">      Returns the global step and file prefix.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Waiting for the previous save to finish.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">raise</span> <span class="n">e</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># Creating the first copy of the vars. Doing it here and not in the</span>
+      <span class="c1"># constructor due to initialization sequence of TF.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">c</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_copying_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_copying_ops</span><span class="p">)</span>
+
+    <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+        <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">],</span>
+        <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">})</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving asynchronously to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_Async</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">save_op</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">save_v2</span><span class="p">(</span>
+            <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
+            <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">],</span>
+            <span class="n">tensors</span><span class="o">=</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">],</span>
+            <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">))</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="n">save_op</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{})</span>
+        <span class="c1"># Many users expect this as the tf.train.Saver does this by default.</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeSave</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
+      <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="o">=</span> <span class="n">e</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">_Async</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">prefix</span><span class="p">,))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Saver._SaveSync"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._SaveSync">[docs]</a>  <span class="k">def</span> <span class="nf">_SaveSync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Saves the graph.&quot;&quot;&quot;</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
         <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">],</span>
         <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">})</span>
     <span class="n">prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeSave</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Saver._FinalizeSave"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._FinalizeSave">[docs]</a>  <span class="k">def</span> <span class="nf">_FinalizeSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Runs sanity check and updates status.&quot;&quot;&quot;</span>
     <span class="c1"># Many users expect this as the tf.train.Saver does this by default.</span>
     <span class="n">meta_graph_filename</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.meta&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">export_meta_graph</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">meta_graph_filename</span><span class="p">)</span>
@@ -295,6 +353,22 @@
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saved </span><span class="si">%d</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span></div>
+
+<div class="viewcode-block" id="Saver.Save"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate a new checkpoint.</span>
+
+<span class="sd">    May raise exceptions for failures or sanity checks. If using async mode,</span>
+<span class="sd">    exceptions are raised in the following Save call.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: A session with tf.Graph under which this object is constructed.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Returns the global step and file prefix.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_save</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SaveAsync</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SaveSync</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Saver._UpdateState"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._UpdateState">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Updates the checkpoint state with the new checkpoint prefix.&quot;&quot;&quot;</span>
@@ -384,7 +458,8 @@
 <span class="sd">      successfully restored, returns the checkpoint&#39;s global step and file</span>
 <span class="sd">      prefix. Otherwise, raises an error.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
       <span class="n">prefix</span> <span class="o">=</span> <span class="n">path</span>
     <span class="k">elif</span> <span class="n">checkpoint_id</span><span class="p">:</span>

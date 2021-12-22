@@ -102,7 +102,8 @@
                <span class="n">logdir</span><span class="p">,</span>
                <span class="n">train_params</span><span class="p">,</span>
                <span class="n">variables_to_restore_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">finite_check</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+               <span class="n">finite_check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+               <span class="n">async_save</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create a tf.train.Saver or a custom_saver.Saver.</span>
 
 <span class="sd">    Args:</span>
@@ -112,11 +113,14 @@
 <span class="sd">        Typically, used in evaluation for substituting exponential moving</span>
 <span class="sd">        average weights.  If this is set, then tf.train.Saver is used.</span>
 <span class="sd">      finite_check: Whether to santiy check variables to be finite.</span>
+<span class="sd">      async_save: Save asynchronously. Only works with custom saver.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">logdir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_use_custom_saver</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_custom_saver</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">variables_to_restore_dict</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">async_save</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_custom_saver</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Asynchronous saving only works with custom saver.&#39;</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">=</span> <span class="n">train_params</span><span class="o">.</span><span class="n">save_max_to_keep</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span> <span class="o">=</span> <span class="n">train_params</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span>
@@ -156,7 +160,8 @@
           <span class="n">variables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_list</span><span class="p">,</span>
           <span class="n">sanity_checks</span><span class="o">=</span><span class="n">sanity_checks</span><span class="p">,</span>
           <span class="n">keep_latest_n</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span><span class="p">,</span>
-          <span class="n">keep_every_n_hours</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span><span class="p">)</span>
+          <span class="n">keep_every_n_hours</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span><span class="p">,</span>
+          <span class="n">async_save</span><span class="o">=</span><span class="n">async_save</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SaverWrapper.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.SaverWrapper.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Save a checkpoint.</span>
@@ -296,7 +301,8 @@
     <span class="k">return</span> <span class="n">SaverWrapper</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="p">,</span>
-        <span class="n">variables_to_restore_dict</span><span class="o">=</span><span class="n">variables_to_restore</span><span class="p">)</span></div>
+        <span class="n">variables_to_restore_dict</span><span class="o">=</span><span class="n">variables_to_restore</span><span class="p">,</span>
+        <span class="n">async_save</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">async_checkpointing</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">async_checkpointing</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

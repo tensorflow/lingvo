@@ -557,8 +557,6 @@
         <span class="k">else</span><span class="p">:</span>
           <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
 
-        <span class="n">async_checkpointing</span> <span class="o">=</span> <span class="kc">False</span>
-
         <span class="k">def</span> <span class="nf">RunSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
           <span class="c1"># Run TPU embedding retrieve ops.</span>
           <span class="c1"># NOTE: this is expensive, so only run it when we&#39;re checkpointing.</span>
@@ -576,15 +574,7 @@
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span>
             <span class="n">global_step</span><span class="p">):</span>
-
-          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only_checkpointer</span><span class="o">.</span><span class="n">async_checkpointing</span><span class="p">:</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint asynchronously AT YOUR OWN RISK.&#39;</span><span class="p">)</span>
-            <span class="n">threadpool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">dummy</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
-            <span class="n">saver_future</span> <span class="o">=</span> <span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
-                <span class="n">RunSave</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">))</span>
-            <span class="n">async_checkpointing</span> <span class="o">=</span> <span class="kc">True</span>
-          <span class="k">else</span><span class="p">:</span>
-            <span class="n">RunSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="n">RunSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
         <span class="c1"># If a task is explicitly selected, only run the programs associated</span>
         <span class="c1"># with that task.</span>
@@ -599,9 +589,6 @@
 
         <span class="n">done</span><span class="p">,</span> <span class="n">train_time_in_secs</span><span class="p">,</span> <span class="n">eval_time_in_secs</span> <span class="o">=</span> <span class="n">program_schedule</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span>
             <span class="n">sess</span><span class="p">,</span> <span class="n">program_threadpool</span><span class="p">)</span>
-
-        <span class="k">if</span> <span class="n">async_checkpointing</span><span class="p">:</span>
-          <span class="n">saver_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 
         <span class="n">executor_cycle_in_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">cycle_start_time</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span>
