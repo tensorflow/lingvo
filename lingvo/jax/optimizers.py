@@ -696,7 +696,8 @@ class DistributedShampoo(BaseOptimizer):
              'Moving average for momentum.')
     p.Define('skip_preconditioning_dim_size_gt', 4096,
              'Skips preconditioning if any dim is greater than this value.')
-    p.Define('adaptive_clipping', None, 'Adaptive clipping (if not None).')
+    p.Define('clip_by_scaled_gradient_norm', None,
+             'Clip by scaled gradient norm (if not None).')
     return p
 
   @classmethod
@@ -729,7 +730,7 @@ class DistributedShampoo(BaseOptimizer):
         preconditioning_compute_steps=50,
         skip_preconditioning_dim_size_gt=4096,
         moving_average_for_momentum=True,
-        adaptive_clipping=1.0)
+        clip_by_scaled_gradient_norm=1.0)
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> optax.GradientTransformation:
@@ -753,7 +754,7 @@ class DistributedShampoo(BaseOptimizer):
         inverse_failure_threshold=0.1,
         moving_average_for_momentum=p.moving_average_for_momentum,
         skip_preconditioning_dim_size_gt=p.skip_preconditioning_dim_size_gt,
-        adaptive_clipping=p.adaptive_clipping,
+        clip_by_scaled_gradient_norm=p.clip_by_scaled_gradient_norm,
         precision=lax.Precision.HIGHEST)
 
 
