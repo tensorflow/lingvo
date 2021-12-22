@@ -37,7 +37,8 @@ class SaverWrapper:
                logdir,
                train_params,
                variables_to_restore_dict=None,
-               finite_check=True):
+               finite_check=True,
+               async_save=False):
     """Create a tf.train.Saver or a custom_saver.Saver.
 
     Args:
@@ -47,11 +48,14 @@ class SaverWrapper:
         Typically, used in evaluation for substituting exponential moving
         average weights.  If this is set, then tf.train.Saver is used.
       finite_check: Whether to santiy check variables to be finite.
+      async_save: Save asynchronously. Only works with custom saver.
     """
     self._logdir = logdir
     self._save_path = os.path.join(self._logdir, 'ckpt')
     self._use_custom_saver = (
         FLAGS.use_custom_saver and not variables_to_restore_dict)
+    if async_save and not self._use_custom_saver:
+      tf.logging.warning('Asynchronous saving only works with custom saver.')
 
     self._keep_latest_n = train_params.save_max_to_keep
     self._keep_every_n_hours = train_params.save_keep_checkpoint_every_n_hours
@@ -91,7 +95,8 @@ class SaverWrapper:
           variables=self._var_list,
           sanity_checks=sanity_checks,
           keep_latest_n=self._keep_latest_n,
-          keep_every_n_hours=self._keep_every_n_hours)
+          keep_every_n_hours=self._keep_every_n_hours,
+          async_save=async_save)
 
   def Save(self, sess, gsteps):
     """Save a checkpoint.
@@ -231,7 +236,8 @@ class Checkpointer:
     return SaverWrapper(
         self._train_dir,
         self._train_params,
-        variables_to_restore_dict=variables_to_restore)
+        variables_to_restore_dict=variables_to_restore,
+        async_save=self.async_checkpointing)
 
   @property
   def async_checkpointing(self):

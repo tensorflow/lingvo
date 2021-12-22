@@ -19,6 +19,7 @@ to carry out extra sanity checks on the checkpoint.
 """
 
 import re
+import threading
 import time
 from lingvo import compat as tf
 # pylint: enable=g-direct-tensorflow-import
@@ -97,10 +98,16 @@ class Saver:
                variables,
                sanity_checks=None,
                keep_latest_n=None,
-               keep_every_n_hours=None):
+               keep_every_n_hours=None,
+               async_save=False):
     self._logdir = logdir
     self._state_file = "{}/checkpoint".format(self._logdir)
     self._vars = variables
+    self._async_save = async_save
+    self._copied_vars = None
+    self._copying_ops = []
+    self._async_save_thread = None
+    self._async_exception = None
     assert not sanity_checks or all(
         isinstance(x[1], SanityCheck) for x in sanity_checks)
     self._sanity_checks = sanity_checks
@@ -203,21 +210,72 @@ class Saver:
         file_io.write_string_to_file("{}.failed".format(prefix), msg)
         raise tf.errors.AbortedError(None, None, msg)
 
-  def Save(self, sess):
-    """Generate a new checkpoint.
+  def _SaveAsync(self, sess):
+    """Saves the graph asynchronously.
+
+    All the variables are first copied, synchronously, in memory to another set
+    of vars, and then the saving to disk is done in a different thread.
+
+    The function blocks till the previous saving is done.
 
     Args:
       sess: A session with tf.Graph under which this object is constructed.
 
     Returns:
-      If the checkpoint is successfully generated, returns its global step
-      and file prefix. Otherwise, raises an Aborted error.
+      Returns the global step and file prefix.
     """
+
+    if self._async_save_thread is not None:
+      # Waiting for the previous save to finish.
+      self._async_save_thread.join()
+    if self._async_exception is not None:
+      e = self._async_exception
+      self._async_exception = None
+      raise e
+
+    if self._copied_vars is None:
+      # Creating the first copy of the vars. Doing it here and not in the
+      # constructor due to initialization sequence of TF.
+      self._copied_vars = [tf.Variable(v, trainable=False) for v in self._vars]
+      for c, v in zip(self._copied_vars, self._vars):
+        self._copying_ops.append(c.assign(v))
+    _ = sess.run(self._copying_ops)
+
+    global_step, prefix = sess.run(
+        fetches=[self._save_global_step, self._save_prefix],
+        feed_dict={self._logdir_ph: self._logdir})
+
+    tf.logging.info("Saving asynchronously to %s", tf.compat.as_text(prefix))
+
+    def _Async(prefix):
+      try:
+        save_op = io_ops.save_v2(
+            prefix=prefix,
+            tensor_names=[_VarKey(v) for v in self._vars],
+            tensors=[v.read_value() for v in self._copied_vars],
+            shape_and_slices=[""] * len(self._vars))
+        _ = sess.run(fetches=[save_op], feed_dict={})
+        # Many users expect this as the tf.train.Saver does this by default.
+        prefix = tf.compat.as_text(prefix)
+        self._FinalizeSave(global_step, prefix)
+      except Exception as e:  # pylint: disable=broad-except
+        self._async_exception = e
+
+    self._async_save_thread = threading.Thread(target=_Async, args=(prefix,))
+    self._async_save_thread.start()
+
+    return global_step, tf.compat.as_text(prefix)
+
+  def _SaveSync(self, sess):
+    """Saves the graph."""
     _, global_step, prefix = sess.run(
         fetches=[self._save_op, self._save_global_step, self._save_prefix],
         feed_dict={self._logdir_ph: self._logdir})
     prefix = tf.compat.as_text(prefix)
+    return self._FinalizeSave(global_step, prefix)
 
+  def _FinalizeSave(self, global_step, prefix):
+    """Runs sanity check and updates status."""
     # Many users expect this as the tf.train.Saver does this by default.
     meta_graph_filename = prefix + ".meta"
     tf.train.export_meta_graph(filename=meta_graph_filename)
@@ -230,6 +288,22 @@ class Saver:
 
     tf.logging.info("Saved %d %s", global_step, prefix)
     return global_step, prefix
+
+  def Save(self, sess):
+    """Generate a new checkpoint.
+
+    May raise exceptions for failures or sanity checks. If using async mode,
+    exceptions are raised in the following Save call.
+
+    Args:
+      sess: A session with tf.Graph under which this object is constructed.
+
+    Returns:
+      Returns the global step and file prefix.
+    """
+    if self._async_save:
+      return self._SaveAsync(sess)
+    return self._SaveSync(sess)
 
   def _UpdateState(self, prefix):
     """Updates the checkpoint state with the new checkpoint prefix."""
@@ -319,7 +393,8 @@ class Saver:
       successfully restored, returns the checkpoint's global step and file
       prefix. Otherwise, raises an error.
     """
-
+    if self._async_save_thread is not None:
+      self._async_save_thread.join()
     if path:
       prefix = path
     elif checkpoint_id:

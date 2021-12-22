@@ -17,6 +17,7 @@ import os
 import tempfile
 import time
 
+from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
@@ -29,10 +30,14 @@ from tensorflow.python.platform import test
 # pylint: enable=g-direct-tensorflow-import
 
 
-class SaverTest(test_utils.TestCase):
+class SaverTest(test_utils.TestCase, parameterized.TestCase):
 
   @staticmethod
-  def _buildGraphAndSaver(logdir, keep_latest_n=5, keep_every_n_hours=None):
+  def _buildGraphAndSaver(logdir,
+                          keep_latest_n=5,
+                          keep_every_n_hours=None,
+                          save_async=False):
+    tf.random.set_seed(123)
     g = tf.Graph()
     with g.as_default():
       p = mnist.LeNet5().Task()
@@ -50,7 +55,8 @@ class SaverTest(test_utils.TestCase):
           variables,
           sanity_checks,
           keep_latest_n=keep_latest_n,
-          keep_every_n_hours=keep_every_n_hours)
+          keep_every_n_hours=keep_every_n_hours,
+          async_save=save_async)
     return g, sav, inc
 
   @staticmethod
@@ -66,14 +72,15 @@ class SaverTest(test_utils.TestCase):
     ckpt_ids.sort()
     return ckpt_ids
 
-  def testBasic(self):
+  @parameterized.parameters(True, False)
+  def testBasic(self, save_async):
     logdir = tempfile.mkdtemp()
     # Create a dummy file that looks like a checkpoint that shouldn't
     # be touched.
     with tf.io.gfile.GFile(logdir + '/ckpt-foo', 'w') as f:
       f.write('contents')
 
-    g, sav, inc = self._buildGraphAndSaver(logdir)
+    g, sav, inc = self._buildGraphAndSaver(logdir, save_async=save_async)
     with self.session(graph=g) as sess:
       # Creates a few checkpoints.
       sess.run(tf.global_variables_initializer())
@@ -94,10 +101,11 @@ class SaverTest(test_utils.TestCase):
         sess.run(inc)
       with self.assertRaises(tf.errors.AbortedError):
         _ = sav.Save(sess)
+        # Async saving throws the error only in the next attempt
+        _ = sav.Save(sess)
 
     filenames = tf.io.gfile.glob('{}/*'.format(logdir))
     filenames = [x[len(logdir) + 1:] for x in filenames]
-    print('\n'.join(filenames))
     self.assertIn('checkpoint', filenames)
 
     meta_files = []
@@ -105,11 +113,11 @@ class SaverTest(test_utils.TestCase):
       if f.endswith('.meta'):
         meta_files.append(f)
     # A .meta for each checkpoint.
-    self.assertEqual(len(meta_files), 6)
+    self.assertLen(meta_files, 6)
 
     # 1 for checkpoint. 3 files per checkpoint. 5 good checkpoints, 1 bad.
     # 1 extra file contains the error message, and 1 dummy file
-    self.assertEqual(len(filenames), 1 + (5 + 1) * 3 + 1 + 1)
+    self.assertLen(filenames, 1 + (5 + 1) * 3 + 1 + 1)
 
   @test.mock.patch.object(saver, 'time')
   def testBothPolicies(self, mock_time):
@@ -259,7 +267,7 @@ class SaverTest(test_utils.TestCase):
     nmap.foo.bar = np.arange(10).astype(np.int32).reshape([2, 5])
     saver.WriteNpArrays(prefix, nmap)
     files = sorted(tf.io.gfile.glob(prefix + '*'))
-    self.assertEqual(len(files), 2)
+    self.assertLen(files, 2)
     self.assertEqual(files[0], prefix + '.data-00000-of-00001')
     self.assertEqual(files[1], prefix + '.index')
     read_nmap = saver.ReadNpArrays(prefix, nmap.Transform(lambda x: x.dtype))

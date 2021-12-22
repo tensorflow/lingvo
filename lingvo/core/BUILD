@@ -1092,6 +1092,7 @@ py_test(
         ":py_utils",
         ":saver",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo/tasks/image/params:mnist",
         # Implicit numpy dependency.

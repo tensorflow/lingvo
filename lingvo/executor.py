@@ -492,8 +492,6 @@ class ExecutorTpu(base_runner.BaseRunner):
         else:
           global_step = sess.run(py_utils.GetGlobalStep())
 
-        async_checkpointing = False
-
         def RunSave(sess, global_step):
           # Run TPU embedding retrieve ops.
           # NOTE: this is expensive, so only run it when we're checkpointing.
@@ -511,15 +509,7 @@ class ExecutorTpu(base_runner.BaseRunner):
 
         if not self._ml_perf_log and self._save_only_checkpointer.ShouldSave(
             global_step):
-
-          if self._save_only_checkpointer.async_checkpointing:
-            tf.logging.info('Save checkpoint asynchronously AT YOUR OWN RISK.')
-            threadpool = multiprocessing.dummy.Pool(1)
-            saver_future = threadpool.apply_async(
-                RunSave, args=(sess, global_step))
-            async_checkpointing = True
-          else:
-            RunSave(sess, global_step)
+          RunSave(sess, global_step)
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.
@@ -534,9 +524,6 @@ class ExecutorTpu(base_runner.BaseRunner):
 
         done, train_time_in_secs, eval_time_in_secs = program_schedule.Run(
             sess, program_threadpool)
-
-        if async_checkpointing:
-          saver_future.wait()
 
         executor_cycle_in_secs = time.time() - cycle_start_time
         self._ExportMetrics(
