@@ -377,3 +377,64 @@ class RotaryPositionalEmbedding(PositionalEmbedding):
     if len(inputs_shape) == 3:
       output = jnp.squeeze(output, axis=1)
     return output
+
+
+class TrainablePositionalEmbedding(PositionalEmbedding):
+  """Generates trainable position embedding for a given 1-d sequence."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define('max_seq_length', 10240, 'Max sequence length.')
+    p.Define('lookup_style', 'matmul',
+             'Style of lookup, one of index or matmul.')
+    return p
+
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
+    p = self.params
+    wp = p.weight_split_dims_mapping
+    self.create_variable(
+        'emb_var',
+        weight_params(
+            shape=[p.max_seq_length, p.embedding_dims],
+            init=p.params_init,
+            dtype=p.dtype,
+            device_mesh=p.device_mesh,
+            tensor_split_dims_mapping=wp.wt))
+
+  def fprop(self,
+            theta: NestedMap,
+            seq_length: Optional[int] = None,
+            position: Optional[JTensor] = None) -> JTensor:
+    """Generates a JTensor of embedding lookup result.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      seq_length: Sequence length of the embeddings to be generated. This may be
+        omitted if an explicit position JTensor is specified.
+      position: Optional position JTensor which denotes the position of each
+        token in the sequence. This only needs to be supplied when the sequence
+        is packed. It is of shape [batch, seq_length].
+
+    Returns:
+      a JTensor of shape [batch, seq_length, embedding_dim] if position JTensor
+      is specified, else of shape [1, seq_length, embedding_dim].
+    """
+    p = self.params
+    if position is None:
+      assert seq_length is not None
+      position = jnp.arange(seq_length, dtype=jnp.float32)[jnp.newaxis, :]
+
+    pos_emb_var = theta.emb_var
+    pos_emb_var = jax.lax.slice_in_dim(pos_emb_var, 0, seq_length, axis=0)
+    if p.lookup_style == 'index':
+      embs = jnp.asarray(pos_emb_var)[(position,)]
+    elif p.lookup_style == 'matmul':
+      one_hot_ids = jax.nn.one_hot(position, seq_length)
+      embs = jnp.matmul(one_hot_ids, pos_emb_var)
+    else:
+      raise ValueError('Unknown lookup style.')
+
+    return embs

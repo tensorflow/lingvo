@@ -447,6 +447,33 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     expected_output = np.stack([first_part, second_part], axis=-1)
     self.assertArraysEqual(np_output[0, :, 0, :], expected_output)
 
+  @parameterized.parameters('index', 'matmul')
+  def test_trainable_positional_embedding_layer(self, lookup_style):
+    p = embedding_softmax.TrainablePositionalEmbedding.Params().Set(
+        name='jax_pos_emb',
+        max_seq_length=10,
+        embedding_dims=40,
+        lookup_style=lookup_style)
+    emb_layer = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = emb_layer.instantiate_variables(prng_key)
+    npy_input = np.random.randint(0, p.max_seq_length,
+                                  [10, p.max_seq_length]).astype('int32')
+    inputs = jnp.asarray(npy_input)
+    outputs = emb_layer.fprop(initial_vars, p.max_seq_length, inputs)
+    # Test whether tf Embedding layer returns same output
+    # Modify initial_vars to use TF compatible params
+    tf_initial_vars = initial_vars
+    tf_p = lingvo_layers.SingleShardEmbeddingLayer.Params().Set(
+        name='tf_pos_emb',
+        vocab_size=p.max_seq_length,
+        embedding_dim=p.embedding_dims)
+    tf_emb_layer = tf_p.Instantiate()
+    tf_output = tf_emb_layer.FProp(tf_initial_vars,
+                                   tf.constant(inputs, dtype=tf.int32))
+    np_outputs = to_np(outputs)
+    tf_np_outputs = to_np(tf_output)
+    self.assertAllClose(tf_np_outputs, np_outputs)
 
 if __name__ == '__main__':
   absltest.main()

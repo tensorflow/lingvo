@@ -33,6 +33,7 @@ from lingvo.jax.layers.embedding_softmax import PositionalEmbedding
 from lingvo.jax.layers.embedding_softmax import SingleShardEmbedding
 from lingvo.jax.layers.embedding_softmax import SingleShardFullSoftmax
 from lingvo.jax.layers.embedding_softmax import SingleShardSharedEmbeddingSoftmax
+from lingvo.jax.layers.embedding_softmax import TrainablePositionalEmbedding
 from lingvo.jax.layers.flax_wrapper import FlaxModule
 from lingvo.jax.layers.linears import Bias
 from lingvo.jax.layers.linears import FeedForward

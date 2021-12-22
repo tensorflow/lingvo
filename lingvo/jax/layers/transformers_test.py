@@ -837,17 +837,24 @@ class TransformersTest(test_util.JaxTestCase):
     logging.info('np_fprop_outputs_2: %s', np_fprop_outputs_2)
     self.assertAllClose(np_fprop_outputs_1, np_fprop_outputs_2)
 
-  def test_transformer_bert(self):
+  @parameterized.parameters([True, False])
+  def test_transformer_bert(self, trainable_position_emb):
+    seq_len = 512
+    if trainable_position_emb:
+      position_emb_tpl = embedding_softmax.TrainablePositionalEmbedding.Params()
+      position_emb_tpl.max_seq_length = seq_len
+    else:
+      position_emb_tpl = embedding_softmax.PositionalEmbedding.Params()
     p = transformers.TransformerLm.Params().Set(
         name='bert_lm',
         model_dims=32,
         hidden_dims=4 * 32,
         num_heads=4,
         num_layers=1,
-        vocab_size=52)
+        vocab_size=52,
+        position_emb_tpl=position_emb_tpl)
     p.softmax_tpl.scale_sqrt_depth = True
     batch_size = 8
-    seq_len = 512
     bert_lm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = bert_lm.instantiate_variables(prng_key)
