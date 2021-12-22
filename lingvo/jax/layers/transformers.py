@@ -194,13 +194,19 @@ class TransformerFeedForward(base_layer.BaseLayer):
         'Otherwise, add a residual projection layer '
         'followed by batch normalization.')
     p.Define('hidden_dims', 0, 'Hidden dimension of FFN')
+    p.Define('has_bias', True, 'Adds bias weights to Feedforward or not.')
+    p.Define(
+        'apply_padding_first', False,
+        'Apply padding to inputs before everything else or not. For '
+        'example, it is better to apply padding before batch norm.')
     p.Define(
         'activation', 'RELU', 'Activation function to use.'
         'Options are RELU, RELU6, RELU^2, RELU^3, SIGMOID, TANH, GELU,'
-        'GATED_SILU, NONE.')
+        'GATED_GELU, GATED_SILU, NONE.')
     p.Define('fflayer_tpl', linears.FeedForward.Params(),
              'Feedforward layer params')
-    p.Define('ln_tpl', normalizations.LayerNorm.Params(), 'Layer norm params')
+    p.Define('ln_tpl', normalizations.LayerNorm.Params(),
+             'Layer norm params, other options include RmsNorm as well.')
     p.Define('residual_dropout_prob', 0., 'Residual dropout')
     p.Define(
         'relu_dropout_tpl', stochastics.Dropout.Params(),
@@ -283,6 +289,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
     ffn1_p = p.fflayer_tpl.Copy()
     ffn1_p.name = 'ffn_layer1'
     ffn1_p.input_dims = p.input_dims
+    ffn1_p.has_bias = p.has_bias
     ffn1_p.activation = activation
     ffn1_p.output_dims = p.hidden_dims
     ffn1_p.weight_split_dims_mapping.wt = wp.ffn0
@@ -290,10 +297,11 @@ class TransformerFeedForward(base_layer.BaseLayer):
     self.create_child('ffn_layer1', ffn1_p)
 
     if self._is_ffn1_gated:
-      # This is a gated ffw network.
+      # This is a gated ffw network, corresponding to gshard_builder's wi0
       gate_p = p.fflayer_tpl.Copy()
       gate_p.name = 'ffn_layer1_gate'
       gate_p.input_dims = p.input_dims
+      gate_p.has_bias = p.has_bias
       gate_p.activation = gate_activation
       gate_p.output_dims = p.hidden_dims
       gate_p.weight_split_dims_mapping.wt = wp.ffn0
@@ -309,6 +317,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
     ffn2_p = p.fflayer_tpl.Copy()
     ffn2_p.name = 'ffn_layer2'
     ffn2_p.input_dims = p.hidden_dims
+    ffn2_p.has_bias = p.has_bias
     ffn2_p.activation = 'NONE'
     ffn2_p.output_dims = p.projection_dims
     ffn2_p.weight_split_dims_mapping.wt = wp.ffn1
@@ -325,6 +334,13 @@ class TransformerFeedForward(base_layer.BaseLayer):
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> JTensor:
     p = self.params
+    # Expand paddings to last dim if not None to have shape [batch, time, 1]
+    if paddings is not None:
+      paddings = jnp.expand_dims(paddings, axis=-1)
+
+    if p.apply_padding_first and paddings is not None:
+      inputs *= (1.0 - paddings)
+
     if p.norm_policy == 'primer_hybrid':
       inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
                                                     inputs)
@@ -333,14 +349,12 @@ class TransformerFeedForward(base_layer.BaseLayer):
     else:
       inputs_normalized = inputs
 
-    # Expand paddings to last dim if not None to have shape [batch, time, 1]
-    if paddings is not None:
-      paddings = jnp.expand_dims(paddings, axis=-1)
-
     # Apply first FFN layer
     if self._is_ffn1_gated:
+      # theta.ffn_layer1_gate corresponds to gshard_builder's wi0
       gate_value = self.ffn_layer1_gate.fprop(theta.ffn_layer1_gate,
                                               inputs_normalized)
+      # theta.ffn_layer1 corresponds to gshard_builder's wi1
       projected_inputs = gate_value * self.ffn_layer1.fprop(
           theta.ffn_layer1, inputs_normalized)
     else:
@@ -349,7 +363,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
       projected_inputs = checkpoint_name(projected_inputs, 'ffn1')
 
     # Apply paddings if not None
-    if paddings is not None:
+    if not p.apply_padding_first and paddings is not None:
       projected_inputs *= (1.0 - paddings)
 
     # Apply RELU dropout
@@ -361,7 +375,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
     projected_inputs = checkpoint_name(projected_inputs, 'ffn2')
 
     # Apply paddings if not None
-    if paddings is not None:
+    if not p.apply_padding_first and paddings is not None:
       projected_inputs *= (1.0 - paddings)
 
     # Apply Primer normalization before dropout.
