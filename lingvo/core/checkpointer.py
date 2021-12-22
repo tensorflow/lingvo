@@ -477,9 +477,6 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     all_vars = _GetSaveableVariablesDict(self._models)
     # Restore name-based tf.compat.v1.train.Saver checkpoints with Checkpoint.
     restorer = tf.train.Checkpoint(variables=all_vars)
-    # Use the manager to support features e.g. max number of checkpoints
-    self._saver_mgr = tf.train.CheckpointManager(
-        restorer, directory=self._train_dir, checkpoint_name='ckpt')
     return restorer
 
   def Restore(self, sess=None, force_reinitialize=None):
