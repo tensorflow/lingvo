@@ -27,15 +27,27 @@ If there are variables that use repeat_prefix, the optimizer state will be a
 NestedMap with fields like:
 {
   'no_prefix': state for vars without prefixes,
-  'p_2.3_0.-1': state for vars with shape prefix [2,3], sharding prefix [0,-1],
-  'p_4_1': state for vars with shape prefix [4], sharding prefix [1],
+  'p#2.3#i0.i-1': state for vars w/ shape prefix [2,3], sharding prefix [0,-1],
+  'p#4#i1': state for vars with shape prefix [4], sharding prefix [1],
    ...
 }
+The 'i' prefix of each sharding dim indicates it's an integer.
+
+If the sharding prefix dims are strings are tuples of strings, the prefix keys
+are encoded as:
+{
+  'p#2.3#sdata.smdl': sharding prefix ['data','mdl'],
+  'p#2.3#tsdata,smdl.': sharding prefix [('data','mdl'), None],
+  ...
+}
+The 's' prefix of each sharding dim indicates it's a string, and the 't' prefix
+indicates it's a tuple of elements separated by ','.
+
 Stacking variables helps reduce the number of individual variables, which can be
 beneficial for compilation time and the current GDA-based checkpointing.
 """
 
-from typing import Callable, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import jax
 from lingvo.jax import optimizers
@@ -70,6 +82,39 @@ def _vectorize_on_prefix_dims(fn: Callable[..., NestedJTensor],
   return v_fns[-1]
 
 
+def _encode_sharding_dim(d: Optional[Union[str, Sequence[str], int]]) -> str:
+  """Encodes the sharding annotation into a string for one dimension."""
+  if d is None:
+    return ''
+  if isinstance(d, int):
+    return 'i%d' % d
+  if isinstance(d, (list, tuple)):
+    return 't' + ','.join([_encode_sharding_dim(e) for e in d])
+
+  assert isinstance(d, str)
+  # The original string should not contain separators.
+  assert '.' not in d
+  assert ',' not in d
+  assert '#' not in d
+  return 's' + d
+
+
+def _decode_sharding_dim(d: str) -> Optional[Union[str, Sequence[str], int]]:
+  """Decodes the sharding annotation from a string for one dimension."""
+  if not d:
+    return None
+  if d.startswith('i'):
+    return int(d[1:])
+  if d.startswith('s'):
+    return d[1:]
+
+  assert d.startswith('t')
+  if len(d) == 1:
+    return ()
+  tuple_elements = [_decode_sharding_dim(e) for e in d[1:].split(',')]
+  return tuple(tuple_elements)
+
+
 def _get_var_param_repeat_prefix_key(var_param: InstantiableParams) -> str:
   """Returns string keys that uniquely identify shape and sharding prefixes."""
   if not var_param.repeat_prefix:
@@ -80,8 +125,8 @@ def _get_var_param_repeat_prefix_key(var_param: InstantiableParams) -> str:
     sharding_prefix = [-1] * len(var_param.repeat_prefix)
   assert len(sharding_prefix) == len(var_param.repeat_prefix)
   shape_str = '.'.join(str(d) for d in var_param.repeat_prefix)
-  sharding_str = '.'.join(str(d) for d in sharding_prefix)
-  return f'p_{shape_str}_{sharding_str}'
+  sharding_str = '.'.join(_encode_sharding_dim(d) for d in sharding_prefix)
+  return f'p#{shape_str}#{sharding_str}'
 
 
 def _parse_var_param_repeat_prefix_key(
@@ -90,9 +135,9 @@ def _parse_var_param_repeat_prefix_key(
   if prefix == NO_PREFIX_KEY:
     return [], []
 
-  _, shape_str, sharding_str = prefix.split('_')
+  _, shape_str, sharding_str = prefix.split('#')
   shape_prefix = [int(d) for d in shape_str.split('.')]
-  sharding_prefix = [int(d) for d in sharding_str.split('.')]
+  sharding_prefix = [_decode_sharding_dim(d) for d in sharding_str.split('.')]
   return shape_prefix, sharding_prefix
 
 

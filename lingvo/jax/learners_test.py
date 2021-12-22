@@ -397,30 +397,42 @@ class LearnersTest(test_util.JaxTestCase):
 
     grads = NestedMap(
         a=jnp.array([1, 2], dtype=jnp.float32),
-        b=jnp.array([1, 2], dtype=jnp.float32))
+        b=jnp.array([1, 2], dtype=jnp.float32),
+        c=jnp.array([[1, 2], [3, 4]], dtype=jnp.float32))
     variables = grads.copy()
     a_var_param = py_utils.weight_params(())
     a_var_param.repeat_prefix = [2]
     a_var_param.repeat_prefix_split_dims_mapping = [-1]
-    var_params = NestedMap(a=a_var_param, b=py_utils.weight_params((2,)))
+    b_var_param = py_utils.weight_params((2,))
+    c_var_param = py_utils.weight_params(())
+    c_var_param.repeat_prefix = [2, 2]
+    c_var_param.repeat_prefix_split_dims_mapping = [('data', 'mdl'), None]
+    var_params = NestedMap(a=a_var_param, b=b_var_param, c=c_var_param)
 
     grad_tx = learner_instance.get_grad_tx(var_weight_params=var_params)
     partition_spec = grad_tx.init_partition_spec(var_params)
-    self.assertEqual(partition_spec['p_2_-1'][0].a.shape, ())
-    self.assertEqual(partition_spec['p_2_-1'][0].a.repeat_prefix, [2])
+    self.assertEqual(partition_spec['p#2#i-1'][0].a.shape, ())
+    self.assertEqual(partition_spec['p#2#i-1'][0].a.repeat_prefix, [2])
     self.assertEqual(
-        partition_spec['p_2_-1'][0].a.repeat_prefix_split_dims_mapping, [-1])
+        partition_spec['p#2#i-1'][0].a.repeat_prefix_split_dims_mapping, [-1])
     self.assertEqual(partition_spec[opt_vec.NO_PREFIX_KEY][0].b.shape, (2,))
     self.assertEmpty(partition_spec[opt_vec.NO_PREFIX_KEY][0].b.repeat_prefix or
                      [])
+    self.assertEqual(partition_spec['p#2.2#tsdata,smdl.'][0].c.shape, ())
+    self.assertEqual(partition_spec['p#2.2#tsdata,smdl.'][0].c.repeat_prefix,
+                     [2, 2])
+    self.assertEqual(
+        partition_spec['p#2.2#tsdata,smdl.']
+        [0].c.repeat_prefix_split_dims_mapping, [('data', 'mdl'), None])
 
     state = grad_tx.init(variables)
     # Computed update is 0 + state, and state is sum of each variable.
     update, state = grad_tx.update(
         jax.tree_map(jnp.zeros_like, variables), state, variables)
-    # Variable a is a scalar excluding the prefix, so the update must be equal
-    # to the initial variable values.
+    # Variables a and c are scalars excluding the prefix, so the update must be
+    # equal to the initial variable values.
     self.assertAllClose(update.a, variables.a)
+    self.assertAllClose(update.c, variables.c)
     # b is not vectorized, so the update equals the sum reduction of the initial
     # variable value.
     self.assertAllClose(update.b,
