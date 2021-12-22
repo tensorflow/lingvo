@@ -696,11 +696,12 @@ class DistributedShampoo(BaseOptimizer):
              'Moving average for momentum.')
     p.Define('skip_preconditioning_dim_size_gt', 4096,
              'Skips preconditioning if any dim is greater than this value.')
+    p.Define('adaptive_clipping', None, 'Adaptive clipping (if not None).')
     return p
 
   @classmethod
   def ParamsImageClassification(cls) -> InstantiableParams:  # pylint: disable=invalid-name
-    """Convenient method for a commonly used Adam config."""
+    """Common Shampoo config for Image Classification."""
     return cls.Params().Set(
         beta1=0.9,
         beta2=0.95,
@@ -710,6 +711,25 @@ class DistributedShampoo(BaseOptimizer):
         preconditioning_compute_steps=1,
         statistics_compute_steps=1,
         graft_type=distributed_shampoo.GraftingType.SGD)
+
+  @classmethod
+  def ParamsLanguageModeling(cls) -> InstantiableParams:  # pylint: disable=invalid-name
+    """Common Shampoo config for Language Modeling."""
+    return cls.Params().Set(
+        block_size=1536,
+        beta1=0.9,
+        beta2=0.999,
+        clip_gradient_norm_to_value=5.0,
+        weight_decay=0.0,
+        matrix_epsilon=1e-8,
+        graft_type=distributed_shampoo.GraftingType.RMSPROP,
+        nesterov=False,
+        exponent_override=0,
+        start_preconditioning_step=51,
+        preconditioning_compute_steps=50,
+        skip_preconditioning_dim_size_gt=4096,
+        moving_average_for_momentum=True,
+        adaptive_clipping=1.0)
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> optax.GradientTransformation:
@@ -733,6 +753,7 @@ class DistributedShampoo(BaseOptimizer):
         inverse_failure_threshold=0.1,
         moving_average_for_momentum=p.moving_average_for_momentum,
         skip_preconditioning_dim_size_gt=p.skip_preconditioning_dim_size_gt,
+        adaptive_clipping=p.adaptive_clipping,
         precision=lax.Precision.HIGHEST)
 
 
