@@ -242,7 +242,7 @@ def train_step_single_learner(
 
     # Apply gradient transformations.
     transformed_grads, new_opt_states = learner.update_states(
-        grads, states.opt_states[0], states.mdl_vars)
+        grads, states.opt_states[0], states.mdl_vars, var_weight_params)
 
     # Gradient descent on learnable vars.
     mdl_vars = learner.apply_gradient(states.mdl_vars, transformed_grads,

@@ -147,8 +147,10 @@ pytype_strict_library(
     deps = [
         ":asserts",
         ":base_layer",
+        ":optimizer_prefix_vectorization",
         ":optimizers",
         ":py_utils",
+        ":pytypes",
         # Implicit jax dependency.
         # Implicit optax dependency.
         # Implicit tensorflow dependency.
@@ -244,6 +246,19 @@ pytype_strict_library(
         ":pytypes",
         # Implicit optax_shampoo dependency.
         # Implicit absl.logging dependency.
+        # Implicit jax dependency.
+        # Implicit optax dependency.
+    ],
+)
+
+pytype_strict_library(
+    name = "optimizer_prefix_vectorization",
+    srcs = ["optimizer_prefix_vectorization.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":optimizers",
+        ":py_utils",
+        ":pytypes",
         # Implicit jax dependency.
         # Implicit optax dependency.
     ],
@@ -380,6 +395,7 @@ py_strict_test(
     deps = [
         ":base_layer",
         ":learners",
+        ":optimizer_prefix_vectorization",
         ":optimizers",
         ":py_utils",
         ":schedules",

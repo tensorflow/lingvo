@@ -16,10 +16,12 @@
 from absl import logging
 from absl.testing import absltest
 from absl.testing import parameterized
+import jax
 from jax import numpy as jnp
 from jax import test_util
 from lingvo.jax import base_layer
 from lingvo.jax import learners
+from lingvo.jax import optimizer_prefix_vectorization as opt_vec
 from lingvo.jax import optimizers
 from lingvo.jax import py_utils
 from lingvo.jax import schedules
@@ -139,11 +141,13 @@ class LearnersTest(test_util.JaxTestCase):
         k=jnp.asarray(np.random.normal(1.6, 2.0, [4, 4]).astype('float32')))
     old_vars.lm.ffn = NestedMap(
         k=jnp.asarray(np.random.normal(1.3, 2.0, [4, 4]).astype('float32')))
-    grad_tx = learner_instance.get_grad_tx(mdl_vars=old_vars)
+    var_weight_params = jax.tree_map(lambda v: py_utils.weight_params(v.shape),
+                                     old_vars)
+    grad_tx = learner_instance.get_grad_tx(var_weight_params)
     opt_states = grad_tx.init(old_vars)
     with base_layer.JaxContext.new_context():
       transformed_grads, _ = learner_instance.update_states(
-          grads, opt_states, old_vars)
+          grads, opt_states, old_vars, var_weight_params)
 
     expected_grad1 = -lr_multiplier1 * grad1
     expected_grad2 = -lr_multiplier1 * grad2
@@ -207,7 +211,9 @@ class LearnersTest(test_util.JaxTestCase):
         k=jnp.asarray(np.random.normal(1.6, 2.0, [4, 4]).astype('float32')))
     old_vars.lm.ffn = NestedMap(
         k=jnp.asarray(np.random.normal(1.3, 2.0, [4, 4]).astype('float32')))
-    grad_tx = learner_instance.get_grad_tx(mdl_vars=old_vars)
+    var_weight_params = jax.tree_map(lambda v: py_utils.weight_params(v.shape),
+                                     old_vars)
+    grad_tx = learner_instance.get_grad_tx(var_weight_params)
     opt_states = grad_tx.init(old_vars)
     logging.info('opt_states: %s', opt_states)
 
@@ -254,8 +260,10 @@ class LearnersTest(test_util.JaxTestCase):
         k=jnp.asarray(np.random.normal(1.6, 2.0, [4, 4]).astype('float32')))
     old_vars.lm.ffn = NestedMap(
         k=jnp.asarray(np.random.normal(1.3, 2.0, [4, 4]).astype('float32')))
+    var_weight_params = jax.tree_map(lambda v: py_utils.weight_params(v.shape),
+                                     old_vars)
     with self.assertRaises(ValueError):
-      learner_instance.get_grad_tx(mdl_vars=old_vars)
+      learner_instance.get_grad_tx(var_weight_params)
 
   def test_multioptimizer_learner_sharding(self):
     learner_p = learners.MultiOptimizerLearner.Params()
@@ -345,13 +353,78 @@ class LearnersTest(test_util.JaxTestCase):
             device_mesh=device_mesh,
             tensor_split_dims_mapping=[0, 1]))
 
-    grad_tx = learner_instance.get_grad_tx(mdl_vars=old_vars)
-    grad_tx_single = learner_instance_single.get_grad_tx(mdl_vars=old_vars)
+    grad_tx = learner_instance.get_grad_tx(var_weight_params=old_vars)
+    grad_tx_single = learner_instance_single.get_grad_tx(
+        var_weight_params=old_vars)
     partition_spec = grad_tx.init_partition_spec(old_vars)
     partition_spec_single = grad_tx_single.init_partition_spec(old_vars)
     for k in partition_spec_single[0]._fields:
       tf.nest.assert_same_structure(
           getattr(partition_spec[0], k), getattr(partition_spec_single[0], k))
+
+  def test_vectorized_prefix(self):
+
+    def _opt_init(params):
+      # Reduction over each variable. Behavior will depend on vectorization.
+      return jax.tree_map(jnp.sum, params)
+
+    def _opt_update(updates, state, params):
+      del params
+      return jax.tree_map(lambda u, s: u + s, updates, state), state
+
+    def _init_partition_spec(var_params):
+
+      def _init_one(p):
+        assert not p.repeat_prefix
+        return p
+
+      return jax.tree_map(_init_one, var_params)
+
+    class TestOptimizer(optimizers.BaseOptimizer):
+
+      def _get_raw_grad_transformation(self, lr):
+        return optimizers.ShardedGradientTransformation(
+            init=_opt_init,
+            update=_opt_update,
+            init_partition_spec=_init_partition_spec)
+
+    learner_p = learners.Learner.Params().Set(
+        name='learner', loss_name='loss', grad_norm_individual_vars=True)
+    learner_p.optimizer = TestOptimizer.Params().Set(
+        learning_rate=1., lr_schedule=schedules.Constant.Params())
+
+    learner_instance = learner_p.Instantiate()
+
+    grads = NestedMap(
+        a=jnp.array([1, 2], dtype=jnp.float32),
+        b=jnp.array([1, 2], dtype=jnp.float32))
+    variables = grads.copy()
+    a_var_param = py_utils.weight_params(())
+    a_var_param.repeat_prefix = [2]
+    a_var_param.repeat_prefix_split_dims_mapping = [-1]
+    var_params = NestedMap(a=a_var_param, b=py_utils.weight_params((2,)))
+
+    grad_tx = learner_instance.get_grad_tx(var_weight_params=var_params)
+    partition_spec = grad_tx.init_partition_spec(var_params)
+    self.assertEqual(partition_spec['p_2_-1'][0].a.shape, ())
+    self.assertEqual(partition_spec['p_2_-1'][0].a.repeat_prefix, [2])
+    self.assertEqual(
+        partition_spec['p_2_-1'][0].a.repeat_prefix_split_dims_mapping, [-1])
+    self.assertEqual(partition_spec[opt_vec.NO_PREFIX_KEY][0].b.shape, (2,))
+    self.assertEmpty(partition_spec[opt_vec.NO_PREFIX_KEY][0].b.repeat_prefix or
+                     [])
+
+    state = grad_tx.init(variables)
+    # Computed update is 0 + state, and state is sum of each variable.
+    update, state = grad_tx.update(
+        jax.tree_map(jnp.zeros_like, variables), state, variables)
+    # Variable a is a scalar excluding the prefix, so the update must be equal
+    # to the initial variable values.
+    self.assertAllClose(update.a, variables.a)
+    # b is not vectorized, so the update equals the sum reduction of the initial
+    # variable value.
+    self.assertAllClose(update.b,
+                        jnp.zeros_like(variables.b) + jnp.sum(variables.b))
 
 
 if __name__ == '__main__':

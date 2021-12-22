@@ -60,6 +60,10 @@ class ShardedGradientTransformation:
   init_partition_spec: TransformInitPartitionSpecFn
 
 
+GeneralGradientTransformation = Union[optax.GradientTransformation,
+                                      ShardedGradientTransformation]
+
+
 def count_init_fn(_):
   """Common init_fn that initializes a count for global step."""
   return NestedMap(count=jnp.zeros([], jnp.int32))
@@ -194,8 +198,7 @@ class _ShardedAdamHelper:
 
 
 def sharded_chain(
-    *args: Union[optax.GradientTransformation, ShardedGradientTransformation]
-) -> ShardedGradientTransformation:
+    *args: GeneralGradientTransformation) -> ShardedGradientTransformation:
   """Applies a list of (possibly sharded) chainable update transformations.
 
   Given a sequence of chainable transforms, `sharded_chain` returns an `init_fn`
@@ -248,9 +251,10 @@ def sharded_chain(
 
 
 def sharded_masked(
-    inner: Union[ShardedGradientTransformation, optax.GradientTransformation],
-    mask: Union[NestedParams, Callable[[NestedParams], NestedParams]]
-) -> Union[ShardedGradientTransformation, optax.GradientTransformation]:
+    inner: GeneralGradientTransformation, mask: Union[NestedParams,
+                                                      Callable[[NestedParams],
+                                                               NestedParams]]
+) -> GeneralGradientTransformation:
   """Mask updates so only some are transformed, the rest are passed through.
 
   This differs from the Optax version in that it supports sharding annotations.
@@ -477,9 +481,7 @@ class BaseOptimizer:
     """Get the learning rate of this optimizer at a particular step."""
     return self._lr_schedule.value(step_count) * self.params.learning_rate
 
-  def get_grad_transformation(
-      self
-  ) -> Union[optax.GradientTransformation, ShardedGradientTransformation]:
+  def get_grad_transformation(self) -> GeneralGradientTransformation:
     """Get the grad transformation corresponds to this optimizer config.
 
     This is the final gradient transformation that incorporates all
@@ -500,8 +502,7 @@ class BaseOptimizer:
             l2_regularizer_weight=p.l2_regularizer_weight))
 
   def _get_raw_grad_transformation(
-      self, lr: optax.Schedule
-  ) -> Union[optax.GradientTransformation, ShardedGradientTransformation]:
+      self, lr: optax.Schedule) -> GeneralGradientTransformation:
     """Get the raw optimizer transformation without taking into other ...
 
     transformations such l1/l2 regularization, gradient norm clipping, etc.
@@ -593,8 +594,7 @@ class Adam(BaseOptimizer):
     return cls.Params().Set(beta1=0.9, beta2=0.98, epsilon=1e-9)
 
   def _get_raw_grad_transformation(
-      self, lr: optax.Schedule
-  ) -> Union[optax.GradientTransformation, ShardedGradientTransformation]:
+      self, lr: optax.Schedule) -> GeneralGradientTransformation:
     p = self._params
     if p.sharded_adam:
       logging.info('Using sharded_adam.')
@@ -1039,15 +1039,11 @@ class _ShardedAdafactorHelper:
     shape = var_param.shape
     tensor_split_dims_mapping = var_param.tensor_split_dims_mapping
 
-    if var_param.repeat_prefix is not None:
-      prefix_shape = var_param.repeat_prefix
-      prefix_sharding = var_param.repeat_prefix_split_dims_mapping
-      if prefix_sharding is None:
-        prefix_sharding = [-1] * len(prefix_shape)
-      shape = tuple(prefix_shape) + tuple(shape)
-      if tensor_split_dims_mapping is not None:
-        tensor_split_dims_mapping = (
-            tuple(prefix_sharding) + tuple(tensor_split_dims_mapping))
+    if var_param.repeat_prefix:
+      raise ValueError(
+          'ShardedAdafactor: repeat_prefix is not empty. Consider using '
+          'get_transformations_with_vectorized_repeat_prefix to vectorize '
+          'prefix dimensions.')
 
     if tensor_split_dims_mapping is not None:
       assert len(tensor_split_dims_mapping) == len(shape)
@@ -1055,9 +1051,6 @@ class _ShardedAdafactorHelper:
     else:
       sharding_specified = False
 
-    # TODO(yonghui): Fix me. For stacked weight (which is a stack of multiple
-    # logical weights), we should be performing data aggregation on the right
-    # axis, not always on the first two.
     if self._beta1:
       if self._quantized_dtype == jnp.bfloat16:
         output_m = py_utils.weight_params(

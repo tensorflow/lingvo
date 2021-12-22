@@ -14,19 +14,23 @@
 # limitations under the License.
 # ==============================================================================
 """Module with the Learner class."""
-from typing import Tuple, Union
+from typing import Tuple
+
 import jax
 from jax import numpy as jnp
 from lingvo.jax import asserts
 from lingvo.jax import base_layer
+from lingvo.jax import optimizer_prefix_vectorization as opt_vec
 from lingvo.jax import optimizers
 from lingvo.jax import py_utils
+from lingvo.jax import pytypes
 import optax
 import tensorflow.compat.v2 as tf
 
 NestedMap = py_utils.NestedMap
 NestedJTensor = base_layer.NestedJTensor
 NestedBool = base_layer.NestedBool
+NestedParams = pytypes.NestedParams
 InstantiableParams = py_utils.InstantiableParams
 
 
@@ -53,6 +57,11 @@ class Learner(base_layer.BaseLayer):
         'grad_norm_individual_vars', False,
         'Whether or not to export grad_norm for each individual variable'
         ' as summaries.')
+    p.Define(
+        'vectorize_on_repeat_prefix', True,
+        'Whether to vectorize optimizers on the repeat_prefix dims of the '
+        'variables. This allows stacking variables of different layers while '
+        'not affecting the behavior of optimizers like Adafactor.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -69,8 +78,14 @@ class Learner(base_layer.BaseLayer):
     """Return the Optimizer object of this learner."""
     return self._optimizer
 
-  def get_grad_tx(self, **kwargs) -> optax.GradientTransformation:
-    return self._grad_tx
+  def get_grad_tx(
+      self, var_weight_params: NestedParams
+  ) -> optimizers.GeneralGradientTransformation:
+    # Apply vectorization on prefix dims.
+    if not self.params.vectorize_on_repeat_prefix:
+      return self._grad_tx
+    return opt_vec.get_transformations_with_vectorized_repeat_prefix(
+        self._grad_tx, var_weight_params)
 
   def scale_gradients(self, grads: NestedMap) -> NestedMap:
     """Scales the gradient.
@@ -121,20 +136,21 @@ class Learner(base_layer.BaseLayer):
     return grads
 
   def update_states(
-      self, grads: NestedMap, states: optax.OptState,
-      old_vars: NestedJTensor) -> Tuple[NestedMap, optax.OptState]:
+      self, grads: NestedMap, states: optax.OptState, old_vars: NestedJTensor,
+      var_weight_params: NestedParams) -> Tuple[NestedMap, optax.OptState]:
     """Applies gradient transformation, updates optimizer states.
 
     Args:
       grads: A nested structure of gradient values.
       states: Optimizer states.
       old_vars: Current model weights.
+      var_weight_params: Weight params of the vars.
 
     Returns:
       transformed_grad, new_states pair.
     """
     grads = self.scale_gradients(grads)
-    return self._grad_tx.update(grads, states, old_vars)
+    return self.get_grad_tx(var_weight_params).update(grads, states, old_vars)
 
   def apply_gradient(
       self,
@@ -236,14 +252,14 @@ class MultiOptimizerLearner(Learner):
     ]
 
   def get_grad_tx(
-      self, mdl_vars: NestedJTensor
-  ) -> Union[optax.GradientTransformation,
-             optimizers.ShardedGradientTransformation]:
+      self, var_weight_params: NestedParams
+  ) -> optimizers.GeneralGradientTransformation:
     """The gradient transformation the MultiOptimizer lerner.
 
     Args:
-      mdl_vars: The model vars which will be used to filter using the regex to
-        determine which optimizer will be applied to which variable.
+      var_weight_params: The model vars' params which will be used to filter
+        using the regex to determine which optimizer will be applied to which
+        variable.
 
     Returns:
       Optax sharded gradient transformation.
@@ -256,7 +272,7 @@ class MultiOptimizerLearner(Learner):
     for regex, grad_tx_fn, optimizer in zip(p.auxiliary_regex,
                                             self._auxiliary_grad_tx_fn,
                                             self._auxiliary_optimizers):
-      prefix = py_utils.extract_prefixed_keys_from_nested_map(mdl_vars)
+      prefix = py_utils.extract_prefixed_keys_from_nested_map(var_weight_params)
       mask = jax.tree_map(lambda x, regex=regex: regex in x, prefix)
       optimizer_chain.append(
           optimizers.sharded_masked(
@@ -284,21 +300,26 @@ class MultiOptimizerLearner(Learner):
         optimizers.sharded_masked(
             self._grad_tx_fn(self._optimizer.get_learning_rate), default_mask))
     grad_tx = optimizers.sharded_chain(*optimizer_chain)
+    # Finally, apply vectorization on prefix dims.
+    if p.vectorize_on_repeat_prefix:
+      grad_tx = opt_vec.get_transformations_with_vectorized_repeat_prefix(
+          grad_tx, var_weight_params)
     return grad_tx
 
   def update_states(
-      self, grads: NestedMap, states: optax.OptState,
-      old_vars: NestedJTensor) -> Tuple[NestedMap, optax.OptState]:
+      self, grads: NestedMap, states: optax.OptState, old_vars: NestedJTensor,
+      var_weight_params: NestedParams) -> Tuple[NestedMap, optax.OptState]:
     """Applies gradient transformation, updates optimizer states.
 
     Args:
       grads: A nested structure of gradient values.
       states: Optimizer states.
       old_vars: Current model weights.
+      var_weight_params: Weight params of the vars.
 
     Returns:
       transformed_grad, new_states pair.
     """
     grads = self.scale_gradients(grads)
-    grad_tx = self.get_grad_tx(old_vars)
+    grad_tx = self.get_grad_tx(var_weight_params)
     return grad_tx.update(grads, states, old_vars)
