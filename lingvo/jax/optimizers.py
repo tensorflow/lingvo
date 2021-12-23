@@ -723,14 +723,14 @@ class DistributedShampoo(BaseOptimizer):
         clip_gradient_norm_to_value=5.0,
         weight_decay=0.0,
         matrix_epsilon=1e-8,
-        graft_type=distributed_shampoo.GraftingType.RMSPROP,
+        graft_type=distributed_shampoo.GraftingType.RMSPROP_NORMALIZED,
         nesterov=False,
         exponent_override=0,
         start_preconditioning_step=51,
         preconditioning_compute_steps=50,
         skip_preconditioning_dim_size_gt=4096,
         moving_average_for_momentum=True,
-        clip_by_scaled_gradient_norm=1.0)
+        clip_by_scaled_gradient_norm=None)
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> optax.GradientTransformation:
