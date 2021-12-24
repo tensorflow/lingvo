@@ -17,7 +17,6 @@
 
 import asyncio
 from concurrent import futures
-import enum
 import os
 import re
 from typing import Optional
@@ -29,6 +28,8 @@ import jax
 from jax.experimental import maps
 from jax.experimental.gda_serialization import serialization as gda_serialization
 # Internal import
+from lingvo.jax import asserts
+from lingvo.jax import checkpoint_pb2
 from lingvo.jax import py_utils
 from lingvo.jax import train_states
 import tensorflow.compat.v2 as tf
@@ -39,6 +40,9 @@ TMP_CHECKPOINT_SUBDIR_RE = re.compile(rf'{CHECKPOINT_PREFIX}[\d]+.tmp_[\d]+$')
 _TMP_DIR_KEYWORD = '.tmp'
 # Large value to disable flax-specific checkpoint management.
 _MAX_CHECKPOINT_FLAX = 1000000
+
+CheckpointType = checkpoint_pb2.CheckpointType
+InstantiableParams = py_utils.InstantiableParams
 
 
 def _is_checkpoint_dir(x: str) -> bool:
@@ -68,12 +72,22 @@ def _get_step_from_checkpoint_dirname(checkpoint_dir: str) -> int:
   return int(checkpoint_dir[len(CHECKPOINT_PREFIX):])
 
 
-# TODO(shafey): Deprecate this enum in favor of the proto enum.
-@enum.unique
-class CheckpointType(str, enum.Enum):
-  """Checkpointing types wrt. the underlying implementation used."""
-  FLAX = 'flax'
-  PERSISTENCE = 'persistence'
+def retrieve_checkpoint_type(multi_host_checkpointing: bool,
+                             maybe_use_persistence_checkpointing,
+                             model_p: InstantiableParams) -> CheckpointType:
+  """Retrieves the CheckpointType given the input arguments."""
+  if jax.config.jax_parallel_functions_output_gda:
+    asserts.eq(multi_host_checkpointing, True)
+    checkpoint_type = CheckpointType.CHECKPOINT_GDA
+  elif maybe_use_persistence_checkpointing and model_p.device_mesh is not None:
+    asserts.eq(multi_host_checkpointing, False)
+    checkpoint_type = CheckpointType.CHECKPOINT_PERSISTENCE
+  else:  # Flax-based checkpointing
+    if multi_host_checkpointing:
+      checkpoint_type = CheckpointType.CHECKPOINT_MULTI_HOST_FLAX
+    else:
+      checkpoint_type = CheckpointType.CHECKPOINT_FLAX
+  return checkpoint_type
 
 
 def save_checkpoint(
@@ -81,7 +95,7 @@ def save_checkpoint(
     checkpoint_dir: str,
     overwrite: bool = False,
     unreplicate: bool = True,
-    checkpoint_type: CheckpointType = CheckpointType.FLAX,
+    checkpoint_type: CheckpointType = CheckpointType.CHECKPOINT_FLAX,
     state_specs: Optional[train_states.TrainState] = None,
 ) -> None:
   """Saves a checkpoint into the provided base directory.
@@ -95,8 +109,9 @@ def save_checkpoint(
       at the current or a later step already exists.
     unreplicate: Whether to unreplicate variables (Optional). If using SPMD
       sharding, then this should be set to False.
-    checkpoint_type: The checkpoint type (implementation) to save. Currently, it
-      must be `CheckpointType.FLAX`.
+    checkpoint_type: The checkpoint type (implementation) to save. Either
+      `CHECKPOINT_FLAX`, `CHECKPOINT_MULTI_HOST_FLAX`, `CHECKPOINT_GDA` or
+      `CHECKPOINT_PERSISTENCE`.
     state_specs: Currently unused.
 
   Raises:
@@ -107,6 +122,7 @@ def save_checkpoint(
   del state_specs
 
   if jax.config.jax_parallel_functions_output_gda:
+    asserts.eq(checkpoint_type, CheckpointType.CHECKPOINT_GDA)
     step = int(jax.device_get(py_utils.maybe_unreplicate_gda(train_state.step)))
     _save_checkpoint_gda(train_state, checkpoint_dir, overwrite, step)
     return
@@ -120,7 +136,9 @@ def save_checkpoint(
         f'Expecting a replicated 1D global step (got `{train_state.step.ndim}`).'
     )
 
-  if checkpoint_type == CheckpointType.FLAX:
+  if checkpoint_type in {
+      CheckpointType.CHECKPOINT_FLAX, CheckpointType.CHECKPOINT_MULTI_HOST_FLAX
+  }:
     _save_checkpoint_flax(train_state, checkpoint_dir, overwrite, unreplicate,
                           step)
   else:
@@ -139,13 +157,14 @@ def latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
   return checkpoints.latest_checkpoint(checkpoint_dir)
 
 
-def restore_checkpoint(train_state: train_states.TrainState,
-                       checkpoint_dir: str,
-                       global_mesh: Optional[maps.Mesh],
-                       mesh_axes: Optional[train_states.TrainState],
-                       checkpoint_type: CheckpointType = CheckpointType.FLAX,
-                       state_specs: Optional[train_states.TrainState] = None,
-                       step: Optional[int] = None) -> train_states.TrainState:
+def restore_checkpoint(
+    train_state: train_states.TrainState,
+    checkpoint_dir: str,
+    global_mesh: Optional[maps.Mesh],
+    mesh_axes: Optional[train_states.TrainState],
+    checkpoint_type: CheckpointType = CheckpointType.CHECKPOINT_FLAX,
+    state_specs: Optional[train_states.TrainState] = None,
+    step: Optional[int] = None) -> train_states.TrainState:
   """Restores a checkpoint from the provided base directory.
 
   This is typically called on an unreplicated TrainState instance.
@@ -155,8 +174,9 @@ def restore_checkpoint(train_state: train_states.TrainState,
     checkpoint_dir: The base directory from where to retrieve checkpoints.
     global_mesh: The global mesh representing devices across multiple processes.
     mesh_axes: The PartitionSpec fo train_state.
-    checkpoint_type: The checkpoint type (implementation) to restore. Currently,
-      it must be `CheckpointType.FLAX`.
+    checkpoint_type: The checkpoint type (implementation) to restore. Either
+      `CHECKPOINT_FLAX`, `CHECKPOINT_MULTI_HOST_FLAX`, `CHECKPOINT_GDA` or
+      `CHECKPOINT_PERSISTENCE`.
     state_specs: Currently unused.
     step: Step number to load a checkpoint from or None to load the latest.
 
@@ -170,6 +190,7 @@ def restore_checkpoint(train_state: train_states.TrainState,
   del state_specs  # Unused.
 
   if jax.config.jax_parallel_functions_output_gda:
+    asserts.eq(checkpoint_type, CheckpointType.CHECKPOINT_GDA)
     return _restore_checkpoint_gda(train_state, checkpoint_dir, global_mesh,
                                    mesh_axes, step)
 
@@ -177,7 +198,9 @@ def restore_checkpoint(train_state: train_states.TrainState,
     raise ValueError('Expecting an unreplicated scalar global step (got '
                      f'`{train_state.step.ndim}`).')
 
-  if checkpoint_type == CheckpointType.FLAX:
+  if checkpoint_type in {
+      CheckpointType.CHECKPOINT_FLAX, CheckpointType.CHECKPOINT_MULTI_HOST_FLAX
+  }:
     return _restore_checkpoint_flax(train_state, checkpoint_dir, step)
   else:
     raise ValueError(f'Unexpected checkpoint_type `{checkpoint_type}`.')

@@ -35,7 +35,6 @@ from absl import logging
 from clu import platform
 import jax
 from jax import prng
-from lingvo.jax import checkpoints
 from lingvo.jax import eval as eval_lib
 from lingvo.jax import train
 import tensorflow.compat.v2 as tf
@@ -57,10 +56,10 @@ flags.DEFINE_bool(
     'multi_host_checkpointing', False,
     'Whether to use multi-host checkpointing or not. Only useful for '
     'multi-host SPMD models.')
-flags.DEFINE_enum_class(
-    'checkpoint_type', checkpoints.CheckpointType.FLAX,
-    checkpoints.CheckpointType,
-    'The type of model checkpointing method to use in ["flax", "persistence"].')
+flags.DEFINE_bool(
+    'maybe_use_persistence_checkpointing', False,
+    'If suitable, will try to rely on persistence-based checkpointing rather '
+    'than Flax-based checkpointing for SPMD models.')
 flags.DEFINE_string(
     'restore_checkpoint_dir', None,
     'If set, the directory from which to restore checkpoint. If unset, the '
@@ -149,7 +148,8 @@ def main(argv: Sequence[str]) -> None:
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
         multi_host_checkpointing=FLAGS.multi_host_checkpointing,
-        checkpoint_type=FLAGS.checkpoint_type,
+        maybe_use_persistence_checkpointing=FLAGS
+        .maybe_use_persistence_checkpointing,
         restore_checkpoint_dir=FLAGS.restore_checkpoint_dir,
         restore_checkpoint_step=FLAGS.restore_checkpoint_step,
         eval_on_test=FLAGS.eval_on_test)
@@ -158,7 +158,8 @@ def main(argv: Sequence[str]) -> None:
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
         multi_host_checkpointing=FLAGS.multi_host_checkpointing,
-        checkpoint_type=FLAGS.checkpoint_type)
+        maybe_use_persistence_checkpointing=FLAGS
+        .maybe_use_persistence_checkpointing)
   # TODO(zhouwk): support continuous decode mode "decode".
   elif FLAGS.mode == 'decode_once':
     if not FLAGS.restore_checkpoint_dir:
@@ -167,7 +168,8 @@ def main(argv: Sequence[str]) -> None:
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
         multi_host_checkpointing=FLAGS.multi_host_checkpointing,
-        checkpoint_type=FLAGS.checkpoint_type,
+        maybe_use_persistence_checkpointing=FLAGS
+        .maybe_use_persistence_checkpointing,
         restore_checkpoint_dir=FLAGS.restore_checkpoint_dir,
         restore_checkpoint_step=FLAGS.restore_checkpoint_step)
 
@@ -192,12 +194,12 @@ if __name__ == '__main__':
   flags.mark_flags_as_required(['model'])
 
   @flags.multi_flags_validator(
-      ['multi_host_checkpointing', 'checkpoint_type'],
+      ['multi_host_checkpointing', 'maybe_use_persistence_checkpointing'],
       message='Multi-host checkpointing only supported with Flax checkpointing.'
   )
   def _validate_checkpoints(flags_dict):
     if (flags_dict['multi_host_checkpointing'] and
-        flags_dict['checkpoint_type'] != checkpoints.CheckpointType.FLAX):
+        flags_dict['maybe_use_persistence_checkpointing']):
       return False
     return True
 

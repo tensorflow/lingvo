@@ -21,7 +21,6 @@ pytype_strict_binary(
         # Implicit absl.logging dependency.
         # Implicit clu dependency.
         # Implicit jax dependency.
-        "//lingvo/jax:checkpoints",
         "//lingvo/jax:eval",
         "//lingvo/jax:model_imports",  # build_cleaner: keep
         # Implicit tensorflow dependency.

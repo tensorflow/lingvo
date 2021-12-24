@@ -28,6 +28,7 @@ from jax.experimental import maps
 from jax.experimental import mesh_utils
 from lingvo.jax import base_layer
 from lingvo.jax import base_model_params
+from lingvo.jax import checkpoint_pb2
 from lingvo.jax import model_utils
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -40,6 +41,7 @@ from lingvo.jax import checkpoints
 from lingvo.jax import io_utils
 
 BaseModelParamsT = base_model_params.BaseModelParamsT
+CheckpointType = checkpoint_pb2.CheckpointType
 InstantiableParams = py_utils.InstantiableParams
 NestedMap = py_utils.NestedMap
 JTensor = pytypes.JTensor
@@ -52,7 +54,7 @@ def evaluate(
     model_name: str,
     job_log_dir: Optional[str],
     multi_host_checkpointing: Optional[bool],
-    checkpoint_type: checkpoints.CheckpointType,
+    maybe_use_persistence_checkpointing: bool,
 ) -> None:
   """Runs the evaluation loop on the entire eval data set.
 
@@ -60,7 +62,8 @@ def evaluate(
     model_name: The name of the model from the registry to evaluate.
     job_log_dir: The directory for the job logs.
     multi_host_checkpointing: Whether to use multi-host checkpointing.
-    checkpoint_type: Type of model checkpointing method to use.
+    maybe_use_persistence_checkpointing: If set, it will try to use
+      persistence-based checkpointing if suitable.
   """
   model_config = model_utils.get_model(model_name)()
   model_p = model_config.task()
@@ -68,18 +71,19 @@ def evaluate(
   for inp in eval_input_p:
     inp.num_infeed_hosts = jax.process_count()
     inp.infeed_host_index = jax.process_index()
+
   if model_p.device_mesh is not None:
-    evaluate_spmd_model(model_p, eval_input_p, job_log_dir,
-                        multi_host_checkpointing, checkpoint_type)
+    checkpoint_type = checkpoints.retrieve_checkpoint_type(
+        multi_host_checkpointing, maybe_use_persistence_checkpointing, model_p)
+    evaluate_spmd_model(model_p, eval_input_p, job_log_dir, checkpoint_type)
   else:
-    evaluate_pmap_model(model_p, eval_input_p, job_log_dir, checkpoint_type)
+    evaluate_pmap_model(model_p, eval_input_p, job_log_dir)
 
 
 def evaluate_pmap_model(
     model_p: InstantiableParams,
     eval_input_p: Sequence[InstantiableParams],
     job_log_dir: Optional[str],
-    checkpoint_type: checkpoints.CheckpointType,
 ) -> None:
   """Runs the evaluation loop on the entire test dataset for PMAP model.
 
@@ -87,7 +91,6 @@ def evaluate_pmap_model(
     model_p: Params for the data parallel model.
     eval_input_p: List of params for the eval data input pipelines.
     job_log_dir: Directory for the job logs.
-    checkpoint_type: Type of model checkpointing method to use.
   """
   logging.info('Using pmap for data parallelism.')
   jax_model = model_p.Instantiate()
@@ -100,11 +103,7 @@ def evaluate_pmap_model(
   model_states = trainer_lib.initialize_model_state(jax_model, init_key)
   # Pmap does not use GDA, and so global_mesh and mesh_axes are None.
   model_states = checkpoints.restore_checkpoint(
-      model_states,
-      checkpoint_dir,
-      global_mesh=None,
-      mesh_axes=None,
-      checkpoint_type=checkpoint_type)
+      model_states, checkpoint_dir, global_mesh=None, mesh_axes=None)
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
   logging.info('replicated_model_states: %s',
                jax.tree_map(lambda x: x.shape, replicated_model_states))
@@ -178,11 +177,7 @@ def evaluate_pmap_model(
       # There must be a new checkpoint here.
       logging.info('Found new checkpoint: %s', new_checkpoint)
       model_states = checkpoints.restore_checkpoint(
-          model_states,
-          checkpoint_dir,
-          global_mesh=None,
-          mesh_axes=None,
-          checkpoint_type=checkpoint_type)
+          model_states, checkpoint_dir, global_mesh=None, mesh_axes=None)
       replicated_model_states = trainer_lib.replicate_model_state(model_states)
       last_checkpoint = new_checkpoint
 
@@ -191,8 +186,7 @@ def evaluate_spmd_model(
     model_p: InstantiableParams,
     eval_input_p: Sequence[InstantiableParams],
     job_log_dir: Optional[str],
-    multi_host_checkpointing: bool,
-    checkpoint_type: checkpoints.CheckpointType,
+    checkpoint_type: CheckpointType,
 ) -> None:
   """Runs the evaluation loop on the entire test dataset for SPMD model.
 
@@ -200,7 +194,6 @@ def evaluate_spmd_model(
     model_p: Params for the SPMD model.
     eval_input_p: List of Params for the eval data pipelines.
     job_log_dir: Directory for the job logs.
-    multi_host_checkpointing: Whether to use multi-host checkpointing.
     checkpoint_type: Type of model checkpointing method to use.
   """
   logging.info('Using SPMD sharding for model parallelism.')
@@ -210,11 +203,17 @@ def evaluate_spmd_model(
   prng_key, init_key = jax.random.split(prng_key)
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
-  if multi_host_checkpointing:
+  # Note that GDA checkpoint requires all processes to participate in
+  # checkpointing but it does not require a separate checkpoint_dir per process.
+  if checkpoint_type == CheckpointType.CHECKPOINT_MULTI_HOST_FLAX:
     checkpoint_task_dir = os.path.join(checkpoint_dir,
                                        f'{jax.process_index():03d}')
   else:
     checkpoint_task_dir = checkpoint_dir
+
+  multi_host_checkpointing = bool(checkpoint_type in {
+      CheckpointType.CHECKPOINT_MULTI_HOST_FLAX, CheckpointType.CHECKPOINT_GDA
+  })
 
   def get_shape_dtype(x):
     y = jax.ShapeDtypeStruct(x.shape, x.dtype)
@@ -306,7 +305,7 @@ def decode_once(
     model_name: str,
     job_log_dir: Optional[str],
     multi_host_checkpointing: Optional[bool],
-    checkpoint_type: checkpoints.CheckpointType,
+    maybe_use_persistence_checkpointing: bool,
     restore_checkpoint_dir: str,
     restore_checkpoint_step: Optional[int],
 ) -> None:
@@ -316,7 +315,8 @@ def decode_once(
     model_name: The name of the model from the registry to evaluate.
     job_log_dir: The directory for the job logs.
     multi_host_checkpointing: Whether to use multi-host checkpointing.
-    checkpoint_type: Type of model checkpointing method to use.
+    maybe_use_persistence_checkpointing: If set, it will try to use
+      persistence-based checkpointing if suitable.
     restore_checkpoint_dir: The directory from which to restore checkpoint.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
@@ -331,14 +331,16 @@ def decode_once(
   for inp in decoder_inputs:
     inp.num_infeed_hosts = jax.process_count()
     inp.infeed_host_index = jax.process_index()
+
   if model_p.device_mesh is not None:
+    checkpoint_type = checkpoints.retrieve_checkpoint_type(
+        multi_host_checkpointing, maybe_use_persistence_checkpointing, model_p)
     decode_once_spmd_model(model_p, decoder_inputs, job_log_dir,
                            checkpoint_type, restore_checkpoint_dir,
-                           restore_checkpoint_step, multi_host_checkpointing)
+                           restore_checkpoint_step)
   else:
     decode_once_pmap_model(model_p, decoder_inputs, job_log_dir,
-                           checkpoint_type, restore_checkpoint_dir,
-                           restore_checkpoint_step)
+                           restore_checkpoint_dir, restore_checkpoint_step)
 
 
 def _get_dir_names(input_p: Sequence[InstantiableParams]) -> Sequence[str]:
@@ -374,7 +376,6 @@ def decode_once_pmap_model(
     model_p: InstantiableParams,
     input_p: Sequence[InstantiableParams],
     job_log_dir: Optional[str],
-    checkpoint_type: checkpoints.CheckpointType,
     restore_checkpoint_dir: str,
     restore_checkpoint_step: Optional[int],
 ) -> None:
@@ -384,7 +385,6 @@ def decode_once_pmap_model(
     model_p: Params for the data parallel model.
     input_p: List of input params to be decoded.
     job_log_dir: Directory for the job logs.
-    checkpoint_type: Type of model checkpointing method to use.
     restore_checkpoint_dir: The directory from which to restore checkpoint.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
@@ -402,8 +402,7 @@ def decode_once_pmap_model(
         restore_checkpoint_dir,
         global_mesh=None,
         mesh_axes=None,
-        step=restore_checkpoint_step,
-        checkpoint_type=checkpoint_type)
+        step=restore_checkpoint_step)
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
   del model_states
   logging.info('replicated_model_states: %s',
@@ -481,10 +480,9 @@ def decode_once_spmd_model(
     model_p: InstantiableParams,
     input_p: Sequence[InstantiableParams],
     job_log_dir: Optional[str],
-    checkpoint_type: checkpoints.CheckpointType,
+    checkpoint_type: CheckpointType,
     restore_checkpoint_dir: str,
     restore_checkpoint_step: Optional[int],
-    multi_host_checkpointing: bool,
 ) -> None:
   """Runs the decoding once on the entire decoder datasets for SPMD model.
 
@@ -496,18 +494,22 @@ def decode_once_spmd_model(
     restore_checkpoint_dir: The directory from which to restore checkpoint.
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
-    multi_host_checkpointing: Whether to use multi-host checkpointing.
   """
   # TODO(bf-jax): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
   prng_key, init_key = jax.random.split(prng_key)
 
-  if restore_checkpoint_dir and multi_host_checkpointing:
+  if (restore_checkpoint_dir and
+      checkpoint_type == CheckpointType.CHECKPOINT_MULTI_HOST_FLAX):
     restore_checkpoint_parent_dir = restore_checkpoint_dir
     # TODO(zhouwk): add sanity check on number of subdirs and number of
     # processes and fail early if unequal.
     restore_checkpoint_dir = os.path.join(restore_checkpoint_dir,
                                           f'{jax.process_index():03d}')
+
+  multi_host_checkpointing = bool(checkpoint_type in {
+      CheckpointType.CHECKPOINT_MULTI_HOST_FLAX, CheckpointType.CHECKPOINT_GDA
+  })
 
   def get_shape_dtype(x):
     # The sample input batch we are getting shape from is only from

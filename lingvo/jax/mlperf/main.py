@@ -31,7 +31,6 @@ from absl import logging
 from clu import platform
 import jax
 from jax import prng
-from lingvo.jax import checkpoints
 from lingvo.jax import eval as continuous_eval
 from lingvo.jax.mlperf import mllog
 from lingvo.jax.mlperf import train
@@ -141,7 +140,7 @@ def main(argv):
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
         multi_host_checkpointing=FLAGS.multi_host_checkpointing,
-        checkpoint_type=checkpoints.CheckpointType.FLAX)
+        maybe_use_persistence_checkpointing=False)
   else:
     raise ValueError(f'Invalid mode: {FLAGS.mode}, mode must be train or eval.')
 

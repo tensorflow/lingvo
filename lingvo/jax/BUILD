@@ -15,7 +15,6 @@ pytype_strict_binary(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
-        ":checkpoints",
         ":eval",
         ":train",
         # Implicit absl.app dependency.
@@ -93,6 +92,8 @@ pytype_strict_library(
     srcs = ["checkpoints.py"],
     srcs_version = "PY3",
     deps = [
+        ":asserts",
+        ":checkpoint_py_pb2",
         ":py_utils",
         ":train_states",
         # Implicit absl.logging dependency.
@@ -111,7 +112,6 @@ pytype_strict_library(
     deps = [
         ":checkpoint_py_pb2",
         # Implicit absl.logging dependency.
-        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -123,6 +123,7 @@ pytype_strict_library(
     deps = [
         ":base_layer",
         ":base_model_params",
+        ":checkpoint_py_pb2",
         ":model_utils",
         ":py_utils",
         ":pytypes",
