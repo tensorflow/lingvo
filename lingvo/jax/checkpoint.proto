@@ -1,0 +1,57 @@
+// Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Checkpoint-related metadata for the execution of lingvo-JAX models.
+
+syntax = "proto3";
+
+package lingvo.jax;
+
+// The type of checkpointing format.
+enum CheckpointType {
+  CHECKPOINT_UNSPECIFIED = 0;
+  CHECKPOINT_FLAX = 1;             // Using Flax-based serialization.
+  CHECKPOINT_MULTI_HOST_FLAX = 2;  // Multi-host using Flax-based serialization.
+  CHECKPOINT_PERSISTENCE = 3;      // Persistence-based using TensorStore.
+  CHECKPOINT_GDA = 4;              // GDA using TensorStore.
+}
+
+// CheckpointMetadata bundles the meta information about a specific checkpoint
+// of a model. Specifically, it contains the global_step_id of the model, but
+// not the actual checkpoint model weights.
+message CheckpointMetadata {
+  // Global step identifier for this checkpoint.
+  int64 global_step_id = 1;
+
+  // Timestamp when the checkpoint was created. It is recorded just after all
+  // checkpoint has been generated.
+  int64 timestamp_sec = 2;
+}
+
+// CheckpointHistory lists the meta information about the checkpoints of
+// a model.
+message CheckpointHistory {
+  // Name of the registered model configuration that was used.
+  string config_name = 1;
+
+  // Root directory, where the checkpoints for each component were saved.
+  string root_directory = 2;
+
+  // Type of the checkpointing format.
+  CheckpointType checkpoint_type = 3;
+
+  // Sequence of program checkpoint metadata in chronological order.
+  // (They do not include the actual model weights.)
+  repeated CheckpointMetadata checkpoints = 4;
+}

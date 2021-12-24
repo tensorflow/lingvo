@@ -111,6 +111,12 @@ class BaseTask(base_layer.BaseLayer):
         'save_interval_steps', 5000,
         'How frequently to save a model checkpoint in terms of the number of '
         'training steps.')
+    tp.Define(
+        'save_keep_interval_duration', '12h',
+        'How frequently to keep a saved model checkpoint as a duration string '
+        'such as `1h` for one hour or `90m` for 90 minutes. This is performed '
+        'in addition to keeping the most recent `max_to_keep` checkpoint '
+        'files.')
     tp.Define('save_max_to_keep', 10,
               'The maximum number of recent checkpoints to keep.')
     tp.Define(

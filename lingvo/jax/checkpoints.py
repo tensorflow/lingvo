@@ -33,10 +33,12 @@ from lingvo.jax import py_utils
 from lingvo.jax import train_states
 import tensorflow.compat.v2 as tf
 
-_CHECKPOINT_DIR_PREFIX = 'checkpoint_'
+CHECKPOINT_PREFIX = 'checkpoint_'
+CHECKPOINT_SUBDIR_RE = re.compile(rf'{CHECKPOINT_PREFIX}[\d]+$')
+TMP_CHECKPOINT_SUBDIR_RE = re.compile(rf'{CHECKPOINT_PREFIX}[\d]+.tmp_[\d]+$')
 _TMP_DIR_KEYWORD = '.tmp'
-CHECKPOINT_SUBDIR_RE = re.compile(r'checkpoint_[\d]+$')
-TMP_CHECKPOINT_SUBDIR_RE = re.compile(r'checkpoint_[\d]+.tmp_[\d]+$')
+# Large value to disable flax-specific checkpoint management.
+_MAX_CHECKPOINT_FLAX = 1000000
 
 
 def _is_checkpoint_dir(x: str) -> bool:
@@ -51,21 +53,22 @@ def _make_checkpoint_step_dir(
     checkpoint_dir: str,
     step: int,
 ) -> str:
-  return os.path.join(checkpoint_dir, f'{_CHECKPOINT_DIR_PREFIX}{step:08}')
+  return os.path.join(checkpoint_dir, f'{CHECKPOINT_PREFIX}{step:08}')
 
 
 def _make_tmp_checkpoint_dir(checkpoint_dir: str, step: int) -> str:
   return os.path.join(checkpoint_dir,
-                      f'{_CHECKPOINT_DIR_PREFIX}{step:08}{_TMP_DIR_KEYWORD}')
+                      f'{CHECKPOINT_PREFIX}{step:08}{_TMP_DIR_KEYWORD}')
 
 
 def _get_step_from_checkpoint_dirname(checkpoint_dir: str) -> int:
   if _TMP_DIR_KEYWORD in checkpoint_dir:
     start_of_tmp = checkpoint_dir.find(_TMP_DIR_KEYWORD)
-    return int(checkpoint_dir[len(_CHECKPOINT_DIR_PREFIX):start_of_tmp])
-  return int(checkpoint_dir[len(_CHECKPOINT_DIR_PREFIX):])
+    return int(checkpoint_dir[len(CHECKPOINT_PREFIX):start_of_tmp])
+  return int(checkpoint_dir[len(CHECKPOINT_PREFIX):])
 
 
+# TODO(shafey): Deprecate this enum in favor of the proto enum.
 @enum.unique
 class CheckpointType(str, enum.Enum):
   """Checkpointing types wrt. the underlying implementation used."""
@@ -73,13 +76,14 @@ class CheckpointType(str, enum.Enum):
   PERSISTENCE = 'persistence'
 
 
-def save_checkpoint(train_state: train_states.TrainState,
-                    checkpoint_dir: str,
-                    overwrite: bool = False,
-                    unreplicate: bool = True,
-                    checkpoint_type: CheckpointType = CheckpointType.FLAX,
-                    state_specs: Optional[train_states.TrainState] = None,
-                    max_checkpoints: int = 10) -> None:
+def save_checkpoint(
+    train_state: train_states.TrainState,
+    checkpoint_dir: str,
+    overwrite: bool = False,
+    unreplicate: bool = True,
+    checkpoint_type: CheckpointType = CheckpointType.FLAX,
+    state_specs: Optional[train_states.TrainState] = None,
+) -> None:
   """Saves a checkpoint into the provided base directory.
 
   This is typically called on a replicated TrainState instance.
@@ -94,7 +98,6 @@ def save_checkpoint(train_state: train_states.TrainState,
     checkpoint_type: The checkpoint type (implementation) to save. Currently, it
       must be `CheckpointType.FLAX`.
     state_specs: Currently unused.
-    max_checkpoints: The number of past checkpoint files to keep.
 
   Raises:
     ValueError: If the global step has an unexpected shape, if `state_specs`
@@ -105,8 +108,7 @@ def save_checkpoint(train_state: train_states.TrainState,
 
   if jax.config.jax_parallel_functions_output_gda:
     step = int(jax.device_get(py_utils.maybe_unreplicate_gda(train_state.step)))
-    _save_checkpoint_gda(train_state, checkpoint_dir, overwrite,
-                         max_checkpoints, step)
+    _save_checkpoint_gda(train_state, checkpoint_dir, overwrite, step)
     return
 
   if train_state.step.ndim == 0:
@@ -120,7 +122,7 @@ def save_checkpoint(train_state: train_states.TrainState,
 
   if checkpoint_type == CheckpointType.FLAX:
     _save_checkpoint_flax(train_state, checkpoint_dir, overwrite, unreplicate,
-                          max_checkpoints, step)
+                          step)
   else:
     raise ValueError(f'Unexpected checkpoint_type `{checkpoint_type}`.')
 
@@ -183,8 +185,7 @@ def restore_checkpoint(train_state: train_states.TrainState,
 
 def _save_checkpoint_flax(train_state: train_states.TrainState,
                           checkpoint_dir: str, overwrite: bool,
-                          unreplicate: bool, max_checkpoints: int,
-                          step: int) -> None:
+                          unreplicate: bool, step: int) -> None:
   """Saves a checkpoint using Flax serialization mechanism."""
   if not overwrite:
     previous_filename = latest_checkpoint(checkpoint_dir)
@@ -219,7 +220,7 @@ def _save_checkpoint_flax(train_state: train_states.TrainState,
       checkpoint_dir,
       checkpoint_target,
       step,
-      keep=max_checkpoints,
+      keep=_MAX_CHECKPOINT_FLAX,
       overwrite=overwrite)
 
 
@@ -287,7 +288,7 @@ def _mkdir_path(name: str, tmp_dir: str) -> str:
 
 def _save_checkpoint_gda(train_state: train_states.TrainState,
                          checkpoint_dir: str, overwrite: bool,
-                         max_checkpoints: int, step: int) -> None:
+                         step: int) -> None:
   """Saves a checkpoint using JAX GDA serialization mechanism.
 
   Note that all JAX processes must call _save_checkpoint_gda in sync because
@@ -298,12 +299,8 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
       GlobalDeviceArray.
     checkpoint_dir: Full path to parent checkpoint_dir.
     overwrite: Whether to allow overwriting an existing target directory.
-    max_checkpoints: Unsupported.
     step: Step to save checkpoint for.
   """
-  # TODO(zhangqiaorjc): Support max_checkpoints.
-  del max_checkpoints
-
   if not overwrite:
     # Does not contain directory path, only dirname is returned.
     checkpoint_dirnames = tf.io.gfile.listdir(checkpoint_dir)

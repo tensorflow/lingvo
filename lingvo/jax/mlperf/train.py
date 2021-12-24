@@ -246,10 +246,7 @@ def train_and_evaluate_pmap(model_p: InstantiableParams,
 
       if (jax.process_index() == 0 and
           step_i % train_p.save_interval_steps == 0):
-        checkpoints.save_checkpoint(
-            replicated_model_states,
-            checkpoint_dir,
-            max_checkpoints=train_p.save_max_to_keep)
+        checkpoints.save_checkpoint(replicated_model_states, checkpoint_dir)
 
       if step_i <= 5:
         logging.info('step=`%d`: Retrieving model inputs.', step_i)
@@ -505,7 +502,6 @@ def train_and_evaluate_spmd_model(model_p: InstantiableParams,
             checkpoints.save_checkpoint(
                 partitioned_train_state,
                 checkpoint_task_dir,
-                max_checkpoints=train_p.save_max_to_keep,
                 unreplicate=False)
           if multi_host_checkpointing:
             py_utils.sync_global_devices(
