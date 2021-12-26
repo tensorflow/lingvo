@@ -93,6 +93,7 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
     p.Define('num_classes', 0, 'Total number of target classes.')
     p.Define('soft_cap_logits', 0.,
              'If not None logits are soft capped to this value.')
+    p.Define('bi_tempered_loss', None, 'If not None applies bi-tempered loss.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -107,6 +108,8 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
         weight_split_dims_mapping=wp.Copy(),
         activation_split_dims_mapping=ap.Copy())
     self.create_child('logits_ffn', ff_p)
+    if p.bi_tempered_loss:
+      self.create_child('bi_tempered_loss', p.bi_tempered_loss)
 
   def get_logits(self, theta: NestedMap, inputs: JTensor) -> JTensor:
     """Returns logits given the inputs with an option to soft cap it.
@@ -177,7 +180,11 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
           jnp.squeeze(class_ids, axis=-1), p.num_classes)
       class_probabilities = jax.lax.stop_gradient(class_probabilities)
 
-    per_example_xent = -jnp.sum(log_probs * class_probabilities, axis=-1)
+    if p.bi_tempered_loss is None:
+      per_example_xent = -jnp.sum(log_probs * class_probabilities, axis=-1)
+    else:
+      per_example_xent = self.bi_tempered_loss.fprop(logits,
+                                                     class_probabilities)
     per_example_argmax = jax.lax.stop_gradient(jnp.argmax(logits, axis=-1))
 
     # Compute total softmax for the entire sequence

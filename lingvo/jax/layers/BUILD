@@ -22,6 +22,7 @@ pytype_strict_library(
         ":embedding_softmax",
         ":flax_wrapper",
         ":linears",
+        ":losses",
         ":ngrammer",
         ":normalizations",
         ":objectives",
@@ -127,6 +128,18 @@ pytype_strict_library(
     deps = [
         ":activations",
         # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+    ],
+)
+
+pytype_strict_library(
+    name = "losses",
+    srcs = ["losses.py"],
+    srcs_version = "PY3",
+    deps = [
+        # Implicit jax_bitempered_loss dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",

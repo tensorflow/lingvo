@@ -30,6 +30,8 @@ More specifically:
 
 *   [optax-shampoo](https://pypi.org/project/optax-shampoo)
 
+*   [jax-bitempered-loss](https://pypi.org/project/jax-bitempered-loss)
+
 *   [abseil](http://github.com/abseil/abseil-py)
 
 *   [clu](http://pypi.org/project/clu/)

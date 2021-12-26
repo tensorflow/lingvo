@@ -37,6 +37,7 @@ REQUIRED_PACKAGES = [
     'flax',
     'ipykernel',
     'jax',
+    'jax-bitempered-loss',
     'jupyter',
     'jupyter_http_over_ws',
     'graph-compression-google-research',

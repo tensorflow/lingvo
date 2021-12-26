@@ -33,6 +33,7 @@ RUN for python in python3.7 python3.8 python3.9; do \
         graph-compression-google-research \
         grpcio \
         jax \
+        jax-bitempered-loss \
         matplotlib \
         mock \
         model-pruning-google-research \

@@ -39,6 +39,7 @@ from lingvo.jax.layers.linears import Bias
 from lingvo.jax.layers.linears import FeedForward
 from lingvo.jax.layers.linears import Linear
 from lingvo.jax.layers.linears import project_last_dim
+from lingvo.jax.layers.losses import BiTemperedLoss
 from lingvo.jax.layers.ngrammer import get_bigram_ids
 from lingvo.jax.layers.ngrammer import Ngrammer
 from lingvo.jax.layers.ngrammer import VectorQuantization
