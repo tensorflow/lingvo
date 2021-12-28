@@ -585,8 +585,7 @@ def train_and_evaluate_spmd_model(
                 checkpoint_type=checkpoint_type,
                 state_specs=partitioned_specs,
                 unreplicate=False)
-          if jax.process_index() == 0:
-            checkpoint_manager.save_metadata(global_step_id=step_i)
+          checkpoint_manager.save_metadata(global_step_id=step_i)
           if multi_host_checkpointing:
             py_utils.sync_global_devices(
                 f'checkpointer:saved:{checkpoint_dir}:step-{step_i}')

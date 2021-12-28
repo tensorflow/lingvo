@@ -111,7 +111,9 @@ pytype_strict_library(
     srcs = ["checkpoint_managers.py"],
     deps = [
         ":checkpoint_py_pb2",
+        ":py_utils",
         # Implicit absl.logging dependency.
+        # Implicit jax dependency.
         # Implicit tensorflow dependency.
     ],
 )

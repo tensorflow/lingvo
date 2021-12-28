@@ -20,7 +20,9 @@ import os
 from typing import Optional
 
 from absl import logging
+import jax
 from lingvo.jax import checkpoint_pb2
+from lingvo.jax import py_utils
 import tensorflow.compat.v2 as tf
 
 CheckpointType = checkpoint_pb2.CheckpointType
@@ -74,11 +76,8 @@ class CheckpointManager:
       checkpoint files.
 
   The CheckpointManager instance can be created on several JAX processes.
-  - `should_save(step)` can be called to check if there is a need to save a
-        checkpoint at the given `step`.
-  - `save_metadata(step)` must be called on a single JAX process (e.g.
-    `jax.process_index() == 0`), since it updates the checkpoint metadata file
-    and triggers the deletion of outdated checkpoints to save storage.
+  However, the handling and update of the checkpoint file and checkpoint assets
+  will solely be performed on `jax.process_index() == 0`.
   """
 
   def __init__(self,
@@ -132,8 +131,17 @@ class CheckpointManager:
     self._init_checkpoint_history()
 
   @property
+  def use_multi_host_flax(self) -> bool:
+    """Indicates whether the checkpoint type uses multi-host Flax."""
+    return (self._checkpoint_type ==
+            checkpoint_pb2.CheckpointType.CHECKPOINT_MULTI_HOST_FLAX)
+
+  @property
   def checkpoint_filename(self) -> str:
     """Full checkpoints' filename."""
+    if self.use_multi_host_flax:
+      return os.path.join(self._root_dir, f'{jax.process_index():03d}',
+                          self._checkpoint_basename)
     return os.path.join(self._root_dir, self._checkpoint_basename)
 
   def should_save(self, global_step_id: int) -> bool:
@@ -172,11 +180,11 @@ class CheckpointManager:
 
     # First, save the checkpoints file before deleting anything.
     # This is useful if e.g. a pre-emption happens.
-    self._save_checkpoint_file()
+    self._save_checkpoint_file(global_step_id, 'pre')
     # Clean up old checkpoints if needed.
-    self._sweep()
+    self._sweep(global_step_id)
     # Update again the checkpoints file with the new version.
-    self._save_checkpoint_file()
+    self._save_checkpoint_file(global_step_id, 'post')
 
   def _create_checkpoint_history(self) -> checkpoint_pb2.CheckpointHistory:
     """Creates a CheckpointHistory instance with default fields set."""
@@ -196,8 +204,9 @@ class CheckpointManager:
 
     # Read the previous checkpoints file and performs a sanity check.
     self._checkpoint_history = self._read_checkpoint_file()
-    last_saved_timestamp = self._checkpoint_history.checkpoints[
-        -1].timestamp_sec
+
+    last_saved_timestamp = (
+        self._checkpoint_history.checkpoints[-1].timestamp_sec)
     current_datetime = datetime.datetime.utcnow()
     if current_datetime < from_timestamp(last_saved_timestamp):
       # Time seems to have reversed itself.
@@ -226,21 +235,30 @@ class CheckpointManager:
           maybe_delete_checkpoints.append(checkpoint)
 
     # Only keep at most `max_to_keep` non-kept checkpoints. Delete the old ones.
+    if not self.use_multi_host_flax:
+      py_utils.sync_global_devices(
+          'checkpoint_manager:begin_delete_checkpoints:'
+          f'init_{self._checkpoint_history.checkpoints[-1].global_step_id}')
     for i, checkpoint in enumerate(reversed(maybe_delete_checkpoints)):
       if self._max_to_keep is None or i < self._max_to_keep:
         kept_checkpoints.append(checkpoint)
       else:
         self._delete_checkpoint(checkpoint)
+    if not self.use_multi_host_flax:
+      py_utils.sync_global_devices(
+          'checkpoint_manager:end_delete_checkpoints:'
+          f'init_{self._checkpoint_history.checkpoints[-1].global_step_id}')
 
     # Finally create a new CheckpointHistory and save a new checkpoint file.
     kept_checkpoints = sorted(
         kept_checkpoints, key=lambda c: from_timestamp(c.timestamp_sec))
-    self._last_saved_checkpoint_step = kept_checkpoints[-1].global_step_id
+    latest_global_step = kept_checkpoints[-1].global_step_id
+    self._last_saved_checkpoint_step = latest_global_step
     self._checkpoint_history = self._create_checkpoint_history()
     for c in kept_checkpoints:
       self._checkpoint_history.checkpoints.add().CopyFrom(c)
 
-    self._save_checkpoint_file()
+    self._save_checkpoint_file(latest_global_step)
 
   def _delete_pattern_if_exists(self, filepath: str) -> None:
     """Deletes everything under `filepath`."""
@@ -254,26 +272,28 @@ class CheckpointManager:
                  self._root_dir)
     if (self._checkpoint_history.checkpoint_type ==
         CheckpointType.CHECKPOINT_FLAX):
+      if jax.process_index() != 0:
+        return
       self._delete_pattern_if_exists(
           os.path.join(self._root_dir,
                        f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id}'))
     elif (self._checkpoint_history.checkpoint_type ==
           CheckpointType.CHECKPOINT_MULTI_HOST_FLAX):
-      for e in tf.io.gfile.listdir(self._root_dir):
-        fe = os.path.join(self._root_dir, e)
-        if tf.io.gfile.isdir(fe):
-          self._delete_pattern_if_exists(
-              os.path.join(fe,
-                           f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id}'))
+      root_dir = os.path.join(self._root_dir, f'{jax.process_index():03d}')
+      self._delete_pattern_if_exists(
+          os.path.join(root_dir,
+                       f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id}'))
     elif self._checkpoint_history.checkpoint_type in {
         CheckpointType.CHECKPOINT_PERSISTENCE,
         CheckpointType.CHECKPOINT_GDA,
     }:
+      if jax.process_index() != 0:
+        return
       self._delete_pattern_if_exists(
           os.path.join(self._root_dir,
                        f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id:08d}'))
 
-  def _sweep(self) -> None:
+  def _sweep(self, global_step_id: int) -> None:
     """Deletes or preserves managed checkpoints."""
     if not self._max_to_keep:
       return
@@ -287,6 +307,10 @@ class CheckpointManager:
       else:
         maybe_delete_checkpoints.append(checkpoint)
 
+    if not self.use_multi_host_flax:
+      py_utils.sync_global_devices(
+          'checkpoint_manager:begin_delete_checkpoints:'
+          f'step_{global_step_id}')
     while len(maybe_delete_checkpoints) > self._max_to_keep:
       checkpoint = maybe_delete_checkpoints.pop(0)
       if (self._keep_interval_timedelta and
@@ -300,6 +324,9 @@ class CheckpointManager:
             checkpoint.timestamp_sec)
         continue
       self._delete_checkpoint(checkpoint)
+    if not self.use_multi_host_flax:
+      py_utils.sync_global_devices('checkpoint_manager:end_delete_checkpoints:'
+                                   f'step_{global_step_id}')
 
     self._checkpoint_history = self._create_checkpoint_history()
     for c in itertools.chain(kept_checkpoints, maybe_delete_checkpoints):
@@ -307,13 +334,22 @@ class CheckpointManager:
                    c.global_step_id, c.timestamp_sec)
       self._checkpoint_history.checkpoints.add().CopyFrom(c)
 
-  def _save_checkpoint_file(self) -> None:
+  def _save_checkpoint_file(self, global_step_id: int, key: str = '') -> None:
     """Saves the checkpoint file with latest checkpoint metadata.
 
     Note: This method overrides previous version of the checkpoint file.
+
+    Args:
+      global_step_id: The current global step.
+      key: A key to add to the synchronization string.
     """
-    with tf.io.gfile.GFile(self.checkpoint_filename, 'wb') as writer:
-      writer.write(self._checkpoint_history.SerializeToString())
+    py_utils.sync_global_devices(
+        f'checkpoint_manager:begin_save_checkpoint_file:{key}_{global_step_id}')
+    if self.use_multi_host_flax or jax.process_index() == 0:
+      with tf.io.gfile.GFile(self.checkpoint_filename, 'wb') as writer:
+        writer.write(self._checkpoint_history.SerializeToString())
+    py_utils.sync_global_devices(
+        f'checkpoint_manager:end_save_checkpoint_file:{key}_{global_step_id}')
 
   def _read_checkpoint_file(self) -> checkpoint_pb2.CheckpointHistory:
     """Restores the checkpoint file with latest checkpoint metadata.
