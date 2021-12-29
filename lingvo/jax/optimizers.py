@@ -690,6 +690,9 @@ class DistributedShampoo(BaseOptimizer):
     p.Define('graft_type', distributed_shampoo.GraftingType.ADAGRAD,
              'Type of Grafting. 1 for SGD, 2 for AdaGrad, 3 for RMSPROP .')
     p.Define('batch_axis_name', 'batch', 'Batch axis name for pmap.')
+    p.Define('mesh_axis_names', None, 'Axis names for the mesh (used in pjit).')
+    p.Define('num_devices_for_pjit', None,
+             'Number of devices to parallelize over in pjit mode.')
     p.Define('nesterov', True, 'Use nesterov update for momentum.')
     p.Define('exponent_override', 0, 'Exponent override.')
     p.Define('moving_average_for_momentum', False,
@@ -751,6 +754,8 @@ class DistributedShampoo(BaseOptimizer):
         nesterov=p.nesterov,
         exponent_override=p.exponent_override,
         batch_axis_name=p.batch_axis_name,
+        mesh_axis_names=p.mesh_axis_names,
+        num_devices_for_pjit=p.num_devices_for_pjit,
         inverse_failure_threshold=0.1,
         moving_average_for_momentum=p.moving_average_for_momentum,
         skip_preconditioning_dim_size_gt=p.skip_preconditioning_dim_size_gt,
