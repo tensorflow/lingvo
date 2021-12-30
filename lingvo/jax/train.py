@@ -324,8 +324,9 @@ def train_and_evaluate_pmap(
       if summary_last_step is None:
         summary_last_step = step_i - 1
 
-      if jax.process_index() == 0 and checkpoint_manager.should_save(step_i):
-        checkpoints.save_checkpoint(replicated_model_states, checkpoint_dir)
+      if checkpoint_manager.should_save(step_i):
+        if jax.process_index() == 0:
+          checkpoints.save_checkpoint(replicated_model_states, checkpoint_dir)
         checkpoint_manager.save_metadata(global_step_id=step_i)
 
       if step_i <= 5:
