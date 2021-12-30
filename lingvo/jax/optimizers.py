@@ -701,6 +701,12 @@ class DistributedShampoo(BaseOptimizer):
              'Skips preconditioning if any dim is greater than this value.')
     p.Define('clip_by_scaled_gradient_norm', None,
              'Clip by scaled gradient norm (if not None).')
+    p.Define('best_effort_shape_interpretation', True,
+             'Best effort shape interpretation to coalesce dimensions.')
+    p.Define(
+        'shard_optimizer_states', False,
+        'Shard optimizer states, used by ShardedDistributedShampoo'
+        ' (Do not explicitly set this).')
     return p
 
   @classmethod
@@ -749,18 +755,126 @@ class DistributedShampoo(BaseOptimizer):
         start_preconditioning_step=p.start_preconditioning_step,
         preconditioning_compute_steps=p.preconditioning_compute_steps,
         statistics_compute_steps=p.statistics_compute_steps,
-        best_effort_shape_interpretation=True,
+        best_effort_shape_interpretation=p.best_effort_shape_interpretation,
         graft_type=p.graft_type,
         nesterov=p.nesterov,
         exponent_override=p.exponent_override,
         batch_axis_name=p.batch_axis_name,
         mesh_axis_names=p.mesh_axis_names,
         num_devices_for_pjit=p.num_devices_for_pjit,
+        shard_optimizer_states=p.shard_optimizer_states,
         inverse_failure_threshold=0.1,
         moving_average_for_momentum=p.moving_average_for_momentum,
         skip_preconditioning_dim_size_gt=p.skip_preconditioning_dim_size_gt,
         clip_by_scaled_gradient_norm=p.clip_by_scaled_gradient_norm,
         precision=lax.Precision.HIGHEST)
+
+
+class ShardedDistributedShampoo(DistributedShampoo):
+  """Sharded version of distributed shampoo for model parallel training."""
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    self._params.shard_optimizer_states = True
+
+  # TODO(rohananil): Avoid mirroring code here for init_partition_spec.
+  def _skip_preconditioning(self, param, skip_preconditioning_dim_size_gt):
+    return len(param.shape) < 1 or any(
+        [s > skip_preconditioning_dim_size_gt for s in param.shape])
+
+  def init_partition_spec_fn(self, params):
+    """Annotates the PartitionSpec for optimizer states."""
+    p = self._params
+    var_spec_flattened, _ = jax.tree_flatten(params)
+    assert var_spec_flattened
+    first_var = var_spec_flattened[0]
+    assert isinstance(first_var, py_utils.Params)
+    device_mesh = first_var.device_mesh
+    count = py_utils.weight_params(
+        shape=[],
+        init=None,
+        dtype=jnp.int32,
+        collections=None,
+        device_mesh=device_mesh,
+        tensor_split_dims_mapping=[])
+
+    params_flat, treedef = jax.tree_flatten(params)
+    padded_statistics = []
+    # Find max size to pad to.
+    max_size = 0
+    for param in params_flat:
+      param_clone = jnp.zeros(param.shape, dtype=param.dtype)
+      preconditioner = distributed_shampoo.Preconditioner(
+          param_clone, p.block_size, p.best_effort_shape_interpretation)
+      if not self._skip_preconditioning(param,
+                                        p.skip_preconditioning_dim_size_gt):
+        shapes = preconditioner.shapes_for_preconditioners()
+        sizes = [s[0] for s in shapes]
+        max_size = max(max(sizes), max_size)
+
+    local_stats_flat = []
+    for param in params_flat:
+      param_clone = jnp.zeros(param.shape, dtype=param.dtype)
+      preconditioner = distributed_shampoo.Preconditioner(
+          param_clone, p.block_size, p.best_effort_shape_interpretation)
+      shapes = preconditioner.shapes_for_preconditioners()
+      sizes = []
+
+      statistics = []
+      index_start = len(padded_statistics)
+      if not self._skip_preconditioning(param,
+                                        p.skip_preconditioning_dim_size_gt):
+        sizes = [s[0] for s in shapes]
+        shapes = preconditioner.shapes_for_preconditioners()
+        statistics = [p.matrix_epsilon * jnp.eye(max_size) for s in shapes]
+        padded_statistics.extend(statistics)
+
+      adagrad_var_params = []
+      if p.graft_type != distributed_shampoo.GraftingType.SGD:
+        adagrad_var_params = param.Copy()
+        adagrad_var_params.init = None
+      m1_var_params = param.Copy()
+      m1_var_params.init = None
+      m2_var_params = param.Copy()
+      m2_var_params.init = None
+      local_stats_flat.append(
+          distributed_shampoo.LocalShardedParameterStats(
+              adagrad_var_params, m1_var_params, m2_var_params, index_start,
+              sizes))
+    local_stats = jax.tree_unflatten(treedef, local_stats_flat)
+    # Pad the statistics and preconditioner matrices to be a multiple of
+    # num devices.
+    # TODO(rohananil): Relax to only the size of the mesh axis where the dim
+    # is split on.
+    to_pad = -len(padded_statistics) % p.num_devices_for_pjit
+    padded_statistics.extend([
+        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
+        for _ in range(to_pad)
+    ])
+    padded_statistics = jnp.stack(padded_statistics)
+    padded_statistics_var_params = py_utils.weight_params(
+        shape=padded_statistics.shape,
+        init=None,
+        dtype=padded_statistics.dtype,
+        collections=None,
+        device_mesh=device_mesh,
+        # TODO(rohananil): Make this configurable once everything works.
+        tensor_split_dims_mapping=[1, -1, -1])
+    padded_preconditioner_var_params = padded_statistics_var_params.Copy()
+    global_stats = distributed_shampoo.GlobalShardedParameterStats(
+        padded_preconditioner_var_params, padded_preconditioner_var_params)
+    return distributed_shampoo.ShampooState(
+        count=count,
+        stats=distributed_shampoo.ShardedShampooStats(global_stats,
+                                                      local_stats))
+
+  def _get_raw_grad_transformation(
+      self, lr: optax.Schedule) -> ShardedGradientTransformation:
+    result = super()._get_raw_grad_transformation(lr)
+    return ShardedGradientTransformation(
+        init=result.init,
+        update=result.update,
+        init_partition_spec=self.init_partition_spec_fn)
 
 
 class Adagrad(BaseOptimizer):
