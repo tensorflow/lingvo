@@ -415,6 +415,10 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     p = super().Params()
     p.Define('input_dims', 0, 'Dimension of the layer input.')
     p.Define('hidden_dims', 0, 'Dimension of the hidden layer.')
+    p.Define(
+        'apply_padding_first', False,
+        'Apply padding to inputs before everything else or not. For '
+        'example, it is better to apply padding before batch norm.')
     # NOTE(yonghui): layer-norm as used in gshard doesn't have bias and assume
     # the mean is 0.0. See gshard_builder._LN for more details.
     p.Define('ln_tpl', normalizations.LayerNorm.Params(),
@@ -640,6 +644,10 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     p = self.params
     # Assume output_dims == input_dims
     output_dims = p.input_dims
+
+    # Consistent with gshard implementation.
+    if p.apply_padding_first:
+      inputs *= (1.0 - jnp.expand_dims(paddings, axis=-1))
 
     # TODO(zhangqiaorjc): Handle input of shape [batch, seq_len, g, model/g]?
     if p.norm_policy == 'primer_hybrid':
