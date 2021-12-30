@@ -22,13 +22,13 @@ from typing import Any, Callable, NamedTuple, Optional, Sequence, Tuple, Union
 from absl import logging
 import jax
 from jax import lax
-
 from jax import numpy as jnp
 from lingvo.jax import base_layer
 from lingvo.jax import gshard_utils
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 import optax
+
 from optax_shampoo import distributed_shampoo
 
 
@@ -799,7 +799,6 @@ class ShardedDistributedShampoo(DistributedShampoo):
         tensor_split_dims_mapping=[])
 
     params_flat, treedef = jax.tree_flatten(params)
-    padded_statistics = []
     # Find max size to pad to.
     max_size = 0
     for param in params_flat:
@@ -813,6 +812,7 @@ class ShardedDistributedShampoo(DistributedShampoo):
         max_size = max(max(sizes), max_size)
 
     local_stats_flat = []
+    padded_statistics = []
     for param in params_flat:
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
       preconditioner = distributed_shampoo.Preconditioner(
