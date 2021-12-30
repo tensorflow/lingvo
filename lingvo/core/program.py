@@ -1003,10 +1003,10 @@ class DecodeProgram(BaseProgram):
         tf.logging.info('Detected end-of-data sentinel.')
         _HandleEndOfData()
       else:
-        tf.logging.info('_InfeedLoop InvalidArgumentError %r', e)
+        tf.logging.info('_InfeedLoop InvalidArgumentError %r: %s', e, e.message)
         raise
     except Exception as e:
-      tf.logging.info('_InfeedLoop exception %r', e)
+      tf.logging.info('_InfeedLoop exception %r: %s', e, e.message)
       raise
 
   def BuildTpuSubgraph(self):
