@@ -859,7 +859,7 @@ class ShardedDistributedShampoo(DistributedShampoo):
         collections=None,
         device_mesh=device_mesh,
         # TODO(rohananil): Make this configurable once everything works.
-        tensor_split_dims_mapping=[1, -1, -1])
+        tensor_split_dims_mapping=[2, -1, -1])
     padded_preconditioner_var_params = padded_statistics_var_params.Copy()
     global_stats = distributed_shampoo.GlobalShardedParameterStats(
         padded_preconditioner_var_params, padded_preconditioner_var_params)
