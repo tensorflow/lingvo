@@ -242,11 +242,6 @@ __init__() for classes on the class hierarchy.</p>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="lingvo.core.base_layer._CreateLayerVariablesStatus.COMPLETED">
-<span class="sig-name descname"><span class="pre">COMPLETED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">3</span></em><a class="headerlink" href="#lingvo.core.base_layer._CreateLayerVariablesStatus.COMPLETED" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.base_layer._CreateLayerVariablesStatus.PER_SPLIT_COMPLETED">
 <span class="sig-name descname"><span class="pre">PER_SPLIT_COMPLETED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">4</span></em><a class="headerlink" href="#lingvo.core.base_layer._CreateLayerVariablesStatus.PER_SPLIT_COMPLETED" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -713,6 +708,11 @@ keyed by a child name.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer._CreateChildContext">
+<span class="sig-name descname"><span class="pre">_CreateChildContext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateChildContext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateChildContext" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer.CreateChild">
 <span class="sig-name descname"><span class="pre">CreateChild</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams" title="lingvo.core.hyperparams.InstantiableParams"><span class="pre">lingvo.core.hyperparams.InstantiableParams</span></a><span class="p"><span class="pre">[</span></span><span class="pre">lingvo.core.base_layer.BaseLayerT</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.CreateChild"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.CreateChild" title="Permalink to this definition"></a></dt>
 <dd><p>Create a sub layer.</p>
@@ -788,6 +788,9 @@ vars/theta.</p></li>
 <dd><p>Remove a sublayer instantiated earlier from this layer.</p>
 <p>This method should only be called by subclasses, and is usually used to
 remove unused layers instantiated by the super class.</p>
+<p>Note this will not remove any variables that have been created, which may
+lead to larger checkpoint sizes and maybe errors about variables already
+existing. Use at your own risk.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>name</strong> – the name of an existing sublayer.</p>
@@ -801,6 +804,9 @@ remove unused layers instantiated by the super class.</p>
 <dd><p>Remove a list of sublayers instantiated earlier from this layer.</p>
 <p>This method should only be called by subclasses, and is usually used to
 remove unused layer list instantiated by the super class’s CreateChildren().</p>
+<p>Note this will not remove any variables that have been created, which may
+lead to larger checkpoint sizes and maybe errors about variables already
+existing. Use at your own risk.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>name</strong> – the name of an existing list of sublayers.</p>

@@ -339,6 +339,21 @@ iteration counter and the stage ID:</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim">
 <span class="sig-name descname"><span class="pre">_FindPerStageVarShardingDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim" title="Permalink to this definition"></a></dt>
 <dd><p>Finds a sharding dimension for per-stage variables before stacking.</p>

@@ -170,16 +170,25 @@ of layerwise input, but in API we treat it separately for convenience.</p>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer._child_variable_scope_override">
+<span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._child_variable_scope_override" title="Permalink to this definition"></a></dt>
+<dd><p>Override the variable scope for individual children.</p>
+<p>Should only be overridden for backwards compatibility with old checkpoints.</p>
+<p>By default, all children will be created in tf.variable_scope(p.name) of
+this layer. This can be overridden by providing a list of variable scopes
+keyed by a child name.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict mapping child names to a list of variable scopes to apply.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer._body">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">_body</span></span><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._body" title="Permalink to this definition"></a></dt>
 <dd><p>A child layer to be used as the loop body.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.repeat_layer.GenericRepeatLayer._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/repeat_layer.html#GenericRepeatLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.repeat_layer.GenericRepeatLayer._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
 </dd></dl>
 
 <dl class="py method">

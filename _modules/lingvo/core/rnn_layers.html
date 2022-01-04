@@ -573,7 +573,8 @@
     <span class="n">params_forward</span><span class="o">.</span><span class="n">reverse</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">params_forward</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
     <span class="n">params_forward</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">fwd</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fwd_rnn&#39;</span><span class="p">,</span> <span class="n">params_forward</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PlaceOnTpuCore</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fwd_rnn&#39;</span><span class="p">,</span> <span class="n">params_forward</span><span class="p">)</span>
 
     <span class="n">params_backward</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rnn</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">params_backward</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bak&#39;</span>
@@ -581,15 +582,14 @@
     <span class="n">params_backward</span><span class="o">.</span><span class="n">reverse</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">params_backward</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
     <span class="n">params_backward</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bak</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bak_rnn&#39;</span><span class="p">,</span> <span class="n">params_backward</span><span class="p">)</span>
-
-<div class="viewcode-block" id="BidirectionalFRNN._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNN._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Create outside of tf.variable_scope(p.name) for backwards compatibility.</span>
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PlaceOnTpuCore</span><span class="p">(</span><span class="mi">0</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">fwd_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PlaceOnTpuCore</span><span class="p">(</span><span class="mi">1</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">bak_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bak_rnn&#39;</span><span class="p">,</span> <span class="n">params_backward</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BidirectionalFRNN._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNN._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;fwd_rnn&#39;</span><span class="p">:</span> <span class="p">[],</span>
+        <span class="s1">&#39;bak_rnn&#39;</span><span class="p">:</span> <span class="p">[]</span>
+    <span class="p">}</span></div>
 
 <div class="viewcode-block" id="BidirectionalFRNN.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute bidi-RNN forward pass.</span>

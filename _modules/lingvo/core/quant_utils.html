@@ -301,7 +301,18 @@
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">qd</span>
     <span class="k">if</span> <span class="n">qd</span><span class="p">:</span>
-      <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensorWithShape</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">legacy_aqt_w_name</span><span class="p">)</span></div>
+      <span class="c1"># We&#39;re calling child.CreateVariable() here rather than</span>
+      <span class="c1"># self.CreateVariable(), which messes up the automatic variable scope</span>
+      <span class="c1"># handing, so we need to set some manual variable scopes for backwards</span>
+      <span class="c1"># compatibility.</span>
+      <span class="k">for</span> <span class="n">qdname</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span><span class="p">[</span><span class="n">qdname</span><span class="p">]:</span>
+          <span class="n">qdchild_name</span> <span class="o">=</span> <span class="s1">&#39;qdomain_&#39;</span> <span class="o">+</span> <span class="n">qdname</span>
+          <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildContext</span><span class="p">(</span><span class="n">qdchild_name</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">qd</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+              <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensorWithShape</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span>
+                                       <span class="n">legacy_aqt_w_name</span><span class="p">)</span>
+          <span class="k">break</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.QTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QTensor">[docs]</a>  <span class="k">def</span> <span class="nf">QTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantizes a general tensor input/output in one step.</span>

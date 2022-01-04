@@ -851,10 +851,6 @@
 
 <div class="viewcode-block" id="BaseTask.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ema</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wraps `self.train_op` with an op updating exponential moving average.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">!=</span>
-        <span class="n">base_layer</span><span class="o">.</span><span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">):</span>  <span class="c1"># pylint: disable=protected-access</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;ApplyExponentialMovingAverage called before InstantiateVariables!&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(rpang): raise an exception if this is called in the eval mode.</span>
     <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_VariablesForEMA</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
