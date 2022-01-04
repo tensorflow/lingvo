@@ -120,9 +120,6 @@ class BaseRunner:
     else:
       self._cluster.InitDevices(self._GetSession())
 
-    # Ensure global step tensor is created.
-    py_utils.GetOrCreateGlobalStepVar()
-
   @property
   def params(self):
     return self._params
