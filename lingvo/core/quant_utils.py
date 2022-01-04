@@ -236,7 +236,18 @@ class QuantizableLayer(base_layer.BaseLayer):
     qd = self._GetQDomain(domain)
     self._aqt_weights[w_name] = qd
     if qd:
-      qd.CreateTensorWithShape(w_name, shape, feature_axis, legacy_aqt_w_name)
+      # We're calling child.CreateVariable() here rather than
+      # self.CreateVariable(), which messes up the automatic variable scope
+      # handing, so we need to set some manual variable scopes for backwards
+      # compatibility.
+      for qdname in self._qdomains:
+        if qd is self._qdomains[qdname]:
+          qdchild_name = 'qdomain_' + qdname
+          with self._CreateChildContext(qdchild_name):
+            with tf.variable_scope(qd.params.name):
+              qd.CreateTensorWithShape(w_name, shape, feature_axis,
+                                       legacy_aqt_w_name)
+          break
 
   def QTensor(self, t_name, t, eval_only=False):
     """Quantizes a general tensor input/output in one step.

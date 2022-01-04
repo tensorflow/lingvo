@@ -15,7 +15,6 @@
 # ==============================================================================
 """Multitask models."""
 
-from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import py_utils
 
@@ -42,17 +41,6 @@ class SharedEncoderModel(base_model.MultiTaskModel):
         task = self.GetTask(name)
         assert 'encoder' not in task.children
         task.AddChild('encoder', encoder)
-
-  def _CreateChildrenVariables(self):
-    # Ensure p.encoder_to_share is created first.
-    task_name = self.params.encoder_to_share
-    with tf.name_scope(self.params.name):
-      if self.params.task_name_var_scope:
-        with tf.variable_scope(task_name):
-          self.GetTask(task_name).InstantiateVariables()
-      else:
-        self.GetTask(task_name).InstantiateVariables()
-    super()._CreateChildrenVariables()
 
 
 class SharedEncoderDecoderModel(base_model.MultiTaskModel):

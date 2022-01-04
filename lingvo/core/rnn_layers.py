@@ -508,7 +508,8 @@ class BidirectionalFRNN(base_layer.BaseLayer):
     params_forward.reverse = False
     params_forward.packed_input = p.packed_input
     params_forward.cell = p.fwd.Copy()
-    self.CreateChild('fwd_rnn', params_forward)
+    with py_utils.PlaceOnTpuCore(0):
+      self.CreateChild('fwd_rnn', params_forward)
 
     params_backward = p.rnn.Copy()
     params_backward.name = 'bak'
@@ -516,15 +517,14 @@ class BidirectionalFRNN(base_layer.BaseLayer):
     params_backward.reverse = True
     params_backward.packed_input = p.packed_input
     params_backward.cell = p.bak.Copy()
-    self.CreateChild('bak_rnn', params_backward)
-
-  def _CreateChildrenVariables(self):
-    # Create outside of tf.variable_scope(p.name) for backwards compatibility.
-    with py_utils.PlaceOnTpuCore(0):
-      self.fwd_rnn.InstantiateVariables()
     with py_utils.PlaceOnTpuCore(1):
-      self.bak_rnn.InstantiateVariables()
-    super()._CreateChildrenVariables()
+      self.CreateChild('bak_rnn', params_backward)
+
+  def _child_variable_scope_override(self):
+    return {
+        **super()._child_variable_scope_override(), 'fwd_rnn': [],
+        'bak_rnn': []
+    }
 
   def FProp(self, theta, inputs, paddings, segment_id=None):
     """Compute bidi-RNN forward pass.

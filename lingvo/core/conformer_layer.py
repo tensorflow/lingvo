@@ -754,52 +754,48 @@ class ConformerLayer(base_layer.BaseLayer):
     if p.layer_order == 'mhsa':
       assert not self.has_lconv, 'mhsa must not have a lconv block.'
 
-    if self.has_fflayer_start:
-      fflayer_start_p = self._ConfigFFLayerOrMoEParams(p.fflayer_start_tpl,
-                                                       'fflayer_start')
-      if fflayer_start_p.name:
-        assert fflayer_start_p.name == 'fflayer_start_moe'
-      else:
-        fflayer_start_p.name = 'fflayer_start'
-      self.CreateChild(fflayer_start_p.name, fflayer_start_p)
-
-    fflayer_end_p = self._ConfigFFLayerOrMoEParams(p.fflayer_end_tpl,
-                                                   'fflayer_end')
-    if fflayer_end_p.name:
-      assert fflayer_end_p.name == 'fflayer_end_moe'
-    else:
-      fflayer_end_p.name = 'fflayer_end'
-    if not p.fflayer_weight_sharing:
-      self.CreateChild(fflayer_end_p.name, fflayer_end_p)
-    else:
-      self.AddChild(fflayer_end_p.name, self.children[fflayer_start_p.name])
-
-    # For local MHSA, is_masked is ignored, thus it's safe to set is_masked
-    # based on p.is_causal, for global and local MHSA cases.
-    if self.has_mhsa:
-      trans_atten_p = p.trans_atten_tpl.Copy().Set(
-          input_dim=p.input_dim,
-          is_masked=p.is_causal,
-          atten_dropout_prob=p.dropout_prob,
-          residual_dropout_prob=p.dropout_prob)
-      if tf.logging.vlog_is_on(2):
-        for line in trans_atten_p.atten_tpl.ToText().split('\n'):
-          tf.logging.info('ConformerLayer.atten_tpl: %s', line)
-      self.CreateChild('trans_atten', trans_atten_p)
-
-    if self.has_lconv:
-      lconv_p = p.lconv_tpl.Copy().Set(
-          input_dim=p.input_dim,
-          is_causal=p.is_causal)
-      self.CreateChild('lconv', lconv_p)
-
-    ln_p = p.final_ln_tpl.Copy().Set(name='final_ln', input_dim=p.input_dim)
-    self.CreateChild('final_ln', ln_p)
-
-  def _CreateChildrenVariables(self):
-    """Change the variable dtypes by list_regex_dtypes."""
+    # Change the variable dtypes by list_regex_dtypes.
     with py_utils.VariableListDtypeRegexScope(self.params.list_regex_dtypes):
-      super()._CreateChildrenVariables()
+      if self.has_fflayer_start:
+        fflayer_start_p = self._ConfigFFLayerOrMoEParams(
+            p.fflayer_start_tpl, 'fflayer_start')
+        if fflayer_start_p.name:
+          assert fflayer_start_p.name == 'fflayer_start_moe'
+        else:
+          fflayer_start_p.name = 'fflayer_start'
+        self.CreateChild(fflayer_start_p.name, fflayer_start_p)
+
+      fflayer_end_p = self._ConfigFFLayerOrMoEParams(p.fflayer_end_tpl,
+                                                     'fflayer_end')
+      if fflayer_end_p.name:
+        assert fflayer_end_p.name == 'fflayer_end_moe'
+      else:
+        fflayer_end_p.name = 'fflayer_end'
+      if not p.fflayer_weight_sharing:
+        self.CreateChild(fflayer_end_p.name, fflayer_end_p)
+      else:
+        self.AddChild(fflayer_end_p.name, self.children[fflayer_start_p.name])
+
+      # For local MHSA, is_masked is ignored, thus it's safe to set is_masked
+      # based on p.is_causal, for global and local MHSA cases.
+      if self.has_mhsa:
+        trans_atten_p = p.trans_atten_tpl.Copy().Set(
+            input_dim=p.input_dim,
+            is_masked=p.is_causal,
+            atten_dropout_prob=p.dropout_prob,
+            residual_dropout_prob=p.dropout_prob)
+        if tf.logging.vlog_is_on(2):
+          for line in trans_atten_p.atten_tpl.ToText().split('\n'):
+            tf.logging.info('ConformerLayer.atten_tpl: %s', line)
+        self.CreateChild('trans_atten', trans_atten_p)
+
+      if self.has_lconv:
+        lconv_p = p.lconv_tpl.Copy().Set(
+            input_dim=p.input_dim, is_causal=p.is_causal)
+        self.CreateChild('lconv', lconv_p)
+
+      ln_p = p.final_ln_tpl.Copy().Set(name='final_ln', input_dim=p.input_dim)
+      self.CreateChild('final_ln', ln_p)
 
   # lconv and fflayer_start have the special treatment, which can be absent,
   # because Transformer doesn't have those.

@@ -786,10 +786,6 @@ class BaseTask(base_layer.BaseLayer):
 
   def ApplyExponentialMovingAverage(self, ema):
     """Wraps `self.train_op` with an op updating exponential moving average."""
-    if (self._create_variables_status !=
-        base_layer._CreateLayerVariablesStatus.COMPLETED):  # pylint: disable=protected-access
-      raise ValueError(
-          'ApplyExponentialMovingAverage called before InstantiateVariables!')
     # TODO(rpang): raise an exception if this is called in the eval mode.
     all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
     with tf.name_scope('moving_average'):

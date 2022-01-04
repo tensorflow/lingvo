@@ -137,7 +137,16 @@ class RepeatLayer(base_layer.BaseLayer):
       for i in range(p.repeat):
         self.CreateChild('body_iter_%05d' % i, p.body)
     else:
-      self.CreateChild('body', p.body)
+      with py_utils.VariableShapePrefixContext(self.params.repeat):
+        self.CreateChild('body', p.body)
+
+  def _child_variable_scope_override(self):
+    p = self.params
+    res = super()._child_variable_scope_override()
+    if p.per_layer_vars:
+      for i in range(p.repeat):
+        res['body_iter_%05d' % i] = [p.name, 'iter_%05d' % i]
+    return res
 
   @property
   def _body(self):
@@ -147,18 +156,6 @@ class RepeatLayer(base_layer.BaseLayer):
       return self.body_iter_00000
     else:
       return self.body
-
-  def _CreateChildrenVariables(self):
-    p = self.params
-    with tf.variable_scope(self.params.name):
-      if p.per_layer_vars:
-        for i in range(p.repeat):
-          with tf.variable_scope('iter_%05d' % i):
-            self.children['body_iter_%05d' % i].InstantiateVariables()
-      else:
-        with py_utils.VariableShapePrefixContext(self.params.repeat):
-          self.body.InstantiateVariables()
-    super()._CreateChildrenVariables()
 
   def _unrolled_fprop(self, theta, *args):
     p = self.params
@@ -308,15 +305,10 @@ class SoftCondLayer(base_layer.BaseLayer):
     assert p.num_experts
     assert p.cond_dim
 
-    self.CreateChild('body', p.body)
-
-  def _CreateChildrenVariables(self):
-    with tf.variable_scope(self.params.name):
-      # Prepends p.num_experts to the tensor shape of every variable created
-      # by p.body.
-      with py_utils.VariableShapePrefixContext(self.params.num_experts):
-        self.body.InstantiateVariables()
-    super()._CreateChildrenVariables()
+    # Prepends p.num_experts to the tensor shape of every variable created
+    # by p.body.
+    with py_utils.VariableShapePrefixContext(self.params.num_experts):
+      self.CreateChild('body', p.body)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()

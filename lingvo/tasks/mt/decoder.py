@@ -635,7 +635,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     return proj_p
 
   def _child_variable_scope_override(self):
-    if self._share_sm_emb:
+    if self.params.softmax.cls == layers.SharedSoftmaxLayer:
       return {
           **super()._child_variable_scope_override(),
           'softmax': [tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE)]
@@ -1316,7 +1316,7 @@ class TransformerDecoder(MTBaseDecoder):
       self.CreateChild('layer_norm_input', params)
 
   def _child_variable_scope_override(self):
-    if self._share_sm_emb:
+    if self.params.softmax.cls == layers.SharedSoftmaxLayer:
       return {
           **super()._child_variable_scope_override(),
           'softmax': [tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE)]

@@ -32,7 +32,6 @@ FLAGS = tf.flags.FLAGS
 
 
 _LAYER_STACK = py_utils.ThreadLocalStack()
-_CREATE_VARIABLES_STACK = py_utils.ThreadLocalStack()
 _THETA_STACK = py_utils.ThreadLocalStack()
 
 
@@ -112,29 +111,30 @@ def _BaseLayerInitWrapper(func):  # pylint: disable=invalid-name
   def Wrapper(self, *args, **kwargs):
     """Decorator wrapper fn."""
     stack = _LAYER_STACK.stack
-    if stack and stack[-1] is self:
-      # Short circuit if called multiple times (eg. super() chain).
-      func(self, *args, **kwargs)
-      return
 
-    # Push back self (the current layer) to the stack.
-    stack_size = len(stack)
-    stack.append(self)
-    try:
-      # Calls the layer's real __init__ method.
-      func(self, *args, **kwargs)
-      if len(stack) > 1:
-        # Records the fact stack[-2] just created a sub-layer self.
-        stack[-2]._AutoAddChild(self)  # pylint: disable=protected-access
-    finally:
-      # Pop out self (the current layer).
-      assert stack[-1] is self
-      stack.pop()
-      assert len(stack) == stack_size
+    with contextlib.ExitStack() as context_stack:
+      if not stack:
+        context_stack.enter_context(py_utils.VariableStore())
 
-    if not stack:
-      # Outermost layer just finished __init__.
-      self.InstantiateVariables()
+      if stack and stack[-1] is self:
+        # Short circuit if called multiple times (eg. super() chain).
+        func(self, *args, **kwargs)
+        return
+
+      # Push back self (the current layer) to the stack.
+      stack_size = len(stack)
+      stack.append(self)
+      try:
+        # Calls the layer's real __init__ method.
+        func(self, *args, **kwargs)
+        if len(stack) > 1:
+          # Records the fact stack[-2] just created a sub-layer self.
+          stack[-2]._AutoAddChild(self)  # pylint: disable=protected-access
+      finally:
+        # Pop out self (the current layer).
+        assert stack[-1] is self
+        stack.pop()
+        assert len(stack) == stack_size
 
   return Wrapper
 
@@ -178,9 +178,11 @@ class BaseLayerMeta(type):
   def __call__(cls, *args, **kwargs):
     self = super().__call__(*args, **kwargs)
     # This happens after self.__init__()
+    self.InstantiateVariables()
     # pylint: disable=protected-access
     self._disable_create_child = True
     self._VerifyChildren()
+    self._VerifyVarsAndTheta()
     # pylint: enable=protected-access
     return self
 
@@ -199,7 +201,6 @@ CreateVariableMeta = collections.namedtuple('CreateVariableMeta',
 class _CreateLayerVariablesStatus(enum.Enum):
   NOT_CALLED = 1
   IN_PROGRESS = 2
-  COMPLETED = 3
   PER_SPLIT_COMPLETED = 4
 
 
@@ -864,11 +865,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
             name, var_params.shape)
     if self._is_variable_free:
       raise ValueError('Cannot create variable in variable free layer.')
-    if self._create_variables_status == _CreateLayerVariablesStatus.COMPLETED:
-      raise ValueError(
-          'CreateVariable call after variable creation has completed! '
-          'CreateVariable should be called in __init__ or _CreateLayerVariables.'
-      )
     self._CheckName(name)
     if (self.params.skip_lp_regularization and
         py_utils.SKIP_LP_REGULARIZATION not in var_params.collections):
@@ -943,27 +939,13 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       return
     self._create_variables_status = _CreateLayerVariablesStatus.IN_PROGRESS
 
-    stack_size = len(_CREATE_VARIABLES_STACK.stack)
-    _CREATE_VARIABLES_STACK.stack.append(self)
-    try:
-      with py_utils.VariableStore():
-        self._CreateChildrenVariables()
+    self._CreateChildrenVariables()
 
-        if not self._is_variable_free:
-          with self._SelfVariableScope():
-            for name, meta in list(self._variables_to_create.items()):
-              self._CreateVariableInternal(name, meta)
-            self._CreateLayerVariables()
-    finally:
-      assert _CREATE_VARIABLES_STACK.stack[-1] is self
-      _CREATE_VARIABLES_STACK.stack.pop()
-      assert len(_CREATE_VARIABLES_STACK.stack) == stack_size
-
-    self._create_variables_status = _CreateLayerVariablesStatus.COMPLETED
-
-    if not _CREATE_VARIABLES_STACK.stack:
-      # Outermost layer just finished InstantiateVariables.
-      self._VerifyVarsAndTheta()
+    if not self._is_variable_free:
+      with self._SelfVariableScope():
+        for name, meta in list(self._variables_to_create.items()):
+          self._CreateVariableInternal(name, meta)
+        self._CreateLayerVariables()
 
   def _child_variable_scope_override(self):
     """Override the variable scope for individual children.
@@ -987,18 +969,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
             'Variable free layer %s(%s) child %s(%s) has variables.' %
             (self.params.name, self.params.cls, child.params.name,
              child.params.cls))
-    for child in self._private_children:
-      with contextlib.ExitStack() as context_stack:
-        scope_overrides = self._child_variable_scope_override()
-        if child in scope_overrides:
-          for scope in scope_overrides[child]:
-            if isinstance(scope, str):
-              scope = tf.variable_scope(scope)
-            context_stack.enter_context(scope)
-        else:
-          context_stack.enter_context(self._SelfVariableScope())
-        for c in py_utils.Flatten(self._private_children[child]):
-          c.InstantiateVariables()
 
   def _CreateLayerVariables(self) -> None:
     """Actually create variables for this layer.
@@ -1038,6 +1008,19 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     return theta
 
+  @contextlib.contextmanager
+  def _CreateChildContext(self, name: str):
+    with contextlib.ExitStack() as context_stack:
+      scope_overrides = self._child_variable_scope_override()
+      if name in scope_overrides:
+        for scope in scope_overrides[name]:
+          if isinstance(scope, str):
+            scope = tf.variable_scope(scope)
+          context_stack.enter_context(scope)
+      else:
+        context_stack.enter_context(self._SelfVariableScope())
+      yield context_stack
+
   def CreateChild(self, name: str, params: BaseLayerParamsT) -> None:
     """Create a sub layer.
 
@@ -1065,7 +1048,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     p = self.CopyBaseParams(self.params, params.Copy())
     if not p.name:
       p.name = name
-    child = p.Instantiate()
+    with self._CreateChildContext(name):
+      child = p.Instantiate()
     self._private_children[name] = child
 
   def CreateChildren(
@@ -1101,7 +1085,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         p.name = '%s_%d' % (name, next(uid))
       return p.Instantiate()
 
-    self._private_children[name] = py_utils.Transform(Instantiate, params)
+    with self._CreateChildContext(name):
+      self._private_children[name] = py_utils.Transform(Instantiate, params)
 
   def AddChild(self, name: str, children: BaseLayerT) -> None:
     """Add existing layer or layers as sublayer."""
@@ -1126,6 +1111,10 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     This method should only be called by subclasses, and is usually used to
     remove unused layers instantiated by the super class.
 
+    Note this will not remove any variables that have been created, which may
+    lead to larger checkpoint sizes and maybe errors about variables already
+    existing. Use at your own risk.
+
     Args:
       name: the name of an existing sublayer.
     """
@@ -1137,6 +1126,10 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     This method should only be called by subclasses, and is usually used to
     remove unused layer list instantiated by the super class's CreateChildren().
+
+    Note this will not remove any variables that have been created, which may
+    lead to larger checkpoint sizes and maybe errors about variables already
+    existing. Use at your own risk.
 
     Args:
       name: the name of an existing list of sublayers.
@@ -1159,8 +1152,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
   def _VerifyVarsAndTheta(self) -> None:
     """Verify that vars and theta have the same nested structure."""
-    for child in self._children_list:
-      child._VerifyVarsAndTheta()  # pylint: disable=protected-access
 
     def MatchKeys(x, y):
       assert len(x) <= len(y)

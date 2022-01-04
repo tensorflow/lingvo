@@ -99,7 +99,16 @@ class GenericRepeatLayer(base_layer.BaseLayer):
       for i in range(p.repeat):
         self.CreateChild('body_iter_%05d' % i, p.body)
     else:
-      self.CreateChild('body', p.body)
+      with py_utils.VariableShapePrefixContext(p.repeat):
+        self.CreateChild('body', p.body)
+
+  def _child_variable_scope_override(self):
+    p = self.params
+    res = super()._child_variable_scope_override()
+    if p.per_layer_vars:
+      for i in range(p.repeat):
+        res['body_iter_%05d' % i] = [p.name, 'iter_%05d' % i]
+    return res
 
   @property
   def _body(self):
@@ -109,18 +118,6 @@ class GenericRepeatLayer(base_layer.BaseLayer):
       return self.body_iter_00000
     else:
       return self.body
-
-  def _CreateChildrenVariables(self):
-    p = self.params
-    with tf.variable_scope(p.name):
-      if p.per_layer_vars:
-        for i in range(p.repeat):
-          with tf.variable_scope('iter_%05d' % i):
-            self.children['body_iter_%05d' % i].InstantiateVariables()
-      else:
-        with py_utils.VariableShapePrefixContext(p.repeat):
-          self.body.InstantiateVariables()
-    super()._CreateChildrenVariables()
 
   def _MaybeStackExtraTheta(self, theta):
     p = self.params

@@ -375,18 +375,34 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       # vars, and with stage sharding.
       assert (p.stage_parallel_body is None and
               (p.shard_stages_1d or p.pipeline_stage_mesh_dim is not None))
-    if p.stage_parallel_body is not None:
-      assert p.single_stage_body is None
-      assert not p.per_stage_vars
-      self.CreateChild('body', p.stage_parallel_body)
-    else:
-      assert p.single_stage_body is not None
+    with gshard_utils.MeshSplitDimPrefixContext(p.pipeline_stage_mesh_dim):
+      if p.stage_parallel_body is not None:
+        assert p.single_stage_body is None
+        assert not p.per_stage_vars
+        self.CreateChild('body', p.stage_parallel_body)
+      else:
+        assert p.single_stage_body is not None
+        if p.per_stage_vars:
+          for i in range(p.num_stages):
+            self.CreateChild('body_iter_%05d' % i, p.single_stage_body)
+        else:
+          with py_utils.VariableShapePrefixContext(p.num_stages):
+            if p.circular_repeat > 1:
+              with py_utils.VariableShapePrefixContext(p.circular_repeat):
+                self.CreateChild('body', p.single_stage_body)
+            else:
+              self.CreateChild('body', p.single_stage_body)
+
+    self._non_trainable_vars = []
+
+  def _child_variable_scope_override(self):
+    p = self.params
+    res = super()._child_variable_scope_override()
+    if p.stage_parallel_body is None:
       if p.per_stage_vars:
         for i in range(p.num_stages):
-          self.CreateChild('body_iter_%05d' % i, p.single_stage_body)
-      else:
-        self.CreateChild('body', p.single_stage_body)
-    self._non_trainable_vars = []
+          res['body_iter_%05d' % i] = [p.name, 'iter_%05d' % i]
+    return res
 
   def _FindPerStageVarShardingDim(self, shape):
     """Finds a sharding dimension for per-stage variables before stacking.
@@ -414,22 +430,6 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
   def _CreateChildrenVariables(self):
     p = self.params
-    with tf.variable_scope(self.params.name):
-      with gshard_utils.MeshSplitDimPrefixContext(p.pipeline_stage_mesh_dim):
-        if p.stage_parallel_body is None:
-          if p.per_stage_vars:
-            for i in range(p.num_stages):
-              with tf.variable_scope('iter_%05d' % i):
-                self.children['body_iter_%05d' % i].InstantiateVariables()
-          else:
-            with py_utils.VariableShapePrefixContext(p.num_stages):
-              if p.circular_repeat > 1:
-                with py_utils.VariableShapePrefixContext(p.circular_repeat):
-                  self.children.body.InstantiateVariables()
-              else:
-                self.children.body.InstantiateVariables()
-        else:
-          super()._CreateChildrenVariables()
 
     def _SplitVar(v):
       if p.shard_stages_1d:

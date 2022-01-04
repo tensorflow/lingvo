@@ -1176,7 +1176,6 @@ py_library(
     deps = [
         ":base_model",
         ":py_utils",
-        "//lingvo:compat",
     ],
 )
 
