@@ -18,6 +18,7 @@ import time
 from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import checkpointer
+from lingvo.core import cluster_factory
 from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
@@ -181,6 +182,8 @@ class Evaler(base_runner.BaseRunner):
 
   def __init__(self, eval_type, *args, **kwargs):
     super().__init__(*args, **kwargs)
+    self.params.cluster.do_eval = True
+    self._cluster = cluster_factory.Cluster(self.params.cluster)
 
     self._eval_type = eval_type
 
@@ -317,6 +320,8 @@ class Decoder(base_runner.BaseRunner):
 
   def __init__(self, decoder_type, *args, **kwargs):
     super().__init__(*args, **kwargs)
+    self.params.cluster.do_eval = True
+    self._cluster = cluster_factory.Cluster(self.params.cluster)
 
     self._decoder_dir = os.path.join(self._logdir, f'decoder_{decoder_type}')
     if self._model_task_name:

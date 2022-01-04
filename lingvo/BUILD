@@ -215,6 +215,7 @@ py_library(
         "//lingvo:base_runner",
         "//lingvo/core:base_model",
         "//lingvo/core:checkpointer_lib",
+        "//lingvo/core:cluster_factory",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/core:summary_utils",
