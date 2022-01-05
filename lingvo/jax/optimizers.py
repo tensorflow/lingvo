@@ -1148,8 +1148,9 @@ class _ShardedAdafactorHelper:
     output_v = jnp.zeros((1,))
     shape = param.shape
     if self._beta1:
-      if self._quantized_dtype == jnp.bfloat16:
-        output_m = jnp.zeros(shape, dtype=jnp.bfloat16)
+      if (self._quantized_dtype == jnp.bfloat16 or
+          self._quantized_dtype == jnp.float32):
+        output_m = jnp.zeros(shape, dtype=self._quantized_dtype)
       elif self.should_store_momentum_in_qint(shape):
         output_m = jnp.zeros(shape, dtype=self._quantized_dtype)
         scale_shape = shape[1:]
@@ -1437,8 +1438,9 @@ def sharded_adafactor(
     factored: a boolean, whether or not to use factored second order momentum.
     epsilon1: Regularization constant for squared gradient.
     quantized_dtype: type of the quantized input. Allowed options are jnp.int8,
-      jnp.int16, and jnp.bfloat16. If jnp.bfloat16 is specified, accumulators
-      are stored as bfloat16, instead of quantized integers.
+      jnp.int16, jnp.bfloat16 and jnp.float32. If floating-point type is
+      specified, accumulators are stored as such type, instead of quantized
+      integers.
     respect_skip_lp_regularization: whether or not to respect lingvo
       SKIP_LP_REGULARIZATION var collection that skips decoupled weight decay.
     per_var_learning_summary: a bool, whether or not to export per-var learning
