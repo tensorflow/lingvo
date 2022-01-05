@@ -707,6 +707,9 @@ class DistributedShampoo(BaseOptimizer):
         'shard_optimizer_states', False,
         'Shard optimizer states, used by ShardedDistributedShampoo'
         ' (Do not explicitly set this).')
+    p.Define(
+        'tensor_dim_mapping', [2, -1, -1],
+        'Sharding information for statistics and preconditioner matrices.')
     return p
 
   @classmethod
@@ -812,7 +815,7 @@ class ShardedDistributedShampoo(DistributedShampoo):
         max_size = max(max(sizes), max_size)
 
     local_stats_flat = []
-    padded_statistics = []
+    num_statistics = 0
     for param in params_flat:
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
       preconditioner = distributed_shampoo.Preconditioner(
@@ -820,14 +823,12 @@ class ShardedDistributedShampoo(DistributedShampoo):
       shapes = preconditioner.shapes_for_preconditioners()
       sizes = []
 
-      statistics = []
-      index_start = len(padded_statistics)
+      index_start = num_statistics
       if not self._skip_preconditioning(param,
                                         p.skip_preconditioning_dim_size_gt):
         sizes = [s[0] for s in shapes]
         shapes = preconditioner.shapes_for_preconditioners()
-        statistics = [p.matrix_epsilon * jnp.eye(max_size) for s in shapes]
-        padded_statistics.extend(statistics)
+        num_statistics += len(shapes)
 
       adagrad_var_params = []
       if p.graft_type != distributed_shampoo.GraftingType.SGD:
@@ -846,23 +847,18 @@ class ShardedDistributedShampoo(DistributedShampoo):
     # num devices.
     # TODO(rohananil): Relax to only the size of the mesh axis where the dim
     # is split on.
-    to_pad = -len(padded_statistics) % p.num_devices_for_pjit
-    padded_statistics.extend([
-        jnp.eye(max_size, dtype=padded_statistics[0].dtype)
-        for _ in range(to_pad)
-    ])
-    padded_statistics = jnp.stack(padded_statistics)
+    to_pad = -num_statistics % p.num_devices_for_pjit
+    num_statistics += to_pad
     padded_statistics_var_params = py_utils.weight_params(
-        shape=padded_statistics.shape,
+        shape=[num_statistics, max_size, max_size],
         init=None,
-        dtype=padded_statistics.dtype,
+        dtype=jnp.float32,
         collections=None,
         device_mesh=device_mesh,
-        # TODO(rohananil): Make this configurable once everything works.
-        tensor_split_dims_mapping=[2, -1, -1])
+        tensor_split_dims_mapping=p.tensor_dim_mapping)
     padded_preconditioner_var_params = padded_statistics_var_params.Copy()
     global_stats = distributed_shampoo.GlobalShardedParameterStats(
-        padded_preconditioner_var_params, padded_preconditioner_var_params)
+        padded_statistics_var_params, padded_preconditioner_var_params)
     return distributed_shampoo.ShampooState(
         count=count,
         stats=distributed_shampoo.ShardedShampooStats(global_stats,
