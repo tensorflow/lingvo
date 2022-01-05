@@ -422,15 +422,13 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalVariableScope</span><span class="p">()):</span>
         <span class="n">var_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_global_step&#39;</span>
-        <span class="c1"># Create the variable immediately.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariableInternal</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
             <span class="n">var_name</span><span class="p">,</span>
-            <span class="n">base_layer</span><span class="o">.</span><span class="n">CreateVariableMeta</span><span class="p">(</span>
-                <span class="n">var_params</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-                    <span class="p">[],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
-                <span class="n">kwargs</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
-                    <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                    <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">GLOBAL_VARIABLES</span><span class="p">])))</span>
+            <span class="n">var_params</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([],</span>
+                                             <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                             <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">GLOBAL_VARIABLES</span><span class="p">])</span>
         <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>

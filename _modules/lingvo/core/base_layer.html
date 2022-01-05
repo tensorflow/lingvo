@@ -81,10 +81,8 @@
 <span class="sd">&quot;&quot;&quot;Base class for all layers.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">abc</span>
-<span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">copy</span>
-<span class="kn">import</span> <span class="nn">enum</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">TypeVar</span><span class="p">,</span> <span class="n">Union</span>
@@ -253,19 +251,6 @@
 
 <div class="viewcode-block" id="ABCLayerMeta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.ABCLayerMeta">[docs]</a><span class="k">class</span> <span class="nc">ABCLayerMeta</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">,</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
   <span class="k">pass</span></div>
-
-
-<span class="c1"># NamedTuple that records the metadata for creating a variable.</span>
-<span class="c1"># For internal use only. Subclasses of BaseLayer should use</span>
-<span class="c1"># self.CreateVariable() to create variables.</span>
-<span class="n">CreateVariableMeta</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;CreateVariableMeta&#39;</span><span class="p">,</span>
-                                            <span class="p">[</span><span class="s1">&#39;var_params&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">])</span>
-
-
-<div class="viewcode-block" id="_CreateLayerVariablesStatus"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer._CreateLayerVariablesStatus">[docs]</a><span class="k">class</span> <span class="nc">_CreateLayerVariablesStatus</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
-  <span class="n">NOT_CALLED</span> <span class="o">=</span> <span class="mi">1</span>
-  <span class="n">IN_PROGRESS</span> <span class="o">=</span> <span class="mi">2</span>
-  <span class="n">PER_SPLIT_COMPLETED</span> <span class="o">=</span> <span class="mi">4</span></div>
 
 
 <span class="n">LAYER_WT</span> <span class="o">=</span> <span class="s1">&#39;layer_weight_variable&#39;</span>
@@ -460,8 +445,6 @@
     <span class="c1"># self._var_symbolic_shape_map[&#39;var_name&#39;] will be a tuple of integers or</span>
     <span class="c1"># symbolic expressions, one for each dimension of the variable.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span> <span class="o">=</span> <span class="p">{}</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">=</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span>
 
 <div class="viewcode-block" id="BaseLayer.FPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.FPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">FPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calls `FProp`.&quot;&quot;&quot;</span>
@@ -660,10 +643,6 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns variables of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;Cannot access vars for layer </span><span class="si">%s</span><span class="s1"> before they have been created.&#39;</span> <span class="o">%</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
       <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
@@ -680,10 +659,6 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars_transform_restore_stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span> <span class="o">=</span> <span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">fn</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;Cannot access vars for layer </span><span class="si">%s</span><span class="s1"> before they have been created.&#39;</span> <span class="o">%</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
         <span class="k">lambda</span> <span class="n">c</span><span class="p">:</span> <span class="n">c</span><span class="o">.</span><span class="n">_TransformVarsInternal</span><span class="p">(</span><span class="n">fn</span><span class="p">),</span>  <span class="c1"># pylint: disable=protected-access</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">)</span></div>
@@ -707,11 +682,6 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">theta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns theta of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;Cannot access theta for layer </span><span class="si">%s</span><span class="s1"> before they have been created.&#39;</span> <span class="o">%</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
-
     <span class="n">stack_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_THETA_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span>
     <span class="n">_THETA_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
@@ -912,6 +882,7 @@
 <span class="sd">      var_params: `Params` used to create the variable.</span>
 <span class="sd">      **kwargs: Keyword args passed to `.py_utils.CreateVariable`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;default_seed&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">([</span><span class="n">dim</span> <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">var_params</span><span class="o">.</span><span class="n">shape</span> <span class="k">if</span> <span class="n">dim</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">])</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span>
           <span class="n">var_params</span><span class="o">.</span><span class="n">tensor_split_dims_mapping</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
@@ -928,24 +899,8 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">(</span><span class="n">var_params</span><span class="o">.</span><span class="n">collections</span> <span class="o">+</span>
                        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">]))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_params</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">meta</span> <span class="o">=</span> <span class="n">CreateVariableMeta</span><span class="p">(</span>
-        <span class="n">var_params</span><span class="o">=</span><span class="n">var_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span>
-        <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariableInternal</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseLayer._CreateVariableInternal"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateVariableInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariableInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
-                              <span class="n">meta</span><span class="p">:</span> <span class="n">CreateVariableMeta</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Immediately creates the variable described by `meta`.</span>
-
-<span class="sd">    DO NOT OVERRIDE. For internal use only. Subclasses of BaseLayer should use</span>
-<span class="sd">    self.CreateVariable() to create variables.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      name: The variable name.</span>
-<span class="sd">      meta: A CreateVariableMeta describing the variable to be created.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;default_seed&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-    <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
 
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
@@ -985,10 +940,6 @@
 
 <span class="sd">    DO NOT OVERRIDE. Override self._CreateLayerVariables instead.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">!=</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
-      <span class="k">return</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">=</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">IN_PROGRESS</span>
-
     <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span></div>
 
