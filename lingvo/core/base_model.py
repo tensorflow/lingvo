@@ -1085,22 +1085,17 @@ class BaseModel(base_layer.BaseLayer):
     if tp.ema_decay > 0:
       assert tp.ema_decay < 1.0
       # Use the global EMA if set (for executor training).
-      self._ema = py_utils.ExponentialMovingAverage()
+      self._ema = py_utils.ExecutorEMA()
       if not self._ema:
-        self._ema = tf.train.ExponentialMovingAverage(
-            decay=tp.ema_decay, num_updates=self.global_step)
+        self._ema = py_utils.CreateEMAForModel(self.params, self.global_step)
     else:
-      assert not py_utils.ExponentialMovingAverage()
+      assert not py_utils.ExecutorEMA()
       self._ema = None
     self._ema_variables_dict = {}
 
   @property
   def global_step(self):
     return self._global_step_var
-
-  @property
-  def ema(self):
-    return self._ema
 
   @property
   def variables_for_ema(self):
@@ -1293,6 +1288,10 @@ class MultiTaskSubModel(SingleTaskBase):
     p = self.params
     self._model = shared_model
     self._task = self._model.children.Get(p.task_name)
+    # TODO(laigd): EMA for MultiTaskSubModel is likely broken, investigate and
+    # fix it.
+    if self._ema:
+      raise ValueError('EMA for MultiTaskSubModel is not supported.')
 
 
 class MultiTaskModel(BaseModel):

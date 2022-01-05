@@ -333,6 +333,10 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
     model.ConstructFPropBPropGraph()
+    # Test that EMA is accessible by a sublayer.
+    x = model.GetTask().x
+    self.assertIsNotNone(x.ema)
+    self.assertIs(x.ema, model.ema)
     with tf.variable_scope('base_mdl', reuse=True):
       beta = tf.get_variable('x/beta/var')
       mean = tf.get_variable('x/moving_mean/var')

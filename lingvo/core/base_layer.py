@@ -594,6 +594,20 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     return sub
 
   @property
+  def ema(self):
+    """Returns the EMA object used by the model that contains this layer."""
+    root = self
+    while root.parent:
+      root = root.parent
+    # pylint: disable=protected-access
+    # Note: 'root' may not be a BaseModel, but we want it to be. So to avoid
+    # misuse, we intentionally don't add an '_ema' member for the layer.
+    if root._ema:
+      assert isinstance(root._ema, tf.train.ExponentialMovingAverage)
+    return root._ema
+    # pylint: enable=protected-access
+
+  @property
   def vars(self):
     """Returns variables of this layer and its children in a `.NestedMap`."""
     if self._is_variable_free:
@@ -673,14 +687,21 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     # When ExecutorTpu specifies the EMA (e.g. when running eval/decode program
     # with EMA enabled), use the EMA version of the variables if applicable.
-    ema = py_utils.ExponentialMovingAverage()
+    ema = py_utils.ExecutorEMA()
     if self.do_eval and ema:
+      # TODO(laigd): for eval/decode only models this is not True. Fix it.
+      # assert ema is self.ema
+      vars_loaded_as_ema = self.params.is_inference or (self.do_eval and
+                                                        not py_utils.use_tpu())
+      assert not vars_loaded_as_ema, (
+          'Not able to use EMA variables since the layer variables are '
+          'potentially already loaded as EMA variables.')
 
       def MaybeUseEmaVar(x):
         if not isinstance(x, tf.Variable):
           raise ValueError('EMA is used but self._private_theta contains '
                            f'non-variables: {x}.')
-        ema_x = ema.average(x)
+        ema_x = self.ema.average(x)
         return ema_x if ema_x is not None else x
 
       private_theta = py_utils.Transform(MaybeUseEmaVar, private_theta)

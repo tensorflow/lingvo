@@ -1628,7 +1628,7 @@ class SimpleProgramSchedule:
       p.train_program.ml_perf = p.ml_perf.Copy()
       self.train_program = p.train_program.Instantiate(**kwargs)
       self._programs.append(self.train_program)
-    elif py_utils.ExponentialMovingAverage():
+    elif py_utils.ExecutorEMA():
       # When EMA is used, the train program must be added to self._programs
       # before any eval programs.
       raise ValueError('When EMA is used, there must be a train program to '

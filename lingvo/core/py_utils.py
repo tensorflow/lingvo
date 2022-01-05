@@ -721,15 +721,43 @@ def GradientTape(*args, **kwargs):
 _EXECUTOR_EMA = None
 
 
-def SetExponentialMovingAverage(ema):
+def MaybeCreateExecutorEMA(model_params, global_step):
   global _EXECUTOR_EMA
-  assert ema
   assert not _EXECUTOR_EMA, 'EMA was set before.'
-  _EXECUTOR_EMA = ema
+  _EXECUTOR_EMA = CreateEMAForModel(model_params, global_step)
 
 
-def ExponentialMovingAverage():
+def ExecutorEMA():
   return _EXECUTOR_EMA
+
+
+def CreateEMAForModel(model_params, global_step):
+  """Creates an EMA object for model with param `model_params` if applicable."""
+  p = model_params
+
+  # Check that EMA settings for the model and subtasks match.
+  def CheckEMA(task_name, task_params):
+    for field in ['ema_decay', 'ema_decay_moving_vars']:
+      model_value = p.train.Get(field)
+      task_value = task_params.train.Get(field)
+      if task_value != model_value:
+        raise ValueError(
+            f'Params {field} does not match. Value in model: '
+            f'{model_value}, value in task {task_name}: {task_value}')
+
+  if 'task_params' in p:
+    # MultiTaskModel. All subtasks should use the same ema settings.
+    for task_name, task_params in p.task_params.IterParams():
+      CheckEMA(task_name, task_params)
+  else:
+    assert 'task' in p
+    # SingleTaskModel.
+    CheckEMA(p.task.name, p.task)
+
+  if p.train.ema_decay > 0:
+    return tf.train.ExponentialMovingAverage(
+        decay=p.train.ema_decay, num_updates=global_step)
+  return None
 
 
 def SessionConfig(soft_placement=True,
