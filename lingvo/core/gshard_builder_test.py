@@ -457,20 +457,20 @@ class MoEBuilderTest(test_utils.TestCase):
       rep_unroll_summary = tpu_summary.merge_all()
 
     expected_rep_unroll_summary = [
-        'index_1/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating',
-        'index_1/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating',
-        'over_capacity_1/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity',
-        'over_capacity_1/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity',
-        'over_capacity_1_ratio/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity',
-        'over_capacity_1_ratio/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity',
-        'over_capacity_2/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity_1',
-        'over_capacity_2/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity_1',
-        'over_capacity_2_ratio/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity_1',
-        'over_capacity_2_ratio/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity_1',
-        'top1_expert/decoder_1/blocks/blocks_body/layer_000/moe/ffw/compute_gating',
-        'top1_expert/decoder_1/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating'
+        'index_1/decoder_3/blocks/blocks_body/layer_000/moe/ffw/compute_gating',
+        'index_1/decoder_3/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating',
+        'over_capacity_1/decoder_3/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity',
+        'over_capacity_1/decoder_3/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity',
+        'over_capacity_1_ratio/decoder_3/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity',
+        'over_capacity_1_ratio/decoder_3/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity',
+        'over_capacity_2/decoder_3/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity_1',
+        'over_capacity_2/decoder_3/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity_1',
+        'over_capacity_2_ratio/decoder_3/blocks/blocks_body/layer_000/moe/ffw/compute_gating/over_capacity_1',
+        'over_capacity_2_ratio/decoder_3/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating/over_capacity_1',
+        'top1_expert/decoder_3/blocks/blocks_body/layer_000/moe/ffw/compute_gating',
+        'top1_expert/decoder_3/blocks/blocks_body_1/layer_000/moe/ffw/compute_gating'
     ]
-    self.assertCountEqual(expected_rep_unroll_summary, rep_unroll_summary)
+    self.assertEqual(set(expected_rep_unroll_summary), set(rep_unroll_summary))
 
     tf.Session.reset(target='')
     with tf.Session(graph=g) as sess:

@@ -223,7 +223,8 @@ class ImageModuleV2(base_layer.BaseLayer):
       if not p.Get(required_param_name):
         raise ValueError(f'Must set {required_param_name} param.')
 
-    with tf.variable_scope(p.name):
+    # This name_scope is for checkpoint backwards-compatibility.
+    with tf.name_scope(self._self_variable_scope.original_name_scope):
       # NB: `trainable` merely controls whether the model *can* be run in
       # training mode.
       self._module = hub.KerasLayer(p.module_path, trainable=True)
