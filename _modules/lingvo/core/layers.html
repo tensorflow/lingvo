@@ -1751,7 +1751,6 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">stride</span> <span class="o">&gt;=</span> <span class="mi">1</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">padding_reduce_option</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;reduce_min&#39;</span><span class="p">,</span> <span class="s1">&#39;reduce_max&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">SetVariableFree</span><span class="p">()</span>
 
 <div class="viewcode-block" id="StackingOverTime.WindowSize"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.StackingOverTime.WindowSize">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">WindowSize</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
@@ -6119,10 +6118,6 @@
         <span class="s1">&#39;will decrease to total_replacement_prob * min_replace_prob_ratio &#39;</span>
         <span class="s1">&#39;at step mlm_duration.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
-
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">SetVariableFree</span><span class="p">()</span>
 
 <div class="viewcode-block" id="MaskedLmDataAugmenter.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.MaskedLmDataAugmenter.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies data augmentation by randomly mask/replace tokens in inputs.</span>
