@@ -16,10 +16,8 @@
 """Base class for all layers."""
 
 import abc
-import collections
 import contextlib
 import copy
-import enum
 import itertools
 import re
 from typing import List, Mapping, Optional, Sequence, Type, TypeVar, Union
@@ -188,19 +186,6 @@ class BaseLayerMeta(type):
 
 class ABCLayerMeta(BaseLayerMeta, abc.ABCMeta):
   pass
-
-
-# NamedTuple that records the metadata for creating a variable.
-# For internal use only. Subclasses of BaseLayer should use
-# self.CreateVariable() to create variables.
-CreateVariableMeta = collections.namedtuple('CreateVariableMeta',
-                                            ['var_params', 'kwargs'])
-
-
-class _CreateLayerVariablesStatus(enum.Enum):
-  NOT_CALLED = 1
-  IN_PROGRESS = 2
-  PER_SPLIT_COMPLETED = 4
 
 
 LAYER_WT = 'layer_weight_variable'
@@ -395,8 +380,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # self._var_symbolic_shape_map['var_name'] will be a tuple of integers or
     # symbolic expressions, one for each dimension of the variable.
     self._var_symbolic_shape_map = {}
-
-    self._create_variables_status = _CreateLayerVariablesStatus.NOT_CALLED
 
   def FPropDefaultTheta(self, *args, **kwargs):
     """Calls `FProp`."""
@@ -595,10 +578,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def vars(self):
     """Returns variables of this layer and its children in a `.NestedMap`."""
-    if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
-      raise ValueError(
-          'Cannot access vars for layer %s before they have been created.' %
-          self.params.cls)
     ret = py_utils.Transform(lambda x: x.vars, self.children)
     for k in self._private_vars.keys():
       ret[k] = self._private_vars[k]
@@ -615,10 +594,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """
     self._private_vars_transform_restore_stack.append(self._private_vars)
     self._private_vars = {key: fn(x) for key, x in self._private_vars.items()}
-    if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
-      raise ValueError(
-          'Cannot access vars for layer %s before they have been created.' %
-          self.params.cls)
     py_utils.Transform(
         lambda c: c._TransformVarsInternal(fn),  # pylint: disable=protected-access
         self.children)
@@ -642,11 +617,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def theta(self):
     """Returns theta of this layer and its children in a `.NestedMap`."""
-    if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
-      raise ValueError(
-          'Cannot access theta for layer %s before they have been created.' %
-          self.params.cls)
-
     stack_size = len(_THETA_STACK.stack)
     _THETA_STACK.stack.append(self)
     try:
@@ -847,6 +817,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       var_params: `Params` used to create the variable.
       **kwargs: Keyword args passed to `.py_utils.CreateVariable`.
     """
+    kwargs.setdefault('default_seed', self.params.random_seed)
     if self.params.device_mesh is not None:
       if (len([dim for dim in var_params.shape if dim > 1]) > 1 and
           var_params.tensor_split_dims_mapping is None):
@@ -863,24 +834,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
           collections=(var_params.collections +
                        [py_utils.SKIP_LP_REGULARIZATION]))
     self._var_symbolic_shape_map[name] = var_params.shape
-    meta = CreateVariableMeta(
-        var_params=var_params.Copy(),
-        kwargs=kwargs)
-    self._CreateVariableInternal(name, meta)
 
-  def _CreateVariableInternal(self, name: str,
-                              meta: CreateVariableMeta) -> None:
-    """Immediately creates the variable described by `meta`.
-
-    DO NOT OVERRIDE. For internal use only. Subclasses of BaseLayer should use
-    self.CreateVariable() to create variables.
-
-    Args:
-      name: The variable name.
-      meta: A CreateVariableMeta describing the variable to be created.
-    """
-    meta.kwargs.setdefault('default_seed', self.params.random_seed)
-    var = py_utils.CreateVariable(name, meta.var_params, **meta.kwargs)
+    var = py_utils.CreateVariable(name, var_params, **kwargs)
     self._private_vars[name] = var
 
     if py_utils.IsEagerMode():
@@ -920,10 +875,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     DO NOT OVERRIDE. Override self._CreateLayerVariables instead.
     """
-    if self._create_variables_status != _CreateLayerVariablesStatus.NOT_CALLED:
-      return
-    self._create_variables_status = _CreateLayerVariablesStatus.IN_PROGRESS
-
     self._CreateChildrenVariables()
     self._CreateLayerVariables()
 

@@ -357,15 +357,13 @@ class BaseTask(base_layer.BaseLayer):
       with tf.name_scope(None), tf.variable_scope(
           py_utils.GetGlobalVariableScope()):
         var_name = p.name + '_global_step'
-        # Create the variable immediately.
-        self._CreateVariableInternal(
+        self.CreateVariable(
             var_name,
-            base_layer.CreateVariableMeta(
-                var_params=py_utils.WeightParams(
-                    [], py_utils.WeightInit.Constant(0), tf.int64),
-                kwargs=dict(
-                    trainable=False,
-                    collections=[tf.GraphKeys.GLOBAL_VARIABLES])))
+            var_params=py_utils.WeightParams([],
+                                             py_utils.WeightInit.Constant(0),
+                                             tf.int64),
+            trainable=False,
+            collections=[tf.GraphKeys.GLOBAL_VARIABLES])
         summary_utils.scalar(var_name, self._private_vars[var_name])
         self._global_step_var = self._private_vars[var_name]
     else:
