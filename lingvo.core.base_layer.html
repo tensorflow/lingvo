@@ -331,8 +331,8 @@ the theta and the inputs. E.g.:</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
-layer and its children layers.</p></li>
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
 <li><p><strong>*args</strong> – List args.</p></li>
 <li><p><strong>**kwargs</strong> – Keyward args.</p></li>
 </ul>
@@ -619,9 +619,6 @@ extra theta.</p></li>
       <span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">]))</span>
 </pre></div>
 </div>
-<p>In some contexts, eg. TPU training, variables may not be created immediately
-but rather the creation request will be cached and created later via a call
-to layer.InstantiateVariables().</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -651,7 +648,7 @@ self.CreateVariable() to create variables.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer._SelfVariableScope">
-<span class="sig-name descname"><span class="pre">_SelfVariableScope</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._SelfVariableScope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._SelfVariableScope" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_SelfVariableScope</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">enter_name_scope</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._SelfVariableScope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._SelfVariableScope" title="Permalink to this definition"></a></dt>
 <dd><p>Internal. Used to ensure the same variable &amp; name scopes are used.</p>
 </dd></dl>
 
