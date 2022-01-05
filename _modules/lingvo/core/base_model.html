@@ -1150,22 +1150,17 @@
     <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&lt;</span> <span class="mf">1.0</span>
       <span class="c1"># Use the global EMA if set (for executor training).</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExecutorEMA</span><span class="p">()</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">(</span>
-            <span class="n">decay</span><span class="o">=</span><span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="n">num_updates</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateEMAForModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">()</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExecutorEMA</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ema_variables_dict</span> <span class="o">=</span> <span class="p">{}</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">variables_for_ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1357,7 +1352,11 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="n">shared_model</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">)</span>
+    <span class="c1"># TODO(laigd): EMA for MultiTaskSubModel is likely broken, investigate and</span>
+    <span class="c1"># fix it.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;EMA for MultiTaskSubModel is not supported.&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MultiTaskModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>

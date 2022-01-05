@@ -144,17 +144,6 @@
     <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">):</span>
       <span class="n">multi_task_train_cfg</span> <span class="o">=</span> <span class="n">train_cfg</span>
 
-      <span class="c1"># Check that all subtasks use the same ema settings.</span>
-      <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="p">(</span>
-          <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()):</span>
-        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="s1">&#39;ema_decay_moving_vars&#39;</span><span class="p">]:</span>
-          <span class="n">model_value</span> <span class="o">=</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
-          <span class="n">task_value</span> <span class="o">=</span> <span class="n">task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
-          <span class="k">if</span> <span class="n">task_value</span> <span class="o">!=</span> <span class="n">model_value</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="sa">f</span><span class="s1">&#39;Params </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s1"> does not match. Value in model: &#39;</span>
-                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">model_value</span><span class="si">}</span><span class="s1">, value in task </span><span class="si">{</span><span class="n">task_name</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">task_value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-
       <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">multi_task_train_cfg</span><span class="o">.</span><span class="n">share_model_object</span><span class="p">:</span>
           <span class="c1"># Create MultiTaskSubModel params from a MultiTaskModelParams.</span>
@@ -198,15 +187,6 @@
               <span class="n">eval_dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">eval_task_params</span>
         <span class="n">ps_params_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">program_schedule_params</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="c1"># Propagate the ema config from task params to model params, so</span>
-        <span class="c1"># ExecutorTpu can treat single and multi task model the same way.</span>
-        <span class="c1"># Note this propagation is also done in SingleTaskModel for</span>
-        <span class="c1"># non-ExecutorTpu use cases.</span>
-        <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">=</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span>
-        <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">train_cfg</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">)</span>
-
       <span class="n">program_schedule_params</span> <span class="o">=</span> <span class="n">ps_cfg</span>
       <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Train&#39;</span><span class="p">:</span> <span class="n">train_cfg</span><span class="p">}</span>
       <span class="k">for</span> <span class="n">eval_dataset_name</span> <span class="ow">in</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
@@ -399,13 +379,9 @@
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableStore</span><span class="p">(),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="c1"># Create the ExponentialMovingAverage singleton shared by all</span>
-          <span class="c1"># programs.</span>
-          <span class="n">ema</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">(</span>
-              <span class="n">decay</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="n">num_updates</span><span class="o">=</span><span class="n">global_step</span><span class="p">)</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">SetExponentialMovingAverage</span><span class="p">(</span><span class="n">ema</span><span class="p">)</span>
-
+        <span class="c1"># Create the ExponentialMovingAverage singleton shared by all</span>
+        <span class="c1"># programs, if applicable.</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeCreateExecutorEMA</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
         <span class="c1"># Note: when EMA is used, there must be a train program, and its graph</span>
         <span class="c1"># must be built before any eval programs in order to apply EMA. This is</span>
         <span class="c1"># currently guaranteed by SimpleProgramSchedule.</span>

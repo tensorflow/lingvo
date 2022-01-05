@@ -659,6 +659,20 @@
     <span class="k">return</span> <span class="n">sub</span></div>
 
   <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the EMA object used by the model that contains this layer.&quot;&quot;&quot;</span>
+    <span class="n">root</span> <span class="o">=</span> <span class="bp">self</span>
+    <span class="k">while</span> <span class="n">root</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
+      <span class="n">root</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">parent</span>
+    <span class="c1"># pylint: disable=protected-access</span>
+    <span class="c1"># Note: &#39;root&#39; may not be a BaseModel, but we want it to be. So to avoid</span>
+    <span class="c1"># misuse, we intentionally don&#39;t add an &#39;_ema&#39; member for the layer.</span>
+    <span class="k">if</span> <span class="n">root</span><span class="o">.</span><span class="n">_ema</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">root</span><span class="o">.</span><span class="n">_ema</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">root</span><span class="o">.</span><span class="n">_ema</span>
+    <span class="c1"># pylint: enable=protected-access</span>
+
+  <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns variables of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
@@ -738,14 +752,21 @@
 
     <span class="c1"># When ExecutorTpu specifies the EMA (e.g. when running eval/decode program</span>
     <span class="c1"># with EMA enabled), use the EMA version of the variables if applicable.</span>
-    <span class="n">ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">()</span>
+    <span class="n">ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExecutorEMA</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">ema</span><span class="p">:</span>
+      <span class="c1"># TODO(laigd): for eval/decode only models this is not True. Fix it.</span>
+      <span class="c1"># assert ema is self.ema</span>
+      <span class="n">vars_loaded_as_ema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span>
+                                                        <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">())</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">vars_loaded_as_ema</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;Not able to use EMA variables since the layer variables are &#39;</span>
+          <span class="s1">&#39;potentially already loaded as EMA variables.&#39;</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">MaybeUseEmaVar</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;EMA is used but self._private_theta contains &#39;</span>
                            <span class="sa">f</span><span class="s1">&#39;non-variables: </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-        <span class="n">ema_x</span> <span class="o">=</span> <span class="n">ema</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+        <span class="n">ema_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">ema_x</span> <span class="k">if</span> <span class="n">ema_x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">x</span>
 
       <span class="n">private_theta</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">MaybeUseEmaVar</span><span class="p">,</span> <span class="n">private_theta</span><span class="p">)</span>

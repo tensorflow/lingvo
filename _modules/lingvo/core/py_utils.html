@@ -786,15 +786,43 @@
 <span class="n">_EXECUTOR_EMA</span> <span class="o">=</span> <span class="kc">None</span>
 
 
-<div class="viewcode-block" id="SetExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetExponentialMovingAverage">[docs]</a><span class="k">def</span> <span class="nf">SetExponentialMovingAverage</span><span class="p">(</span><span class="n">ema</span><span class="p">):</span>
+<div class="viewcode-block" id="MaybeCreateExecutorEMA"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MaybeCreateExecutorEMA">[docs]</a><span class="k">def</span> <span class="nf">MaybeCreateExecutorEMA</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
   <span class="k">global</span> <span class="n">_EXECUTOR_EMA</span>
-  <span class="k">assert</span> <span class="n">ema</span>
   <span class="k">assert</span> <span class="ow">not</span> <span class="n">_EXECUTOR_EMA</span><span class="p">,</span> <span class="s1">&#39;EMA was set before.&#39;</span>
-  <span class="n">_EXECUTOR_EMA</span> <span class="o">=</span> <span class="n">ema</span></div>
+  <span class="n">_EXECUTOR_EMA</span> <span class="o">=</span> <span class="n">CreateEMAForModel</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="ExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ExponentialMovingAverage">[docs]</a><span class="k">def</span> <span class="nf">ExponentialMovingAverage</span><span class="p">():</span>
+<div class="viewcode-block" id="ExecutorEMA"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ExecutorEMA">[docs]</a><span class="k">def</span> <span class="nf">ExecutorEMA</span><span class="p">():</span>
   <span class="k">return</span> <span class="n">_EXECUTOR_EMA</span></div>
+
+
+<div class="viewcode-block" id="CreateEMAForModel"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.CreateEMAForModel">[docs]</a><span class="k">def</span> <span class="nf">CreateEMAForModel</span><span class="p">(</span><span class="n">model_params</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Creates an EMA object for model with param `model_params` if applicable.&quot;&quot;&quot;</span>
+  <span class="n">p</span> <span class="o">=</span> <span class="n">model_params</span>
+
+  <span class="c1"># Check that EMA settings for the model and subtasks match.</span>
+  <span class="k">def</span> <span class="nf">CheckEMA</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="s1">&#39;ema_decay_moving_vars&#39;</span><span class="p">]:</span>
+      <span class="n">model_value</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+      <span class="n">task_value</span> <span class="o">=</span> <span class="n">task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">task_value</span> <span class="o">!=</span> <span class="n">model_value</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;Params </span><span class="si">{</span><span class="n">field</span><span class="si">}</span><span class="s1"> does not match. Value in model: &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">model_value</span><span class="si">}</span><span class="s1">, value in task </span><span class="si">{</span><span class="n">task_name</span><span class="si">}</span><span class="s1">: </span><span class="si">{</span><span class="n">task_value</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="s1">&#39;task_params&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="p">:</span>
+    <span class="c1"># MultiTaskModel. All subtasks should use the same ema settings.</span>
+    <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+      <span class="n">CheckEMA</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="s1">&#39;task&#39;</span> <span class="ow">in</span> <span class="n">p</span>
+    <span class="c1"># SingleTaskModel.</span>
+    <span class="n">CheckEMA</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">(</span>
+        <span class="n">decay</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="n">num_updates</span><span class="o">=</span><span class="n">global_step</span><span class="p">)</span>
+  <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="SessionConfig"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SessionConfig">[docs]</a><span class="k">def</span> <span class="nf">SessionConfig</span><span class="p">(</span><span class="n">soft_placement</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
