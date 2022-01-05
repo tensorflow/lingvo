@@ -1686,7 +1686,6 @@ class StackingOverTime(base_layer.BaseLayer):
     assert p.right_context >= 0, p.right_context
     assert p.stride >= 1
     assert p.padding_reduce_option in ('reduce_min', 'reduce_max')
-    self.SetVariableFree()
 
   @classmethod
   def WindowSize(cls, p):
@@ -6054,10 +6053,6 @@ class MaskedLmDataAugmenter(base_layer.BaseLayer):
         'will decrease to total_replacement_prob * min_replace_prob_ratio '
         'at step mlm_duration.')
     return p
-
-  def __init__(self, params):
-    super().__init__(params)
-    self.SetVariableFree()
 
   def FProp(self, theta, inputs, paddings=None):
     """Applies data augmentation by randomly mask/replace tokens in inputs.

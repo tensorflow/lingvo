@@ -154,7 +154,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
   def __init__(self, params):
     super().__init__(params)
-    self.SetVariableFree()
     p = self.params
     num_domains = len(p.domain_ids)
     for field in _SPECAUGMENT_ARGS:

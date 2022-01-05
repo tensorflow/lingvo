@@ -396,22 +396,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # symbolic expressions, one for each dimension of the variable.
     self._var_symbolic_shape_map = {}
 
-    self._is_variable_free = False
     self._create_variables_status = _CreateLayerVariablesStatus.NOT_CALLED
-
-  def SetVariableFree(self, value: bool = True) -> None:
-    """Marks this layer as having no variables.
-
-    Note that this status affects sublayers and child layers too.
-
-    Args:
-      value: True to set layer as variable free.
-    """
-    if self._create_variables_status != _CreateLayerVariablesStatus.NOT_CALLED:
-      raise ValueError(
-          'Variable free status for %s must be set before InstantiateVariables().'
-          % self.params.cls)
-    self._is_variable_free = value
 
   def FPropDefaultTheta(self, *args, **kwargs):
     """Calls `FProp`."""
@@ -610,8 +595,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def vars(self):
     """Returns variables of this layer and its children in a `.NestedMap`."""
-    if self._is_variable_free:
-      return py_utils.Transform(lambda _: py_utils.NestedMap(), self.children)
     if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
       raise ValueError(
           'Cannot access vars for layer %s before they have been created.' %
@@ -659,8 +642,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def theta(self):
     """Returns theta of this layer and its children in a `.NestedMap`."""
-    if self._is_variable_free:
-      return py_utils.Transform(lambda _: py_utils.NestedMap(), self.children)
     if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
       raise ValueError(
           'Cannot access theta for layer %s before they have been created.' %
@@ -872,8 +853,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         tf.logging.warning(
             'tensor_split_dims_mapping missing for %s.%s: shape=%s', self.path,
             name, var_params.shape)
-    if self._is_variable_free:
-      raise ValueError('Cannot create variable in variable free layer.')
     self._CheckName(name)
     if (self.params.skip_lp_regularization and
         py_utils.SKIP_LP_REGULARIZATION not in var_params.collections):
@@ -946,9 +925,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._create_variables_status = _CreateLayerVariablesStatus.IN_PROGRESS
 
     self._CreateChildrenVariables()
-
-    if not self._is_variable_free:
-      self._CreateLayerVariables()
+    self._CreateLayerVariables()
 
   def _child_variable_scope_override(self):
     """Override the variable scope for individual children.
@@ -966,12 +943,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
   def _CreateChildrenVariables(self) -> None:
     """Create variables for child layers."""
-    for child in self._children_list:
-      if self._is_variable_free and not child._is_variable_free:  # pylint: disable=protected-access
-        raise ValueError(
-            'Variable free layer %s(%s) child %s(%s) has variables.' %
-            (self.params.name, self.params.cls, child.params.name,
-             child.params.cls))
+    pass
 
   def _CreateLayerVariables(self) -> None:
     """Actually create variables for this layer.

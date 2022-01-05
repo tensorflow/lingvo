@@ -78,7 +78,6 @@ class MASS(base_layer.BaseLayer):
       raise ValueError('keep_prob, rand_prob, mask_prob must sum to 1')
     if p.vocab_size == 0:
       raise ValueError('vocab_size parameter must be set explicitly')
-    self.SetVariableFree()
 
   def Mask(self, seq_ids, weights, actual_seq_len):
     p = self.params

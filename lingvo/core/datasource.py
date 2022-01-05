@@ -47,7 +47,6 @@ class DataSource(base_layer.BaseLayer):
 
   def __init__(self, params):
     super().__init__(params)
-    self.SetVariableFree()
     self._input_generator = None
 
   def SetInputGenerator(self, input_generator):

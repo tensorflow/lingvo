@@ -32,10 +32,6 @@ class BaseSchedule(base_layer.BaseLayer):
     p.name = 'LRSched'
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
-    self.SetVariableFree()
-
   def Value(self):
     """Returns the current learning rate schedule value.
 
@@ -697,7 +693,6 @@ class DevBasedSchedule(BaseSchedule):
 
   def __init__(self, params):
     super().__init__(params)
-    self.SetVariableFree(False)
     p = self.params
     self._metric_history = early_stop.MetricHistory(p.metric_history)
 
