@@ -125,12 +125,12 @@ def _BaseLayerInitWrapper(func):  # pylint: disable=invalid-name
       try:
         # Calls the layer's real __init__ method.
         # pylint: disable=protected-access
-        with contextlib.ExitStack() as context_stack:
-          if args and isinstance(args[0], hyperparams.Params):
-            context_stack.enter_context(
+        with contextlib.ExitStack() as context_stack2:
+          if args and IsLayerParams(args[0]):
+            context_stack2.enter_context(
                 self._SelfVariableScope(args[0], enter_name_scope=False))
           func(self, *args, **kwargs)
-          self.InstantiateVariables()
+          self._CreateLayerVariables()
         self._disable_create_child = True
         self._VerifyChildren()
         self._VerifyVarsAndTheta()
@@ -152,7 +152,7 @@ def RecursiveFindLayerParams(params):
   if not isinstance(params, hyperparams.Params):
     return []
   layer_params = []
-  if hasattr(params, 'cls') and issubclass(params.cls, BaseLayer):
+  if IsLayerParams(params):
     layer_params.append(params)
   for _, p in params.IterParams():
     if isinstance(p, (list, tuple)):
@@ -867,14 +867,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
             tf.name_scope(self._self_variable_scope.original_name_scope))
       yield stack
 
-  def InstantiateVariables(self) -> None:
-    """Create variables for this layer and child layers.
-
-    DO NOT OVERRIDE. Override self._CreateLayerVariables instead.
-    """
-    self._CreateChildrenVariables()
-    self._CreateLayerVariables()
-
   def _child_variable_scope_override(self):
     """Override the variable scope for individual children.
 
@@ -889,16 +881,14 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """
     return {}
 
-  def _CreateChildrenVariables(self) -> None:
-    """Create variables for child layers."""
-    pass
-
   def _CreateLayerVariables(self) -> None:
-    """Actually create variables for this layer.
+    """Create variables for this layer.
 
-    Subclasses should override this function.
+    This is a legacy method. Variables can be created directly in the layer
+    __init__ method.
 
-    Variables are created inside of tf.variable_scope(self.params.name).
+    Variables are created inside of self._SelfVariableScope() which is usually
+    tf.variable_scope(self.params.name).
     """
     pass
 

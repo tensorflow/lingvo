@@ -402,7 +402,6 @@ class ExecutorTpu(base_runner.BaseRunner):
           self._variable_renaming_rules):
         py_utils.GetOrCreateGlobalStepVar()
         shared_model = train_cfg.Instantiate()
-        shared_model.InstantiateVariables()
 
     return shared_model
 

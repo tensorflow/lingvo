@@ -69,8 +69,6 @@ class VarLayer(base_layer.BaseLayer):
       if (not self.params.shared_var_collection_suffix or
           self._get_var_from_collection(vp) is None):
         self.CreateVariable(k, vp)
-    if self.params.shared_var_collection_suffix:
-      self.InstantiateVariables()
 
   def FProp(self, theta, *args, **kwargs):
 
@@ -124,8 +122,8 @@ class ShardedVarLayer(VarLayer):
              'Whether to cast variables to fprop_dtype')
     return p
 
-  def InstantiateVariables(self):
-    super().InstantiateVariables()
+  def __init__(self, params):
+    super().__init__(params)
     p = self.params
 
     def MaybeWeightSplit(k, v):
@@ -395,42 +393,6 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
 
     self._non_trainable_vars = []
 
-  def _child_variable_scope_override(self):
-    p = self.params
-    res = super()._child_variable_scope_override()
-    if p.stage_parallel_body is None:
-      if p.per_stage_vars:
-        for i in range(p.num_stages):
-          res['body_iter_%05d' % i] = [p.name, 'iter_%05d' % i]
-    return res
-
-  def _FindPerStageVarShardingDim(self, shape):
-    """Finds a sharding dimension for per-stage variables before stacking.
-
-    Find a dimension to split variables. Per-stage variables do not have the
-    leading stage dimension before stacking.
-
-    Args:
-      shape: list of integers of the single-stage variable shape.
-
-    Returns:
-      An index of the found sharding dimension, or -1 if not found.
-    """
-    p = self.params
-    assert p.per_stage_vars and p.shard_stages_1d
-    split_dim = -1
-    min_padding_ratio = 1.0
-    for i in range(len(shape)):
-      padding = (p.num_stages - shape[i] % p.num_stages) % p.num_stages
-      if padding < min_padding_ratio * shape[i]:
-        min_padding_ratio = padding / shape[i]
-        if padding <= shape[i] // 2:
-          split_dim = i
-    return split_dim
-
-  def _CreateChildrenVariables(self):
-    p = self.params
-
     def _SplitVar(v):
       if p.shard_stages_1d:
         if p.per_stage_vars:
@@ -470,6 +432,39 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       raise NotImplementedError(
           'When using single_stage_body, non-trainable vars are only supported '
           'when per_stage_vars=False and shard_stages_1d=True.')
+
+  def _child_variable_scope_override(self):
+    p = self.params
+    res = super()._child_variable_scope_override()
+    if p.stage_parallel_body is None:
+      if p.per_stage_vars:
+        for i in range(p.num_stages):
+          res['body_iter_%05d' % i] = [p.name, 'iter_%05d' % i]
+    return res
+
+  def _FindPerStageVarShardingDim(self, shape):
+    """Finds a sharding dimension for per-stage variables before stacking.
+
+    Find a dimension to split variables. Per-stage variables do not have the
+    leading stage dimension before stacking.
+
+    Args:
+      shape: list of integers of the single-stage variable shape.
+
+    Returns:
+      An index of the found sharding dimension, or -1 if not found.
+    """
+    p = self.params
+    assert p.per_stage_vars and p.shard_stages_1d
+    split_dim = -1
+    min_padding_ratio = 1.0
+    for i in range(len(shape)):
+      padding = (p.num_stages - shape[i] % p.num_stages) % p.num_stages
+      if padding < min_padding_ratio * shape[i]:
+        min_padding_ratio = padding / shape[i]
+        if padding <= shape[i] // 2:
+          split_dim = i
+    return split_dim
 
   def BodyFProp(self,
                 theta,
