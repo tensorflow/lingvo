@@ -635,9 +635,11 @@
     <span class="c1"># pylint: disable=protected-access</span>
     <span class="c1"># Note: &#39;root&#39; may not be a BaseModel, but we want it to be. So to avoid</span>
     <span class="c1"># misuse, we intentionally don&#39;t add an &#39;_ema&#39; member for the layer.</span>
-    <span class="k">if</span> <span class="n">root</span><span class="o">.</span><span class="n">_ema</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="s1">&#39;_ema&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">root</span><span class="o">.</span><span class="n">_ema</span><span class="p">:</span>
       <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">root</span><span class="o">.</span><span class="n">_ema</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ExponentialMovingAverage</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">root</span><span class="o">.</span><span class="n">_ema</span>
+      <span class="k">return</span> <span class="n">root</span><span class="o">.</span><span class="n">_ema</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">None</span>
     <span class="c1"># pylint: enable=protected-access</span>
 
   <span class="nd">@property</span>
