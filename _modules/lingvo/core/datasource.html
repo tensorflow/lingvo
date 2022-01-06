@@ -915,8 +915,6 @@
   <span class="k">if</span> <span class="n">dataset_id</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">dataset</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Either a dataset or dataset_id must be provided.&#39;</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Dataset debug before register_dataset: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
-                    <span class="n">dataset</span><span class="o">.</span><span class="n">__debug_string__</span><span class="p">())</span>
     <span class="n">dataset_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">register_dataset</span><span class="p">(</span>
         <span class="n">service</span><span class="o">=</span><span class="n">tf_data_service_address</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
     <span class="n">element_spec</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">element_spec</span>
@@ -965,7 +963,12 @@
                            <span class="s1">&#39;requires setting tpu_infeed_parallelism to 1.&#39;</span><span class="p">)</span>
         <span class="c1"># Hacky: relies on SetInputGenerator called in input_generator.__init__,</span>
         <span class="c1"># before p.tpu_infeed_parallelism is used.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">=</span> <span class="mi">1</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;When using tf.data service, it is usually better to set &#39;</span>
+          <span class="s1">&#39;use_per_host_infeed=False unless the global batch is unable to fit &#39;</span>
+          <span class="s1">&#39;in memory of a single machine.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TFDataServiceSource.GetDataset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -988,8 +991,6 @@
                 <span class="n">window_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_hosts</span><span class="p">))</span>
         <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">flat_map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">)</span>
 
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Dataset debug before register_dataset: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="n">dataset</span><span class="o">.</span><span class="n">__debug_string__</span><span class="p">())</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">register_dataset</span><span class="p">(</span>
           <span class="n">service</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">tf_data_service_address</span><span class="p">,</span> <span class="n">dataset</span><span class="o">=</span><span class="n">dataset</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_element_spec</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">element_spec</span>
