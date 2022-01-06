@@ -82,9 +82,6 @@ class RNNCell(quant_utils.QuantizableLayer):
         'py_utils.RNNCellStateInit.')
     return p
 
-  def _VariableCollections(self):
-    return [RNN_CELL_WT, '%s_vars' % self.__class__.__name__]
-
   def zero_state(self, theta, batch_size):
     """Returns the initial state given the batch size."""
     raise NotImplementedError('Abstract method')
@@ -305,8 +302,7 @@ class LSTMCellSimple(RNNCell):
             self.num_gates * self.hidden_size
         ],
         init=p.params_init,
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('wm', wm_pc)
     if not p.apply_pruning and p.pruning_hparams_dict:
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
@@ -335,8 +331,7 @@ class LSTMCellSimple(RNNCell):
       w_proj = py_utils.WeightParams(
           shape=[self.hidden_size, self.output_size],
           init=p.params_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          dtype=p.dtype)
       self.CreateVariable('w_proj', w_proj)
       if p.apply_pruning_to_projection:
         proj_mask_pc = py_utils.WeightParams(w_proj.shape,
@@ -362,8 +357,7 @@ class LSTMCellSimple(RNNCell):
       bias_pc = py_utils.WeightParams(
           shape=[self.num_gates * self.hidden_size],
           init=p.bias_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          dtype=p.dtype)
       self.CreateVariable('b', bias_pc)
 
     if p.apply_pruning:
@@ -911,8 +905,7 @@ class QuantizedLSTMCell(RNNCell):
     wm_pc = py_utils.WeightParams(
         shape=[p.num_input_nodes + p.num_output_nodes, 4 * p.num_output_nodes],
         init=p.params_init,
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('wm', wm_pc)
 
     scope = tf.get_variable_scope()
@@ -1052,8 +1045,7 @@ class LayerNormalizedLSTMCell(RNNCell):
     wm_pc = py_utils.WeightParams(
         shape=[p.num_input_nodes + p.num_output_nodes, 4 * p.num_output_nodes],
         init=p.params_init,
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('wm', wm_pc)
     if not p.apply_pruning and p.pruning_hparams_dict:
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
@@ -1075,8 +1067,7 @@ class LayerNormalizedLSTMCell(RNNCell):
     bias_pc = py_utils.WeightParams(
         shape=[4 * p.num_output_nodes + 4 * p.num_output_nodes],
         init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('b', bias_pc)
 
     # Collect some stats
@@ -1256,8 +1247,7 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
     ln_scale_pc = py_utils.WeightParams(
         shape=[self.num_gates * self.hidden_size],
         init=py_utils.WeightInit.Constant(1.0),
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('ln_scale', ln_scale_pc)
 
   def AddGlobalVN(self, theta):
@@ -1349,8 +1339,7 @@ class WeightNormalizedLSTMCellSimple(LSTMCellSimple):
         shape=[self.num_gates * self.hidden_size],
         init=py_utils.WeightInit.Constant(1.0),
         dtype=p.dtype,
-        collections=self._VariableCollections() +
-        [py_utils.SKIP_LP_REGULARIZATION])
+        collections=[py_utils.SKIP_LP_REGULARIZATION])
     self.CreateVariable('wn_scale', wn_scale_pc)
 
   def AddGlobalVN(self, theta):
@@ -1509,31 +1498,25 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     wm_pc = py_utils.WeightParams(
         shape=[p.num_input_nodes + self.output_size, 4 * self.hidden_size],
         init=p.params_init,
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('wm', wm_pc)
 
     if p.num_hidden_nodes:
       w_proj = py_utils.WeightParams(
           shape=[self.hidden_size, self.output_size],
           init=p.params_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          dtype=p.dtype)
       self.CreateVariable('w_proj', w_proj)
 
     if p.enable_lstm_bias:
       bias_pc = py_utils.WeightParams(
-          shape=[4 * self.hidden_size],
-          init=p.bias_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          shape=[4 * self.hidden_size], init=p.bias_init, dtype=p.dtype)
       self.CreateVariable('b', bias_pc)
 
     pc = py_utils.WeightParams(
         shape=[self.hidden_size],
         init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     ln_gates = ['i_g', 'i_i', 'f_g', 'o_g']
     if p.enable_ln_on_c:
       ln_gates += ['c']
@@ -1825,10 +1808,7 @@ class DoubleProjectionLSTMCell(RNNCell):
 
     def _WeightInit(shape):
       return py_utils.WeightParams(
-          shape=shape,
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          shape=shape, init=p.params_init, dtype=p.dtype)
 
     self.CreateVariable(
         'w_input_proj',
@@ -1846,8 +1826,7 @@ class DoubleProjectionLSTMCell(RNNCell):
     pc = py_utils.WeightParams(
         shape=[self.hidden_size],
         init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     ln_gates = self.gates
     if p.enable_ln_on_c:
       ln_gates += ['c']
@@ -2028,17 +2007,13 @@ class ConvLSTMCell(RNNCell):
         p.filter_shape[0], p.filter_shape[1], in_channels, 4 * out_channels
     ]
     wm_pc = py_utils.WeightParams(
-        shape=var_shape,
-        init=p.params_init,
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        shape=var_shape, init=p.params_init, dtype=p.dtype)
     self.CreateVariable('wm', wm_pc)
 
     bias_pc = py_utils.WeightParams(
         shape=[4 * out_channels],
         init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('b', bias_pc)
 
   def batch_size(self, inputs):
@@ -2213,8 +2188,7 @@ class SRUCell(RNNCell):
     wm_pc = py_utils.WeightParams(
         shape=[p.num_input_nodes, self.num_gates * self.hidden_size],
         init=p.params_init,
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
 
     self.CreateVariable('wm', wm_pc)
     if p.apply_pruning:
@@ -2240,16 +2214,14 @@ class SRUCell(RNNCell):
     bias_pc = py_utils.WeightParams(
         shape=[self.num_gates * self.hidden_size],
         init=p.bias_init,
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('b', bias_pc)
 
     if p.num_hidden_nodes:
       w_proj = py_utils.WeightParams(
           shape=[self.hidden_size, self.output_size],
           init=p.params_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          dtype=p.dtype)
       self.CreateVariable('w_proj', w_proj)
       if p.apply_pruning_to_projection:
         proj_mask_pc = py_utils.WeightParams(w_proj.shape,
@@ -2277,48 +2249,35 @@ class SRUCell(RNNCell):
       f_t_ln_scale = py_utils.WeightParams(
           shape=[self.hidden_size],
           init=py_utils.WeightInit.Constant(1.0),
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          dtype=p.dtype)
       self.CreateVariable('f_t_ln_scale', f_t_ln_scale)
       r_t_ln_scale = py_utils.WeightParams(
           shape=[self.hidden_size],
           init=py_utils.WeightInit.Constant(1.0),
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          dtype=p.dtype)
       self.CreateVariable('r_t_ln_scale', r_t_ln_scale)
       c_t_ln_scale = py_utils.WeightParams(
           shape=[self.hidden_size],
           init=py_utils.WeightInit.Constant(1.0),
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          dtype=p.dtype)
       self.CreateVariable('c_t_ln_scale', c_t_ln_scale)
       if not p.couple_input_forget_gates:
         i_t_ln_scale = py_utils.WeightParams(
             shape=[self.hidden_size],
             init=py_utils.WeightInit.Constant(1.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
+            dtype=p.dtype)
         self.CreateVariable('i_t_ln_scale', i_t_ln_scale)
 
     if p.pointwise_peephole:
       f_t_vector_cell = py_utils.WeightParams(
-          shape=[self.hidden_size],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          shape=[self.hidden_size], init=p.params_init, dtype=p.dtype)
       self.CreateVariable('f_t_vector_cell', f_t_vector_cell)
       r_t_vector_cell = py_utils.WeightParams(
-          shape=[self.hidden_size],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
+          shape=[self.hidden_size], init=p.params_init, dtype=p.dtype)
       self.CreateVariable('r_t_vector_cell', r_t_vector_cell)
       if not p.couple_input_forget_gates:
         i_t_vector_cell = py_utils.WeightParams(
-            shape=[self.hidden_size],
-            init=p.params_init,
-            dtype=p.dtype,
-            collections=self._VariableCollections())
+            shape=[self.hidden_size], init=p.params_init, dtype=p.dtype)
         self.CreateVariable('i_t_vector_cell', i_t_vector_cell)
 
     if p.apply_pruning:
@@ -2725,10 +2684,7 @@ class GRUCell(RNNCell):
       return self.CreateVariable(
           variable_name,
           py_utils.WeightParams(
-              shape=shape_to_init,
-              init=params_to_init,
-              dtype=p.dtype,
-              collections=self._VariableCollections()))
+              shape=shape_to_init, init=params_to_init, dtype=p.dtype))
 
     # Define weights.
     # Weight for block input

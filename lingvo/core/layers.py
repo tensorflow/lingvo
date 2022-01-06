@@ -5173,10 +5173,7 @@ class GatedAverageLayer(base_layer.BaseLayer):
 
     # Weight matrix for scalar gates
     gm_pc = py_utils.WeightParams(
-        shape=[in_size, p.num_inputs],
-        init=p.params_init,
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        shape=[in_size, p.num_inputs], init=p.params_init, dtype=p.dtype)
     self.CreateVariable('gm', gm_pc)
 
   def FProp(self, theta, inputs):
@@ -5240,8 +5237,7 @@ class LHUCLayer(base_layer.BaseLayer):
     pc = py_utils.WeightParams(
         shape=[p.input_dim],
         init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=self._VariableCollections())
+        dtype=p.dtype)
     self.CreateVariable('w', pc)
 
   def FProp(self, theta, inp):

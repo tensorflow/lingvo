@@ -301,7 +301,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       sum_outputs = tf.reduce_sum(outputs, axis=0)
 
       loss = tf.reduce_sum(sum_outputs) + tf.reduce_sum(final.m + final.c)
-      all_vars = tf.get_collection('LSTMCellSimple_vars')
+      all_vars = py_utils.Flatten(rnn.vars)
       assert len(all_vars) == 2
 
       grads = tf.gradients(loss, all_vars)

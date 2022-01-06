@@ -109,10 +109,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
         use_gpu=False, config=py_utils.SessionConfig(inline=inline)):
       self.evaluate(tf.global_variables_initializer())
 
-      variable_count = 11 if enable_gru_bias else 8
-      wts = tf.get_collection('GRUCell_vars')
-      self.assertLen(wts, variable_count)
-
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
@@ -184,10 +180,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=inline)):
       self.evaluate(tf.global_variables_initializer())
-
-      variable_count = 2 if enable_lstm_bias else 1
-      wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertLen(wts, variable_count)
 
       # pyformat: disable
       # xmw_expected = [
@@ -261,13 +253,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       self.evaluate(tf.global_variables_initializer())
-
-      if num_hidden_nodes > 0:
-        variable_count = 3  # weights, biases, projection.
-      else:
-        variable_count = 2  # weights, biases.
-      wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertLen(wts, variable_count)
 
       if apply_pruning:
         num_vars = 2 if apply_pruning_to_projection else 1
@@ -360,9 +345,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
     with self.session(use_gpu=False):
       self.evaluate(tf.global_variables_initializer())
-
-      wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertLen(wts, 2)
 
       if bypass:
         m_expected = state0.m.eval()
@@ -468,10 +450,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       self.evaluate(tf.global_variables_initializer())
 
-      variable_count = 2 if enable_lstm_bias else 1
-      wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertLen(wts, variable_count)
-
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
@@ -518,10 +496,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       self.evaluate(tf.global_variables_initializer())
-
-      variable_count = 2 * params.num_groups  # one for weights, one for biases.
-      wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertLen(wts, variable_count)
 
       state1 = py_utils.ConcatRecursively(state1.groups)
       m_actual = state1.m.eval()
@@ -627,10 +601,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       self.evaluate(tf.global_variables_initializer())
-
-      variable_count = 3 * params.num_groups  # [wm, b, w_proj] for each group.
-      wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertLen(wts, variable_count)
 
       state1 = py_utils.ConcatRecursively(state1.groups)
       m_actual = state1.m.eval()
@@ -745,9 +715,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=inline)):
       self.evaluate(tf.global_variables_initializer())
-
-      wts = tf.get_collection('ConvLSTMCell_vars')
-      self.assertLen(wts, 2)
 
       self.assertAllClose(m_expected, m1.eval())
       self.assertAllClose(c_expected, c1.eval())
@@ -1133,12 +1100,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(
         use_gpu=False, config=py_utils.SessionConfig(inline=False)):
       self.evaluate(tf.global_variables_initializer())
-
-      wts = tf.get_collection('DoubleProjectionLSTMCell_vars')
-      if enable_ln_on_c:
-        self.assertLen(wts, 2 + 3 * 4 + 2)
-      else:
-        self.assertLen(wts, 2 + 3 * 4)
 
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())

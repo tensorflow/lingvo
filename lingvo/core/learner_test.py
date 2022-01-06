@@ -31,10 +31,7 @@ class TestLayer(base_layer.BaseLayer):
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     pc = py_utils.WeightParams(
-        shape=[],
-        init=py_utils.WeightInit.Constant(0),
-        dtype=self.params.dtype,
-        collections=self._VariableCollections())
+        shape=[], init=py_utils.WeightInit.Constant(0), dtype=self.params.dtype)
     self.CreateVariable('hello', pc)
     self.CreateVariable('world', pc)
     self.CreateVariable('moon', pc)
@@ -56,10 +53,7 @@ class TestSGD(optimizer.SGD):
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     pc = py_utils.WeightParams(
-        shape=[],
-        init=py_utils.WeightInit.Constant(0),
-        dtype=self.params.dtype,
-        collections=self._VariableCollections())
+        shape=[], init=py_utils.WeightInit.Constant(0), dtype=self.params.dtype)
     self.CreateVariable('ext', pc)
 
 

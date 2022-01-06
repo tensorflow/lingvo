@@ -729,9 +729,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         '%s exists in global_accumulator: %s' %
         (name, list(self._private_accumulators.keys())))
 
-  def _VariableCollections(self) -> List[str]:
-    return [LAYER_WT, '%s_vars' % self.__class__.__name__]
-
   def RegisterAccumulator(self, name, acc):
     """Registers an accumulator for this layer.
 
