@@ -147,9 +147,6 @@
         <span class="s1">&#39;py_utils.RNNCellStateInit.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="RNNCell._VariableCollections"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.RNNCell._VariableCollections">[docs]</a>  <span class="k">def</span> <span class="nf">_VariableCollections</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">RNN_CELL_WT</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_vars&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span></div>
-
 <div class="viewcode-block" id="RNNCell.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.RNNCell.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the initial state given the batch size.&quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
@@ -370,8 +367,7 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span>
         <span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
       <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">ApplyPruning</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;wm&#39;</span><span class="p">,</span>
@@ -400,8 +396,7 @@
       <span class="n">w_proj</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning_to_projection</span><span class="p">:</span>
         <span class="n">proj_mask_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">w_proj</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
@@ -427,8 +422,7 @@
       <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
@@ -976,8 +970,7 @@
     <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
 
     <span class="n">scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
@@ -1117,8 +1110,7 @@
     <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
       <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">ApplyPruning</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;wm&#39;</span><span class="p">,</span>
@@ -1140,8 +1132,7 @@
     <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">+</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">)</span>
 
     <span class="c1"># Collect some stats</span>
@@ -1321,8 +1312,7 @@
     <span class="n">ln_scale_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale&#39;</span><span class="p">,</span> <span class="n">ln_scale_pc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCellSimple.AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple.AddGlobalVN">[docs]</a>  <span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
@@ -1414,8 +1404,7 @@
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">()</span> <span class="o">+</span>
-        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">])</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wn_scale&#39;</span><span class="p">,</span> <span class="n">wn_scale_pc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightNormalizedLSTMCellSimple.AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple.AddGlobalVN">[docs]</a>  <span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
@@ -1574,31 +1563,25 @@
     <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
       <span class="n">w_proj</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_lstm_bias</span><span class="p">:</span>
       <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">)</span>
 
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">ln_gates</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
       <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
@@ -1890,10 +1873,7 @@
 
     <span class="k">def</span> <span class="nf">_WeightInit</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
         <span class="s1">&#39;w_input_proj&#39;</span><span class="p">,</span>
@@ -1911,8 +1891,7 @@
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="n">ln_gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
       <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
@@ -2093,17 +2072,13 @@
         <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">in_channels</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">out_channels</span>
     <span class="p">]</span>
     <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="n">var_shape</span><span class="p">,</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">var_shape</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
 
     <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="n">out_channels</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ConvLSTMCell.batch_size"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell.batch_size">[docs]</a>  <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -2278,8 +2253,7 @@
     <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
@@ -2305,16 +2279,14 @@
     <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
       <span class="n">w_proj</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning_to_projection</span><span class="p">:</span>
         <span class="n">proj_mask_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">w_proj</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
@@ -2342,48 +2314,35 @@
       <span class="n">f_t_ln_scale</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;f_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">f_t_ln_scale</span><span class="p">)</span>
       <span class="n">r_t_ln_scale</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;r_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">r_t_ln_scale</span><span class="p">)</span>
       <span class="n">c_t_ln_scale</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;c_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">c_t_ln_scale</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
         <span class="n">i_t_ln_scale</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
             <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;i_t_ln_scale&#39;</span><span class="p">,</span> <span class="n">i_t_ln_scale</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pointwise_peephole</span><span class="p">:</span>
       <span class="n">f_t_vector_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;f_t_vector_cell&#39;</span><span class="p">,</span> <span class="n">f_t_vector_cell</span><span class="p">)</span>
       <span class="n">r_t_vector_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;r_t_vector_cell&#39;</span><span class="p">,</span> <span class="n">r_t_vector_cell</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
         <span class="n">i_t_vector_cell</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;i_t_vector_cell&#39;</span><span class="p">,</span> <span class="n">i_t_vector_cell</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
@@ -2790,10 +2749,7 @@
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
           <span class="n">variable_name</span><span class="p">,</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-              <span class="n">shape</span><span class="o">=</span><span class="n">shape_to_init</span><span class="p">,</span>
-              <span class="n">init</span><span class="o">=</span><span class="n">params_to_init</span><span class="p">,</span>
-              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-              <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">()))</span>
+              <span class="n">shape</span><span class="o">=</span><span class="n">shape_to_init</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="n">params_to_init</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
 
     <span class="c1"># Define weights.</span>
     <span class="c1"># Weight for block input</span>

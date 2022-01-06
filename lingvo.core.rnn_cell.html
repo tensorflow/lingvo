@@ -117,11 +117,6 @@ tensors in these <a class="reference internal" href="lingvo.core.nested_map.html
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.rnn_cell.RNNCell._VariableCollections">
-<span class="sig-name descname"><span class="pre">_VariableCollections</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell._VariableCollections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell._VariableCollections" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.RNNCell.zero_state">
 <span class="sig-name descname"><span class="pre">zero_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell.zero_state"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell.zero_state" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the initial state given the batch size.</p>
@@ -237,9 +232,11 @@ Shape [batch, 1]</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.LSTMCellSimple._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py property">
@@ -484,9 +481,11 @@ only clipping is performed.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.QuantizedLSTMCell._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -564,9 +563,11 @@ Shape [batch, 1]</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -788,9 +789,11 @@ Shape [batch, 1]</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCellLean._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py property">
@@ -979,9 +982,11 @@ Shape [batch, 1]</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py property">
@@ -1092,9 +1097,11 @@ Shape [batch, 1]</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.ConvLSTMCell._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1177,9 +1184,11 @@ implementation. It does the 4-matrix implementation found in appendix C.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.SRUCell._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py property">
@@ -1368,9 +1377,11 @@ Shape [batch, 1]</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.GRUCell._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#GRUCell._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.GRUCell._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py property">

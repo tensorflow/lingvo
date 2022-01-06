@@ -558,6 +558,35 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="LinearRampupSqrtDecay"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecay">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupSqrtDecay</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Linearly increases the schedule value in warmup_steps, then sqrt decay.</span>
+
+<span class="sd">  Same as the Transformer schedule, except that this one is explicitly</span>
+<span class="sd">  parameterized by the peak value (instead of model_dim).</span>
+
+<span class="sd">  For the original Transformer schedule, the peak value is</span>
+<span class="sd">    1.0 / sqrt(model_dim * warmup_steps).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LinearRampupSqrtDecay.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecay.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;peak&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;The peak value of the schedule.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;warmup_steps&#39;</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span>
+        <span class="s1">&#39;Linearly increase the schedule value to the peak in the first this &#39;</span>
+        <span class="s1">&#39;many steps.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="LinearRampupSqrtDecay.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecay.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the current schedule value.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">current_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">(),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">warmup_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">peak</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">current_step</span> <span class="o">/</span> <span class="n">warmup_steps</span><span class="p">,</span>
+                               <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">warmup_steps</span> <span class="o">/</span> <span class="n">current_step</span><span class="p">))</span></div></div>
+
+
 <div class="viewcode-block" id="LinearRampupSqrtDecayByBatchSizeAndReplicas"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupSqrtDecayByBatchSizeAndReplicas</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Linearly increase learning rate until warmup_examples, then sqrt decay.</span>
 

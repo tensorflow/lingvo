@@ -194,9 +194,11 @@ attention distributions for each sequence in the batch.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.attention.BaseAttentionLayer._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#BaseAttentionLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.BaseAttentionLayer._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -413,9 +415,11 @@ ICLR 2015.
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.attention.AdditiveAttention._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#AdditiveAttention._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.AdditiveAttention._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -509,9 +513,11 @@ EMNLP 2015.
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.attention.DotProductAttention._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#DotProductAttention._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.DotProductAttention._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -616,9 +622,11 @@ attention prob.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.attention.MultiHeadedAttention._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiHeadedAttention._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.MultiHeadedAttention._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -734,9 +742,11 @@ with dimensions [target_batch, …]</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.attention.LocationSensitiveAttention._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#LocationSensitiveAttention._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.LocationSensitiveAttention._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -895,9 +905,11 @@ energy bias scalar r to a negative value (param hidden_bias_init).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.attention.MonotonicAttention._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MonotonicAttention._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.MonotonicAttention._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1111,9 +1123,11 @@ operator outputs a single tensor with the following options (merger_op):</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.attention.MergerLayer._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MergerLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.MergerLayer._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">

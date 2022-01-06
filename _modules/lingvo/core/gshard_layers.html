@@ -134,8 +134,6 @@
       <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_var_collection_suffix</span> <span class="ow">or</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_get_var_from_collection</span><span class="p">(</span><span class="n">vp</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">vp</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_var_collection_suffix</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
 
 <div class="viewcode-block" id="VarLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.VarLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 
@@ -189,8 +187,8 @@
              <span class="s1">&#39;Whether to cast variables to fprop_dtype&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="ShardedVarLayer.InstantiateVariables"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ShardedVarLayer.InstantiateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">InstantiateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">MaybeWeightSplit</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
@@ -208,7 +206,7 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span> <span class="n">split_dims</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
-      <span class="n">MaybeWeightSplit</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span></div>
+      <span class="n">MaybeWeightSplit</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ShardedVarLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.ShardedVarLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -460,42 +458,6 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_non_trainable_vars</span> <span class="o">=</span> <span class="p">[]</span>
 
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">()</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
-          <span class="n">res</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span>
-    <span class="k">return</span> <span class="n">res</span></div>
-
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim">[docs]</a>  <span class="k">def</span> <span class="nf">_FindPerStageVarShardingDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Finds a sharding dimension for per-stage variables before stacking.</span>
-
-<span class="sd">    Find a dimension to split variables. Per-stage variables do not have the</span>
-<span class="sd">    leading stage dimension before stacking.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      shape: list of integers of the single-stage variable shape.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      An index of the found sharding dimension, or -1 if not found.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span>
-    <span class="n">split_dim</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="n">min_padding_ratio</span> <span class="o">=</span> <span class="mf">1.0</span>
-    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)):</span>
-      <span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
-      <span class="k">if</span> <span class="n">padding</span> <span class="o">&lt;</span> <span class="n">min_padding_ratio</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
-        <span class="n">min_padding_ratio</span> <span class="o">=</span> <span class="n">padding</span> <span class="o">/</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">padding</span> <span class="o">&lt;=</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">:</span>
-          <span class="n">split_dim</span> <span class="o">=</span> <span class="n">i</span>
-    <span class="k">return</span> <span class="n">split_dim</span></div>
-
-<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-
     <span class="k">def</span> <span class="nf">_SplitVar</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
@@ -534,7 +496,40 @@
         <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
           <span class="s1">&#39;When using single_stage_body, non-trainable vars are only supported &#39;</span>
-          <span class="s1">&#39;when per_stage_vars=False and shard_stages_1d=True.&#39;</span><span class="p">)</span></div>
+          <span class="s1">&#39;when per_stage_vars=False and shard_stages_1d=True.&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">res</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">stage_parallel_body</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">):</span>
+          <span class="n">res</span><span class="p">[</span><span class="s1">&#39;body_iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;iter_</span><span class="si">%05d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">res</span></div>
+
+<div class="viewcode-block" id="LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._FindPerStageVarShardingDim">[docs]</a>  <span class="k">def</span> <span class="nf">_FindPerStageVarShardingDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Finds a sharding dimension for per-stage variables before stacking.</span>
+
+<span class="sd">    Find a dimension to split variables. Per-stage variables do not have the</span>
+<span class="sd">    leading stage dimension before stacking.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      shape: list of integers of the single-stage variable shape.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An index of the found sharding dimension, or -1 if not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">per_stage_vars</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">shard_stages_1d</span>
+    <span class="n">split_dim</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="n">min_padding_ratio</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)):</span>
+      <span class="n">padding</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_stages</span> <span class="o">-</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_stages</span>
+      <span class="k">if</span> <span class="n">padding</span> <span class="o">&lt;</span> <span class="n">min_padding_ratio</span> <span class="o">*</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+        <span class="n">min_padding_ratio</span> <span class="o">=</span> <span class="n">padding</span> <span class="o">/</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">padding</span> <span class="o">&lt;=</span> <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">//</span> <span class="mi">2</span><span class="p">:</span>
+          <span class="n">split_dim</span> <span class="o">=</span> <span class="n">i</span>
+    <span class="k">return</span> <span class="n">split_dim</span></div>
 
 <div class="viewcode-block" id="LayerwiseShardablePipelinedLayer.BodyFProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.BodyFProp">[docs]</a>  <span class="k">def</span> <span class="nf">BodyFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                 <span class="n">theta</span><span class="p">,</span>

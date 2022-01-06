@@ -309,9 +309,11 @@ width dimension as in images.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#Conv2DLayerWithPadding._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -419,9 +421,11 @@ state1: A NestedMap of the same struct as input state</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#DepthwiseConv2DLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">

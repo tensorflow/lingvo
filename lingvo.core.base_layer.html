@@ -455,11 +455,6 @@ on name collisions.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer._VariableCollections">
-<span class="sig-name descname"><span class="pre">_VariableCollections</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#str" title="(in Python v3.7)"><span class="pre">str</span></a><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._VariableCollections"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._VariableCollections" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer.RegisterAccumulator">
 <span class="sig-name descname"><span class="pre">RegisterAccumulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">acc</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.RegisterAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.RegisterAccumulator" title="Permalink to this definition"></a></dt>
 <dd><p>Registers an accumulator for this layer.</p>
@@ -563,13 +558,6 @@ extra theta.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer.InstantiateVariables">
-<span class="sig-name descname"><span class="pre">InstantiateVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.InstantiateVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.InstantiateVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for this layer and child layers.</p>
-<p>DO NOT OVERRIDE. Override self._CreateLayerVariables instead.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer._child_variable_scope_override">
 <span class="sig-name descname"><span class="pre">_child_variable_scope_override</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._child_variable_scope_override"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._child_variable_scope_override" title="Permalink to this definition"></a></dt>
 <dd><p>Override the variable scope for individual children.</p>
@@ -585,17 +573,13 @@ keyed by a child name.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_layer.BaseLayer._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/constants.html#None" title="(in Python v3.7)"><span class="pre">None</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">

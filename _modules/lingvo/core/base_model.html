@@ -434,67 +434,66 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">:</span>
-      <span class="c1"># TODO(zhifengc): Consider a simpler way to ensure the input</span>
-      <span class="c1"># generator stops after one epoch.</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="p">:</span>
-        <span class="n">seq_inp</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
-                             <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span>
-              <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
-            <span class="c1"># If we know the dataset size and we want to evaluate the full</span>
-            <span class="c1"># set, we need to coordinate the input generator to flush out</span>
-            <span class="c1"># all samples so the evaler and decoder compute metrics on the</span>
-            <span class="c1"># whole set for each summary step.</span>
-            <span class="k">if</span> <span class="n">seq_inp</span><span class="p">:</span>
-              <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">flush_every_n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
-          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
-              <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span><span class="p">):</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">eval_samples_per_summary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">eval_samples_per_summary</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
-          <span class="c1"># Dataset size is unknown. Computes eval summary based on num_samples.</span>
-          <span class="c1"># We require static dataset size for non-resettable inputs.</span>
-          <span class="c1"># Ignore if the dataset is repeated.</span>
-          <span class="n">repeated</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s1">&#39;repeat_steps&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span>
-              <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s1">&#39;repeat_with_sentinel&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
-          <span class="k">if</span> <span class="ow">not</span> <span class="n">repeated</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">&gt;</span> <span class="mi">0</span>
-        <span class="k">if</span> <span class="n">seq_inp</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;input.num_batcher_threads &gt; 1 inside eval mode.  &#39;</span>
-                             <span class="s1">&#39;The input generator may not iterate over exactly &#39;</span>
-                             <span class="s1">&#39;one epoch per run&#39;</span><span class="p">)</span>
-      <span class="n">input_params</span> <span class="o">=</span> <span class="n">input_policy</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_params</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="n">input_params</span><span class="p">)</span>
-
-    <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
-
-    <span class="c1"># p.train can be None if this task is the teacher/student task in a</span>
-    <span class="c1"># DistillationTask.</span>
-    <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">])</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateVnConfig</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="p">(</span><span class="n">tp</span> <span class="ow">and</span> <span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span> <span class="ow">and</span>
-        <span class="n">pruning_utils</span><span class="o">.</span><span class="n">UsePruningInterface</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">)):</span>
-      <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
-
-<div class="viewcode-block" id="BaseTask.InstantiateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.InstantiateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">InstantiateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
-      <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span></div>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">:</span>
+        <span class="c1"># TODO(zhifengc): Consider a simpler way to ensure the input</span>
+        <span class="c1"># generator stops after one epoch.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="p">:</span>
+          <span class="n">seq_inp</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
+                               <span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGeneratorFromFiles</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span>
+                <span class="o">==</span> <span class="mi">0</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
+              <span class="c1"># If we know the dataset size and we want to evaluate the full</span>
+              <span class="c1"># set, we need to coordinate the input generator to flush out</span>
+              <span class="c1"># all samples so the evaler and decoder compute metrics on the</span>
+              <span class="c1"># whole set for each summary step.</span>
+              <span class="k">if</span> <span class="n">seq_inp</span><span class="p">:</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">flush_every_n</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="p">(</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span><span class="p">):</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">eval_samples_per_summary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">eval_samples_per_summary</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_samples</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
+            <span class="c1"># Dataset size is unknown. Computes eval summary based on</span>
+            <span class="c1"># num_samples.</span>
+            <span class="c1"># We require static dataset size for non-resettable inputs.</span>
+            <span class="c1"># Ignore if the dataset is repeated.</span>
+            <span class="n">repeated</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s1">&#39;repeat_steps&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span>
+                <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="s1">&#39;repeat_with_sentinel&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">repeated</span><span class="p">:</span>
+              <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">&gt;</span> <span class="mi">0</span>
+          <span class="k">if</span> <span class="n">seq_inp</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">num_batcher_threads</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s1">&#39;input.num_batcher_threads &gt; 1 inside eval mode.  &#39;</span>
+                <span class="s1">&#39;The input generator may not iterate over exactly &#39;</span>
+                <span class="s1">&#39;one epoch per run&#39;</span><span class="p">)</span>
+        <span class="n">input_params</span> <span class="o">=</span> <span class="n">input_policy</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="n">input_params</span><span class="p">)</span>
+
+      <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+
+      <span class="c1"># p.train can be None if this task is the teacher/student task in a</span>
+      <span class="c1"># DistillationTask.</span>
+      <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateVnConfig</span><span class="p">()</span>
+
+      <span class="k">if</span> <span class="p">(</span><span class="n">tp</span> <span class="ow">and</span> <span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span> <span class="ow">and</span>
+          <span class="n">pruning_utils</span><span class="o">.</span><span class="n">UsePruningInterface</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">)):</span>
+        <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BaseTask._SetLearnerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._SetLearnerFromLegacyParams">[docs]</a>  <span class="k">def</span> <span class="nf">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tp</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sets tp.learner based on legacy params.&quot;&quot;&quot;</span>

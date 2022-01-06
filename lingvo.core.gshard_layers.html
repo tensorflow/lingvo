@@ -152,13 +152,6 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.gshard_layers.ShardedVarLayer.InstantiateVariables">
-<span class="sig-name descname"><span class="pre">InstantiateVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ShardedVarLayer.InstantiateVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ShardedVarLayer.InstantiateVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for this layer and child layers.</p>
-<p>DO NOT OVERRIDE. Override self._CreateLayerVariables instead.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.ShardedVarLayer.FProp">
 <span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ShardedVarLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ShardedVarLayer.FProp" title="Permalink to this definition"></a></dt>
 <dd><p>Forward propagation.</p>
@@ -367,12 +360,6 @@ leading stage dimension before stacking.</p>
 <dd class="field-even"><p>An index of the found sharding dimension, or -1 if not found.</p>
 </dd>
 </dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._CreateChildrenVariables">
-<span class="sig-name descname"><span class="pre">_CreateChildrenVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._CreateChildrenVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._CreateChildrenVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for child layers.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -868,9 +855,11 @@ its children layers.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#CausalDepthwiseConv1DLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">

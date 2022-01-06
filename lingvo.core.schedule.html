@@ -489,6 +489,31 @@ effective learning rate.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.schedule.LinearRampupSqrtDecay">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.schedule.</span></span><span class="sig-name descname"><span class="pre">LinearRampupSqrtDecay</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearRampupSqrtDecay"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.schedule.LinearRampupSqrtDecay" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
+<p>Linearly increases the schedule value in warmup_steps, then sqrt decay.</p>
+<p>Same as the Transformer schedule, except that this one is explicitly
+parameterized by the peak value (instead of model_dim).</p>
+<dl class="simple">
+<dt>For the original Transformer schedule, the peak value is</dt><dd><p>1.0 / sqrt(model_dim * warmup_steps).</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.schedule.LinearRampupSqrtDecay.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearRampupSqrtDecay.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.schedule.LinearRampupSqrtDecay.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.schedule.LinearRampupSqrtDecay.Value">
+<span class="sig-name descname"><span class="pre">Value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearRampupSqrtDecay.Value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.schedule.LinearRampupSqrtDecay.Value" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the current schedule value.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.schedule.</span></span><span class="sig-name descname"><span class="pre">LinearRampupSqrtDecayByBatchSizeAndReplicas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearRampupSqrtDecayByBatchSizeAndReplicas"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
@@ -610,9 +635,11 @@ depends on these variables:</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.schedule.DevBasedSchedule._CreateLayerVariables">
 <span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#DevBasedSchedule._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.schedule.DevBasedSchedule._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Actually create variables for this layer.</p>
-<p>Subclasses should override this function.</p>
-<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">

@@ -190,12 +190,12 @@
       <span class="k">try</span><span class="p">:</span>
         <span class="c1"># Calls the layer&#39;s real __init__ method.</span>
         <span class="c1"># pylint: disable=protected-access</span>
-        <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack</span><span class="p">:</span>
-          <span class="k">if</span> <span class="n">args</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">):</span>
-            <span class="n">context_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span>
+        <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack2</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">args</span> <span class="ow">and</span> <span class="n">IsLayerParams</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="n">context_stack2</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_SelfVariableScope</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">enter_name_scope</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
           <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_disable_create_child</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyChildren</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyVarsAndTheta</span><span class="p">()</span>
@@ -217,7 +217,7 @@
   <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">[]</span>
   <span class="n">layer_params</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="s1">&#39;cls&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">IsLayerParams</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
     <span class="n">layer_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
@@ -794,9 +794,6 @@
         <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exists in global_accumulator: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
         <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_accumulators</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span></div>
 
-<div class="viewcode-block" id="BaseLayer._VariableCollections"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._VariableCollections">[docs]</a>  <span class="k">def</span> <span class="nf">_VariableCollections</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">LAYER_WT</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_vars&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">]</span></div>
-
 <div class="viewcode-block" id="BaseLayer.RegisterAccumulator"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.RegisterAccumulator">[docs]</a>  <span class="k">def</span> <span class="nf">RegisterAccumulator</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">acc</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Registers an accumulator for this layer.</span>
 
@@ -935,14 +932,6 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_self_variable_scope</span><span class="o">.</span><span class="n">original_name_scope</span><span class="p">))</span>
       <span class="k">yield</span> <span class="n">stack</span></div>
 
-<div class="viewcode-block" id="BaseLayer.InstantiateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.InstantiateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">InstantiateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Create variables for this layer and child layers.</span>
-
-<span class="sd">    DO NOT OVERRIDE. Override self._CreateLayerVariables instead.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span></div>
-
 <div class="viewcode-block" id="BaseLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Override the variable scope for individual children.</span>
 
@@ -957,16 +946,14 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
 
-<div class="viewcode-block" id="BaseLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Create variables for child layers.&quot;&quot;&quot;</span>
-    <span class="k">pass</span></div>
-
 <div class="viewcode-block" id="BaseLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Actually create variables for this layer.</span>
+    <span class="sd">&quot;&quot;&quot;Create variables for this layer.</span>
 
-<span class="sd">    Subclasses should override this function.</span>
+<span class="sd">    This is a legacy method. Variables can be created directly in the layer</span>
+<span class="sd">    __init__ method.</span>
 
-<span class="sd">    Variables are created inside of tf.variable_scope(self.params.name).</span>
+<span class="sd">    Variables are created inside of self._SelfVariableScope() which is usually</span>
+<span class="sd">    tf.variable_scope(self.params.name).</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
