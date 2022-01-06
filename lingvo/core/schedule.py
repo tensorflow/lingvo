@@ -493,6 +493,35 @@ class LinearRampupExponentialDecay(
     super().__init__(params)
 
 
+class LinearRampupSqrtDecay(BaseSchedule):
+  """Linearly increases the schedule value in warmup_steps, then sqrt decay.
+
+  Same as the Transformer schedule, except that this one is explicitly
+  parameterized by the peak value (instead of model_dim).
+
+  For the original Transformer schedule, the peak value is
+    1.0 / sqrt(model_dim * warmup_steps).
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('peak', 1.0, 'The peak value of the schedule.')
+    p.Define(
+        'warmup_steps', 4000,
+        'Linearly increase the schedule value to the peak in the first this '
+        'many steps.')
+    return p
+
+  def Value(self):
+    """Returns the current schedule value."""
+    p = self.params
+    current_step = tf.cast(tf.maximum(py_utils.GetGlobalStep(), 1), tf.float32)
+    warmup_steps = tf.cast(p.warmup_steps, tf.float32)
+    return p.peak * tf.minimum(current_step / warmup_steps,
+                               tf.sqrt(warmup_steps / current_step))
+
+
 class LinearRampupSqrtDecayByBatchSizeAndReplicas(BaseSchedule):
   """Linearly increase learning rate until warmup_examples, then sqrt decay.
 

@@ -555,6 +555,26 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [5000000, 0.5]
           ])
 
+  def testLinearRampupSqrtDecay(self):
+    p = schedule.LinearRampupSqrtDecay.Params().Set(warmup_steps=100, peak=2.0)
+    with self.session():
+      lrs = p.Instantiate()
+      pts = []
+      for step in [0, 10, 50, 100, 200, 500, 1000]:
+        with py_utils.GlobalStepContext(step):
+          pts.append((step, lrs.Value().eval()))
+      self.assertAllClose(
+          pts, [
+              [0, 0.02],
+              [10, 0.2],
+              [50, 1.0],
+              [100, 2.0],
+              [200, 1.414],
+              [500, 0.894],
+              [1000, 0.632],
+          ],
+          atol=1e-3)
+
   def testLinearRampupSqrtDecayByBatchSizeAndReplicasSchedule(self):
     p = schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas.Params().Set(
         warmup_examples=100000, batch_size=100)
