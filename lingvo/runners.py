@@ -1098,12 +1098,8 @@ class Decoder(base_runner.BaseRunner):
         # tasks, which may result in different node names being chosen.
         # Obviously, variable names has to be stay the same between train and
         # decode.
-        cluster = self._cluster
-        with tf.device(cluster.input_device):
-          input_batch = self._task.input_generator.GetPreprocessedInputBatch()
-
-        self._dec_output = self._task.Decode(input_batch)
-
+        input_batch, self._dec_output = self._model.ConstructDecodeGraph(
+            self._model_task_name)
         for key in self._task.input_generator.GetCpuPassthroughKeys():
           if key in input_batch:
             if key in self._dec_output:

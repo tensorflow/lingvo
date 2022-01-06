@@ -392,7 +392,6 @@ class Decoder(base_runner.BaseRunner):
         try:
           tf.logging.info('Fetching dec_output.')
           fetch_start = time.time()
-          input_batch = self._task.input_generator.GetPreprocessedInputBatch()
           # Decoder calls FProp multiple times for each checkpoint. Multiple
           # summaries at the same step is often confusing.  Instead, models
           # should generate aggregate summaries using PostProcessDecodeOut.
@@ -402,9 +401,11 @@ class Decoder(base_runner.BaseRunner):
           if is_first_loop:
             # TODO(jiaweix): Investigate how to only write non-scalar summaries.
             with self._summary_writer.as_default():
-              dec_output = self._task.Decode(input_batch)
+              input_batch, dec_output = self._model.ConstructDecodeGraph(
+                  self._model_task_name)
           else:
-            dec_output = self._task.Decode(input_batch)
+            input_batch, dec_output = self._model.ConstructDecodeGraph(
+                self._model_task_name)
 
           for key in self._task.input_generator.GetCpuPassthroughKeys():
             if key in input_batch:

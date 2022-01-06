@@ -430,6 +430,10 @@ class BaseTask(base_layer.BaseLayer):
           pruning_utils.UsePruningInterface(tp.pruning_hparams_dict)):
         pruning_utils.PruningOp.Setup(tp.pruning_hparams_dict, self.global_step)
 
+    # The set of ids of TF graphs in which ApplyExponentialMovingAverage has
+    # been called.
+    self._graphs_applied_ema = set()
+
   def _SetLearnerFromLegacyParams(self, tp):
     """Sets tp.learner based on legacy params."""
     if tp.learner is not None:
@@ -783,7 +787,27 @@ class BaseTask(base_layer.BaseLayer):
 
   def ApplyExponentialMovingAverage(self, ema):
     """Wraps `self.train_op` with an op updating exponential moving average."""
-    # TODO(rpang): raise an exception if this is called in the eval mode.
+    if not ema:
+      # EMA not enabled.
+      return
+
+    # Make sure this is called at most once in a graph. In eager mode, the outer
+    # tf.function will be traced multiple times in different function graphs.
+    graph = id(tf.get_default_graph())
+    if graph in self._graphs_applied_ema:
+      raise ValueError(
+          'ApplyExponentialMovingAverage was called before. Calling it again '
+          'will create multiple sets of EMA update ops, and the behavior is '
+          'undefined.')
+    self._graphs_applied_ema.add(graph)
+
+    # If self.vars are already EMA variables loaded from checkpoint, we don't
+    # apply EMA again. This happens when we run CPU-based Evaler/Decoder or
+    # export inference graph with EMA enabled.
+    if self.params.is_inference or (self.do_eval and not py_utils.use_tpu()):
+      return
+
+    tf.logging.info('ApplyExponentialMovingAverage on %s', self)
     all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
     with tf.name_scope('moving_average'):
       self._post_train_ops.append(ema.apply(all_vars))
@@ -1113,6 +1137,9 @@ class BaseModel(base_layer.BaseLayer):
   def ConstructFPropGraph(self):
     raise NotImplementedError('Abstract method')
 
+  def ConstructDecodeGraph(self):
+    raise NotImplementedError('Abstract method')
+
   def ConstructPostTrainingLoop(self, outfeed=None):
     raise NotImplementedError('Abstract method')
 
@@ -1191,15 +1218,25 @@ class SingleTaskBase(BaseModel):
 
   def ConstructFPropBPropGraph(self):
     if self.ema:
-      tf.logging.info('ApplyExponentialMovingAverage on %s', self._task)
       self._task.ApplyExponentialMovingAverage(self.ema)
       self._MakeEMAVariablesDict()
-
     self._task.FPropDefaultTheta()
     self._task.BProp()
 
   def ConstructFPropGraph(self):
+    if self.ema:
+      self._task.ApplyExponentialMovingAverage(self.ema)
     self._task.FPropDefaultTheta()
+
+  def ConstructDecodeGraph(self, task_name=None):
+    if self.ema:
+      self._task.ApplyExponentialMovingAverage(self.ema)
+    with py_utils.TaskCallScope(self._task):
+      input_batch = self._task.GetInputBatch()
+      if isinstance(input_batch, list):  # Non-TPU case.
+        assert len(input_batch) == 1
+        input_batch = input_batch[0]
+      return input_batch, self._task.Decode(input_batch)
 
   def ConstructPostTrainingLoop(self, outfeed=None):
     self._task.PostTrainingLoop(outfeed)
@@ -1428,4 +1465,20 @@ class MultiTaskModel(BaseModel):
     for task_name in self.task_names:
       with tf.name_scope(task_name):
         task = self.GetTask(task_name)
+        # Note: this is for CPU-based eval only where the variables are already
+        # loaded as EMA variables, so we don't need to apply EMA.
         task.FPropDefaultTheta()
+
+  def ConstructDecodeGraph(self, task_name=None):
+    if not task_name:
+      raise ValueError(
+          'It can decode only one task at a time, but task_name is not set.')
+    with tf.name_scope(task_name):
+      task = self.GetTask(task_name)
+      # Note: this is for CPU-based eval only where the variables are already
+      # loaded as EMA variables, so we don't need to apply EMA.
+      input_batch = task.GetInputBatch()
+      if isinstance(input_batch, list):
+        assert len(input_batch) == 1  # Non-TPU case.
+        input_batch = input_batch[0]
+      return input_batch, self._task.Decode(input_batch)

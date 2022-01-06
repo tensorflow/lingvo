@@ -640,8 +640,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # with EMA enabled), use the EMA version of the variables if applicable.
     ema = py_utils.ExecutorEMA()
     if self.do_eval and ema:
-      # TODO(laigd): for eval/decode only models this is not True. Fix it.
-      # assert ema is self.ema
+      # Note: 'ema' is not necessarily the same as 'self.ema'. If 'self' is not
+      # instantiated inside a model context, then 'self.ema' is invalid.
       vars_loaded_as_ema = self.params.is_inference or (self.do_eval and
                                                         not py_utils.use_tpu())
       assert not vars_loaded_as_ema, (

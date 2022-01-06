@@ -953,9 +953,7 @@ class DecodeProgram(BaseProgram):
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
-      with py_utils.TaskCallScope(self._task):
-        input_batch = self._task.input.TpuDequeueBatch()
-        decode_dict = self._task.Decode(input_batch)
+      _, decode_dict = self._model.ConstructDecodeGraph()
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return self.decode_nm.Flatten()
 
@@ -1248,9 +1246,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
 
     def _DecodeStep():
       """Decode call to be compiled for TPU."""
-      with py_utils.TaskCallScope(self._task):
-        input_batch = self._task.input.TpuDequeueBatch()
-        decode_dict = self._task.Decode(input_batch)
+      _, decode_dict = self._model.ConstructDecodeGraph()
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return [self._OutfeedEnqueue(decode_dict)]
 
@@ -1443,8 +1439,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
       with cluster_factory.SetEval(True):
-        input_batch = self._decode_task.input.TpuDequeueBatch()
-        decode_dict = self._decode_task.Decode(input_batch)
+        _, decode_dict = self._decode_model.ConstructDecodeGraph()
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return self.decode_nm.Flatten()
 
@@ -1628,11 +1623,6 @@ class SimpleProgramSchedule:
       p.train_program.ml_perf = p.ml_perf.Copy()
       self.train_program = p.train_program.Instantiate(**kwargs)
       self._programs.append(self.train_program)
-    elif py_utils.ExecutorEMA():
-      # When EMA is used, the train program must be added to self._programs
-      # before any eval programs.
-      raise ValueError('When EMA is used, there must be a train program to '
-                       'apply the EMA before eval programs can use it.')
 
     for eval_program_params in p.eval_programs:
       eval_program_params.logdir = p.logdir

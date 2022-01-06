@@ -317,9 +317,6 @@ class ExecutorTpu(base_runner.BaseRunner):
         # Create the ExponentialMovingAverage singleton shared by all
         # programs, if applicable.
         py_utils.MaybeCreateExecutorEMA(train_cfg, global_step)
-        # Note: when EMA is used, there must be a train program, and its graph
-        # must be built before any eval programs in order to apply EMA. This is
-        # currently guaranteed by SimpleProgramSchedule.
         for program in self._programs:
           program.BuildTpuSubgraph()
           py_utils.ClearTpuSummaryTensors()
