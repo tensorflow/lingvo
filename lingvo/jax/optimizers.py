@@ -9,7 +9,7 @@
 #
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express o.r implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
@@ -30,7 +30,6 @@ from lingvo.jax import pytypes
 import optax
 
 from optax_shampoo import distributed_shampoo
-
 
 NestedMap = py_utils.NestedMap
 InstantiableParams = py_utils.InstantiableParams
@@ -1076,12 +1075,15 @@ class _ShardedAdafactorHelper:
       beta1: float,
       clipping_threshold: float,
       factored: bool,
-      epsilon1: float,
+      epsilon1_grad_sq_reg: float,
       quantized_dtype: jnp.dtype,
       # TODO(bf-jax) Update default value to True, once this is supported.
       respect_skip_lp_regularization: bool,
       per_var_learning_summary: bool,
-  ) -> None:
+      sort_factored_second_moment_dims: bool,
+      min_dim_size_to_factor: int,
+      multiply_by_parameter_scale: bool,
+      epsilon2_param_scale_reg: float) -> None:
     """Constructor. See ShardedAdafactor() below."""
     self._learning_rate_fn = learning_rate_fn
     self._weight_decay = weight_decay
@@ -1092,10 +1094,14 @@ class _ShardedAdafactorHelper:
     self._beta1 = beta1
     self._clipping_threshold = clipping_threshold
     self._factored = factored
-    self._epsilon1 = epsilon1
+    self._epsilon1 = epsilon1_grad_sq_reg
     self._quantized_dtype = quantized_dtype
     self._respect_skip_lp_regularization = respect_skip_lp_regularization
     self._per_var_learning_summary = per_var_learning_summary
+    self._sort_factored_second_moment_dims = sort_factored_second_moment_dims
+    self._min_dim_size_to_factor = min_dim_size_to_factor
+    self._multiply_by_parameter_scale = multiply_by_parameter_scale
+    self._epsilon2 = epsilon2_param_scale_reg
 
   def should_use_factored_second_moment_estimate(self, shape):
     """Should we use a factored second moment estimator.
@@ -1108,7 +1114,37 @@ class _ShardedAdafactorHelper:
     Returns:
       A boolean.
     """
-    return self._factored and len(shape) >= 2
+    return self.factored_second_moment_dims(shape) is not None
+
+  def factored_second_moment_dims(self, shape):
+    """Should we use a factored second moment estimator.
+
+    We select largest and second largest var dims as row and colum dims.
+
+    Default list of factored dims is -1, -2.
+
+    Args:
+      shape: a list of integers.
+
+    Returns:
+      either a list of 2 Dimension indices for row and col or None
+    """
+    if not self._factored:
+      return None
+    if len(shape) < 2:
+      return None
+    if not self._sort_factored_second_moment_dims:
+      return len(shape) - 1, len(shape) - 2
+
+    def largest_two_dim_indices():
+      s = [(s, i) for i, s in enumerate(shape)]
+      sorted_dims = sorted(s, key=lambda d: -d[0])
+      return sorted_dims[0][1], sorted_dims[1][1]
+
+    r_idx, c_idx = largest_two_dim_indices()
+    if shape[c_idx] < self._min_dim_size_to_factor:
+      return None
+    return r_idx, c_idx
 
   def should_store_momentum_in_qint(self, shape):
     """Should we store momentum as quantized integers.
@@ -1154,8 +1190,14 @@ class _ShardedAdafactorHelper:
       else:
         output_m = jnp.zeros(shape, dtype=jnp.float32)
     if self.should_use_factored_second_moment_estimate(shape):
-      output_vr = jnp.zeros(shape[:-1], dtype=jnp.float32)
-      output_vc = jnp.zeros(shape[:-2] + shape[-1:], dtype=jnp.float32)
+      factored_dims = self.factored_second_moment_dims(shape)
+      vr_axis, vc_axis = factored_dims
+      output_vr_shape = list(shape).copy()
+      del output_vr_shape[vr_axis]
+      output_vc_shape = list(shape).copy()
+      del output_vc_shape[vc_axis]
+      output_vr = jnp.zeros(output_vr_shape, dtype=jnp.float32)
+      output_vc = jnp.zeros(output_vc_shape, dtype=jnp.float32)
     else:
       output_v = jnp.zeros(shape, dtype=jnp.float32)
     return _ShardedAdafactorUpdateResult(
@@ -1228,24 +1270,30 @@ class _ShardedAdafactorHelper:
             device_mesh=var_param.device_mesh,
             tensor_split_dims_mapping=tensor_split_dims_mapping)
     if self.should_use_factored_second_moment_estimate(shape):
+      factored_dims = self.factored_second_moment_dims(shape)
+      vr_axis, vc_axis = factored_dims
       # TODO(shafey): Fix logic for updating sharding annotations.
       if sharding_specified:
         vr_split_dims_mapping = gshard_utils.remove_dim(
-            -1, tensor_split_dims_mapping)
+            vr_axis, tensor_split_dims_mapping)
         vc_split_dims_mapping = gshard_utils.remove_dim(
-            -2, tensor_split_dims_mapping)
+            vc_axis, tensor_split_dims_mapping)
       else:
         vr_split_dims_mapping = tensor_split_dims_mapping
         vc_split_dims_mapping = tensor_split_dims_mapping
+      output_vr_shape = list(shape).copy()
+      del output_vr_shape[vr_axis]
       output_vr = py_utils.weight_params(
-          shape[:-1],
+          output_vr_shape,
           init=None,
           dtype=jnp.float32,
           collections=None,
           device_mesh=var_param.device_mesh,
           tensor_split_dims_mapping=vr_split_dims_mapping)
+      output_vc_shape = list(shape).copy()
+      del output_vc_shape[vc_axis]
       output_vc = py_utils.weight_params(
-          shape[:-2] + shape[-1:],
+          output_vc_shape,
           init=None,
           dtype=jnp.float32,
           collections=None,
@@ -1272,13 +1320,31 @@ class _ShardedAdafactorHelper:
     return jnp.nan_to_num(
         array, nan=replacement, posinf=replacement, neginf=replacement)
 
+  def parameter_scale(self, var):
+    """Estimate the scale of the parameters from the current values.
+
+    We include a minimum value of 0.001 to give it a chance to escape 0
+    if it was zero-initialized.
+
+    Instead of using the value, we could impute the scale from the shape,
+    as initializers do.
+
+    Args:
+      var: a variable or Tensor.
+
+    Returns:
+      a Scalar
+    """
+    return jnp.maximum(reduce_rms(var), jnp.asarray(self._epsilon2, var.dtype))
+
   def compute_var_and_slot_update(self, count, grad, m, m_scale, vr, vc, v,
                                   param, var_name):
     """Computes the var and optimizer slots updates for a single variable."""
     # We can probably skip this step
     grad = self.sanitize_values(grad)
     grad = grad.astype(jnp.float32)
-    # Add epsilon1 as per Algorithm 4 of https://arxiv.org/pdf/1804.04235.pdf
+    # Add epsilon1_grad_sq_reg as per Algorithm 4
+    # of https://arxiv.org/pdf/1804.04235.pdf
     grad_squared = jnp.square(grad) + self._epsilon1
     grad_squared_mean = self.sanitize_values(reduce_mean(grad_squared))
     if self._decay_method == 'adam':
@@ -1294,6 +1360,10 @@ class _ShardedAdafactorHelper:
 
     update_scale = learning_rate
     old_val = param
+
+    if self._multiply_by_parameter_scale:
+      update_scale *= self.parameter_scale(old_val).astype(update_scale.dtype)
+
     # Q(yonghui): Can we remove the hack now?
     # HACK: Make things dependent on grad.
     # This confounds the XLA rewriter and keeps it from fusing computations
@@ -1311,13 +1381,15 @@ class _ShardedAdafactorHelper:
     output_vc = jnp.zeros((1,))
     output_v = jnp.zeros((1,))
 
-    if self.should_use_factored_second_moment_estimate(shape):
+    factored_second_moment_dims = self.factored_second_moment_dims(shape)
+    if factored_second_moment_dims is not None:
       # Q(shafey): Should we use the more numerically stable version
       # reduce_mean().
+      vr_axis, vc_axis = factored_second_moment_dims
       grad_squared_row_mean = self.sanitize_values(
-          jnp.mean(grad_squared, axis=-1))
+          jnp.mean(grad_squared, axis=vr_axis))
       grad_squared_col_mean = self.sanitize_values(
-          jnp.mean(grad_squared, axis=-2))
+          jnp.mean(grad_squared, axis=vc_axis))
       new_vr = decay_rate * vr + mixing_rate * grad_squared_row_mean
       new_vc = decay_rate * vc + mixing_rate * grad_squared_col_mean
       output_vr = new_vr
@@ -1325,7 +1397,8 @@ class _ShardedAdafactorHelper:
       long_term_mean = jnp.mean(new_vr, axis=-1, keepdims=True)
       r_factor = 1. / jnp.sqrt(new_vr / long_term_mean)
       c_factor = 1. / jnp.sqrt(new_vc)
-      x = grad * jnp.expand_dims(r_factor, -1) * jnp.expand_dims(c_factor, -2)
+      x = grad * jnp.expand_dims(r_factor, vr_axis) * jnp.expand_dims(
+          c_factor, vc_axis)
     else:
       # v with sharding annotation.
       new_v = decay_rate * v + mixing_rate * grad_squared
@@ -1389,11 +1462,17 @@ def sharded_adafactor(
     beta1: float = 0.,
     clipping_threshold: float = 1.,
     factored: bool = True,
-    epsilon1: float = 1e-30,
+    epsilon1_grad_sq_reg: float = 1e-30,
     quantized_dtype: jnp.dtype = jnp.int8,
     # TODO(bf-jax) Update default value to True, once this is supported.
     respect_skip_lp_regularization: bool = False,
     per_var_learning_summary=False,
+    sort_factored_second_moment_dims=False,
+    # min_dim_size_to_factor is only used when
+    # sort_factored_second_moment_dims=True.
+    min_dim_size_to_factor: int = 128,
+    multiply_by_parameter_scale: bool = False,
+    epsilon2_param_scale_reg: float = 1e-3,
 ) -> ShardedGradientTransformation:
   """AdaFactor optimizer that supports SPMD sharding.
 
@@ -1432,7 +1511,7 @@ def sharded_adafactor(
     beta1: a float value between 0 and 1 for momentum.
     clipping_threshold: an optional float >= 1
     factored: a boolean, whether or not to use factored second order momentum.
-    epsilon1: Regularization constant for squared gradient.
+    epsilon1_grad_sq_reg: Regularization constant for squared gradient.
     quantized_dtype: type of the quantized input. Allowed options are jnp.int8,
       jnp.int16, jnp.bfloat16 and jnp.float32. If floating-point type is
       specified, accumulators are stored as such type, instead of quantized
@@ -1441,6 +1520,16 @@ def sharded_adafactor(
       SKIP_LP_REGULARIZATION var collection that skips decoupled weight decay.
     per_var_learning_summary: a bool, whether or not to export per-var learning
       summaries.
+    sort_factored_second_moment_dims: a bool, whether to select dims to factor
+      by size, for the factored second moment.
+    min_dim_size_to_factor: an integer, only factor the statistics if two array
+      dimensions have at least this size. NOTE: min_dim_size_to_factor is only
+      used when sort_factored_second_moment_dims=True.
+    multiply_by_parameter_scale: a boolean, if True, then scale learning_rate
+      by parameter scale. if False provided learning_rate is absolute step
+      size. NOTE: False by default.
+    epsilon2_param_scale_reg: Regularization constant for parameter scale.
+      Only used when multiply_by_parameter_scale is True.
 
   Returns:
     A `ShardedGradientTransformation`.
@@ -1465,10 +1554,14 @@ def sharded_adafactor(
       beta1=beta1,
       clipping_threshold=clipping_threshold,
       factored=factored,
-      epsilon1=epsilon1,
+      epsilon1_grad_sq_reg=epsilon1_grad_sq_reg,
       quantized_dtype=quantized_dtype,
       respect_skip_lp_regularization=respect_skip_lp_regularization,
-      per_var_learning_summary=per_var_learning_summary)
+      per_var_learning_summary=per_var_learning_summary,
+      sort_factored_second_moment_dims=sort_factored_second_moment_dims,
+      min_dim_size_to_factor=min_dim_size_to_factor,
+      multiply_by_parameter_scale=multiply_by_parameter_scale,
+      epsilon2_param_scale_reg=epsilon2_param_scale_reg)
 
   def init_fn(params):
     """Initializes the optimizer's state."""
@@ -1539,7 +1632,8 @@ class ShardedAdafactor(BaseOptimizer):
     p.Define(
         'factored', True,
         'A boolean, whether or not to use factored second order momentum.')
-    p.Define('epsilon1', 1e-30, 'Regularization constant for squared gradient.')
+    p.Define('epsilon1_grad_sq_reg', 1e-30,
+             'Regularization constant for squared gradient.')
     p.Define(
         'quantized_dtype', 'int8',
         'Type of the quantized input. Allowed options are jnp.int8, jnp.int16, '
@@ -1553,6 +1647,24 @@ class ShardedAdafactor(BaseOptimizer):
         'collection that skips decoupled weight decay.')
     p.Define('per_var_learning_summary', False,
              'If True, output per var learning summary.')
+    p.Define(
+        'sort_factored_second_moment_dims', False,
+        'If True, will select largest and second largest dims as row and '
+        'column dims for factored second moment.')
+    # Note this is uncommon: min_dim_size_to_factor does not affect
+    # factorization in default case of sort_factored_second_moment_dims=False.
+    # Does not match optax API.
+    p.Define(
+        'min_dim_size_to_factor', 128,
+        'Only factor the statistics if two array dimensions have at least '
+        'this size. NOTE: min_dim_size_to_factor threshold only applies when ')
+    # NOTE this has uncommon: default value False.
+    p.Define(
+        'multiply_by_parameter_scale', False,
+        'If True, then scale learning_rate by parameter norm. if False, '
+        'provided learning_rate is absolute step size.')
+    p.Define('epsilon2_param_scale_reg', 1e-3,
+             'Regularization constant for parameter scale.')
     return p
 
   def _get_raw_grad_transformation(
@@ -1568,7 +1680,11 @@ class ShardedAdafactor(BaseOptimizer):
         beta1=p.beta1,
         clipping_threshold=p.clipping_threshold,
         factored=p.factored,
-        epsilon1=p.epsilon1,
+        epsilon1_grad_sq_reg=p.epsilon1_grad_sq_reg,
         quantized_dtype=getattr(jnp, p.quantized_dtype),
         respect_skip_lp_regularization=p.respect_skip_lp_regularization,
-        per_var_learning_summary=p.per_var_learning_summary)
+        per_var_learning_summary=p.per_var_learning_summary,
+        sort_factored_second_moment_dims=p.sort_factored_second_moment_dims,
+        min_dim_size_to_factor=p.min_dim_size_to_factor,
+        multiply_by_parameter_scale=p.multiply_by_parameter_scale,
+        epsilon2_param_scale_reg=p.epsilon2_param_scale_reg)
