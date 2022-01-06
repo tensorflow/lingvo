@@ -15,8 +15,6 @@
 # ==============================================================================
 """Conformer-related layers."""
 
-from typing import Dict, Tuple
-
 from lingvo.jax import asserts
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
@@ -31,19 +29,14 @@ JTensor = base_layer.JTensor
 InstantiableParams = py_utils.InstantiableParams
 
 
-class ResidualNormWrapper(base_layer.BaseLayer):
-  """This is a wrapper layer used in the conformer.
+class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
+  """Self attention sub-layer used in the Conformer layer.
 
-  This wrapper requires kwargs rather than in positional form.
+  Input is first normalized using norm_tpl. Output is processed using
+  multi-headed attention. And finally, the output of the attention layer
+  is combined with the input by residual connection.
 
-  Example: wrapper.fprop(theta.wrapper, inputs=inputs, paddings=paddings)
-
-  It takes a layer as input and adds normalization and residual connection.
-
-  For the normalization, we can apply it before the layer (pre_layer_norm=True)
-
-  or after the layer (pre_layer_norm=False).
-
+  For the normalization, we can specify pre norm or post norm.
   For the residual connection, we can specify the residual weight.
   """
 
@@ -56,7 +49,8 @@ class ResidualNormWrapper(base_layer.BaseLayer):
     p.Define(
         'input_weight', 1.0, 'Weight of the input connection.'
         'Output = fn(x) * residual_weight + x * input_weight.')
-    p.Define('core_tpl', None, 'Template of core layer.')
+    p.Define('self_atten_tpl', attentions.DotProductAttention.Params(),
+             'Template of self attention layer.')
     p.Define('norm_tpl', normalizations.LayerNorm.Params(),
              'Normalization params.')
     p.Define('pre_layer_norm', True,
@@ -69,26 +63,14 @@ class ResidualNormWrapper(base_layer.BaseLayer):
         'residual_dropout_tpl', stochastics.Dropout.Params(),
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
-
-    p.Define(
-        'input_adaptor_fn', None,
-        'Input adaptor used to connect between normalized input and inputs to the core_layer'
-    )
-    p.Define(
-        'residual_adaptor_fn', None,
-        'Residual adaptor used to connect between core_layer output and input')
-    p.Define('norm_adaptor_fn', None,
-             'Normalization adaptor used to collect tensor from input dicts')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     p = self.params
-    asserts.not_none(p.core_tpl)
-    self.create_child('core', p.core_tpl)
+    asserts.not_none(p.self_atten_tpl)
+    self.create_child('self_atten', p.self_atten_tpl)
 
-    asserts.in_set(p.norm_tpl.cls,
-                   [normalizations.LayerNorm, normalizations.BatchNorm])
     self.create_child('norm', p.norm_tpl)
 
     # Initialize residual dropout.
@@ -96,100 +78,34 @@ class ResidualNormWrapper(base_layer.BaseLayer):
     params.keep_prob = (1.0 - p.residual_dropout_prob)
     self.create_child('residual_dropout', params)
 
-    if p.input_adaptor_fn:
-      self.create_child('input_adaptor', p.input_adaptor_fn)
-    if p.residual_adaptor_fn:
-      self.create_child('residual_adaptor', p.residual_adaptor_fn)
-    if p.norm_adaptor_fn:
-      self.create_child('norm_adaptor', p.norm_adaptor_fn)
+  def normalize(self, theta: NestedMap, inputs: JTensor,
+                paddings: JTensor) -> JTensor:
+    # LayerNorm doesn't need paddings
+    return self.norm.fprop(theta.norm, inputs)
 
-  @property
-  def has_input_adaptor(self) -> bool:
-    return hasattr(self, 'input_adaptor')
-
-  @property
-  def has_residual_adaptor(self) -> bool:
-    return hasattr(self, 'residual_adaptor')
-
-  @property
-  def has_norm_adaptor(self) -> bool:
-    return hasattr(self, 'norm_adaptor')
-
-  def fprop(self, theta: NestedMap, **kwargs) -> JTensor:
+  def fprop(self, theta: NestedMap, inputs: JTensor,
+            paddings: JTensor) -> JTensor:
     p = self.params
 
+    unnormalized_inputs = inputs
+
     if p.pre_layer_norm:
-      if self.has_norm_adaptor:
-        unnormalized_inputs = self.norm_adaptor.fprop(**kwargs)
-      else:
-        asserts.in_set('inputs', list(kwargs.keys()))
-        unnormalized_inputs = kwargs['inputs']
+      inputs = self.normalize(theta, inputs, paddings)
 
-      inputs_normalized = self.norm.fprop(theta.norm, unnormalized_inputs)
-      kwargs['inputs'] = inputs_normalized
-    else:
-      asserts.in_set('inputs', list(kwargs.keys()))
-      unnormalized_inputs = kwargs['inputs']
-
-    if self.has_input_adaptor:
-      result = self.core.fprop(theta.core,
-                               **(self.input_adaptor.fprop(**kwargs)))
-    else:
-      result = self.core.fprop(theta.core, **kwargs)
-
+    atten_mask = attentions.convert_paddings_to_mask(paddings, inputs.dtype)
+    result = self.self_atten.fprop(
+        theta.self_atten,
+        query_vec=inputs,
+        key_vec=inputs,
+        value_vec=inputs,
+        atten_mask=atten_mask)[0]
     if not p.pre_layer_norm:
-      if self.has_norm_adaptor:
-        result = self.norm.fprop(theta.norm, self.norm_adaptor.fprop(result))
-      else:
-        result = self.norm.fprop(theta.norm, result)
+      result = self.normalize(theta, result, paddings)
 
-    if self.has_residual_adaptor and p.pre_layer_norm:
-      result = self.residual_dropout.fprop(
-          theta.residual_dropout, self.residual_adaptor.fprop(result)
-      ) * p.residual_weight + unnormalized_inputs * p.input_weight
-    else:
-      result = self.residual_dropout.fprop(
-          result) * p.residual_weight + unnormalized_inputs * p.input_weight
+    result = self.residual_dropout.fprop(
+        theta.residual_dropout,
+        result) * p.residual_weight + unnormalized_inputs * p.input_weight
     return result
-
-
-class SelfAttentionInputAdaptor(base_layer.BaseLayer):
-  """This adaptor generates core_layer arguments from input dictionary."""
-
-  def fprop(self, **kwargs) -> Dict[str, JTensor]:
-    return NestedMap(
-        query_vec=kwargs['inputs'],
-        key_vec=kwargs['inputs'],
-        value_vec=kwargs['inputs'],
-        atten_mask=attentions.convert_paddings_to_mask(
-            kwargs['paddings'], kwargs['inputs'].dtype)).ToNestedDict()
-
-
-class SelfAttentionResidualAdaptor(base_layer.BaseLayer):
-  """This adaptor select tensor from core_layer results for residual."""
-
-  @classmethod
-  def Params(cls) -> InstantiableParams:
-    p = super().Params()
-    return p
-
-  def fprop(self, inputs: Tuple[JTensor]) -> JTensor:
-    return inputs[0]
-
-
-class SelfAttentionNormAdaptor(base_layer.BaseLayer):
-  """If post_norm, this adaptor handles results from core_layer.
-
-    If pre_norm, this adaptor handles inputs from the wrapper.
-  """
-
-  @classmethod
-  def Params(cls) -> InstantiableParams:
-    p = super().Params()
-    return p
-
-  def fprop(self, **kwargs) -> JTensor:
-    return kwargs['inputs']
 
 
 class Conformer(base_layer.BaseLayer):
@@ -238,11 +154,8 @@ class Conformer(base_layer.BaseLayer):
         'If set to None, this layer is excluded.')
     p.Define(
         'trans_atten_tpl',
-        ResidualNormWrapper.Params().Set(
-            core_tpl=attentions.DotProductAttention.Params(),
-            input_adaptor_fn=SelfAttentionInputAdaptor.Params(),
-            norm_adaptor_fn=SelfAttentionNormAdaptor.Params(),
-            residual_adaptor_fn=SelfAttentionResidualAdaptor.Params()),
+        SelfAttentionWithNormAndResidual.Params().Set(
+            self_atten_tpl=attentions.DotProductAttention.Params()),
         'Self attention layer params.')
     p.Define(
         'lconv_tpl', convolutions.LightConv1D.Params(),
@@ -280,7 +193,7 @@ class Conformer(base_layer.BaseLayer):
             name='fflayer_start',
             activation=p.ff_activation,
             input_dims=p.input_dims,
-            projection_dims=p.model_dims,
+            output_dims=p.model_dims,
             hidden_dims=p.model_dims * p.ffn_dim_multiplier,
             residual_weight=p.ff_residual_weight,
         )
@@ -302,7 +215,7 @@ class Conformer(base_layer.BaseLayer):
     if 'mhsa' in p.layer_order:
       trans_atten_p = p.trans_atten_tpl.Copy().Set(
           residual_dropout_prob=p.dropout_prob,
-          core_tpl=p.trans_atten_tpl.core_tpl.Copy().Set(
+          self_atten_tpl=p.trans_atten_tpl.self_atten_tpl.Copy().Set(
               input_dim=p.model_dims,
               hidden_dim=p.model_dims,
               atten_dropout_prob=p.dropout_prob,

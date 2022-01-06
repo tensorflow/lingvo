@@ -189,8 +189,9 @@ class TransformerFeedForward(base_layer.BaseLayer):
     p = super().Params()
     p.Define('input_dims', 0, 'Depth of the input.')
     p.Define(
-        'projection_dims', 0, 'Depth of the output.'
-        'If unset, there is no residual projection layer.'
+        'output_dims', 0, 'Depth of the output.'
+        'If unset or output_dims == input_dims,'
+        'there is no residual projection layer.'
         'Otherwise, add a residual projection layer '
         'followed by batch normalization.')
     p.Define('hidden_dims', 0, 'Hidden dimension of FFN')
@@ -246,19 +247,20 @@ class TransformerFeedForward(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
 
-    if p.projection_dims == 0:
+    if p.output_dims == 0:
       # Make it compatible with previous implementation
-      p.projection_dims = p.input_dims
-    else:
+      p.output_dims = p.input_dims
+
+    if p.output_dims != p.input_dims:
       self.create_child(
           'res_proj',
           linears.Linear.Params().Set(
               input_dims=p.input_dims,
-              output_dims=p.projection_dims,
+              output_dims=p.output_dims,
           ))
       self.create_child(
           'res_proj_norm',
-          normalizations.BatchNorm.Params().Set(dim=p.projection_dims))
+          normalizations.BatchNorm.Params().Set(dim=p.output_dims))
 
     wp = p.weight_split_dims_mapping
     ap = p.activation_split_dims_mapping
@@ -319,7 +321,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
     ffn2_p.input_dims = p.hidden_dims
     ffn2_p.has_bias = p.has_bias
     ffn2_p.activation = 'NONE'
-    ffn2_p.output_dims = p.projection_dims
+    ffn2_p.output_dims = p.output_dims
     ffn2_p.weight_split_dims_mapping.wt = wp.ffn1
     ffn2_p.activation_split_dims_mapping.out = ap.ffn1
     self.create_child('ffn_layer2', ffn2_p)
@@ -919,10 +921,6 @@ class Transformer(base_layer.BaseLayer):
     return self.self_attention.init_states(theta.self_attention,
                                            target_batch_size, target_max_length)
 
-  @property
-  def has_fflayer(self) -> bool:
-    return hasattr(self, 'ff_layer')
-
   def fprop(
       self,
       theta: NestedMap,
@@ -1009,11 +1007,8 @@ class Transformer(base_layer.BaseLayer):
       atten_output += cross_atten_output
 
     # Apply FFN layer
-    if self.has_fflayer:
-      output = self.ff_layer.fprop(
-          theta.ff_layer, atten_output, paddings=paddings)
-    else:
-      output = atten_output
+    output = self.ff_layer.fprop(
+        theta.ff_layer, atten_output, paddings=paddings)
     return output, atten_probs
 
   def extend_step(
@@ -1101,10 +1096,7 @@ class Transformer(base_layer.BaseLayer):
       atten_output += cross_atten_output
 
     # Apply FFN layer
-    if self.has_fflayer:
-      output = self.ff_layer.fprop(theta.ff_layer, atten_output)
-    else:
-      output = atten_output
+    output = self.ff_layer.fprop(theta.ff_layer, atten_output)
     return updated_states, output
 
 

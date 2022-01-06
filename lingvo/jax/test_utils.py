@@ -358,6 +358,6 @@ def replace_jax_conformer_layer_vars_to_tf(
   tf_initial_vars.trans_atten = py_utils.NestedMap()
   tf_initial_vars.trans_atten.layer_norm = jax_initial_vars.trans_atten.norm
   tf_initial_vars.trans_atten.residual_dropout = jax_initial_vars.trans_atten.residual_dropout
-  tf_initial_vars.trans_atten.atten = jax_initial_vars.trans_atten.core
+  tf_initial_vars.trans_atten.atten = jax_initial_vars.trans_atten.self_atten
   tf_initial_vars = to_tf_nmap(tf_initial_vars)
   return tf_initial_vars
