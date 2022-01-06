@@ -705,8 +705,8 @@
     <span class="c1"># with EMA enabled), use the EMA version of the variables if applicable.</span>
     <span class="n">ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExecutorEMA</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">ema</span><span class="p">:</span>
-      <span class="c1"># TODO(laigd): for eval/decode only models this is not True. Fix it.</span>
-      <span class="c1"># assert ema is self.ema</span>
+      <span class="c1"># Note: &#39;ema&#39; is not necessarily the same as &#39;self.ema&#39;. If &#39;self&#39; is not</span>
+      <span class="c1"># instantiated inside a model context, then &#39;self.ema&#39; is invalid.</span>
       <span class="n">vars_loaded_as_ema</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span>
                                                         <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">())</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">vars_loaded_as_ema</span><span class="p">,</span> <span class="p">(</span>

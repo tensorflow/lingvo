@@ -1018,9 +1018,7 @@
 
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">TaskCallScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">):</span>
-        <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
-        <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
@@ -1313,9 +1311,7 @@
 
     <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">TaskCallScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">):</span>
-        <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
-        <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)</span>
       <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedEnqueue</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)]</span>
 
@@ -1508,8 +1504,7 @@
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
       <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-        <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
-        <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
@@ -1693,11 +1688,6 @@
       <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">ml_perf</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExecutorEMA</span><span class="p">():</span>
-      <span class="c1"># When EMA is used, the train program must be added to self._programs</span>
-      <span class="c1"># before any eval programs.</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;When EMA is used, there must be a train program to &#39;</span>
-                       <span class="s1">&#39;apply the EMA before eval programs can use it.&#39;</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">eval_program_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>

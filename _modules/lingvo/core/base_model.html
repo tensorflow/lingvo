@@ -495,6 +495,10 @@
           <span class="n">pruning_utils</span><span class="o">.</span><span class="n">UsePruningInterface</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">)):</span>
         <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">Setup</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
 
+    <span class="c1"># The set of ids of TF graphs in which ApplyExponentialMovingAverage has</span>
+    <span class="c1"># been called.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_graphs_applied_ema</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
 <div class="viewcode-block" id="BaseTask._SetLearnerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._SetLearnerFromLegacyParams">[docs]</a>  <span class="k">def</span> <span class="nf">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tp</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sets tp.learner based on legacy params.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -848,7 +852,27 @@
 
 <div class="viewcode-block" id="BaseTask.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ema</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wraps `self.train_op` with an op updating exponential moving average.&quot;&quot;&quot;</span>
-    <span class="c1"># TODO(rpang): raise an exception if this is called in the eval mode.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">ema</span><span class="p">:</span>
+      <span class="c1"># EMA not enabled.</span>
+      <span class="k">return</span>
+
+    <span class="c1"># Make sure this is called at most once in a graph. In eager mode, the outer</span>
+    <span class="c1"># tf.function will be traced multiple times in different function graphs.</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="nb">id</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">graph</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graphs_applied_ema</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;ApplyExponentialMovingAverage was called before. Calling it again &#39;</span>
+          <span class="s1">&#39;will create multiple sets of EMA update ops, and the behavior is &#39;</span>
+          <span class="s1">&#39;undefined.&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_graphs_applied_ema</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">graph</span><span class="p">)</span>
+
+    <span class="c1"># If self.vars are already EMA variables loaded from checkpoint, we don&#39;t</span>
+    <span class="c1"># apply EMA again. This happens when we run CPU-based Evaler/Decoder or</span>
+    <span class="c1"># export inference graph with EMA enabled.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()):</span>
+      <span class="k">return</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
     <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_VariablesForEMA</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ema</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">all_vars</span><span class="p">))</span></div>
@@ -1178,6 +1202,9 @@
 <div class="viewcode-block" id="BaseModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="BaseModel.ConstructDecodeGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructDecodeGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructDecodeGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseModel.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outfeed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
@@ -1256,15 +1283,25 @@
 
 <div class="viewcode-block" id="SingleTaskBase.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span>
-
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="SingleTaskBase.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SingleTaskBase.ConstructDecodeGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructDecodeGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructDecodeGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">TaskCallScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">):</span>
+      <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">GetInputBatch</span><span class="p">()</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>  <span class="c1"># Non-TPU case.</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="n">input_batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">input_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SingleTaskBase.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outfeed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostTrainingLoop</span><span class="p">(</span><span class="n">outfeed</span><span class="p">)</span></div></div>
@@ -1493,7 +1530,23 @@
     <span class="k">for</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
         <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div></div>
+        <span class="c1"># Note: this is for CPU-based eval only where the variables are already</span>
+        <span class="c1"># loaded as EMA variables, so we don&#39;t need to apply EMA.</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="MultiTaskModel.ConstructDecodeGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.ConstructDecodeGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructDecodeGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">task_name</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;It can decode only one task at a time, but task_name is not set.&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+      <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
+      <span class="c1"># Note: this is for CPU-based eval only where the variables are already</span>
+      <span class="c1"># loaded as EMA variables, so we don&#39;t need to apply EMA.</span>
+      <span class="n">input_batch</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">GetInputBatch</span><span class="p">()</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>  <span class="c1"># Non-TPU case.</span>
+        <span class="n">input_batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">input_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

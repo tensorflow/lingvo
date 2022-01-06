@@ -457,7 +457,6 @@
         <span class="k">try</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Fetching dec_output.&#39;</span><span class="p">)</span>
           <span class="n">fetch_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-          <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
           <span class="c1"># Decoder calls FProp multiple times for each checkpoint. Multiple</span>
           <span class="c1"># summaries at the same step is often confusing.  Instead, models</span>
           <span class="c1"># should generate aggregate summaries using PostProcessDecodeOut.</span>
@@ -467,9 +466,11 @@
           <span class="k">if</span> <span class="n">is_first_loop</span><span class="p">:</span>
             <span class="c1"># TODO(jiaweix): Investigate how to only write non-scalar summaries.</span>
             <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-              <span class="n">dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+              <span class="n">input_batch</span><span class="p">,</span> <span class="n">dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
           <span class="k">else</span><span class="p">:</span>
-            <span class="n">dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+            <span class="n">input_batch</span><span class="p">,</span> <span class="n">dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
 
           <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetCpuPassthroughKeys</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>

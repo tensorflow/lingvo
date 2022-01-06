@@ -1163,12 +1163,8 @@
         <span class="c1"># tasks, which may result in different node names being chosen.</span>
         <span class="c1"># Obviously, variable names has to be stay the same between train and</span>
         <span class="c1"># decode.</span>
-        <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">input_device</span><span class="p">):</span>
-          <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
-
+        <span class="n">input_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetCpuPassthroughKeys</span><span class="p">():</span>
           <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span><span class="p">:</span>

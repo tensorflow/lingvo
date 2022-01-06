@@ -382,9 +382,6 @@
         <span class="c1"># Create the ExponentialMovingAverage singleton shared by all</span>
         <span class="c1"># programs, if applicable.</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeCreateExecutorEMA</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
-        <span class="c1"># Note: when EMA is used, there must be a train program, and its graph</span>
-        <span class="c1"># must be built before any eval programs in order to apply EMA. This is</span>
-        <span class="c1"># currently guaranteed by SimpleProgramSchedule.</span>
         <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
           <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">ClearTpuSummaryTensors</span><span class="p">()</span>
