@@ -850,8 +850,6 @@ def GetTFDataServiceDataSet(job_name,
   if dataset_id is None:
     if dataset is None:
       raise ValueError('Either a dataset or dataset_id must be provided.')
-    tf.logging.info('Dataset debug before register_dataset: %r',
-                    dataset.__debug_string__())
     dataset_id = tf.data.experimental.service.register_dataset(
         service=tf_data_service_address, dataset=dataset)
     element_spec = dataset.element_spec
@@ -901,6 +899,11 @@ class TFDataServiceSource(TFDatasetTransform):
         # Hacky: relies on SetInputGenerator called in input_generator.__init__,
         # before p.tpu_infeed_parallelism is used.
         self._input_generator.params.tpu_infeed_parallelism = 1
+    if self._input_generator.params.use_per_host_infeed:
+      tf.logging.warning(
+          'When using tf.data service, it is usually better to set '
+          'use_per_host_infeed=False unless the global batch is unable to fit '
+          'in memory of a single machine.')
 
   def GetDataset(self):
     p = self.params
@@ -923,8 +926,6 @@ class TFDataServiceSource(TFDatasetTransform):
                 window_size=self.num_hosts))
         dataset = dataset.flat_map(lambda x: x)
 
-      tf.logging.info('Dataset debug before register_dataset: %r',
-                      dataset.__debug_string__())
       self._dataset_id = tf.data.experimental.service.register_dataset(
           service=self.cluster.tf_data_service_address, dataset=dataset)
       self._element_spec = dataset.element_spec
