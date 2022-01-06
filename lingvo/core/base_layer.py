@@ -570,9 +570,11 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # pylint: disable=protected-access
     # Note: 'root' may not be a BaseModel, but we want it to be. So to avoid
     # misuse, we intentionally don't add an '_ema' member for the layer.
-    if root._ema:
+    if hasattr(root, '_ema') and root._ema:
       assert isinstance(root._ema, tf.train.ExponentialMovingAverage)
-    return root._ema
+      return root._ema
+    else:
+      return None
     # pylint: enable=protected-access
 
   @property
