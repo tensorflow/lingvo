@@ -48,49 +48,38 @@ InferenceDeviceOptions = collections.namedtuple('InferenceDeviceOptions', [
     'dtype_override', 'fprop_dtype_override'
 ])
 
+
 _CONST_GUARANTEE = None
 
 
-@contextlib.contextmanager
-def NoConstGuaranteeScope():
-  """Disallow const gauranteeing variable with-in scope."""
-  global _CONST_GUARANTEE
-  var_scope = tf.get_variable_scope()
-  old_caching_device = var_scope.caching_device
-  old_val = _CONST_GUARANTEE
-  var_scope.set_caching_device(None)
-  _CONST_GUARANTEE = False
-  yield
-  _CONST_GUARANTEE = old_val
-  var_scope.set_caching_device(old_caching_device)
-
-
 # Marks variable as constants for compilation
-def MaybeGuaranteeConstGetter(getter, name, *args, **kwargs):
-  global _CONST_GUARANTEE
+def GuaranteeConstGetter(next_creator, **kwargs):
   if _CONST_GUARANTEE:
     with tf.control_dependencies(None):
-      return tf.guarantee_const(
-          getter(name, *args, **kwargs), name=name + '/GuaranteeConst')
-  else:
-    return getter(name, *args, **kwargs)
+      name = kwargs['var_name'] + '/GuaranteeConst'
+      return tf.guarantee_const(next_creator(**kwargs), name=name)
+  return next_creator(**kwargs)
 
 
 @contextlib.contextmanager
 def ConstGuaranteeScope():
   """Treats all variables under this scope as constants."""
   global _CONST_GUARANTEE
-  var_scope = tf.get_variable_scope()
-  old_custom_getter = var_scope.custom_getter
-  old_caching_device = var_scope.caching_device
   old_val = _CONST_GUARANTEE
-  var_scope.set_custom_getter(MaybeGuaranteeConstGetter)
-  var_scope.set_caching_device(lambda op: op.device)
   _CONST_GUARANTEE = True
+  with py_utils.VariableCreatorScope(GuaranteeConstGetter):
+    yield
+  _CONST_GUARANTEE = old_val
+
+
+@contextlib.contextmanager
+def NoConstGuaranteeScope():
+  """Disallow const guaranteeing variable with-in scope."""
+  global _CONST_GUARANTEE
+  old_val = _CONST_GUARANTEE
+  _CONST_GUARANTEE = False
   yield
   _CONST_GUARANTEE = old_val
-  var_scope.set_custom_getter(old_custom_getter)
-  var_scope.set_caching_device(old_caching_device)
 
 
 @contextlib.contextmanager
@@ -339,7 +328,7 @@ class InferenceGraphExporter:
       disable_packed_input: Disable packed input for inference writing purposes.
       prune_graph: If true, prune the graph to just the parts we need.
       export_graph_collections: If true, export graph collections to the
-      InferenceGraph proto.
+        InferenceGraph proto.
 
     Returns:
       InferenceGraph proto.
