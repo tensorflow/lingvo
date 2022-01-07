@@ -154,20 +154,20 @@
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.inference_graph_exporter.NoConstGuaranteeScope">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.inference_graph_exporter.</span></span><span class="sig-name descname"><span class="pre">NoConstGuaranteeScope</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#NoConstGuaranteeScope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.NoConstGuaranteeScope" title="Permalink to this definition"></a></dt>
-<dd><p>Disallow const gauranteeing variable with-in scope.</p>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.inference_graph_exporter.MaybeGuaranteeConstGetter">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.inference_graph_exporter.</span></span><span class="sig-name descname"><span class="pre">MaybeGuaranteeConstGetter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">getter</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#MaybeGuaranteeConstGetter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.MaybeGuaranteeConstGetter" title="Permalink to this definition"></a></dt>
+<dt class="sig sig-object py" id="lingvo.core.inference_graph_exporter.GuaranteeConstGetter">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.inference_graph_exporter.</span></span><span class="sig-name descname"><span class="pre">GuaranteeConstGetter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">next_creator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#GuaranteeConstGetter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.GuaranteeConstGetter" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.inference_graph_exporter.ConstGuaranteeScope">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.inference_graph_exporter.</span></span><span class="sig-name descname"><span class="pre">ConstGuaranteeScope</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#ConstGuaranteeScope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.ConstGuaranteeScope" title="Permalink to this definition"></a></dt>
 <dd><p>Treats all variables under this scope as constants.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.inference_graph_exporter.NoConstGuaranteeScope">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.inference_graph_exporter.</span></span><span class="sig-name descname"><span class="pre">NoConstGuaranteeScope</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inference_graph_exporter.html#NoConstGuaranteeScope"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.inference_graph_exporter.NoConstGuaranteeScope" title="Permalink to this definition"></a></dt>
+<dd><p>Disallow const guaranteeing variable with-in scope.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -313,8 +313,8 @@ empty, export only this list of inference subgraphs.</p></li>
 <li><p><strong>random_seed</strong> – Fixes the random seed in the exported inference graph.</p></li>
 <li><p><strong>disable_packed_input</strong> – Disable packed input for inference writing purposes.</p></li>
 <li><p><strong>prune_graph</strong> – If true, prune the graph to just the parts we need.</p></li>
-<li><p><strong>export_graph_collections</strong> – If true, export graph collections to the</p></li>
-<li><p><strong>proto.</strong> (<a class="reference internal" href="lingvo.core.inference_graph_pb2.html#lingvo.core.inference_graph_pb2.InferenceGraph" title="lingvo.core.inference_graph_pb2.InferenceGraph"><em>InferenceGraph</em></a>) – </p></li>
+<li><p><strong>export_graph_collections</strong> – If true, export graph collections to the
+InferenceGraph proto.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

@@ -113,49 +113,38 @@
     <span class="s1">&#39;dtype_override&#39;</span><span class="p">,</span> <span class="s1">&#39;fprop_dtype_override&#39;</span>
 <span class="p">])</span>
 
+
 <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="kc">None</span>
 
 
-<div class="viewcode-block" id="NoConstGuaranteeScope"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.NoConstGuaranteeScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">NoConstGuaranteeScope</span><span class="p">():</span>
-  <span class="sd">&quot;&quot;&quot;Disallow const gauranteeing variable with-in scope.&quot;&quot;&quot;</span>
-  <span class="k">global</span> <span class="n">_CONST_GUARANTEE</span>
-  <span class="n">var_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
-  <span class="n">old_caching_device</span> <span class="o">=</span> <span class="n">var_scope</span><span class="o">.</span><span class="n">caching_device</span>
-  <span class="n">old_val</span> <span class="o">=</span> <span class="n">_CONST_GUARANTEE</span>
-  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_caching_device</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="kc">False</span>
-  <span class="k">yield</span>
-  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="n">old_val</span>
-  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_caching_device</span><span class="p">(</span><span class="n">old_caching_device</span><span class="p">)</span></div>
-
-
 <span class="c1"># Marks variable as constants for compilation</span>
-<div class="viewcode-block" id="MaybeGuaranteeConstGetter"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.MaybeGuaranteeConstGetter">[docs]</a><span class="k">def</span> <span class="nf">MaybeGuaranteeConstGetter</span><span class="p">(</span><span class="n">getter</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="k">global</span> <span class="n">_CONST_GUARANTEE</span>
+<div class="viewcode-block" id="GuaranteeConstGetter"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.GuaranteeConstGetter">[docs]</a><span class="k">def</span> <span class="nf">GuaranteeConstGetter</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">_CONST_GUARANTEE</span><span class="p">:</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">guarantee_const</span><span class="p">(</span>
-          <span class="n">getter</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/GuaranteeConst&#39;</span><span class="p">)</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">getter</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+      <span class="n">name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;var_name&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;/GuaranteeConst&#39;</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">guarantee_const</span><span class="p">(</span><span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ConstGuaranteeScope"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.ConstGuaranteeScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">ConstGuaranteeScope</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Treats all variables under this scope as constants.&quot;&quot;&quot;</span>
   <span class="k">global</span> <span class="n">_CONST_GUARANTEE</span>
-  <span class="n">var_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
-  <span class="n">old_custom_getter</span> <span class="o">=</span> <span class="n">var_scope</span><span class="o">.</span><span class="n">custom_getter</span>
-  <span class="n">old_caching_device</span> <span class="o">=</span> <span class="n">var_scope</span><span class="o">.</span><span class="n">caching_device</span>
   <span class="n">old_val</span> <span class="o">=</span> <span class="n">_CONST_GUARANTEE</span>
-  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_custom_getter</span><span class="p">(</span><span class="n">MaybeGuaranteeConstGetter</span><span class="p">)</span>
-  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_caching_device</span><span class="p">(</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
   <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">GuaranteeConstGetter</span><span class="p">):</span>
+    <span class="k">yield</span>
+  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="n">old_val</span></div>
+
+
+<div class="viewcode-block" id="NoConstGuaranteeScope"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.NoConstGuaranteeScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">NoConstGuaranteeScope</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Disallow const guaranteeing variable with-in scope.&quot;&quot;&quot;</span>
+  <span class="k">global</span> <span class="n">_CONST_GUARANTEE</span>
+  <span class="n">old_val</span> <span class="o">=</span> <span class="n">_CONST_GUARANTEE</span>
+  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="k">yield</span>
-  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="n">old_val</span>
-  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_custom_getter</span><span class="p">(</span><span class="n">old_custom_getter</span><span class="p">)</span>
-  <span class="n">var_scope</span><span class="o">.</span><span class="n">set_caching_device</span><span class="p">(</span><span class="n">old_caching_device</span><span class="p">)</span></div>
+  <span class="n">_CONST_GUARANTEE</span> <span class="o">=</span> <span class="n">old_val</span></div>
 
 
 <div class="viewcode-block" id="_DummyScope"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter._DummyScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
@@ -404,7 +393,7 @@
 <span class="sd">      disable_packed_input: Disable packed input for inference writing purposes.</span>
 <span class="sd">      prune_graph: If true, prune the graph to just the parts we need.</span>
 <span class="sd">      export_graph_collections: If true, export graph collections to the</span>
-<span class="sd">      InferenceGraph proto.</span>
+<span class="sd">        InferenceGraph proto.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      InferenceGraph proto.</span>
