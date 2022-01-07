@@ -157,7 +157,8 @@ class NoConstGuaranteeScopeTest(test_utils.TestCase):
       v = py_utils.CreateVariable('v', wp)
       self.assertEqual(tf.Tensor, type(v))
       with inference_graph_exporter.NoConstGuaranteeScope():
-        v = py_utils.CreateVariable('v', wp, reuse=True)
+        with tf.variable_scope('', reuse=True):
+          v = py_utils.CreateVariable('v', wp)
         self.assertIsInstance(v, tf.Variable)
 
 

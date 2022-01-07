@@ -1746,7 +1746,6 @@ def MaybeOpportunisticVariableReuse(next_creator, **kwargs):
 # TODO(yonghui): Add support for partitioned Variables.
 def CreateVariable(name,
                    params,
-                   reuse=None,
                    trainable=True,
                    collections=None,
                    default_seed=None,
@@ -1758,8 +1757,6 @@ def CreateVariable(name,
     name: A string, name of the variable.
     params: A WeightParams specifying the details of how this variable should be
       constructed and initialized.
-    reuse: Whether or not to reuse an existing variable. It has the same
-      semantics as the reuse arg in tf.variable_scope.
     trainable: Whether or not the variable is trainable.
     collections: Override the default variable collection (
       tf.GraphKeys.GLOBAL_VARIABLES). Note that specifying a collections
@@ -1778,16 +1775,15 @@ def CreateVariable(name,
     The created variable.
   """
   if use_stateless_vars_init():
-    return _CreateVariableStateless(name, params, reuse, trainable, collections,
+    return _CreateVariableStateless(name, params, trainable, collections,
                                     default_seed, synchronization, aggregation)
   else:
-    return _CreateVariableStateful(name, params, reuse, trainable, collections,
+    return _CreateVariableStateful(name, params, trainable, collections,
                                    default_seed, synchronization, aggregation)
 
 
 def _CreateVariableStateful(name,
                             params,
-                            reuse=None,
                             trainable=True,
                             collections=None,
                             default_seed=None,
@@ -1799,8 +1795,6 @@ def _CreateVariableStateful(name,
     name: A string, name of the variable.
     params: A WeightParams specifying the details of how this variable should be
       constructed and initialized.
-    reuse: Whether or not to reuse an existing variable. It has the same
-      semantics as the reuse arg in tf.variable_scope.
     trainable: Whether or not the variable is trainable.
     collections: Override the default variable collection (
       tf.GraphKeys.GLOBAL_VARIABLES).
@@ -1904,7 +1898,7 @@ def _CreateVariableStateful(name,
           custom_getter=scope.custom_getter,
           caching_device=scope.caching_device,
           use_resource=True)
-    with tf.variable_scope(var_scope), tf.variable_scope(var_name, reuse=reuse):
+    with tf.variable_scope(var_scope), tf.variable_scope(var_name):
       return next_creator(**kwargs)
 
   with contextlib.ExitStack() as context_stack:
@@ -1951,7 +1945,6 @@ def _CreateVariableStateful(name,
 
 def _CreateVariableStateless(name,
                              params,
-                             reuse=None,
                              trainable=True,
                              collections=None,
                              default_seed=None,
@@ -1963,8 +1956,6 @@ def _CreateVariableStateless(name,
     name: A string, name of the variable.
     params: A WeightParams specifying the details of how this variable should be
       constructed and initialized.
-    reuse: Whether or not to reuse an existing variable. It has the same
-      semantics as the reuse arg in tf.variable_scope.
     trainable: Whether or not the variable is trainable.
     collections: Override the default variable collection (
       tf.GraphKeys.GLOBAL_VARIABLES).
@@ -2025,7 +2016,7 @@ def _CreateVariableStateless(name,
           custom_getter=scope.custom_getter,
           caching_device=scope.caching_device,
           use_resource=True)
-    with tf.variable_scope(var_scope), tf.variable_scope(var_name, reuse=reuse):
+    with tf.variable_scope(var_scope), tf.variable_scope(var_name):
       return next_creator(**kwargs)
 
   with contextlib.ExitStack() as context_stack:
