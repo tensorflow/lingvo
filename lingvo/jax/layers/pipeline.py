@@ -19,6 +19,7 @@ from typing import Any
 
 import jax
 from jax import numpy as jnp
+from jax.experimental import maps
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -33,14 +34,12 @@ NestedJTensor = pytypes.NestedJTensor
 
 
 # Ported from LayerwiseShardablePipelinedLayer in gshard_layers.py.
-# TODO(zhangqiaorjc): Use jax.vmap to avoid requiring inputs to have a leading
-# num_microbatch dim.
 class LayerwiseShardablePipelined(base_layer.BaseLayer):
   """A layer that implements pipelining across stages.
 
   It creates a loop over microbatches around a loop-body layer. The wrapped body
-  layer should have an explicit leading num_stages dimension in the input/output
-  data (required) and weights (to achieve real pipeline parallelism).
+  layer represents a single stage, which will be added a leading num_stages
+  dimension with xmap() in the input/output data and weights.
 
   It can run on a single core, or sharded using GSPMD annotations. If the stage
   dimension is sharded, GSPMD will produce a cross-core pipelining pattern.
@@ -68,7 +67,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
         shifted_state = jnp.pad(state, [[1, 0], ...])[:-1]
         in_mask = jnp.equal(jnp.arange(num_stages), 0)
         stages_in = jnp.where(in_mask, padded_input[i],  shifted_state)
-        state = stage_parallel_body.FProp(theta.body, stages_in)
+        state = xmap(single_stage_body.fprop)(theta.body, stages_in)
   """
 
   @classmethod
@@ -77,11 +76,11 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     p = super().Params()
     p.Define('num_stages', 1, 'Number of pipeline stages.')
     p.Define(
-        'stage_parallel_body', None,
-        'The param for the pipelined body. Its input data should have '
-        'a leading dimension that corresponds to num_stages, and its '
-        'computation should be parallel along this dimension to achieve '
-        'real pipeline parallelism.')
+        'single_stage_body', None,
+        'Single Stage body. A leading num_stages dimension will be added '
+        'automatically by the pipeline layer.')
+    wp = p.weight_split_dims_mapping
+    wp.Define('stages', [-1], 'How the num_stages dimension should be sharded.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -89,7 +88,33 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
     assert p.name
-    self.create_child('body', p.stage_parallel_body)
+    assert p.single_stage_body
+    repeat_prefix = (p.repeat_prefix or []) + [p.num_stages]
+    assert len(p.weight_split_dims_mapping.stages) == 1
+    repeat_prefix_split_dims_mapping = tuple(
+        p.repeat_prefix_split_dims_mapping or [-1] *
+        (len(repeat_prefix) - 1)) + tuple(p.weight_split_dims_mapping.stages)
+    body_params = p.single_stage_body.Copy().Set(
+        name='body',
+        repeat_prefix=repeat_prefix,
+        repeat_prefix_split_dims_mapping=repeat_prefix_split_dims_mapping)
+    self.create_child('body', body_params)
+
+  def body_fprop(self, theta: NestedMap,
+                 per_stage_inputs: NestedJTensor) -> NestedJTensor:
+    """Runs the fprop function of the stages."""
+    p = self.params
+    axis_resources = {}
+    if p.mesh_axis_names is not None:
+      mesh_axis = base_layer.to_partition_spec(
+          p.weight_split_dims_mapping.stages, p.mesh_axis_names)[0]
+      if mesh_axis is not None:
+        axis_resources = {'num_stages': mesh_axis}
+    return maps.xmap(
+        self.body.fprop,
+        in_axes=['num_stages', ...],
+        out_axes=['num_stages', ...],
+        axis_resources=axis_resources)(theta.body, per_stage_inputs)
 
   def fprop(self, theta: NestedMap, inputs: NestedJTensor) -> Any:
     """FProp inputs through the pipeline body.
@@ -130,9 +155,10 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
       shifted_state = jnp.pad(in_state, padding)[0:L, ...]
       # Bring in the next microbatch.
       iota = jax.lax.broadcasted_iota('int32', shifted_state.shape, 0)
-      stages_in = jnp.where(iota == 0, inp, shifted_state)
+      stages_in = jax.tree_map(lambda x, s: jnp.where(iota == 0, x, s), inp,
+                               shifted_state)
       # Run through pipeline body.
-      out_state = self.body.fprop(theta.body, stages_in)
+      out_state = self.body_fprop(theta, stages_in)
       py_utils.assert_same_shape_and_dtype(stages_in, out_state)
       # Accumulator saves out_state for final output retrieval.
       return NestedMap(data=out_state), NestedMap(data=out_state)

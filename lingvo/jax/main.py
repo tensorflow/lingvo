@@ -110,6 +110,9 @@ def setup_jax(globally_use_hardware_rng: bool, jax_use_gda: bool,
     jax_xla_backend = 'None' if jax_xla_backend is None else jax_xla_backend
     logging.info('Using JAX XLA backend %s', jax_xla_backend)
 
+  # We use xmap only with SPMD.
+  jax.config.update('experimental_xmap_spmd_lowering', True)
+
   logging.info('JAX process: %d / %d', jax.process_index(), jax.process_count())
   logging.info('JAX devices: %r', jax.devices())
   logging.info('jax.device_count(): %d', jax.device_count())
