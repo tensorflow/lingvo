@@ -99,6 +99,8 @@
 
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf.tpu</span> <span class="kn">import</span> <span class="n">compilation_result_pb2</span> <span class="k">as</span> <span class="n">tpu_compilation_result</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.eager</span> <span class="kn">import</span> <span class="n">context</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.eager</span> <span class="kn">import</span> <span class="n">executor</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">training_loop</span> <span class="k">as</span> <span class="n">tpu_training_loop</span>
@@ -106,6 +108,15 @@
 
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+<span class="c1"># According to the Runtime team, by default (set to True), even if we use</span>
+<span class="c1"># async executors locally, the remote host will still run the functions</span>
+<span class="c1"># sequentially. We have to set this to False in order to enable parallelism</span>
+<span class="c1"># in the remote hosts as well. As long as the infeed is independent of the</span>
+<span class="c1"># training part, we are safe to do so.</span>
+<span class="c1"># TODO(haoyuzhang): I have a question: this seems to be a very subtle behavior,</span>
+<span class="c1"># because the formal docs only mentioned setting this to False for better</span>
+<span class="c1"># debugging. Will this behavior get changed in the future?</span>
+<span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;TF_ENABLE_EAGER_CLIENT_STREAMING_ENQUEUE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;False&#39;</span>
 
 
 <div class="viewcode-block" id="BaseProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram">[docs]</a><span class="k">class</span> <span class="nc">BaseProgram</span><span class="p">:</span>
@@ -639,23 +650,21 @@
       <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
 
+    <span class="k">def</span> <span class="nf">InfeedFunc</span><span class="p">():</span>
+
+      <span class="k">def</span> <span class="nf">InfeedBody</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+        <span class="c1"># Auto control dependency may not support TPU infeed ops, so add the</span>
+        <span class="c1"># dependency manually.</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">):</span>
+          <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+          <span class="n">cond</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+          <span class="n">body</span><span class="o">=</span><span class="n">InfeedBody</span><span class="p">,</span>
+          <span class="n">loop_vars</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)])</span>
+
     <span class="k">def</span> <span class="nf">TrainFunc</span><span class="p">():</span>
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="c1"># Run the infeed loop in the same function that runs the training loop,</span>
-        <span class="c1"># so that infeed enqueue/dequeue ops are created by the same</span>
-        <span class="c1"># InfeedQueue.</span>
-        <span class="k">def</span> <span class="nf">InfeedBody</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-          <span class="c1"># Auto control dependency may not support TPU infeed ops, so add the</span>
-          <span class="c1"># dependency manually.</span>
-          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
-
-        <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
-            <span class="n">cond</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
-            <span class="n">body</span><span class="o">=</span><span class="n">InfeedBody</span><span class="p">,</span>
-            <span class="n">loop_vars</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)])</span>
-
       <span class="c1"># TODO(laigd): investigate how to run compilation only to catch errors</span>
       <span class="c1"># earlier.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
@@ -684,6 +693,8 @@
       <span class="k">return</span> <span class="n">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">metric_values</span><span class="p">,</span> <span class="n">outfeed</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span>
+          <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">TrainFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
     <span class="k">else</span><span class="p">:</span>
@@ -719,7 +730,17 @@
           <span class="p">})</span>
 
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="n">async_executor</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">new_executor</span><span class="p">(</span><span class="n">enable_async</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">executor_scope</span><span class="p">(</span><span class="n">async_executor</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span><span class="p">()</span>
+
       <span class="n">values</span><span class="p">,</span> <span class="n">outfeeds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">()</span>
+      <span class="c1"># Ensure that the infeed ops are finished</span>
+      <span class="c1"># This is necessary to ensure that any state in the infeed ops is</span>
+      <span class="c1"># synchronized before the next device loop. Otherwise we might see that</span>
+      <span class="c1"># a device loop still using the same data batches in the last device loop.</span>
+      <span class="n">async_executor</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
       <span class="n">values</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">values</span><span class="p">)</span>
       <span class="n">outfeeds</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">outfeeds</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
@@ -815,6 +836,27 @@
         <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">summed_metrics</span></div>
 
+<div class="viewcode-block" id="EvalProgram.InfeedFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.InfeedFunc">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Infeed function.&quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
+      <span class="c1"># Reset the iterator within `EvalFunc` to ensure it gets run everytime</span>
+      <span class="c1"># the `tf.function` is executed in Eager mode.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="nf">InfeedBody</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+      <span class="c1"># Auto control dependency may not support TPU infeed ops, so add the</span>
+      <span class="c1"># dependency manually.</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
+        <span class="n">cond</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+        <span class="n">body</span><span class="o">=</span><span class="n">InfeedBody</span><span class="p">,</span>
+        <span class="n">loop_vars</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)])</span></div>
+
 <div class="viewcode-block" id="EvalProgram.EvalFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.EvalFunc">[docs]</a>  <span class="k">def</span> <span class="nf">EvalFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Eval function.&quot;&quot;&quot;</span>
 
@@ -827,28 +869,6 @@
           <span class="n">name</span><span class="o">=</span><span class="s1">&#39;eval_loop&#39;</span><span class="p">)</span>
       <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
-        <span class="c1"># Reset the iterator within `EvalFunc` to ensure it gets run everytime</span>
-        <span class="c1"># the `tf.function` is executed in Eager mode.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">()</span>
-
-      <span class="c1"># Run the infeed loop in the same function that runs the training loop</span>
-      <span class="c1"># so that infeed enqueue/dequeue ops are created by the same</span>
-      <span class="c1"># InfeedQueue.</span>
-      <span class="k">def</span> <span class="nf">InfeedBody</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-        <span class="c1"># Auto control dependency may not support TPU infeed ops, so add the</span>
-        <span class="c1"># dependency manually.</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">):</span>
-          <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
-
-      <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
-          <span class="n">cond</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
-          <span class="n">body</span><span class="o">=</span><span class="n">InfeedBody</span><span class="p">,</span>
-          <span class="n">loop_vars</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">)])</span>
 
     <span class="c1"># TODO(laigd): investigate how to run compilation only to catch errors</span>
     <span class="c1"># earlier.</span>
@@ -872,6 +892,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">()</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">EvalFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
       <span class="k">else</span><span class="p">:</span>
@@ -894,8 +916,17 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="n">async_executor</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">new_executor</span><span class="p">(</span><span class="n">enable_async</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">executor_scope</span><span class="p">(</span><span class="n">async_executor</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span><span class="p">()</span>
+
       <span class="n">values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">()</span>
       <span class="n">values</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">values</span><span class="p">)</span>
+      <span class="c1"># Ensure that the infeed ops are finished</span>
+      <span class="c1"># This is necessary to ensure that any state in the infeed ops is</span>
+      <span class="c1"># synchronized before the next device loop. Otherwise we might see that</span>
+      <span class="c1"># a device loop still using the same data batches in the last device loop.</span>
+      <span class="n">async_executor</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
@@ -1013,6 +1044,11 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;DecodeProgram&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_out_dict_lst</span> <span class="o">=</span> <span class="p">[]</span>
 
+<div class="viewcode-block" id="DecodeProgram.InfeedFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.InfeedFunc">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Infeed function.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="DecodeProgram.DecodeFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.DecodeFunc">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrap the DecodeFn with split_compile_and_shard.&quot;&quot;&quot;</span>
 
@@ -1021,13 +1057,6 @@
       <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="c1"># Run the infeed loop in the same function that runs the training loop</span>
-      <span class="c1"># so that infeed enqueue/dequeue ops are created by the same</span>
-      <span class="c1"># InfeedQueue.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
         <span class="n">_DecodeFn</span><span class="p">,</span>
@@ -1051,6 +1080,7 @@
       <span class="n">infeed_step_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># -1 signals reaching end of dataset.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop done&#39;</span><span class="p">)</span>
+
     <span class="k">try</span><span class="p">:</span>
       <span class="n">loop_index</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
@@ -1086,6 +1116,8 @@
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExperimentalIteratorCapture</span><span class="p">():</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
                   <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
@@ -1103,7 +1135,19 @@
     <span class="sd">&quot;&quot;&quot;Run one iteration of decode.&quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Decoding step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="n">fetch_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="n">async_executor</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">new_executor</span><span class="p">(</span><span class="n">enable_async</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">executor_scope</span><span class="p">(</span><span class="n">async_executor</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span><span class="p">()</span>
+
     <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="c1"># Ensure that the infeed ops are finished</span>
+      <span class="c1"># This is necessary to ensure that any state in the infeed ops is</span>
+      <span class="c1"># synchronized before the next device loop. Otherwise we might see that</span>
+      <span class="c1"># a device loop still using the same data batches in the last device loop.</span>
+      <span class="n">async_executor</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished TPU decoding on step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;decode_secs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">postprocess_all_at_once</span><span class="p">:</span>
