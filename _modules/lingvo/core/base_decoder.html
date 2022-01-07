@@ -152,6 +152,164 @@
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span></div></div>
 
 
+<span class="c1"># A finite value used to represent a negative infinity log-probability.</span>
+<span class="n">LARGE_NEGATIVE_NUMBER</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e9</span>
+
+
+<div class="viewcode-block" id="_KeepTopP"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._KeepTopP">[docs]</a><span class="k">def</span> <span class="nf">_KeepTopP</span><span class="p">(</span><span class="n">sorted_log_probs</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Keeps the top-p probability mass of `sorted_log_probs`.</span>
+
+<span class="sd">  For each row, elements that are not included in the first `p` probability mass</span>
+<span class="sd">  are set to `LARGE_NEGATIVE_NUMBER`. The first element is always kept as-is.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    sorted_log_probs: A float tensor of shape [batch, k] that represents</span>
+<span class="sd">      log-probabilities sorted in descending order. The probabilities do not</span>
+<span class="sd">      need to sum to 1.</span>
+<span class="sd">    p: A float tensor of shape [batch] that represents a probability threshold</span>
+<span class="sd">      for each batch item.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor like `sorted_log_probs` where elements outside the top-p</span>
+<span class="sd">    probability mass are set to `LARGE_NEGATIVE_NUMBER`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">sorted_cum_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">sorted_log_probs</span><span class="p">),</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">sorted_cum_probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+  <span class="c1"># Set mask[:, 0] = True to always keep the first element.</span>
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">mask</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+  <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">true</span><span class="p">,</span> <span class="n">mask</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">filtered_sorted_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+      <span class="n">mask</span><span class="p">,</span> <span class="n">sorted_log_probs</span><span class="p">,</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">sorted_log_probs</span><span class="p">),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">LARGE_NEGATIVE_NUMBER</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">sorted_log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
+  <span class="k">return</span> <span class="n">filtered_sorted_log_probs</span></div>
+
+
+<div class="viewcode-block" id="_BatchScatter"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._BatchScatter">[docs]</a><span class="k">def</span> <span class="nf">_BatchScatter</span><span class="p">(</span><span class="n">default_tensor</span><span class="p">,</span> <span class="n">indices</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Performs tf.tensor_scatter_nd_update for each batch item.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    default_tensor: A float tensor of shape [batch, vocab] that contains the</span>
+<span class="sd">      default values.</span>
+<span class="sd">    indices: An int tensor of shape [batch, k] that represents the k indices of</span>
+<span class="sd">      `default_tensor` to update.</span>
+<span class="sd">    values: A float tensor of shape [batch, k] that represents the value to</span>
+<span class="sd">      replace with for each corresponding element of `indices`.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor like `default_tensor` where the (i, indices[i][j]) element has been</span>
+<span class="sd">    replaced with values[i][j].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">default_tensor</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="c1"># Prepend batch indices to `indices`.</span>
+  <span class="n">batch_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">indices</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">batch_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">batch_indices</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">batch_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">batch_indices</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">indices</span><span class="p">))</span>
+  <span class="n">batch_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">batch_indices</span><span class="p">,</span> <span class="n">indices</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensor_scatter_nd_update</span><span class="p">(</span><span class="n">default_tensor</span><span class="p">,</span> <span class="n">batch_indices</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_BatchLookup"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._BatchLookup">[docs]</a><span class="k">def</span> <span class="nf">_BatchLookup</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">table_keys</span><span class="p">,</span> <span class="n">table_values</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Looks up `keys` in a given key-value table.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    keys: An int tensor of shape [batch, 1] that represents keys to look up.</span>
+<span class="sd">    table_keys: An int tensor of shape [batch, k] that represents table keys.</span>
+<span class="sd">    table_values: A float tensor of shape [batch, k] that represents table</span>
+<span class="sd">      values.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A float tensor of shape [batch, 1] that holds values from `table_values`</span>
+<span class="sd">    whose corresponding elements of `table_keys` match `keys`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">match_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">keys</span><span class="p">,</span> <span class="n">table_keys</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span>
+          <span class="n">table_values</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">match_indices</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">batch_dims</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
+      <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_BatchSampleGumbel"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._BatchSampleGumbel">[docs]</a><span class="k">def</span> <span class="nf">_BatchSampleGumbel</span><span class="p">(</span><span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Samples (standard) Gumbel noises of a given shape for each batch item.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    batch_seed: An int tensor of shape [batch] that holds a seed for each batch</span>
+<span class="sd">      item.</span>
+<span class="sd">    time_step: An int tensor used as a secondary seed.</span>
+<span class="sd">    shape: A shape of the Gumbel noises to sample.</span>
+<span class="sd">    dtype: A type of the Gumbel noises.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `dtype` tensor of shape [batch, ...] that holds Gumbel noises.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">SampleForBeam</span><span class="p">(</span><span class="n">seed</span><span class="p">):</span>
+    <span class="k">return</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_uniform</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">]))))</span>
+
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span><span class="n">SampleForBeam</span><span class="p">,</span> <span class="n">batch_seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_SampleGumbelWithMax"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._SampleGumbelWithMax">[docs]</a><span class="k">def</span> <span class="nf">_SampleGumbelWithMax</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">target_max</span><span class="p">,</span> <span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Samples a set of Gumbel noises with a specified maximum value.</span>
+
+<span class="sd">  A set of values are sampled from Gumbel distributions with location parameters</span>
+<span class="sd">  `phi` under the condition that their maximum is equal to `target_max`.</span>
+
+<span class="sd">  The numerical stable implementation from Appendix B.3 of</span>
+<span class="sd">  https://arxiv.org/pdf/1903.06059.pdf is used.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    phi: A float tensor of shape [tgt_batch, k] thtat represents location</span>
+<span class="sd">      parameters of Gumbel distributions.</span>
+<span class="sd">    target_max: A float tensor of shape [tgt_batch, 1] that represents the</span>
+<span class="sd">      target max values.</span>
+<span class="sd">    batch_seed: An int tensor of shape [src_batch] that holds a seed value for</span>
+<span class="sd">      each batch item. src_batch must be equal to tgt_batch / num_hyps_per_beam.</span>
+<span class="sd">      The same seed is used within each consecutive num_hyps_per_beam items</span>
+<span class="sd">      along the tgt_batch axis.</span>
+<span class="sd">    time_step: A float tensor used as a secondary seed.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A float tensor like `phi` where their maximum values along the second axis</span>
+<span class="sd">    is (almost) equal to `target_max`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">dtype</span> <span class="o">=</span> <span class="n">phi</span><span class="o">.</span><span class="n">dtype</span>
+  <span class="n">tgt_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">phi</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">k</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">phi</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+  <span class="n">src_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">batch_seed</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">tgt_batch</span> <span class="o">//</span> <span class="n">src_batch</span>
+
+  <span class="c1"># Sample noises from Gumbel distributions with location parameters `phi`.</span>
+  <span class="c1"># shape: [src_batch, num_hyps_per_beam, k]</span>
+  <span class="n">gumbel_noises</span> <span class="o">=</span> <span class="n">_BatchSampleGumbel</span><span class="p">(</span><span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span>
+                                     <span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
+  <span class="c1"># shape: [num_hyps_per_beam, src_batch, k]</span>
+  <span class="n">gumbel_noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">gumbel_noises</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="c1"># shape: [tgt_batch, k]</span>
+  <span class="n">gumbel_noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">gumbel_noises</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">phi</span><span class="p">))</span>
+  <span class="c1"># shape: [tgt_batch, k]</span>
+  <span class="n">g_phi</span> <span class="o">=</span> <span class="n">phi</span> <span class="o">+</span> <span class="n">gumbel_noises</span>
+
+  <span class="c1"># shape: [tgt_batch, 1]</span>
+  <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">g_phi</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+  <span class="c1"># Equation (23).</span>
+  <span class="c1"># shape: [tgt_batch, k]</span>
+  <span class="n">v</span> <span class="o">=</span> <span class="n">target_max</span> <span class="o">-</span> <span class="n">g_phi</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span>
+      <span class="c1"># Without taking max, sometimes the result of log1p would become NaN on</span>
+      <span class="c1"># TPU.</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">g_phi</span> <span class="o">-</span> <span class="n">z</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)))</span>
+
+  <span class="c1"># Equation (24).</span>
+  <span class="k">return</span> <span class="n">target_max</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log1p</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span></div>
+
+
 <div class="viewcode-block" id="BaseBeamSearchDecoder"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder">[docs]</a><span class="k">class</span> <span class="nc">BaseBeamSearchDecoder</span><span class="p">(</span><span class="n">BaseDecoder</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Decoder that does beam search.&quot;&quot;&quot;</span>
 
@@ -173,6 +331,12 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bias_only_if_consistent&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;BeamSearchBiased bias is only&#39;</span>
         <span class="s1">&#39;applied if the hypothesis has been consistent with targets so far.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;stochastic_beam_search_top_k&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span>
+        <span class="s1">&#39;As a performance optimization, the stochastic beam search &#39;</span>
+        <span class="s1">&#39;implementation first performs top-k filtering of the &#39;</span>
+        <span class="s1">&#39;log-probabilities so that only k values need to be maintained for &#39;</span>
+        <span class="s1">&#39;each hypothesis.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="BaseBeamSearchDecoder.UpdateTargetVocabSize"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.UpdateTargetVocabSize">[docs]</a>  <span class="nd">@classmethod</span>
@@ -300,42 +464,117 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      BeamSearchDecodeOutput, a namedtuple containing the decode results.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">StochasticBeamSearchDecodeBiased</span><span class="p">(</span>
+        <span class="n">encoder_outputs</span><span class="p">,</span>
+        <span class="n">biased</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">stochastic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="n">num_hyps_per_beam_override</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseBeamSearchDecoder.StochasticBeamSearchDecodeBiased"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.StochasticBeamSearchDecodeBiased">[docs]</a>  <span class="k">def</span> <span class="nf">StochasticBeamSearchDecodeBiased</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                       <span class="n">encoder_outputs</span><span class="p">,</span>
+                                       <span class="n">biased</span><span class="p">,</span>
+                                       <span class="n">stochastic</span><span class="p">,</span>
+                                       <span class="n">num_hyps_per_beam_override</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Performs beam search based decoding with optional advanced features.</span>
+
+<span class="sd">    If `biased` is true, the target biasing feature is added. `encoder_outputs`</span>
+<span class="sd">    must include the following auxiliary inputs:</span>
+
+<span class="sd">    - targets.labels: An int tensor of shape [batch, seq] that represents target</span>
+<span class="sd">      labels to bias beam search towards.</span>
+<span class="sd">    - targets.paddings: A 0/1 float tensor of shape [batch, seq] where 1 means</span>
+<span class="sd">      that the corresponding element of targets.labels is a padding.</span>
+<span class="sd">    - targets.weights: A float tensor of shape [batch, seq] that represents</span>
+<span class="sd">      biasing weights. 1.0 means forced-decoding.</span>
+
+<span class="sd">    If `stochastic` is true, the stochastic beam search feature</span>
+<span class="sd">    (https://arxiv.org/pdf/1903.06059.pdf) is added. Also, top-p filtering (i.e.</span>
+<span class="sd">    sampling only from the top-p probability mass of the token distribution) is</span>
+<span class="sd">    performed to ensure the quality of samples. Note that there are slight</span>
+<span class="sd">    differences from the implementation in the original paper, e.g., length</span>
+<span class="sd">    normalization and coverage penalty are applied to the perturbed</span>
+<span class="sd">    probabilities. `encoder_outputs` must include the following auxiliary</span>
+<span class="sd">    inputs:</span>
+
+<span class="sd">    - stochastic_beam_search.enable: A bool tensor that represents whether to</span>
+<span class="sd">      perform stochastic beam search for the input.</span>
+<span class="sd">    - stochastic_beam_search.top_p_threshold: A float tensor of shape [batch]</span>
+<span class="sd">      that represents the thresholds of top-p filtering. Must be [0.0, 1.0].</span>
+<span class="sd">      If the value is low, the quality of samples will be high but the diversity</span>
+<span class="sd">      will be low. If the value is high, the quality of samples will be low but</span>
+<span class="sd">      the diversity will be high.</span>
+<span class="sd">    - stochastic_beam_search.seed: An int tensor of shape [batch] the represents</span>
+<span class="sd">      the seeds. If the seeds are the same, the same samples are drawn.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
+<span class="sd">      biased: If true, add the target decoding feature.</span>
+<span class="sd">      stochastic: If true, add the stochastic beam search feature.</span>
+<span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
+<span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to override</span>
+<span class="sd">        `p.num_hyps_per_beam`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      BeamSearchDecodeOutput, a namedtuple containing the decode results.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="n">targets</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">targets</span>
-    <span class="n">targets</span><span class="o">.</span><span class="n">weights</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">biased</span><span class="p">:</span>
+      <span class="n">targets</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">targets</span>
+      <span class="n">targets</span><span class="o">.</span><span class="n">weights</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">targets</span><span class="o">.</span><span class="n">paddings</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">PadToTargetSeqLen</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">constant</span><span class="p">):</span>
-      <span class="n">length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-      <span class="n">pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">-</span> <span class="n">length</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad</span><span class="p">]],</span> <span class="n">constant_values</span><span class="o">=</span><span class="n">constant</span><span class="p">)</span>
+      <span class="k">def</span> <span class="nf">PadToTargetSeqLen</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">constant</span><span class="p">):</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">pad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">target_seq_len</span> <span class="o">-</span> <span class="n">length</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad</span><span class="p">]],</span> <span class="n">constant_values</span><span class="o">=</span><span class="n">constant</span><span class="p">)</span>
 
-    <span class="n">targets</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">PadToTargetSeqLen</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-    <span class="n">targets</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">PadToTargetSeqLen</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">targets</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">PadToTargetSeqLen</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">targets</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">PadToTargetSeqLen</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">InitBeamSearchStateCallback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Wrapper for adding bias to _InitBeamSearchStateCallback.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_WrapInitBeamSearchStateCallback</span><span class="p">(</span><span class="n">biased</span><span class="p">,</span> <span class="n">stochastic</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_WrapPreBeamSearchStepCallback</span><span class="p">(</span><span class="n">biased</span><span class="p">,</span> <span class="n">stochastic</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_WrapPostBeamSearchStepCallback</span><span class="p">(</span><span class="n">stochastic</span><span class="p">))</span></div>
 
-<span class="sd">      Exapnds state to track consistency of hypothesis with provided target.</span>
+<div class="viewcode-block" id="BaseBeamSearchDecoder._WrapInitBeamSearchStateCallback"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder._WrapInitBeamSearchStateCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_WrapInitBeamSearchStateCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">biased</span><span class="p">,</span> <span class="n">stochastic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a new callback that wraps self._InitBeamSearchStateCallback.</span>
 
-<span class="sd">      Args:</span>
-<span class="sd">        theta: A NestedMap object containing weights&#39; values of this layer and</span>
-<span class="sd">          its children layers.</span>
-<span class="sd">        encoder_outputs: A NestedMap computed by encoder.</span>
-<span class="sd">        num_hyps_per_beam: An int, number hyps to keep for source sentence.</span>
+<span class="sd">    Used by the implementation of StochasticBeamSearchDecodeBiased().</span>
 
-<span class="sd">      Returns:</span>
-<span class="sd">        initial_results: a `.NestedMap` of initial results.</span>
-<span class="sd">        states: a `.NestedMap` of initial model states that the client</span>
-<span class="sd">          would like to keep track of for each hyp. The states relevant here</span>
-<span class="sd">          are:</span>
-<span class="sd">          time_step: A scalar indicating current step (=0 for initial state) of</span>
-<span class="sd">            decoder.  Must be provided and maintained by super.</span>
-<span class="sd">          consistent: A boolean tensor of shape [tgt_batch, 1] which tracks</span>
-<span class="sd">              whether each hypothesis has exactly matched</span>
-<span class="sd">              encoder_outputs.targets</span>
-<span class="sd">              so far.</span>
-<span class="sd">      &quot;&quot;&quot;</span>
+<span class="sd">    If `biased` is True, attaches the following field to the states:</span>
+
+<span class="sd">    - consistent: A boolean tensor of shape [tgt_batch, 1] which tracks whether</span>
+<span class="sd">      each hypothesis has exactly matched encoder_outputs.targets so far.</span>
+
+<span class="sd">    If `stochastic_beam_search` is True, attaches the following fields to the</span>
+<span class="sd">    states:</span>
+
+<span class="sd">    - cumulative_log_probs: A float tensor of shape [tgt_batch, k] that</span>
+<span class="sd">      represents the cumulative (unperturbed) log-probabilities.</span>
+<span class="sd">    - perturbed_cumulative_log_probs: A float tensor of shape [tgt_batch, k]</span>
+<span class="sd">      that represents the perturbed counterpart of `cumulative_log_probs`.</span>
+<span class="sd">      Initialized with 0 (see the footnote 2 of the original paper), which</span>
+<span class="sd">      ensures that perturbed_cumulative_log_probs is always non-positive, which</span>
+<span class="sd">      is desirable since it gets divided by the length normalization at the end</span>
+<span class="sd">      of the beam search.</span>
+<span class="sd">    - tmp_states: A NestedMap that holds internal info passed from</span>
+<span class="sd">      PreBeamSearchStepCallback to PostBeamSearchStepCallback.</span>
+
+<span class="sd">    It is assumed that the wrapped callback provides states.time_step which is</span>
+<span class="sd">    scalar indicating current step (=0 for initial state) of decoder.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      biased: If true, add the target decoding feature.</span>
+<span class="sd">      stochastic: If true, add the stochastic beam search feature.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A new function that has the same interface as</span>
+<span class="sd">      self._InitBeamSearchStateCallback.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">stochastic_beam_search_top_k</span>
+
+    <span class="k">def</span> <span class="nf">Callback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">):</span>
       <span class="n">initial_results</span><span class="p">,</span> <span class="n">states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitBeamSearchStateCallback</span><span class="p">(</span>
           <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
       <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">states</span><span class="p">,</span> <span class="s1">&#39;time_step&#39;</span><span class="p">)</span>
@@ -344,115 +583,251 @@
       <span class="k">else</span><span class="p">:</span>  <span class="c1"># Required for multisource models.</span>
         <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span><span class="o">.</span><span class="n">values</span><span class="p">())[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">num_hyps</span> <span class="o">=</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_hyps_per_beam</span>
-      <span class="c1"># states.consistent is initially all True</span>
-      <span class="n">states</span><span class="o">.</span><span class="n">consistent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span>
-          <span class="n">num_hyps</span><span class="p">,</span>
-      <span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">biased</span><span class="p">:</span>
+        <span class="c1"># states.consistent is initially all True</span>
+        <span class="n">states</span><span class="o">.</span><span class="n">consistent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span>
+            <span class="n">num_hyps</span><span class="p">,</span>
+        <span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">stochastic</span><span class="p">:</span>
+        <span class="n">dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+        <span class="n">states</span><span class="o">.</span><span class="n">cumulative_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">states</span><span class="o">.</span><span class="n">perturbed_cumulative_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                                                         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="c1"># Temporary tensors that store information passed from</span>
+        <span class="c1"># PreBeamSearchStepCallback to PostBeamSearchStepCallback. These are</span>
+        <span class="c1"># used for updating states.cumulative_log_probs and</span>
+        <span class="c1"># states.perturbed_cumulative_log_probs for the next step, which</span>
+        <span class="c1"># requires the knowledge of the chosen IDs, which only becomes available</span>
+        <span class="c1"># after PreBeamSearchStepCallback.</span>
+        <span class="n">states</span><span class="o">.</span><span class="n">tmp_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="c1"># Top-k (non-perturbed) log-probs. Used for updating</span>
+            <span class="c1"># `cumulative_log_probs` in PostBeamSearchStepCallback.</span>
+            <span class="n">top_k_log_probs</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="c1"># Vocab ID of each item of `top_k_log_probs`.</span>
+            <span class="n">top_k_ids</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+            <span class="c1"># Perturbed cumulative log-probs of the top-k IDs. Used for updating</span>
+            <span class="c1"># `perturbed_cumulative_log_probs` in PostBeamSearchStepCallback.</span>
+            <span class="n">new_perturbed_cumulative_log_probs</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">num_hyps</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span>
+                                                        <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span>
+        <span class="p">)</span>
+
       <span class="k">return</span> <span class="n">initial_results</span><span class="p">,</span> <span class="n">states</span>
 
-    <span class="k">def</span> <span class="nf">PreBeamSearchStepCallback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span>
-                                  <span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Wrapper for adding bias to _PreBeamSearchStateCallback.</span>
+    <span class="k">return</span> <span class="n">Callback</span></div>
 
-<span class="sd">      Biases results.log_probs towards provided encoder_outputs.targets.</span>
+<div class="viewcode-block" id="BaseBeamSearchDecoder._WrapPreBeamSearchStepCallback"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder._WrapPreBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_WrapPreBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">biased</span><span class="p">,</span> <span class="n">stochastic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a new callback that wraps self._PreBeamSearchStepCallback.</span>
 
-<span class="sd">      Args:</span>
-<span class="sd">        theta: a NestedMap of parameters.</span>
-<span class="sd">        encoder_outputs: a NestedMap computed by encoder.</span>
-<span class="sd">        step_ids: A tensor of shape [tgt_batch, 1].</span>
-<span class="sd">        states: A `.NestedMap` of tensors representing states that the clients</span>
-<span class="sd">          would like to keep track of for each of the active hyps.</span>
-<span class="sd">        num_hyps_per_beam: Beam size.</span>
-<span class="sd">        *args: additional arguments to _PreBeamSearchStepCallback.</span>
-<span class="sd">        **kwargs: additional arguments to _PreBeamSearchStepCallback.</span>
+<span class="sd">    Used by the implementation of StochasticBeamSearchDecodeBiased().</span>
 
-<span class="sd">      Returns:</span>
-<span class="sd">        A tuple (results, out_states).</span>
-<span class="sd">        results: A `.NestedMap` of beam search results.</span>
-<span class="sd">          atten_probs:</span>
-<span class="sd">            The updated attention probs, of shape [tgt_batch, src_len].</span>
-<span class="sd">          log_probs:</span>
-<span class="sd">            Log prob for each of the tokens in the target vocab. This is of</span>
-<span class="sd">            shape</span>
-<span class="sd">            [tgt_batch, vocab_size].</span>
-<span class="sd">        out_states: a `.NestedMap` The updated states. The states relevant here</span>
-<span class="sd">          are:</span>
-<span class="sd">          time_step: A scalar indicating current step of decoder.  Must be</span>
-<span class="sd">            provided and maintained by subclass.</span>
-<span class="sd">          consistent: A boolean vector of shape [tgt_batch, ] which tracks</span>
-<span class="sd">              whether each hypothesis has exactly matched</span>
-<span class="sd">              encoder_outputs.targets</span>
-<span class="sd">              so far.</span>
-<span class="sd">      &quot;&quot;&quot;</span>
+<span class="sd">    Modifies results.log_probs as follows:</span>
+
+<span class="sd">    1. If `biased` is True, biases results.log_probs towards provided</span>
+<span class="sd">       encoder_outputs.targets.</span>
+<span class="sd">    2. If `stochastic_beam_search` is True, perturbs results.log_probs by Gumbel</span>
+<span class="sd">       noises.</span>
+
+<span class="sd">    It is assumed that the wrapped callback maintains states.time_step which is</span>
+<span class="sd">    scalar indicating current step (=0 for initial state) of decoder.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      biased: If true, add the target decoding feature.</span>
+<span class="sd">      stochastic: If true, add the stochastic beam search feature.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A new function that has the same interface as</span>
+<span class="sd">      self._PreBeamSearchStepCallback.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">stochastic_beam_search_top_k</span>
+
+    <span class="k">def</span> <span class="nf">Callback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
+                 <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
       <span class="n">time_step</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">time_step</span>
       <span class="n">bs_results</span><span class="p">,</span> <span class="n">out_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">(</span>
           <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span>
           <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-      <span class="n">labels</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span>
-      <span class="n">weights</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span>
 
-      <span class="k">def</span> <span class="nf">ApplyBias</span><span class="p">():</span>
-        <span class="sd">&quot;&quot;&quot;Bias and update log_probs and consistent.&quot;&quot;&quot;</span>
+      <span class="k">def</span> <span class="nf">TileForBeamAndFlatten</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+        <span class="n">tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># [1, src_batch]</span>
+        <span class="n">tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+            <span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># [num_hyps_per_beam, src_batch]</span>
+        <span class="n">tgt_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># num_hyps_per_beam*src_batch</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="n">tgt_batch</span><span class="p">])</span>
 
-        <span class="k">def</span> <span class="nf">TileForBeamAndFlatten</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
-          <span class="n">tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># [1, src_batch]</span>
-          <span class="n">tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-              <span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>  <span class="c1"># [num_hyps_per_beam, src_batch]</span>
-          <span class="n">tgt_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># num_hyps_per_beam*src_batch</span>
-          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="n">tgt_batch</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">biased</span><span class="p">:</span>
+        <span class="n">labels</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span>
 
-        <span class="c1"># Consistent if step_ids == labels from previous step</span>
-        <span class="c1"># TODO(navari): Consider updating consistent only if weights &gt; 0. Then</span>
-        <span class="c1"># re-evaluate the need for bias_only_if_consistent=True.</span>
-        <span class="c1"># Note that prev_label is incorrrect for step 0 but is overridden later</span>
-        <span class="n">prev_label</span> <span class="o">=</span> <span class="n">TileForBeamAndFlatten</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">time_step</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-        <span class="n">is_step0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">time_step</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
-        <span class="n">local_consistence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
-            <span class="n">is_step0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">prev_label</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
-        <span class="n">consistent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">consistent</span><span class="p">,</span> <span class="n">local_consistence</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">ApplyBias</span><span class="p">():</span>
+          <span class="sd">&quot;&quot;&quot;Bias and update log_probs and consistent.&quot;&quot;&quot;</span>
 
-        <span class="c1"># get label, weight slices corresponding to current time_step</span>
-        <span class="n">label</span> <span class="o">=</span> <span class="n">TileForBeamAndFlatten</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-        <span class="n">weight</span> <span class="o">=</span> <span class="n">TileForBeamAndFlatten</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_only_if_consistent</span><span class="p">:</span>
-          <span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">consistent</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+          <span class="c1"># Consistent if step_ids == labels from previous step</span>
+          <span class="c1"># TODO(navari): Consider updating consistent only if weights &gt; 0. Then</span>
+          <span class="c1"># re-evaluate the need for bias_only_if_consistent=True.</span>
+          <span class="c1"># Note that prev_label is incorrrect for step 0 but is overridden</span>
+          <span class="c1"># later</span>
+          <span class="n">prev_label</span> <span class="o">=</span> <span class="n">TileForBeamAndFlatten</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">time_step</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+          <span class="n">is_step0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">time_step</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+          <span class="n">local_consistence</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+              <span class="n">is_step0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">prev_label</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+          <span class="n">consistent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">consistent</span><span class="p">,</span> <span class="n">local_consistence</span><span class="p">)</span>
 
-        <span class="c1"># convert from dense label to sparse label probs</span>
-        <span class="n">vocab_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">label_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
-            <span class="n">label</span><span class="p">,</span>
-            <span class="n">vocab_size</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>  <span class="c1"># [tgt_batch, vocab_size]</span>
-        <span class="n">pred_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)</span>
+          <span class="c1"># get label, weight slices corresponding to current time_step</span>
+          <span class="n">label</span> <span class="o">=</span> <span class="n">TileForBeamAndFlatten</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+          <span class="n">weight</span> <span class="o">=</span> <span class="n">TileForBeamAndFlatten</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_only_if_consistent</span><span class="p">:</span>
+            <span class="n">weight</span> <span class="o">=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">consistent</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
 
-        <span class="c1"># interpolate predicted probs and label probs</span>
-        <span class="n">weight</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
-        <span class="p">],</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">pred_probs</span> <span class="o">+</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">label_probs</span><span class="p">)</span>
-        <span class="c1"># Ensure that tf.math.log is applied to positive values.</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">probs</span><span class="p">),</span> <span class="n">consistent</span>
+          <span class="c1"># convert from dense label to sparse label probs</span>
+          <span class="n">vocab_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+          <span class="n">label_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+              <span class="n">label</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">,</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>  <span class="c1"># [tgt_batch, vocab_size]</span>
+          <span class="n">pred_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)</span>
 
-      <span class="k">def</span> <span class="nf">NoApplyBias</span><span class="p">():</span>
-        <span class="sd">&quot;&quot;&quot;No-op. Return original log_probs and consistent.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">states</span><span class="o">.</span><span class="n">consistent</span>
+          <span class="c1"># interpolate predicted probs and label probs</span>
+          <span class="n">weight</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+          <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+              <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span>
+              <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span> <span class="mf">0.</span><span class="p">)</span>
+          <span class="p">],</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">weight</span><span class="p">)</span> <span class="o">*</span> <span class="n">pred_probs</span> <span class="o">+</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">label_probs</span><span class="p">)</span>
+          <span class="c1"># Ensure that tf.math.log is applied to positive values.</span>
+          <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1e-12</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">probs</span><span class="p">),</span> <span class="n">consistent</span>
 
-      <span class="n">log_probs</span><span class="p">,</span> <span class="n">consistent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span> <span class="n">NoApplyBias</span><span class="p">,</span> <span class="n">ApplyBias</span><span class="p">)</span>
-      <span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span> <span class="o">=</span> <span class="n">log_probs</span>
-      <span class="n">out_states</span><span class="o">.</span><span class="n">consistent</span> <span class="o">=</span> <span class="n">consistent</span>
+        <span class="k">def</span> <span class="nf">NoApplyBias</span><span class="p">():</span>
+          <span class="sd">&quot;&quot;&quot;No-op. Return original log_probs and consistent.&quot;&quot;&quot;</span>
+          <span class="k">return</span> <span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">states</span><span class="o">.</span><span class="n">consistent</span>
+
+        <span class="n">log_probs</span><span class="p">,</span> <span class="n">consistent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)),</span> <span class="n">NoApplyBias</span><span class="p">,</span> <span class="n">ApplyBias</span><span class="p">)</span>
+        <span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span> <span class="o">=</span> <span class="n">log_probs</span>
+        <span class="n">out_states</span><span class="o">.</span><span class="n">consistent</span> <span class="o">=</span> <span class="n">consistent</span>
+
+      <span class="k">if</span> <span class="n">stochastic</span><span class="p">:</span>
+        <span class="n">log_probs</span> <span class="o">=</span> <span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span>
+
+        <span class="k">def</span> <span class="nf">PerturbedLogProbs</span><span class="p">():</span>
+          <span class="c1"># STEP 1: Perform top-k filtering. This is done as a performance</span>
+          <span class="c1"># optimization of avoiding sorting the entire `log_probs`, which is</span>
+          <span class="c1"># prohibitively slow.</span>
+          <span class="n">top_k</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+          <span class="c1"># shape: [tgt_batch, k]</span>
+          <span class="n">top_k_log_probs</span> <span class="o">=</span> <span class="n">top_k</span><span class="o">.</span><span class="n">values</span>
+          <span class="c1"># shape: [tgt_batch, k]</span>
+          <span class="n">top_k_ids</span> <span class="o">=</span> <span class="n">top_k</span><span class="o">.</span><span class="n">indices</span>
+
+          <span class="c1"># STEP 2: Perform top-p filtering.</span>
+          <span class="c1"># shape: [tgt_batch]</span>
+          <span class="n">top_p_threshold</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">top_p_threshold</span>
+          <span class="n">top_p_threshold</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">top_p_threshold</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">)</span>
+          <span class="n">top_p_threshold</span> <span class="o">=</span> <span class="n">TileForBeamAndFlatten</span><span class="p">(</span><span class="n">top_p_threshold</span><span class="p">)</span>
+          <span class="c1"># shape: [tgt_batch, k]</span>
+          <span class="n">filtered_top_k_log_probs</span> <span class="o">=</span> <span class="n">_KeepTopP</span><span class="p">(</span><span class="n">top_k_log_probs</span><span class="p">,</span> <span class="n">top_p_threshold</span><span class="p">)</span>
+
+          <span class="c1"># STEP 3: Perturb cumulative log-probs.</span>
+          <span class="c1"># shape: [tgt_batch, 1]</span>
+          <span class="n">last_cumulative_log_probs</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">cumulative_log_probs</span>
+          <span class="c1"># shape: [tgt_batch, 1]</span>
+          <span class="n">last_perturbed_cumulative_log_probs</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">perturbed_cumulative_log_probs</span>
+          <span class="c1"># Compute cumulative log-probs of the current step.</span>
+          <span class="c1"># shape: [tgt_batch, k]</span>
+          <span class="n">cumulative_log_probs</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">last_cumulative_log_probs</span> <span class="o">+</span> <span class="n">filtered_top_k_log_probs</span><span class="p">)</span>
+          <span class="c1"># Perturb cumulative log-probs by Gumbel noises under the condition</span>
+          <span class="c1"># that the max of the new perturbed log-probs is equal to</span>
+          <span class="c1"># perturbed_cumulative_log_probs of the previous step.</span>
+          <span class="c1"># shape: [tgt_batch, k]</span>
+          <span class="n">new_perturbed_cumulative_log_probs</span> <span class="o">=</span> <span class="n">_SampleGumbelWithMax</span><span class="p">(</span>
+              <span class="n">cumulative_log_probs</span><span class="p">,</span> <span class="n">last_perturbed_cumulative_log_probs</span><span class="p">,</span>
+              <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">)</span>
+
+          <span class="c1"># STEP 4: Compute updated log_probs. This step is necessary because</span>
+          <span class="c1"># the output of PreBeamSearchStepCallback must be &quot;per-step&quot;</span>
+          <span class="c1"># log-probs, whereas so far &quot;cumulative&quot; log-probs have been computed.</span>
+          <span class="c1"># shape: [tgt_batch, k]</span>
+          <span class="n">updated_top_k_log_probs</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">new_perturbed_cumulative_log_probs</span> <span class="o">-</span>
+              <span class="n">last_perturbed_cumulative_log_probs</span><span class="p">)</span>
+          <span class="c1"># Convert to the shape [tgt_batch, vocab_size].</span>
+          <span class="n">updated_log_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">log_probs</span><span class="p">),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">LARGE_NEGATIVE_NUMBER</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">log_probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+          <span class="n">updated_log_probs</span> <span class="o">=</span> <span class="n">_BatchScatter</span><span class="p">(</span><span class="n">updated_log_probs</span><span class="p">,</span> <span class="n">top_k_ids</span><span class="p">,</span>
+                                            <span class="n">updated_top_k_log_probs</span><span class="p">)</span>
+
+          <span class="k">return</span> <span class="p">(</span>
+              <span class="n">updated_log_probs</span><span class="p">,</span>
+              <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+                  <span class="n">new_perturbed_cumulative_log_probs</span><span class="o">=</span><span class="n">new_perturbed_cumulative_log_probs</span><span class="p">,</span>
+                  <span class="n">top_k_log_probs</span><span class="o">=</span><span class="n">top_k_log_probs</span><span class="p">,</span>
+                  <span class="n">top_k_ids</span><span class="o">=</span><span class="n">top_k_ids</span><span class="p">,</span>
+              <span class="p">))</span>
+
+        <span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">out_states</span><span class="o">.</span><span class="n">tmp_states</span><span class="p">)</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+            <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">enable</span><span class="p">,</span>
+            <span class="n">PerturbedLogProbs</span><span class="p">,</span>
+            <span class="c1"># No-op.</span>
+            <span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="n">bs_results</span><span class="o">.</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">states</span><span class="o">.</span><span class="n">tmp_states</span><span class="p">))</span>
+        <span class="c1"># These states are not updated here but will be updated in</span>
+        <span class="c1"># PostBeamSearchStepCallback since doing so requires the knowledge of</span>
+        <span class="c1"># the next step IDs.</span>
+        <span class="n">out_states</span><span class="o">.</span><span class="n">cumulative_log_probs</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">cumulative_log_probs</span>
+        <span class="n">out_states</span><span class="o">.</span><span class="n">perturbed_cumulative_log_probs</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">perturbed_cumulative_log_probs</span>
 
       <span class="k">return</span> <span class="n">bs_results</span><span class="p">,</span> <span class="n">out_states</span>
 
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
-                                             <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>
-                                             <span class="n">InitBeamSearchStateCallback</span><span class="p">,</span>
-                                             <span class="n">PreBeamSearchStepCallback</span><span class="p">,</span>
-                                             <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">Callback</span></div>
+
+<div class="viewcode-block" id="BaseBeamSearchDecoder._WrapPostBeamSearchStepCallback"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder._WrapPostBeamSearchStepCallback">[docs]</a>  <span class="k">def</span> <span class="nf">_WrapPostBeamSearchStepCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stochastic</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a new callback that wraps self._PostBeamSearchStateCallback.</span>
+
+<span class="sd">    Used by the implementation of StochasticBeamSearchDecodeBiased().</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      stochastic: If true, add the stochastic beam search feature.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A new function that has the same interface as</span>
+<span class="sd">      self._PostBeamSearchStepCallback.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">Callback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">other_states</span><span class="p">):</span>
+      <span class="n">final_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostBeamSearchStepCallback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span>
+                                                      <span class="n">new_step_ids</span><span class="p">,</span>
+                                                      <span class="n">other_states</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">stochastic</span><span class="p">:</span>
+        <span class="c1"># Update perturbed_cumulative_log_probs and cumulative_log_probs if</span>
+        <span class="c1"># stochastic beam search is requested.</span>
+
+        <span class="n">perturbed_cumulative_log_probs</span> <span class="o">=</span> <span class="n">other_states</span><span class="o">.</span><span class="n">perturbed_cumulative_log_probs</span>
+        <span class="n">cumulative_log_probs</span> <span class="o">=</span> <span class="n">other_states</span><span class="o">.</span><span class="n">cumulative_log_probs</span>
+        <span class="n">tmp_states</span> <span class="o">=</span> <span class="n">other_states</span><span class="o">.</span><span class="n">tmp_states</span>
+
+        <span class="k">def</span> <span class="nf">UpdateCumulativeScores</span><span class="p">():</span>
+          <span class="n">new_perturbed_cumulative_log_probs</span> <span class="o">=</span> <span class="n">_BatchLookup</span><span class="p">(</span>
+              <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">tmp_states</span><span class="o">.</span><span class="n">top_k_ids</span><span class="p">,</span>
+              <span class="n">tmp_states</span><span class="o">.</span><span class="n">new_perturbed_cumulative_log_probs</span><span class="p">)</span>
+          <span class="n">new_log_probs</span> <span class="o">=</span> <span class="n">_BatchLookup</span><span class="p">(</span><span class="n">new_step_ids</span><span class="p">,</span> <span class="n">tmp_states</span><span class="o">.</span><span class="n">top_k_ids</span><span class="p">,</span>
+                                       <span class="n">tmp_states</span><span class="o">.</span><span class="n">top_k_log_probs</span><span class="p">)</span>
+          <span class="n">new_cumulative_log_probs</span> <span class="o">=</span> <span class="n">cumulative_log_probs</span> <span class="o">+</span> <span class="n">new_log_probs</span>
+          <span class="k">return</span> <span class="n">new_perturbed_cumulative_log_probs</span><span class="p">,</span> <span class="n">new_cumulative_log_probs</span>
+
+        <span class="p">(</span><span class="n">final_states</span><span class="o">.</span><span class="n">perturbed_cumulative_log_probs</span><span class="p">,</span>
+         <span class="n">final_states</span><span class="o">.</span><span class="n">cumulative_log_probs</span><span class="p">)</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+             <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">enable</span><span class="p">,</span>
+             <span class="n">UpdateCumulativeScores</span><span class="p">,</span>
+             <span class="c1"># No-op.</span>
+             <span class="k">lambda</span><span class="p">:</span> <span class="p">(</span><span class="n">perturbed_cumulative_log_probs</span><span class="p">,</span> <span class="n">cumulative_log_probs</span><span class="p">))</span>
+
+      <span class="k">return</span> <span class="n">final_states</span>
+
+    <span class="k">return</span> <span class="n">Callback</span></div>
 
 <div class="viewcode-block" id="BaseBeamSearchDecoder.InferenceAdditionalEncoder"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder.InferenceAdditionalEncoder">[docs]</a>  <span class="k">def</span> <span class="nf">InferenceAdditionalEncoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feeds</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generate an inference graph for the additional encoder.&quot;&quot;&quot;</span>
