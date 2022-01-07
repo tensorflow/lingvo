@@ -263,7 +263,8 @@ class CheckpointManager:
   def _delete_pattern_if_exists(self, filepath: str) -> None:
     """Deletes everything under `filepath`."""
     logging.info('Deleting files with filepath: `%s`', filepath)
-    tf.io.gfile.rmtree(filepath)
+    if tf.io.gfile.exists(filepath):
+      tf.io.gfile.rmtree(filepath)
 
   def _delete_checkpoint(self,
                          checkpoint: checkpoint_pb2.CheckpointMetadata) -> None:
