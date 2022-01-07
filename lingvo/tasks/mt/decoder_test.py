@@ -418,6 +418,183 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
     self.assertAllClose(
         expected_topk_scores, actual_decode.topk_scores, rtol=1e-1)
 
+  def testStochasticBeamSearchDecodeBiased(self):
+    dtype = tf.float32
+    num_hyps_per_beam = 3
+    batch_size = 2
+    max_targets_len = 4
+    with self.session(use_gpu=True), self.SetEval(True):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype)
+      p.target_seq_len = 6
+      p.beam_search.num_hyps_per_beam = num_hyps_per_beam
+      p.beam_search.force_eos_in_last_step = True
+      dec = p.Instantiate()
+
+      # Construct a batch_size=2 input.
+      labels = tf.constant([[1, 3, 0, 0], [3, 4, 5, 2]])
+      paddings = tf.constant([[0, 0, 1, 1], [0, 0, 0, 0]], dtype=dtype)
+      top_p_threshold = tf.constant([0.9, 0.7], dtype=dtype)
+      seed = tf.constant([3, 5])
+      bias = 1  # Force-decoding.
+      src_seq_len = 5
+      src_encoded = tf.constant(
+          np.random.normal(size=[src_seq_len, batch_size, 4]), dtype=dtype)
+      src_padding = tf.constant(
+          np.zeros((src_seq_len, batch_size)), dtype=dtype)
+
+      # Construct a batch_size=4 input with a [A, B, A, B] pattern.
+      encoder_outputs = py_utils.NestedMap(
+          encoded=tf.concat([src_encoded, src_encoded], axis=1),
+          padding=tf.concat([src_padding, src_padding], axis=1),
+          targets=py_utils.NestedMap(
+              labels=tf.concat([labels, labels], axis=0),
+              paddings=tf.concat([paddings, paddings], axis=0),
+              weights=tf.fill([batch_size * 2, max_targets_len],
+                              tf.constant(bias, dtype=dtype)),
+          ),
+          stochastic_beam_search=py_utils.NestedMap(
+              enable=tf.constant(True),
+              seed=tf.concat([seed, seed], axis=0),
+              top_p_threshold=tf.concat([top_p_threshold, top_p_threshold],
+                                        axis=0)))
+
+      decode = dec.StochasticBeamSearchDecodeBiased(
+          encoder_outputs, biased=True, stochastic=True)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # self.evaluate(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_decode = self.evaluate(decode)
+      topk_scores = actual_decode.topk_scores.reshape(
+          (batch_size * 2, num_hyps_per_beam))
+      topk_lens = actual_decode.topk_lens.reshape(
+          (batch_size * 2, num_hyps_per_beam))
+      topk_ids = actual_decode.topk_ids.reshape(
+          (batch_size * 2, num_hyps_per_beam, -1))
+
+      # Expectation: the 1st-3rd and the 2nd-4th results are the same since the
+      # seeds are the same.
+      self.assertAllEqual(topk_scores[0:2], topk_scores[2:4])
+      self.assertAllEqual(topk_lens[0:2], topk_lens[2:4])
+      self.assertAllEqual(topk_ids[0:2], topk_ids[2:4])
+
+      # Expectation: the top hypotheses start with the forced prefixes.
+      self.assertAllEqual([1, 3], topk_ids[0, 0, :2])
+      self.assertAllEqual([3, 4, 5, 2], topk_ids[1, 0, :4])
+      self.assertAllEqual([1, 3], topk_ids[2, 0, :2])
+      self.assertAllEqual([3, 4, 5, 2], topk_ids[3, 0, :4])
+
+  def testStochasticBeamSearchDecodeWithZeroTopPThreshold(self):
+    dtype = tf.float32
+    num_hyps_per_beam = 3
+    batch_size = 5
+    with self.session(use_gpu=True), self.SetEval(True):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype)
+      p.target_seq_len = 6
+      p.beam_search.num_hyps_per_beam = num_hyps_per_beam
+      p.beam_search.force_eos_in_last_step = True
+      dec = p.Instantiate()
+
+      # 5 batch items have the same input and different seeds.
+      src_seq_len = 5
+      encoder_outputs = py_utils.NestedMap(
+          encoded=tf.constant(
+              np.repeat(
+                  np.random.normal(size=[src_seq_len, 1, 4]),
+                  batch_size,
+                  axis=1),
+              dtype=dtype),
+          padding=tf.constant(np.zeros((src_seq_len, batch_size)), dtype=dtype),
+          # No target biasing.
+          targets=py_utils.NestedMap(
+              labels=tf.zeros([batch_size, 0], dtype=tf.int32),
+              paddings=tf.zeros([batch_size, 0], dtype=dtype),
+              weights=tf.zeros([batch_size, 0], dtype=dtype),
+          ),
+          stochastic_beam_search=py_utils.NestedMap(
+              enable=tf.constant(True),
+              seed=tf.constant(np.arange(batch_size), dtype=tf.int32),
+              # top_p_threshold=0.0 means only the best-scoring ID can be
+              # sampled at each time step, so the sampling becomes
+              # deterministic.
+              top_p_threshold=tf.zeros([batch_size], dtype=dtype)))
+
+      decode = dec.StochasticBeamSearchDecodeBiased(
+          encoder_outputs, biased=True, stochastic=True)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # self.evaluate(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_decode = self.evaluate(decode)
+      topk_ids = actual_decode.topk_ids.reshape(
+          (batch_size, num_hyps_per_beam, -1))
+
+      # Expectation: since the sampling is deterministic, all batch items have
+      # the same topk_ids.
+      for i in range(1, batch_size):
+        self.assertAllEqual(topk_ids[0], topk_ids[i])
+
+  def testStochasticBeamSearchDecodeWithStochasticBeamSearchDisabled(self):
+    dtype = tf.float32
+    num_hyps_per_beam = 3
+    batch_size = 2
+    max_targets_len = 4
+    with self.session(use_gpu=True), self.SetEval(True):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype)
+      p.target_seq_len = 6
+      p.beam_search.num_hyps_per_beam = num_hyps_per_beam
+      p.beam_search.force_eos_in_last_step = True
+      dec = p.Instantiate()
+
+      # Construct a batch_size=2 input.
+      bias = 1  # Force-decoding.
+      src_seq_len = 5
+      src_encoded = tf.constant(
+          np.random.normal(size=[src_seq_len, batch_size, 4]), dtype=dtype)
+      src_padding = tf.constant(
+          np.zeros((src_seq_len, batch_size)), dtype=dtype)
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_encoded,
+          padding=src_padding,
+          targets=py_utils.NestedMap(
+              labels=tf.constant([[1, 3, 0, 0], [3, 4, 5, 2]]),
+              paddings=tf.constant([[0, 0, 1, 1], [0, 0, 0, 0]], dtype=dtype),
+              weights=tf.fill([batch_size, max_targets_len],
+                              tf.constant(bias, dtype=dtype)),
+          ),
+          stochastic_beam_search=py_utils.NestedMap(
+              enable=tf.constant(False),
+              seed=tf.zeros([batch_size], dtype=tf.int32),
+              top_p_threshold=tf.ones([batch_size], dtype=dtype)))
+
+      self.evaluate(tf.global_variables_initializer())
+      decode_biased = dec.BeamSearchDecodeBiased(encoder_outputs.DeepCopy())
+      decode_stochastic = dec.StochasticBeamSearchDecodeBiased(
+          encoder_outputs.DeepCopy(), biased=True, stochastic=True)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # self.evaluate(decode).
+      decode_biased = decode_biased._replace(
+          topk_decoded=tf.constant(0, tf.float32))
+      decode_stochastic = decode_stochastic._replace(
+          topk_decoded=tf.constant(0, tf.float32))
+
+      actual_decode_biased = self.evaluate(decode_biased)
+      actual_decode_stochastic = self.evaluate(decode_stochastic)
+
+      # Expectation: BeamSearchDecodeBiased and StochasticBeamSearchDecodeBiased
+      # have the same results.
+      self.assertAllClose(actual_decode_biased.topk_scores,
+                          actual_decode_stochastic.topk_scores)
+      self.assertAllClose(actual_decode_biased.topk_lens,
+                          actual_decode_stochastic.topk_lens)
+      self.assertAllClose(actual_decode_biased.topk_ids,
+                          actual_decode_stochastic.topk_ids)
+
   def testBeamSearchDecodeUseZeroAttenState(self, dtype=tf.float32):
     with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)

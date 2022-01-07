@@ -84,6 +84,19 @@ py_library(
     ],
 )
 
+py_test(
+    name = "base_decoder_test",
+    srcs = ["base_decoder_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_decoder",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
 pytype_library(
     name = "batch_major_attention",
     srcs = ["batch_major_attention.py"],
