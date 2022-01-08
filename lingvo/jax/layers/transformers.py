@@ -1107,6 +1107,103 @@ class Transformer(base_layer.BaseLayer):
 class StackedTransformer(base_layer.BaseLayer):
   """A stack of Transformer layers."""
 
+  @classmethod
+  def GLaMParams(cls,
+                 model_dim,
+                 ff_dim,
+                 attention_num_heads,
+                 attention_key_value_dim,
+                 name='transfromer',
+                 moe=False,
+                 moe_hidden_dim=None,
+                 ffn_activation='GATED_GELU',
+                 mask_self_attention=True,
+                 cross_attention=False,
+                 relative_attention_num_buckets=32,
+                 relative_attention_max_distance=128,
+                 num_groups=1,
+                 c_dim=None,
+                 capacity_factor=0.0,
+                 e_dim=None):
+    """Common setup for GLaM Transformer layers.
+
+    This function setups a transformer block for both MoE and dense GLaM models.
+    The MoE block consists of two transformer layer with the feedforward
+    sublayer of the first one replaced by a MoE layer. The dense block consists
+    of a transformer. The transformer layer used by GLam differs from the
+    standard transformer in these configs:
+    1) The feedforward sublayer used gated gleu so there are two wi and one wo.
+    2) No bias in all projections.
+    3) Use no bias RMS norm for the layer norm.
+    4) Use relative attention bias
+
+    Args:
+      model_dim: model dimension.
+      ff_dim: hidden dimension of feed-forward inner layer.
+      attention_num_heads: number of attention heads.
+      attention_key_value_dim: key value dimension of attention inner layer.
+      name: Name of the this layer
+      moe: If this is a moe block or not.
+      moe_hidden_dim: hidden dimension of MoE layer.
+      ffn_activation: Activation function used in the ffn layer.
+      mask_self_attention: Use masked self-attention.
+      cross_attention: If set, use cross encoder-decoder attention layer.
+      relative_attention_num_buckets: Relative attention num buckets
+      relative_attention_max_distance: Max relative distance.
+      num_groups: Total number of groups for token dispatching in MoE layer.
+      c_dim: Expert capacity.
+      capacity_factor: This is the ratio between max allowed examples per expert
+        over the average number of examples per expert assuming routing is
+        completely uniform.
+      e_dim: Number of experts.
+
+    Returns:
+      A Params object to set up a StackedTransformer.
+    """
+
+    p = cls.Params()
+    p.name = name
+    p.enable_while_loop = True
+    p.packed_input = True
+    p.num_layers_per_block = 2 if moe else 1
+    p.num_blocks = 1
+    p.moe_layers = [0] if moe else None
+    p.model_dims = model_dim
+    p.hidden_dims = ff_dim
+    p.num_heads = attention_num_heads
+    p.dim_per_head = attention_key_value_dim
+    p.num_experts = e_dim
+    p.num_groups = num_groups
+    p.mask_self_attention = mask_self_attention
+    p.cross_attention = cross_attention
+    # Attention setup
+    p.transformer_layer_params_tpl.ln_tpl = normalizations.RmsNorm.Params()
+    tr_atten_tpl = p.transformer_layer_params_tpl.tr_atten_tpl
+    tr_atten_tpl.use_bias = False
+    tr_atten_tpl.internal_enable_per_dim_scale = False
+    tr_atten_tpl.relative_bias_tpl = attentions.RelativeBias.Params().Set(
+        relative_attention_num_buckets=relative_attention_num_buckets,
+        relative_attention_max_distance=relative_attention_max_distance)
+    # Non-MoE ffn setup
+    ff_tpl = p.transformer_layer_params_tpl.tr_fflayer_tpl
+    ff_tpl.input_dims = model_dim
+    ff_tpl.hidden_dims = ff_dim
+    ff_tpl.has_bias = False
+    ff_tpl.apply_padding_first = True
+    ff_tpl.ln_tpl = normalizations.RmsNorm.Params()
+    ff_tpl.add_skip_connection = True
+    ff_tpl.activation = ffn_activation
+    # MoE ffn setup
+    moe_p = p.moe_layer_tpl
+    moe_p.input_dims = model_dim
+    moe_p.hidden_dims = ff_dim
+    moe_p.ln_tpl = normalizations.RmsNorm.Params()
+    moe_p.num_experts = e_dim
+    moe_p.num_groups = num_groups
+    moe_p.expert_capacity_dim = c_dim
+    moe_p.expert_capacity_factor = capacity_factor
+    return p
+
   @staticmethod
   def DefineParams(p):
     p.Define('cross_attention', False,
