@@ -772,13 +772,6 @@ class EvalProgram(BaseProgram):
       return summed_metrics
 
   def InfeedFunc(self):
-    """Infeed function."""
-
-    if py_utils.IsEagerMode() and self._task.input.params.resettable:
-      tf.logging.info('Resetting input_generator.')
-      # Reset the iterator within `EvalFunc` to ensure it gets run everytime
-      # the `tf.function` is executed in Eager mode.
-      self._task.input.Reset()
 
     def InfeedBody(i):
       self._task.input.CreateTpuEnqueueOps()
@@ -846,9 +839,14 @@ class EvalProgram(BaseProgram):
       mlp_log.mlperf_print(
           'eval_start', None, metadata={'epoch_num': mlperf_epoch_num})
 
-    if self._task.input.params.resettable and not py_utils.IsEagerMode():
+    if self._task.input.params.resettable:
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
+      if py_utils.IsEagerMode():
+        # In eager mode, after resetting the input generator, we need to
+        # re-trace the infeed tf.function to ensure it uses the new iterator.
+        self.infeed_fn = tf.function(autograph=False)(
+            self.InfeedFunc).get_concrete_function()
 
     if py_utils.IsEagerMode():
       async_executor = executor.new_executor(enable_async=True)
@@ -920,6 +918,21 @@ class EvalProgram(BaseProgram):
                                        self._eval_metrics.ToAverageMetrics())
 
 
+def _UpdateCpuPassThroughData(decode_out_dict, cpu_pt):
+  """Combine cpu_pt into decode_out_dict."""
+  if cpu_pt is None:
+    cpu_pt = {}
+  elif py_utils.IsEagerMode():
+    cpu_pt = py_utils.Transform(lambda x: x.numpy(), cpu_pt)
+  common_keys = decode_out_dict.keys() & cpu_pt.keys()
+  if common_keys:
+    raise ValueError('CPU passthrough keys already present in '
+                     f'decode_out_dict keys: {common_keys}')
+
+  decode_out_dict.update(cpu_pt)
+  return decode_out_dict
+
+
 def _FetchDecodeOut(tpu_outs, sess=None):
   """Fetch decoder outputs, combining with CPU passthrough tensors if needed.
 
@@ -932,12 +945,10 @@ def _FetchDecodeOut(tpu_outs, sess=None):
     A dict containing merged decoded outputs.
   """
   if py_utils.IsEagerMode():
+    # The CPU pass through data will be from the infeed function.
+    # Here we will get an empty `cpu_pt`.
     decode_out_dict, cpu_pt = tpu_outs()
     decode_out_dict = py_utils.Transform(lambda x: x.numpy(), decode_out_dict)
-    if cpu_pt is None:
-      cpu_pt = {}
-    else:
-      cpu_pt = py_utils.Transform(lambda x: x.numpy(), cpu_pt)
   else:
     decode_tensors, cpu_passthrough_tensors = tpu_outs
     if cpu_passthrough_tensors is not None:
@@ -946,13 +957,7 @@ def _FetchDecodeOut(tpu_outs, sess=None):
     else:
       decode_out_dict = sess.run(decode_tensors)
       cpu_pt = {}
-  # Combine cpu_pt into decode_out_dict
-  common_keys = decode_out_dict.keys() & cpu_pt.keys()
-  if common_keys:
-    raise ValueError('CPU passthrough keys already present in '
-                     f'decode_out_dict keys: {common_keys}')
-  decode_out_dict.update(cpu_pt)
-  return decode_out_dict
+  return _UpdateCpuPassThroughData(decode_out_dict, cpu_pt)
 
 
 class DecodeProgram(BaseProgram):
@@ -982,7 +987,15 @@ class DecodeProgram(BaseProgram):
   def InfeedFunc(self):
     """Infeed function."""
     self._task.input.CreateTpuEnqueueOps()
+    # `CreateTpuEnqueueOps` and `CreateCpuPassthroughEnqueueOps` must be in the
+    # same place, because the former enqueues `_per_host_passthrough_batches`,
+    # while the latter consumes it.
     self._task.input.CreateCpuPassthroughEnqueueOps()
+    # `CreateCpuPassthroughEnqueueOps` and `DequeueCpuPassthrough` must be in
+    # the same place, because the former enqueues `_host_queues`,
+    # while the latter consumes it.
+    cpu_pt = self._task.input.DequeueCpuPassthrough()
+    return cpu_pt
 
   def DecodeFunc(self):
     """Wrap the DecodeFn with split_compile_and_shard."""
@@ -1002,7 +1015,11 @@ class DecodeProgram(BaseProgram):
       decode_tensors = self.decode_nm.Pack(batch_parallel_res)
     else:
       decode_tensors = py_utils.NestedMap()
-    cpu_pt = self._task.input.DequeueCpuPassthrough()
+    if py_utils.IsEagerMode():
+      # The CPU pass through data will be from the infeed function.
+      cpu_pt = {}
+    else:
+      cpu_pt = self._task.input.DequeueCpuPassthrough()
     return decode_tensors, cpu_pt
 
   def _DecodeUntilOutOfRangeInfeedLoop(self, sess=None, infeed_step_queue=None):
@@ -1050,12 +1067,11 @@ class DecodeProgram(BaseProgram):
       self._task.input.TpuSetup(cpu_passthrough=True)
 
       if py_utils.IsEagerMode():
-        with py_utils.ExperimentalIteratorCapture():
-          self.infeed_fn = tf.function(autograph=False)(
-              self.InfeedFunc).get_concrete_function()
-          self.tpu_outs = (
-              tf.function(autograph=False)(
-                  self.DecodeFunc).get_concrete_function())
+        self.infeed_fn = tf.function(autograph=False)(
+            self.InfeedFunc).get_concrete_function()
+        self.tpu_outs = (
+            tf.function(autograph=False)(
+                self.DecodeFunc).get_concrete_function())
       else:
         self.tpu_outs = self.DecodeFunc()
 
@@ -1073,7 +1089,7 @@ class DecodeProgram(BaseProgram):
     if py_utils.IsEagerMode():
       async_executor = executor.new_executor(enable_async=True)
       with context.executor_scope(async_executor):
-        self.infeed_fn()
+        cpu_pt = self.infeed_fn()
 
     decode_out_dict = _FetchDecodeOut(self.tpu_outs, sess)
     if py_utils.IsEagerMode():
@@ -1082,6 +1098,7 @@ class DecodeProgram(BaseProgram):
       # synchronized before the next device loop. Otherwise we might see that
       # a device loop still using the same data batches in the last device loop.
       async_executor.wait()
+      decode_out_dict = _UpdateCpuPassThroughData(decode_out_dict, cpu_pt)
 
     tf.logging.info(f'Finished TPU decoding on step {step}')
     dec_metrics['decode_secs'].Update(time.time() - fetch_start)
@@ -1192,6 +1209,11 @@ class DecodeProgram(BaseProgram):
     if self._task.input.params.resettable:
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
+      if py_utils.IsEagerMode():
+        # In eager mode, after resetting the input generator, we need to
+        # re-trace the infeed tf.function to ensure it uses the new iterator.
+        self.infeed_fn = tf.function(autograph=False)(
+            self.InfeedFunc).get_concrete_function()
 
     # The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop
     # (that runs _DecodeStep). As an input batch is successfully fed through
