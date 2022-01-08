@@ -928,7 +928,8 @@ class Transformer(base_layer.BaseLayer):
       paddings: JTensor,
       attention_mask: JTensor,
       cross_inputs: Optional[JTensor] = None,
-      cross_attention_mask: Optional[JTensor] = None
+      cross_attention_mask: Optional[JTensor] = None,
+      segment_pos: Optional[JTensor] = None,
   ) -> Tuple[JTensor, JTensor]:
     """Transformer decoder layer.
 
@@ -947,6 +948,8 @@ class Transformer(base_layer.BaseLayer):
         can be of shape [B/1, 1, T/1, S] which is broadcast compatible with the
         cross attention matrix of shape [B, N, T, T]. This is assumed to have
         combined paddings as well as segment maskings.
+      segment_pos: A JTensor of shape [B, T]. The position of each token in a
+        segment.
 
     Returns:
       The fflayer output with shape [B, T, D].
@@ -974,7 +977,8 @@ class Transformer(base_layer.BaseLayer):
         inputs_normalized,
         inputs_normalized,
         inputs_normalized,
-        atten_mask=attention_mask)
+        atten_mask=attention_mask,
+        query_segment_pos=segment_pos)
     atten_probs = NestedMap(self_atten=self_atten_probs)
     if p.norm_policy == 'primer_hybrid':
       atten_output = self.post_layer_norm.fprop(theta.post_layer_norm,
@@ -1245,7 +1249,8 @@ class StackedTransformer(base_layer.BaseLayer):
             segment_mask: Optional[JTensor] = None,
             cross_inputs: Optional[JTensor] = None,
             cross_paddings: Optional[JTensor] = None,
-            cross_segment_mask: Optional[JTensor] = None) -> JTensor:
+            cross_segment_mask: Optional[JTensor] = None,
+            segment_pos: Optional[JTensor] = None) -> JTensor:
     """Stacked Transformer layer.
 
     Args:
@@ -1260,6 +1265,7 @@ class StackedTransformer(base_layer.BaseLayer):
       cross_paddings: Paddings for cross atention of shape [B, S].
       cross_segment_mask: Segment mask for encoder-decoder in packed input case
         of shape [B, 1, T, S].
+      segment_pos: Segment pos for packed input of shape [B, T].
 
     Returns:
       Output vector with shape [B, T, D].
@@ -1341,9 +1347,15 @@ class StackedTransformer(base_layer.BaseLayer):
               layer_vars_i = tf.nest.map_structure(
                   annotate_var_sharding_constraint, layer_vars_i,
                   self.x_layers[i].vars)
-            x_out, _ = self.x_layers[i].fprop(layer_vars_i, x_out, paddings,
-                                              attention_mask, cross_inputs,
-                                              cross_attention_mask)
+            x_out, _ = self.x_layers[i].fprop(
+                layer_vars_i,
+                x_out,
+                paddings,
+                attention_mask,
+                cross_inputs,
+                cross_attention_mask,
+                segment_pos=segment_pos,
+            )
           if al_ctx.aux_losses:
             assert isinstance(al_ctx.aux_losses, list)
             aux_loss_inc = sum(al_ctx.aux_losses).astype(self.fprop_dtype)
@@ -1381,9 +1393,14 @@ class StackedTransformer(base_layer.BaseLayer):
     else:
       for i in range(p.num_layers):
         x_in = x_out
-        x_out, _ = self.x_layers[i].fprop(theta.x_layers[i], x_in, paddings,
-                                          attention_mask, cross_inputs,
-                                          cross_attention_mask)
+        x_out, _ = self.x_layers[i].fprop(
+            theta.x_layers[i],
+            x_in,
+            paddings,
+            attention_mask,
+            cross_inputs,
+            cross_attention_mask,
+            segment_pos=segment_pos)
     return x_out
 
   def extend_step(
@@ -1508,7 +1525,8 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
             segment_mask: Optional[JTensor] = None,
             cross_inputs: Optional[JTensor] = None,
             cross_paddings: Optional[JTensor] = None,
-            cross_segment_mask: Optional[JTensor] = None) -> JTensor:
+            cross_segment_mask: Optional[JTensor] = None,
+            segment_pos: Optional[JTensor] = None) -> JTensor:
     """Stacked Transformer layer.
 
     Args:
@@ -1523,6 +1541,7 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
       cross_paddings: Paddings for cross atention of shape [B, S].
       cross_segment_mask: Segment mask for encoder-decoder in packed input case
         of shape [B, 1, T, S].
+      segment_pos: Segment position of shape [B, T].
 
     Returns:
       Output vector with shape [B, T, D].
@@ -1548,8 +1567,14 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
         cross_segment_mask,
         fold_padding_with_segment_mask=p.fold_padding_with_segment_mask)
 
-    x_out = self.repeat.fprop(theta.repeat, inputs, paddings, attention_mask,
-                              cross_inputs, cross_attention_mask)
+    x_out = self.repeat.fprop(
+        theta.repeat,
+        inputs,
+        paddings,
+        attention_mask,
+        cross_inputs,
+        cross_attention_mask,
+        segment_pos=segment_pos)
     return x_out
 
   def init_states(self, theta: NestedMap, *args: Any,
@@ -2011,7 +2036,11 @@ class TransformerLm(base_layer.BaseLayer):
         segment_mask = attentions.causal_segment_mask(segment_ids, inputs.dtype)
 
       output = self.transformer.fprop(
-          theta.transformer, inputs, paddings, segment_mask=segment_mask)
+          theta.transformer,
+          inputs,
+          paddings,
+          segment_mask=segment_mask,
+          segment_pos=segment_pos)
 
       # Final layer norm
       output = self.final_ln.fprop(theta.final_ln, output)

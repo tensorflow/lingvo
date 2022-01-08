@@ -22,6 +22,7 @@ from lingvo.jax.layers.attentions import causal_segment_mask
 from lingvo.jax.layers.attentions import convert_paddings_to_mask
 from lingvo.jax.layers.attentions import DotProductAttention
 from lingvo.jax.layers.attentions import PerDimScale
+from lingvo.jax.layers.attentions import RelativeBias
 from lingvo.jax.layers.attentions import segment_mask
 from lingvo.jax.layers.augmentations import MaskedLmDataAugmenter
 from lingvo.jax.layers.conformers import Conformer

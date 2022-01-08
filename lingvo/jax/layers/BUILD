@@ -605,7 +605,7 @@ py_strict_test(
     # TODO(BF-JAX): Consider splitting this module into
     # transformers and transformers_models since this is growing
     # too big.
-    shard_count = 26,
+    shard_count = 28,
     srcs_version = "PY3",
     deps = [
         ":attentions",

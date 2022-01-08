@@ -435,6 +435,91 @@ class AttentionsTest(test_util.JaxTestCase):
       self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out)
       self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out_tensor)
 
+  @parameterized.parameters([(32, 128), (2, 8), (8, 32)])
+  def test_relative_bias(self, num_buckets, max_distance):
+    mdl_dim = 16
+    hidden_dim = 32
+    num_heads = 4
+    test_layer_p = attentions.DotProductAttention.Params().Set(
+        name='relative_attn',
+        input_dim=mdl_dim,
+        hidden_dim=hidden_dim,
+        num_heads=num_heads)
+    test_layer_p.relative_bias_tpl = attentions.RelativeBias.Params().Set(
+        relative_attention_num_buckets=num_buckets,
+        relative_attention_max_distance=max_distance)
+    layer = test_layer_p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    prng_key, init_key = jax.random.split(prng_key)
+    initial_vars = layer.instantiate_variables(init_key)
+    target_batch_size = 3
+    source_max_length = 16
+    query_vec = np.random.normal(
+        size=[target_batch_size, source_max_length, mdl_dim]).astype(np.float32)
+    key_vec = query_vec
+    value_vec = query_vec
+    segment_pos = np.random.randint(
+        0, source_max_length,
+        [target_batch_size, source_max_length]).astype('int32')
+    atten_mask = attentions.causal_mask(query_vec)
+
+    prng_key, compute_key = jax.random.split(prng_key)
+    global_step = jnp.array(0, dtype=jnp.uint64)
+
+    with base_layer.JaxContext.new_context(
+        prng_key=compute_key, global_step=global_step):
+      atten_output, _ = layer.fprop(
+          initial_vars,
+          query_vec,
+          key_vec,
+          value_vec,
+          atten_mask=atten_mask,
+          query_segment_pos=segment_pos)
+
+    self.assertEqual(atten_output.shape,
+                     (target_batch_size, source_max_length, mdl_dim))
+
+  @parameterized.parameters([(32, 128), (2, 8), (8, 32)])
+  def test_relative_bias_extend_step(self, num_buckets, max_distance):
+    mdl_dim = 16
+    hidden_dim = 32
+    num_heads = 4
+    test_layer_p = attentions.DotProductAttention.Params().Set(
+        name='relative_attn',
+        input_dim=mdl_dim,
+        hidden_dim=hidden_dim,
+        num_heads=num_heads)
+    test_layer_p.relative_bias_tpl = attentions.RelativeBias.Params().Set(
+        relative_attention_num_buckets=num_buckets,
+        relative_attention_max_distance=max_distance)
+    layer = test_layer_p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    prng_key, init_key = jax.random.split(prng_key)
+    initial_vars = layer.instantiate_variables(init_key)
+    target_batch_size = 2
+    source_max_length = 8
+    target_max_length = 8
+    inputs = np.random.normal(
+        size=[target_batch_size, source_max_length, mdl_dim]).astype(np.float32)
+    atten_mask = attentions.causal_mask(inputs)
+    initial_states = layer.init_states(initial_vars, target_batch_size,
+                                       target_max_length)
+
+    time_step = 2
+    prng_key, compute_key = jax.random.split(prng_key)
+    global_step = jnp.array(0, dtype=jnp.uint64)
+
+    with base_layer.JaxContext.new_context(
+        prng_key=compute_key, global_step=global_step):
+      _, atten_output = layer.extend_step(
+          initial_vars,
+          initial_states,
+          inputs[:, time_step, :],
+          atten_mask=atten_mask[:, :, time_step, :],
+          time_step=time_step)
+
+    self.assertEqual(atten_output.shape, (target_batch_size, mdl_dim))
+
 
 if __name__ == '__main__':
   absltest.main()

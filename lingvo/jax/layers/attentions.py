@@ -201,6 +201,157 @@ class PerDimScale(base_layer.BaseLayer):
     return inputs * scale
 
 
+class RelativeBias(base_layer.BaseLayer):
+  """A layer for Relative Attention Bias.
+
+  Paper: https://aclanthology.org/N18-2074.pdf.
+  Note that attention bias ensures that current position (~row) is less that
+  memory position(~column).
+
+  In addition to masking bias we use per-head per-relative position bucket
+  relative_bias_weights array of shape
+  [num heads, num relative position buckets].
+
+  We compute relative position bucket for every position pair, relative_bucket
+  tensor of shape [batch, length, length] and do
+  jax.lax.gather(operand=relative_bias_weights, start_indices=relative_bucket,
+    dimension_numbers=jax.lax.GatherDimensionNumbers(
+        offset_dims=tuple(1)),
+  to compute per position-pair bias.
+  """
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    """Params for `RelativeBias`."""
+    p = super().Params()
+    p.Define('num_heads', 1, 'Num of attention heads.')
+    p.Define('relative_attention_num_buckets', 32,
+             'Relative attention num buckets.')
+    p.Define('relative_attention_max_distance', 128,
+             'Max relative distance (outer bucket boundary).')
+    return p
+
+  def create_layer_variables(self) -> None:
+    """Creates layer variables for RelativeBias."""
+    super().create_layer_variables()
+    p = self.params
+    rb_stddev = (p.num_heads * p.relative_attention_num_buckets)**-0.5
+    pc = weight_params(
+        shape=[p.num_heads, p.relative_attention_num_buckets],
+        init=WeightInit.Gaussian(rb_stddev),
+        dtype=p.dtype)
+    self.create_variable('wrb', pc)
+
+  def _relative_position_bucket(self, relative_position: JTensor) -> JTensor:
+    """Translate relative position to a bucket number for relative attention.
+
+    Args:
+      relative_position: An int32 JTensor.
+
+    Returns:
+      A JTensor with the same shape as relative_position, containing int32
+      values in the range [0, num_buckets)
+    """
+    p = self.params
+
+    num_buckets = p.relative_attention_num_buckets
+    max_distance = jnp.array(p.relative_attention_max_distance).astype(p.dtype)
+    ret = 0
+    n = -relative_position
+    n = jnp.maximum(n, 0)
+    # now n is in the range [0, inf)
+    max_exact = num_buckets // 2
+    is_small = jnp.less(n, max_exact)
+    val_if_large = max_exact + (jnp.log(n.astype(p.dtype) / max_exact) /
+                                jnp.log(max_distance / max_exact) *
+                                (num_buckets - max_exact)).astype(jnp.int32)
+    val_if_large = jnp.minimum(val_if_large, num_buckets - 1)
+    ret += jnp.where(is_small, n, val_if_large)
+    return ret
+
+  def fprop(self,
+            theta: NestedMap,
+            query_segment_pos: JTensor,
+            key_segment_pos: Optional[JTensor] = None) -> JTensor:
+    """Return relative bias for attention.
+
+    We use the following capital letters to denote certain JTensor parameters.
+
+      B = batch size
+      S = length of the key/value (source)
+      T = length of the query (target)
+      N = number of attention heads
+
+    When training query_segment_pos = key_segment_pos, of shape [batch, time].
+    When decoding query_segment_pos is [batch, beam_size]
+    but key_segment_pos is [batch, memory_size] (because of k_pos StateLayer).
+
+    Args:
+      theta: A `.NestedMap` object containing weights defined in this layer.
+      query_segment_pos: A JTensor with shape [B, T].
+      key_segment_pos: A JTensor with shape [B, S].
+
+    Returns:
+      relative_bias: A JTensor with shape [B, N, T, S].
+    """
+    p = self.params
+
+    if key_segment_pos is None:
+      key_segment_pos = query_segment_pos
+
+    # Relative position is defined in such a way that when query is in the
+    # future relative to the key, the value of relative position is negative.
+    relative_position = (
+        jnp.expand_dims(key_segment_pos, -2) -
+        jnp.expand_dims(query_segment_pos, -1))
+    relative_bucket = self._relative_position_bucket(relative_position)
+
+    relative_bucket_one_hot = jax.nn.one_hot(
+        relative_bucket, p.relative_attention_num_buckets, dtype=p.dtype)
+    # relative_bucket_one_hot:
+    # ..TSX - [batch?, length, memory_length, num_buckets]
+    #
+    # relative bias weights theta.wrb:
+    # NX - [num_heads, num_buckets]
+    #
+    # relative_bias:
+    # [batch?, heads, length, memory_length]
+    relative_bias = jnp.einsum('NX,...TSX->...NTS', theta.wrb,
+                               relative_bucket_one_hot)
+
+    # Eventually we add bias to BNTS [batch, heads, length, memory_length]
+    # logits tensor, so we make 'heads' dim next to batch.
+    return relative_bias
+
+  def extend_step(self,
+                  theta: NestedMap,
+                  seq_length: int,
+                  time_step: Optional[Union[int, JTensor]] = None) -> JTensor:
+    """Generates a JTensor for a step in greedy search.
+
+    B = batch size
+    P = prefix length
+    S = sequence length
+    N = number of attention heads
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      seq_length: An integer equal to S.
+      time_step: The time step which is being decoded.
+
+    Returns:
+      relative_bias: A JTensor with shape [1, N, 1, S].
+    """
+    query_segment_pos = jnp.zeros([1], jnp.int32) + time_step
+    key_segment_pos = jnp.arange(seq_length, dtype=jnp.int32)
+    relative_bias = self.fprop(
+        theta,
+        query_segment_pos=query_segment_pos[jnp.newaxis, :],
+        key_segment_pos=key_segment_pos[jnp.newaxis, :])
+    return relative_bias
+
+
 class AttentionProjection(base_layer.BaseLayer):
   """Layer that computes multi heads projection.
 
@@ -228,6 +379,7 @@ class AttentionProjection(base_layer.BaseLayer):
     wp = p.weight_split_dims_mapping
     if p.device_mesh is not None:
       assert wp.wt is not None, self.path
+    # TODO(wangtao): add an option to create variable shape as NHD.
     pc = weight_params(
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
         init=p.params_init,
@@ -483,6 +635,7 @@ class DotProductAttention(base_layer.BaseLayer):
         'use_rotary_position_emb', False, 'Whether to add rotary position'
         'embedding to the queries and keys before computing self attention'
         'scores. This was proposed in https://arxiv.org/abs/2104.09864.')
+    p.Define('relative_bias_tpl', None, 'Relative bias.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -571,6 +724,11 @@ class DotProductAttention(base_layer.BaseLayer):
       pos_emb_p = embedding_softmax.RotaryPositionalEmbedding.Params()
       pos_emb_p.embedding_dims = dim_per_head
       self.create_child('rotary_position_emb', pos_emb_p)
+
+    if p.relative_bias_tpl is not None:
+      relative_bias_p = p.relative_bias_tpl
+      relative_bias_p.num_heads = p.num_heads
+      self.create_child('relative_bias', relative_bias_p)
 
     if p.dconv_qkv:
       causal_dconv_p = CausalDepthwiseConv1D.Params().Set(
@@ -678,9 +836,14 @@ class DotProductAttention(base_layer.BaseLayer):
     logits = cap * jnp.tanh(logits / cap)
     return logits
 
-  def _dot_atten(self, theta: NestedMap, query: JTensor, key: JTensor,
-                 value: JTensor,
-                 atten_mask: JTensor) -> Tuple[JTensor, JTensor]:
+  def _dot_atten(
+      self,
+      theta: NestedMap,
+      query: JTensor,
+      key: JTensor,
+      value: JTensor,
+      atten_mask: JTensor,
+      relative_bias: Optional[JTensor] = None) -> Tuple[JTensor, JTensor]:
     """Main attention function.
 
     Args:
@@ -694,6 +857,7 @@ class DotProductAttention(base_layer.BaseLayer):
         been converted into large negative logits. Note that the first and third
         dimension allow size 1 if the mask is shared by every item in the batch
         or every token in the target sequence.
+      relative_bias: Relative bias of shape [B, N, T, S].
 
     Returns:
       encoded: JTensor of shape [B, T, N, H].
@@ -720,6 +884,9 @@ class DotProductAttention(base_layer.BaseLayer):
     if p.internal_enable_per_dim_scale:
       query = self.per_dim_scale.fprop(theta.per_dim_scale, query)
     logits = jnp.einsum('BTNH,BSNH->BNTS', query, key)
+    if relative_bias is not None:
+      base_layer.assert_has_shape(relative_bias, [b, n, t, s])
+      logits += relative_bias
     logits = checkpoint_name(logits, 'logits')
     logits = self._cap_logits(logits)
     # Attention softmax is always carried out in fp32.
@@ -735,8 +902,13 @@ class DotProductAttention(base_layer.BaseLayer):
     encoded = self._shard_blnh(encoded)
     return encoded, probs
 
-  def _dot_atten_one_step(self, theta: NestedMap, query: JTensor, key: JTensor,
-                          value: JTensor, atten_mask: JTensor) -> JTensor:
+  def _dot_atten_one_step(self,
+                          theta: NestedMap,
+                          query: JTensor,
+                          key: JTensor,
+                          value: JTensor,
+                          atten_mask: JTensor,
+                          relative_bias: Optional[JTensor] = None) -> JTensor:
     """Dot attention function for queries with 1 time step.
 
     Args:
@@ -750,6 +922,7 @@ class DotProductAttention(base_layer.BaseLayer):
         converted into large negative logits. The first dimension is allowed to
         be of size 1, if the mask is shared by all items in the batch (e.g.,
         only a causal mask).
+      relative_bias: Relative bias of shape [1/B, N, 1, S].
 
     Returns:
       encoded: JTensor of shape [B, N, H].
@@ -770,6 +943,11 @@ class DotProductAttention(base_layer.BaseLayer):
     if p.internal_enable_per_dim_scale:
       query = self.per_dim_scale.fprop(theta.per_dim_scale, query)
     logits = jnp.einsum('BNH,SBNH->BNS', query, key)
+    if relative_bias is not None:
+      base_layer.assert_has_shape(relative_bias, [-1, n, 1, s])
+      assert relative_bias.shape[0] in [1, b]
+      relative_bias = jnp.squeeze(relative_bias, axis=2)
+      logits += relative_bias
     logits = self._cap_logits(logits)
     # Attention softmax is always carried out in fp32.
     logits = logits.astype(jnp.float32)
@@ -782,8 +960,15 @@ class DotProductAttention(base_layer.BaseLayer):
     encoded = self._shard_bnh(encoded)
     return encoded, probs
 
-  def fprop(self, theta: NestedMap, query_vec: JTensor, key_vec: JTensor,
-            value_vec: JTensor, atten_mask: JTensor) -> Tuple[JTensor, JTensor]:
+  def fprop(
+      self,
+      theta: NestedMap,
+      query_vec: JTensor,
+      key_vec: JTensor,
+      value_vec: JTensor,
+      atten_mask: JTensor,
+      query_segment_pos: Optional[JTensor] = None,
+      key_segment_pos: Optional[JTensor] = None) -> Tuple[JTensor, JTensor]:
     """Computes the value vector given the current query output.
 
     Args:
@@ -797,6 +982,8 @@ class DotProductAttention(base_layer.BaseLayer):
         been converted into large negative logits. Note that the first and third
         dimension allow size 1 if the mask is shared by every item in the batch
         or every token in the target sequence.
+      query_segment_pos: JTensor of shape [B, T]
+      key_segment_pos: JTensor of shape [B, S]
 
     Returns:
       encoded: JTensor of shape [B, T, D].
@@ -833,8 +1020,18 @@ class DotProductAttention(base_layer.BaseLayer):
       key_proj = self.rotary_position_emb.fprop(theta.rotary_position_emb,
                                                 key_proj)
 
+    # Apply relative bias.
+    # Paper: https://aclanthology.org/N18-2074.pdf.
+    if p.relative_bias_tpl:
+      relative_bias = self.relative_bias.fprop(theta.relative_bias,
+                                               query_segment_pos,
+                                               key_segment_pos)
+    else:
+      relative_bias = None
+
     encoded, atten_probs = self._dot_atten(theta, query_proj, key_proj,
-                                           value_proj, atten_mask)
+                                           value_proj, atten_mask,
+                                           relative_bias)
 
     # Post projection
     encoded = self.post.fprop(theta.post, encoded)
@@ -1013,9 +1210,17 @@ class DotProductAttention(base_layer.BaseLayer):
       updated_state = jax.tree_map(self._shard_lbnh, updated_state)
       extended_key = updated_state.key_post_rotary_pos_emb
 
+    if p.relative_bias_tpl:
+      relative_bias = self.relative_bias.extend_step(
+          theta.relative_bias,
+          seq_length=updated_state.key.shape[0],
+          time_step=time_step)
+    else:
+      relative_bias = None
+
     encoded, atten_prob = self._dot_atten_one_step(theta, new_query_proj,
                                                    extended_key, extended_value,
-                                                   atten_mask)
+                                                   atten_mask, relative_bias)
     # TODO(yonghui): return atten_probs back to the caller.
     del atten_prob
     # Post projection.
