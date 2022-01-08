@@ -1188,31 +1188,6 @@ class StackedTransformer(base_layer.BaseLayer):
     assert p.num_heads > 0
     assert 0.0 <= p.dropout_prob < 1.0
 
-    def _moe_layer_params(ff_p):
-      """Convert a TransformerFeedforwardLayer to a MoE Layer."""
-      assert issubclass(ff_p.cls, TransformerFeedForward)
-      p = self.params
-      assert p.num_experts > 0
-      moe_p = p.moe_layer_tpl.Copy()
-      # Copy over the base params.
-      base_layer.BaseLayer.copy_base_params(ff_p, moe_p)
-      # Copy over othe params.
-      moe_p.name = ff_p.name
-      moe_p.input_dims = ff_p.input_dims
-      moe_p.hidden_dims = ff_p.hidden_dims
-      moe_p.ln_tpl = ff_p.ln_tpl.Copy()
-      moe_p.activation = ff_p.activation
-      moe_p.relu_dropout_tpl = ff_p.relu_dropout_tpl.Copy()
-      moe_p.relu_dropout_prob = ff_p.relu_dropout_prob
-      moe_p.residual_dropout_tpl = ff_p.residual_dropout_tpl.Copy()
-      moe_p.residual_dropout_prob = ff_p.residual_dropout_prob
-      moe_p.add_skip_connection = ff_p.add_skip_connection
-      moe_p.norm_policy = ff_p.norm_policy
-      moe_p.num_experts = p.num_experts
-      moe_p.num_groups = p.num_groups
-      moe_p.min_group_size = p.min_group_size
-      return moe_p
-
     def _layer_params(i):
       """Construct i-th layer params."""
       p_i = p.transformer_layer_params_tpl.Copy()
@@ -1228,7 +1203,11 @@ class StackedTransformer(base_layer.BaseLayer):
       p_i.relu_dropout_prob = p.dropout_prob
       p_i.hidden_dims = p.hidden_dims
       if i in p.moe_layers:
-        moe_p = _moe_layer_params(p_i.tr_fflayer_tpl)
+        assert p.num_experts > 0
+        moe_p = p.moe_layer_tpl.Copy()
+        moe_p.num_experts = p.num_experts
+        moe_p.num_groups = p.num_groups
+        moe_p.min_group_size = p.min_group_size
         p_i.tr_fflayer_tpl = moe_p
       return p_i
 

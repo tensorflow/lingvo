@@ -31,6 +31,7 @@ pytype_strict_library(
     deps = [
         # Implicit jax dependency.
         "//lingvo/jax:asserts",
+        "//lingvo/jax:base_layer",
         "//lingvo/jax:base_model_params",
         "//lingvo/jax:model",
         "//lingvo/jax:optimizers",

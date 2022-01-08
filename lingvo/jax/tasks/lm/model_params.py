@@ -19,6 +19,7 @@ from typing import Sequence
 
 from jax import numpy as jnp
 from lingvo.jax import asserts
+from lingvo.jax import base_layer
 from lingvo.jax import base_model_params
 from lingvo.jax import layers
 from lingvo.jax import model
@@ -114,6 +115,29 @@ def set_default_adafactor(model_p: InstantiableParams, learning_rate: float,
           max=1.0))
 
 
+def maybe_setup_moe_params(model_p: InstantiableParams):
+  """Convert a FeedforwardLayer to a MoE Layer for StackedTransformer."""
+  if model_p.num_experts == 0:
+    return model_p
+  ff_p = model_p.transformer_layer_params_tpl.tr_fflayer_tpl
+  assert issubclass(ff_p.cls, layers.TransformerFeedForward)
+  moe_p = model_p.moe_layer_tpl
+  # Copy over the base params.
+  base_layer.BaseLayer.copy_base_params(ff_p, moe_p)
+  # Copy over othe params.
+  moe_p.name = ff_p.name
+  moe_p.input_dims = ff_p.input_dims
+  moe_p.hidden_dims = ff_p.hidden_dims
+  moe_p.ln_tpl = ff_p.ln_tpl.Copy()
+  moe_p.activation = ff_p.activation
+  moe_p.relu_dropout_tpl = ff_p.relu_dropout_tpl.Copy()
+  moe_p.relu_dropout_prob = ff_p.relu_dropout_prob
+  moe_p.residual_dropout_tpl = ff_p.residual_dropout_tpl.Copy()
+  moe_p.residual_dropout_prob = ff_p.residual_dropout_prob
+  moe_p.add_skip_connection = ff_p.add_skip_connection
+  moe_p.norm_policy = ff_p.norm_policy
+
+
 class TransformerBertPmapAdam(base_model_params.BaseModelParams):
   """Base Pmap Transformer Bert configuration using Adam."""
 
@@ -170,6 +194,7 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
     if self.ENABLE_BFLOAT16:
       model_p.fprop_dtype = jnp.bfloat16
 
+    maybe_setup_moe_params(model_p.lm.stacked_transformer_tpl)
     set_default_adam(model_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
 
     return model_p
@@ -242,6 +267,7 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
 
     model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
 
+    maybe_setup_moe_params(model_p.lm.stacked_transformer_tpl)
     set_sharding_annotations_v1(model_p, self.MESH_SHAPE)
 
     return model_p
@@ -287,6 +313,7 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
     softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(self.MODEL_DIMS))
     model_p.lm.softmax_tpl.params_init = softmax_init
 
+    maybe_setup_moe_params(model_p.lm.stacked_transformer_tpl)
     set_default_adam(model_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
 
     return model_p
@@ -372,5 +399,6 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
     model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
 
     set_sharding_annotations_v1(model_p, self.MESH_SHAPE)
+    maybe_setup_moe_params(model_p.lm.stacked_transformer_tpl)
 
     return model_p
