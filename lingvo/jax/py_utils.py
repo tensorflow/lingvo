@@ -188,7 +188,8 @@ def extract_prefixed_keys_from_nested_map(node: Any,
         extract_keys(v, f'{prefix}{left_separator}{i}{right_separator}',
                      key_separator, left_separator, right_separator)
         for i, v in enumerate(node))
-  elif dataclasses.is_dataclass(node):
+  elif (dataclasses.is_dataclass(node) and
+        node.__class__ in flax.serialization._STATE_DICT_REGISTRY):  # pylint: disable=protected-access
     node_dict = flax.serialization.to_state_dict(node)
     return _handle_dict(node_dict, prefix, key_separator, left_separator,
                         right_separator)
