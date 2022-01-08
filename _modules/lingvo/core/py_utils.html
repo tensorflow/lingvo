@@ -742,29 +742,6 @@
   <span class="k">return</span> <span class="n">_IS_EAGER_MODE</span></div>
 
 
-<span class="n">_EXPERIMENTAL_CAPTURE</span> <span class="o">=</span> <span class="kc">False</span>
-
-
-<div class="viewcode-block" id="SetExperimentalIteratorCapture"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetExperimentalIteratorCapture">[docs]</a><span class="k">def</span> <span class="nf">SetExperimentalIteratorCapture</span><span class="p">(</span><span class="n">experimental_capture</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-  <span class="k">global</span> <span class="n">_EXPERIMENTAL_CAPTURE</span>
-  <span class="n">_EXPERIMENTAL_CAPTURE</span> <span class="o">=</span> <span class="n">experimental_capture</span></div>
-
-
-<div class="viewcode-block" id="IsExperimentalIteratorCapture"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.IsExperimentalIteratorCapture">[docs]</a><span class="k">def</span> <span class="nf">IsExperimentalIteratorCapture</span><span class="p">():</span>
-  <span class="k">return</span> <span class="n">_EXPERIMENTAL_CAPTURE</span></div>
-
-
-<div class="viewcode-block" id="ExperimentalIteratorCapture"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ExperimentalIteratorCapture">[docs]</a><span class="k">class</span> <span class="nc">ExperimentalIteratorCapture</span><span class="p">:</span>
-
-  <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">global</span> <span class="n">_EXPERIMENTAL_CAPTURE</span>
-    <span class="n">_EXPERIMENTAL_CAPTURE</span> <span class="o">=</span> <span class="kc">True</span>
-
-  <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-    <span class="k">global</span> <span class="n">_EXPERIMENTAL_CAPTURE</span>
-    <span class="n">_EXPERIMENTAL_CAPTURE</span> <span class="o">=</span> <span class="kc">False</span></div>
-
-
 <span class="c1"># Maintains a tf.GradientTape stack.</span>
 <span class="n">_GRADIENT_TAPE_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
 

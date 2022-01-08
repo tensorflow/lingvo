@@ -837,13 +837,6 @@
       <span class="k">return</span> <span class="n">summed_metrics</span></div>
 
 <div class="viewcode-block" id="EvalProgram.InfeedFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.InfeedFunc">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Infeed function.&quot;&quot;&quot;</span>
-
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
-      <span class="c1"># Reset the iterator within `EvalFunc` to ensure it gets run everytime</span>
-      <span class="c1"># the `tf.function` is executed in Eager mode.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">InfeedBody</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
@@ -911,9 +904,14 @@
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
           <span class="s1">&#39;eval_start&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;epoch_num&#39;</span><span class="p">:</span> <span class="n">mlperf_epoch_num</span><span class="p">})</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+        <span class="c1"># In eager mode, after resetting the input generator, we need to</span>
+        <span class="c1"># re-trace the infeed tf.function to ensure it uses the new iterator.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="n">async_executor</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">new_executor</span><span class="p">(</span><span class="n">enable_async</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -985,6 +983,21 @@
                                        <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">ToAverageMetrics</span><span class="p">())</span></div></div>
 
 
+<div class="viewcode-block" id="_UpdateCpuPassThroughData"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program._UpdateCpuPassThroughData">[docs]</a><span class="k">def</span> <span class="nf">_UpdateCpuPassThroughData</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">cpu_pt</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Combine cpu_pt into decode_out_dict.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">cpu_pt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">cpu_pt</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">elif</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="n">cpu_pt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">cpu_pt</span><span class="p">)</span>
+  <span class="n">common_keys</span> <span class="o">=</span> <span class="n">decode_out_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">cpu_pt</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+  <span class="k">if</span> <span class="n">common_keys</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;CPU passthrough keys already present in &#39;</span>
+                     <span class="sa">f</span><span class="s1">&#39;decode_out_dict keys: </span><span class="si">{</span><span class="n">common_keys</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+  <span class="n">decode_out_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">cpu_pt</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">decode_out_dict</span></div>
+
+
 <div class="viewcode-block" id="_FetchDecodeOut"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program._FetchDecodeOut">[docs]</a><span class="k">def</span> <span class="nf">_FetchDecodeOut</span><span class="p">(</span><span class="n">tpu_outs</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Fetch decoder outputs, combining with CPU passthrough tensors if needed.</span>
 
@@ -997,12 +1010,10 @@
 <span class="sd">    A dict containing merged decoded outputs.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="c1"># The CPU pass through data will be from the infeed function.</span>
+    <span class="c1"># Here we will get an empty `cpu_pt`.</span>
     <span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">cpu_pt</span> <span class="o">=</span> <span class="n">tpu_outs</span><span class="p">()</span>
     <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">decode_out_dict</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">cpu_pt</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">cpu_pt</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">cpu_pt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">cpu_pt</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">decode_tensors</span><span class="p">,</span> <span class="n">cpu_passthrough_tensors</span> <span class="o">=</span> <span class="n">tpu_outs</span>
     <span class="k">if</span> <span class="n">cpu_passthrough_tensors</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1011,13 +1022,7 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">decode_tensors</span><span class="p">)</span>
       <span class="n">cpu_pt</span> <span class="o">=</span> <span class="p">{}</span>
-  <span class="c1"># Combine cpu_pt into decode_out_dict</span>
-  <span class="n">common_keys</span> <span class="o">=</span> <span class="n">decode_out_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">&amp;</span> <span class="n">cpu_pt</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
-  <span class="k">if</span> <span class="n">common_keys</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;CPU passthrough keys already present in &#39;</span>
-                     <span class="sa">f</span><span class="s1">&#39;decode_out_dict keys: </span><span class="si">{</span><span class="n">common_keys</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-  <span class="n">decode_out_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">cpu_pt</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">decode_out_dict</span></div>
+  <span class="k">return</span> <span class="n">_UpdateCpuPassThroughData</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">cpu_pt</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DecodeProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram">[docs]</a><span class="k">class</span> <span class="nc">DecodeProgram</span><span class="p">(</span><span class="n">BaseProgram</span><span class="p">):</span>
@@ -1047,7 +1052,15 @@
 <div class="viewcode-block" id="DecodeProgram.InfeedFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.InfeedFunc">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Infeed function.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span></div>
+    <span class="c1"># `CreateTpuEnqueueOps` and `CreateCpuPassthroughEnqueueOps` must be in the</span>
+    <span class="c1"># same place, because the former enqueues `_per_host_passthrough_batches`,</span>
+    <span class="c1"># while the latter consumes it.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
+    <span class="c1"># `CreateCpuPassthroughEnqueueOps` and `DequeueCpuPassthrough` must be in</span>
+    <span class="c1"># the same place, because the former enqueues `_host_queues`,</span>
+    <span class="c1"># while the latter consumes it.</span>
+    <span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">cpu_pt</span></div>
 
 <div class="viewcode-block" id="DecodeProgram.DecodeFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.DecodeFunc">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrap the DecodeFn with split_compile_and_shard.&quot;&quot;&quot;</span>
@@ -1067,7 +1080,11 @@
       <span class="n">decode_tensors</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">batch_parallel_res</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">decode_tensors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-    <span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="c1"># The CPU pass through data will be from the infeed function.</span>
+      <span class="n">cpu_pt</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">decode_tensors</span><span class="p">,</span> <span class="n">cpu_pt</span></div>
 
 <div class="viewcode-block" id="DecodeProgram._DecodeUntilOutOfRangeInfeedLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._DecodeUntilOutOfRangeInfeedLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_DecodeUntilOutOfRangeInfeedLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">infeed_step_queue</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1115,12 +1132,11 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">(</span><span class="n">cpu_passthrough</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ExperimentalIteratorCapture</span><span class="p">():</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-                  <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">()</span></div>
 
@@ -1138,7 +1154,7 @@
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="n">async_executor</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">new_executor</span><span class="p">(</span><span class="n">enable_async</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">executor_scope</span><span class="p">(</span><span class="n">async_executor</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span><span class="p">()</span>
+        <span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span><span class="p">()</span>
 
     <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
@@ -1147,6 +1163,7 @@
       <span class="c1"># synchronized before the next device loop. Otherwise we might see that</span>
       <span class="c1"># a device loop still using the same data batches in the last device loop.</span>
       <span class="n">async_executor</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+      <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_UpdateCpuPassThroughData</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">cpu_pt</span><span class="p">)</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Finished TPU decoding on step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;decode_secs&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">)</span>
@@ -1257,6 +1274,11 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+        <span class="c1"># In eager mode, after resetting the input generator, we need to</span>
+        <span class="c1"># re-trace the infeed tf.function to ensure it uses the new iterator.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
 
     <span class="c1"># The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop</span>
     <span class="c1"># (that runs _DecodeStep). As an input batch is successfully fed through</span>

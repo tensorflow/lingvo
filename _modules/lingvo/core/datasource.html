@@ -468,20 +468,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_InitIterator</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetUnitTestSession</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetUnitTestSession</span><span class="p">())</span>
-    <span class="c1"># This piece of code must be run in Eager trainer and `tf.function`</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">(</span>
-    <span class="p">)</span> <span class="ow">and</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsExperimentalIteratorCapture</span><span class="p">():</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Using calltime capture for the iterator&#39;</span><span class="p">)</span>
-      <span class="c1"># TODO(jiaweix): we should consider replacing calltime capture with</span>
-      <span class="c1"># explicit iterator arguments to the `tf.function`. (related: b/207421666)</span>
-      <span class="c1"># This is because</span>
-      <span class="c1"># (1) the current approach relies on a private api;</span>
-      <span class="c1"># (2) `capture_call_time_value` does not work well with complex ops e.g.</span>
-      <span class="c1"># while_loop - the decode program happens to not rely on while_loop.</span>
-      <span class="n">iter_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span><span class="o">.</span><span class="n">_type_spec</span>  <span class="c1"># pylint: disable=protected-access</span>
-      <span class="n">captured_it</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">capture_call_time_value</span><span class="p">(</span>
-          <span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">],</span> <span class="n">iter_spec</span><span class="p">)</span>
-      <span class="k">return</span> <span class="nb">next</span><span class="p">(</span><span class="n">captured_it</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_iterator</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">host_id</span><span class="p">]</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span></div></div>
 
 
