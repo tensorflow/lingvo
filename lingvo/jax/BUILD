@@ -289,6 +289,7 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         # Implicit absl.logging dependency.
+        "//third_party/py/flax",
         # Implicit jax dependency.
         "//lingvo/core:cluster",
         "//lingvo/core:hyperparams",

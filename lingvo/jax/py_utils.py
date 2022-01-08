@@ -15,11 +15,13 @@
 # ==============================================================================
 """Python utility functions for JAX which contains minimal TF lingvo deps."""
 
+import dataclasses
 import functools
 from typing import Any
 import zlib
 
 from absl import logging
+import flax
 import jax
 from jax.experimental import pjit
 import jax.experimental.global_device_array as gda_lib
@@ -139,6 +141,28 @@ def maybe_gda_to_sda(data):
     return data
 
 
+def extract_keys(n, p, key_separator, left_separator, right_separator):
+  """Alias long function call with fixed separators."""
+  return extract_prefixed_keys_from_nested_map(
+      n,
+      p,
+      key_separator=key_separator,
+      left_separator=left_separator,
+      right_separator=right_separator)
+
+
+def _handle_dict(node, prefix, key_separator, left_separator, right_separator):
+  result = {}
+  for key, value in node.items():
+    if prefix:
+      path = f'{prefix}{key_separator}{key}'
+    else:
+      path = key
+    result[key] = extract_keys(value, path, key_separator, left_separator,
+                               right_separator)
+  return type(node)(result)
+
+
 def extract_prefixed_keys_from_nested_map(node: Any,
                                           prefix: str = '',
                                           key_separator: str = '/',
@@ -146,38 +170,28 @@ def extract_prefixed_keys_from_nested_map(node: Any,
                                           right_separator: str = ']') -> Any:
   """Extracts a NestedMap with the nested prefix keys from its NestedMap node."""
 
-  def extract_keys(n, p):
-    """Alias long function call with fixed separators."""
-    return extract_prefixed_keys_from_nested_map(
-        n,
-        p,
-        key_separator=key_separator,
-        left_separator=left_separator,
-        right_separator=right_separator)
-
   if isinstance(node, dict):  # NestedMap inherits from dict.
-    result = {}
-    for key, value in node.items():
-      if prefix:
-        path = f'{prefix}{key_separator}{key}'
-      else:
-        path = key
-      result[key] = extract_keys(value, path)
-    # Convert back to dict or NestedMap.
-    return type(node)(result)
+    return _handle_dict(node, prefix, key_separator, left_separator,
+                        right_separator)
   elif isinstance(node, (list, tuple)):
     # Check if it is a NamedTuple.
     if hasattr(node, '_fields'):
       if prefix:
         prefix += f'{key_separator}'
       return type(node)(**{
-          field: extract_keys(getattr(node, field), f'{prefix}{field}')
-          for field in node._fields
+          field: extract_keys(
+              getattr(node, field), f'{prefix}{field}', key_separator,
+              left_separator, right_separator) for field in node._fields
       })
     # Convert back to list or tuple.
     return type(node)(
-        extract_keys(v, f'{prefix}{left_separator}{i}{right_separator}')
+        extract_keys(v, f'{prefix}{left_separator}{i}{right_separator}',
+                     key_separator, left_separator, right_separator)
         for i, v in enumerate(node))
+  elif dataclasses.is_dataclass(node):
+    node_dict = flax.serialization.to_state_dict(node)
+    return _handle_dict(node_dict, prefix, key_separator, left_separator,
+                        right_separator)
   if not prefix:
     return None
   return prefix
