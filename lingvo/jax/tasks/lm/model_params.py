@@ -164,9 +164,6 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
     model_p.lm.masked_lm = True
     model_p.lm.packed_input = True
     model_p.lm.model_dims = self.MODEL_DIMS
-    model_p.lm.hidden_dims = self.HIDDEN_DIMS
-    model_p.lm.num_layers = self.NUM_LAYERS
-    model_p.lm.num_heads = self.NUM_HEADS
     model_p.lm.vocab_size = self.VOCAB_SIZE
     model_p.lm.softmax_tpl.scale_sqrt_depth = True
     model_p.lm.softmax_tpl.soft_cap_logits = 30.0
@@ -175,6 +172,12 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
           layers.StackedTransformerRepeated.Params())
     else:
       model_p.lm.stacked_transformer_tpl = layers.StackedTransformer.Params()
+    stacked_transformer_tpl = model_p.lm.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = self.MODEL_DIMS
+    stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
+    stacked_transformer_tpl.num_layers = self.NUM_LAYERS
+    stacked_transformer_tpl.num_heads = self.NUM_HEADS
+
     model_p.lm.stacked_transformer_tpl.enable_while_loop = (
         self.ENABLE_WHILE_LOOP)
     model_p.lm.stacked_transformer_tpl.checkpoint_policy = (
@@ -233,9 +236,6 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
     model_p.lm.masked_lm = True
     model_p.lm.packed_input = True
     model_p.lm.model_dims = self.MODEL_DIMS
-    model_p.lm.hidden_dims = self.HIDDEN_DIMS
-    model_p.lm.num_layers = self.NUM_LAYERS
-    model_p.lm.num_heads = self.NUM_HEADS
     model_p.lm.vocab_size = self.VOCAB_SIZE
     model_p.lm.softmax_tpl.scale_sqrt_depth = True
     model_p.lm.softmax_tpl.soft_cap_logits = 30.0
@@ -244,6 +244,12 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
           layers.StackedTransformerRepeated.Params())
     else:
       model_p.lm.stacked_transformer_tpl = layers.StackedTransformer.Params()
+    stacked_transformer_tpl = model_p.lm.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = self.MODEL_DIMS
+    stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
+    stacked_transformer_tpl.num_layers = self.NUM_LAYERS
+    stacked_transformer_tpl.num_heads = self.NUM_HEADS
+
     model_p.lm.stacked_transformer_tpl.enable_while_loop = (
         self.ENABLE_WHILE_LOOP)
     model_p.lm.stacked_transformer_tpl.checkpoint_policy = (
@@ -296,12 +302,15 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
     model_p = model.LanguageModel.Params().Set(name='xformer_lm')
     model_p.lm.packed_input = self.PACKED_INPUT
     model_p.lm.model_dims = self.MODEL_DIMS
-    model_p.lm.hidden_dims = self.HIDDEN_DIMS
-    model_p.lm.num_layers = self.NUM_LAYERS
-    model_p.lm.num_heads = self.NUM_HEADS
     model_p.lm.vocab_size = self.VOCAB_SIZE
     model_p.lm.softmax_tpl.scale_sqrt_depth = True
     model_p.lm.stacked_transformer_tpl = layers.StackedTransformer.Params()
+    stacked_transformer_tpl = model_p.lm.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = self.MODEL_DIMS
+    stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
+    stacked_transformer_tpl.num_layers = self.NUM_LAYERS
+    stacked_transformer_tpl.num_heads = self.NUM_HEADS
+
     model_p.lm.stacked_transformer_tpl.enable_while_loop = (
         self.ENABLE_WHILE_LOOP)
     model_p.lm.stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
@@ -363,10 +372,6 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
 
     model_p = model.LanguageModel.Params().Set(name='xformer_lm')
     model_p.lm.packed_input = True
-    model_p.lm.model_dims = self.MODEL_DIMS
-    model_p.lm.hidden_dims = self.HIDDEN_DIMS
-    model_p.lm.num_layers = self.NUM_LAYERS
-    model_p.lm.num_heads = num_heads
     model_p.lm.vocab_size = self.VOCAB_SIZE
     model_p.lm.softmax_tpl.scale_sqrt_depth = True
     model_p.lm.softmax_tpl.soft_cap_logits = self.SOFTMAX_CAP_LOGITS
@@ -376,6 +381,12 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
           layers.StackedTransformerRepeated.Params())
     else:
       model_p.lm.stacked_transformer_tpl = layers.StackedTransformer.Params()
+
+    stacked_transformer_tpl = model_p.lm.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = self.MODEL_DIMS
+    stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
+    stacked_transformer_tpl.num_layers = self.NUM_LAYERS
+    stacked_transformer_tpl.num_heads = num_heads
     model_p.lm.stacked_transformer_tpl.enable_while_loop = (
         self.ENABLE_WHILE_LOOP)
     model_p.lm.stacked_transformer_tpl.checkpoint_policy = (

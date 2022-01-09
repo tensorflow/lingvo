@@ -116,7 +116,7 @@ class LmCloudSpmdTest(LmCloudSpmd):
   NUM_LAYERS = 2
   MODEL_DIMS = 64
   HIDDEN_DIMS = MODEL_DIMS * 4
-
+  DIMS_PER_HEAD = 8
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
   MESH_SHAPE = [1, 1, 1]
 

@@ -848,11 +848,13 @@ class TransformersTest(test_util.JaxTestCase):
     p = transformers.TransformerLm.Params().Set(
         name='bert_lm',
         model_dims=32,
-        hidden_dims=4 * 32,
-        num_heads=4,
-        num_layers=1,
         vocab_size=52,
         position_emb_tpl=position_emb_tpl)
+    stacked_transformer_tpl = p.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = 32
+    stacked_transformer_tpl.hidden_dims = 4 * 32
+    stacked_transformer_tpl.num_heads = 4
+    stacked_transformer_tpl.num_layers = 1
     p.softmax_tpl.scale_sqrt_depth = True
     batch_size = 8
     bert_lm = p.Instantiate()
@@ -960,13 +962,15 @@ class TransformersTest(test_util.JaxTestCase):
     p = transformers.TransformerLm.Params().Set(
         name='jax_ngrammer_layer',
         model_dims=num_heads * dim_per_head,
-        hidden_dims=4 * num_heads * dim_per_head,
-        num_heads=num_heads,
-        num_layers=num_layers,
         masked_lm=False,
         packed_input=False,
         ngrammer_tpl=ngrammer_params,
         vocab_size=vocab_size)
+    stacked_transformer_tpl = p.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = num_heads * dim_per_head
+    stacked_transformer_tpl.hidden_dims = 4 * num_heads * dim_per_head
+    stacked_transformer_tpl.num_heads = num_heads
+    stacked_transformer_tpl.num_layers = num_layers
     if not share_embedding_and_softmax:
       p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
       p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
@@ -1013,12 +1017,14 @@ class TransformersTest(test_util.JaxTestCase):
     p = transformers.TransformerLm.Params().Set(
         name='jax_primer_layer',
         model_dims=num_heads * dim_per_head,
-        hidden_dims=2 * num_heads * dim_per_head,
-        num_heads=num_heads,
-        num_layers=num_layers,
         masked_lm=False,
         packed_input=False,
         vocab_size=vocab_size)
+    stacked_transformer_tpl = p.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = num_heads * dim_per_head
+    stacked_transformer_tpl.hidden_dims = 2 * num_heads * dim_per_head
+    stacked_transformer_tpl.num_heads = num_heads
+    stacked_transformer_tpl.num_layers = num_layers
     if not share_embedding_and_softmax:
       p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
       p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
@@ -1083,13 +1089,15 @@ class TransformersTest(test_util.JaxTestCase):
     p = transformers.TransformerLm.Params().Set(
         name='jax_ngrammer_layer',
         model_dims=num_heads * dim_per_head,
-        hidden_dims=4 * num_heads * dim_per_head,
-        num_heads=num_heads,
-        num_layers=num_layers,
         masked_lm=False,
         packed_input=False,
         ngrammer_tpl=ngrammer_params,
         vocab_size=vocab_size)
+    stacked_transformer_tpl = p.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = num_heads * dim_per_head
+    stacked_transformer_tpl.hidden_dims = 4 * num_heads * dim_per_head
+    stacked_transformer_tpl.num_heads = num_heads
+    stacked_transformer_tpl.num_layers = num_layers
     if not share_embedding_and_softmax:
       p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
       p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
@@ -1137,7 +1145,6 @@ class TransformersTest(test_util.JaxTestCase):
       use_separate_encoder_stacked_transformer_tpl):
     vocab_size = 8
     num_layers = 2
-    num_encoder_layers = 3
     num_heads = 2
     dim_per_head = 8
     ngram_emb_dim = 4
@@ -1178,21 +1185,23 @@ class TransformersTest(test_util.JaxTestCase):
     p = transformers.TransformerEncoderDecoder.Params().Set(
         name='jax_transformer_encoder_decoder',
         model_dims=num_heads * dim_per_head,
-        hidden_dims=4 * num_heads * dim_per_head,
-        num_heads=num_heads,
-        num_layers=num_layers,
-        num_encoder_layers=num_encoder_layers,
         masked_lm=False,
         packed_input=False,
         ngrammer_tpl=decoder_ngrammer_params,
         encoder_ngrammer_tpl=encoder_ngrammer_params,
         vocab_size=vocab_size)
+    stacked_transformer_tpl = p.stacked_transformer_tpl
+    stacked_transformer_tpl.model_dims = num_heads * dim_per_head
+    stacked_transformer_tpl.hidden_dims = 4 * num_heads * dim_per_head
+    stacked_transformer_tpl.num_heads = num_heads
+    stacked_transformer_tpl.num_layers = num_layers
     if not share_embedding_and_softmax:
       p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
       p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
     if not share_input_and_target_embedding:
-      if p.separate_embedding_tpl is not None:
-        p.separate_target_embedding_tpl = p.separate_embedding_tpl.Copy()
+      p.encoder_embedding_tpl = (
+          embedding_softmax.SingleShardEmbedding.Params().Set(
+              vocab_size=vocab_size))
     if use_separate_encoder_stacked_transformer_tpl:
       # Over-ride the StackedTransformer by using StackedTransformerRepeated.
       p.encoder_stacked_transformer_tpl = (
