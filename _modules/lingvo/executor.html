@@ -345,21 +345,27 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
 
-    <span class="k">for</span> <span class="n">task_string</span><span class="p">,</span> <span class="n">program_schedule_params</span> <span class="ow">in</span> <span class="n">ps_params_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span>
-      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">data_parallelism</span>
-      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">task_string</span>
-      <span class="c1"># If the model was created above, we&#39;ll inject it here as a shared_model.</span>
-      <span class="n">ps</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span>
-          <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span>
-          <span class="n">trial</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="p">,</span>
-          <span class="n">tf_master</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">task_string</span><span class="p">]</span> <span class="o">=</span> <span class="n">ps</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;program_schedule_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
-      <span class="k">if</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">:</span>
+      <span class="c1"># Create the ExponentialMovingAverage singleton shared by all programs, if</span>
+      <span class="c1"># applicable.</span>
+      <span class="n">ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateEMAForModel</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">task_string</span><span class="p">,</span> <span class="n">program_schedule_params</span> <span class="ow">in</span> <span class="n">ps_params_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span>
+        <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">data_parallelism</span>
+        <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">task_string</span>
+        <span class="c1"># If the model was created above, we&#39;ll inject it here as a</span>
+        <span class="c1"># shared_model.</span>
+        <span class="n">ps</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">(</span>
+            <span class="n">shared_model</span><span class="o">=</span><span class="n">shared_model</span><span class="p">,</span>
+            <span class="n">trial</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="p">,</span>
+            <span class="n">ema</span><span class="o">=</span><span class="n">ema</span><span class="p">,</span>
+            <span class="n">tf_master</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_tf_master</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">task_string</span><span class="p">]</span> <span class="o">=</span> <span class="n">ps</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;program_schedule_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                        <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_programs: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">))</span>
 
@@ -378,10 +384,6 @@
         <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">pdb_wrapper</span><span class="o">.</span><span class="n">catch_post_mortem</span><span class="p">())</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableStore</span><span class="p">(),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
-        <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
-        <span class="c1"># Create the ExponentialMovingAverage singleton shared by all</span>
-        <span class="c1"># programs, if applicable.</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeCreateExecutorEMA</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
           <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">ClearTpuSummaryTensors</span><span class="p">()</span>
