@@ -564,6 +564,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def ema(self):
     """Returns the EMA object used by the model that contains this layer."""
+    # Note: if 'self' is not instantiated inside a model or is instantiated
+    # inside an EMA-disabled sub-model created by the main model, None will be
+    # returned.
     root = self
     while root.parent:
       root = root.parent
@@ -640,10 +643,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     # When ExecutorTpu specifies the EMA (e.g. when running eval/decode program
     # with EMA enabled), use the EMA version of the variables if applicable.
-    ema = py_utils.ExecutorEMA()
-    if self.do_eval and ema:
-      # Note: 'ema' is not necessarily the same as 'self.ema'. If 'self' is not
-      # instantiated inside a model context, then 'self.ema' is invalid.
+    if self.cluster.is_executor_tpu and self.do_eval and self.ema:
       vars_loaded_as_ema = self.params.is_inference or (self.do_eval and
                                                         not py_utils.use_tpu())
       assert not vars_loaded_as_ema, (

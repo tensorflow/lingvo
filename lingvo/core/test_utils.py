@@ -45,8 +45,6 @@ class TestCase(tf.test.TestCase):
     super().setUp()
     # Ensure the global_step variable is created in the default graph.
     py_utils.GetOrCreateGlobalStepVar()
-    # Clean up the EMA object.
-    py_utils._EXECUTOR_EMA = None  # pylint:disable=protected-access
     cluster = cluster_factory.SetRequireSequentialInputOrder(True)
     cluster.params.in_unit_test = True
     cluster.__enter__()

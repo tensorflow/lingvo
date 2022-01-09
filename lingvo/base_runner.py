@@ -120,6 +120,13 @@ class BaseRunner:
     else:
       self._cluster.InitDevices(self._GetSession())
 
+    # Ensure global step tensor is created.
+    with tf.container(self._container_id), contextlib.ExitStack() as stack:
+      if not py_utils.IsEagerMode():
+        stack.enter_context(self._graph.as_default())
+        stack.enter_context(tf.device(self._cluster.GetPlacer()))
+      self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
+
   @property
   def params(self):
     return self._params

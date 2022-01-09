@@ -1094,7 +1094,7 @@ class BaseModel(base_layer.BaseLayer):
               'Checkpointing asynchronously. Currently only support executor.')
     return p
 
-  def __init__(self, params):
+  def __init__(self, params, executor_ema=None):
     """Initializes this Model."""
     assert issubclass(params.cls, BaseModel)
     super().__init__(params)
@@ -1105,12 +1105,14 @@ class BaseModel(base_layer.BaseLayer):
     tp = self.params.train
     if tp.ema_decay > 0:
       assert tp.ema_decay < 1.0
-      # Use the global EMA if set (for executor training).
-      self._ema = py_utils.ExecutorEMA()
-      if not self._ema:
+      assert self.cluster.is_executor_tpu == (executor_ema is not None)
+      if executor_ema is not None:
+        # Use the EMA for executor training if set.
+        self._ema = executor_ema
+      else:
         self._ema = py_utils.CreateEMAForModel(self.params, self.global_step)
     else:
-      assert not py_utils.ExecutorEMA()
+      assert not executor_ema
       self._ema = None
     self._ema_variables_dict = {}
 
@@ -1204,6 +1206,9 @@ class SingleTaskBase(BaseModel):
 
   Subclasses must create a Task in self._task by the end of __init__.
   """
+
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
 
   @property
   def tasks(self):

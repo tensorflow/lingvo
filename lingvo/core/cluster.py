@@ -331,6 +331,10 @@ class _Cluster:
     return self.params.task
 
   @property
+  def is_executor_tpu(self):
+    return self.params.job == 'executor_tpu'
+
+  @property
   def job_spec(self):
     """Returns the current job specs."""
     p = self.params

@@ -280,21 +280,27 @@ class ExecutorTpu(base_runner.BaseRunner):
     self._program_schedule_dict = {}
     self._programs = []
 
-    for task_string, program_schedule_params in ps_params_dict.items():
-      program_schedule_params.logdir = self._logdir
-      program_schedule_params.num_splits_per_client = data_parallelism
-      program_schedule_params.task_name = task_string
-      # If the model was created above, we'll inject it here as a shared_model.
-      ps = program_schedule_params.Instantiate(
-          shared_model=shared_model,
-          trial=self._trial,
-          tf_master=self._tf_master)
-      self._program_schedule_dict[task_string] = ps
-      tf.logging.info('program_schedule_params: %s',
-                      program_schedule_params.ToText())
-      self._programs += ps.Programs()
-      if program_schedule_params.ml_perf.benchmark_name is not None:
-        self._ml_perf = program_schedule_params.ml_perf
+    with self._cluster:
+      # Create the ExponentialMovingAverage singleton shared by all programs, if
+      # applicable.
+      ema = py_utils.CreateEMAForModel(train_cfg, self._global_step_var)
+      for task_string, program_schedule_params in ps_params_dict.items():
+        program_schedule_params.logdir = self._logdir
+        program_schedule_params.num_splits_per_client = data_parallelism
+        program_schedule_params.task_name = task_string
+        # If the model was created above, we'll inject it here as a
+        # shared_model.
+        ps = program_schedule_params.Instantiate(
+            shared_model=shared_model,
+            trial=self._trial,
+            ema=ema,
+            tf_master=self._tf_master)
+        self._program_schedule_dict[task_string] = ps
+        tf.logging.info('program_schedule_params: %s',
+                        program_schedule_params.ToText())
+        self._programs += ps.Programs()
+        if program_schedule_params.ml_perf.benchmark_name is not None:
+          self._ml_perf = program_schedule_params.ml_perf
 
     tf.logging.info('num_programs: %d', len(self._programs))
 
@@ -313,10 +319,6 @@ class ExecutorTpu(base_runner.BaseRunner):
         stack.enter_context(pdb_wrapper.catch_post_mortem())
       with py_utils.VariableStore(), py_utils.VariableRenameScope(
           self._variable_renaming_rules):
-        global_step = py_utils.GetOrCreateGlobalStepVar()
-        # Create the ExponentialMovingAverage singleton shared by all
-        # programs, if applicable.
-        py_utils.MaybeCreateExecutorEMA(train_cfg, global_step)
         for program in self._programs:
           program.BuildTpuSubgraph()
           py_utils.ClearTpuSummaryTensors()
