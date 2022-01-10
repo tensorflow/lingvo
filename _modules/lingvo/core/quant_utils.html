@@ -1476,6 +1476,7 @@
         <span class="s1">&#39;This is often needed to allow the model to reach some level &#39;</span>
         <span class="s1">&#39;of convergence prior to applying quantization. Only affects &#39;</span>
         <span class="s1">&#39;training (not eval/inference).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;freeze&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Freeze quantization parameters&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1605,6 +1606,8 @@
       <span class="k">return</span> <span class="n">ts_out</span></div>
 
 <div class="viewcode-block" id="PassiveAsymQDomain.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">freeze</span><span class="p">:</span>
+      <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">()</span>
     <span class="n">ops</span> <span class="o">=</span> <span class="p">[</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">()]</span>
     <span class="k">for</span> <span class="n">t_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t_names</span><span class="p">:</span>
       <span class="n">ops</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_RecordTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">))</span>
