@@ -1411,6 +1411,7 @@ class PassiveAsymQDomain(FakeQDomain):
         'This is often needed to allow the model to reach some level '
         'of convergence prior to applying quantization. Only affects '
         'training (not eval/inference).')
+    p.Define('freeze', False, 'Freeze quantization parameters')
     return p
 
   def __init__(self, params):
@@ -1540,6 +1541,8 @@ class PassiveAsymQDomain(FakeQDomain):
       return ts_out
 
   def PostTrainingStepUpdate(self):
+    if self.params.freeze:
+      return super().PostTrainingStepUpdate()
     ops = [super().PostTrainingStepUpdate()]
     for t_name in self._t_names:
       ops.extend(self._RecordTensor(t_name))

@@ -199,6 +199,24 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
           expected=expected,
           global_step=16)
 
+  def testLayerWithFrozenDomain(self):
+    with self.session():
+      p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
+      p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
+      p.qdomain.default.freeze = True
+      p.qdomain.default.narrow_to_asym_bit_depth = False
+      l = self._testLayerHelper('testLayerWithFrozenQDomain', p, expected=None)
+      init_minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
+      # Record.
+      with py_utils.GlobalStepContext(16):
+        self.evaluate([l.PostTrainingStepUpdate()])
+      minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
+
+      # Make sure that the vars have not moved from their defaults, because the
+      # qdomain is frozen.
+      for k in minmax_vars:
+        self.assertEqual(init_minmax_vars[k], minmax_vars[k])
+
 
 class FakeQDomainTest(quant_test_lib.QuantUtilsBaseTest):
 
