@@ -1119,6 +1119,7 @@ class StackedTransformer(base_layer.BaseLayer):
                  ffn_activation='GATED_GELU',
                  mask_self_attention=True,
                  cross_attention=False,
+                 attention_extra_logit=0.0,
                  relative_attention_num_buckets=32,
                  relative_attention_max_distance=128,
                  num_groups=1,
@@ -1148,6 +1149,7 @@ class StackedTransformer(base_layer.BaseLayer):
       ffn_activation: Activation function used in the ffn layer.
       mask_self_attention: Use masked self-attention.
       cross_attention: If set, use cross encoder-decoder attention layer.
+      attention_extra_logit: Extra logit for attention softmax.
       relative_attention_num_buckets: Relative attention num buckets
       relative_attention_max_distance: Max relative distance.
       num_groups: Total number of groups for token dispatching in MoE layer.
@@ -1179,6 +1181,7 @@ class StackedTransformer(base_layer.BaseLayer):
     # Attention setup
     p.transformer_layer_params_tpl.ln_tpl = normalizations.RmsNorm.Params()
     tr_atten_tpl = p.transformer_layer_params_tpl.tr_atten_tpl
+    tr_atten_tpl.attention_extra_logit = attention_extra_logit
     tr_atten_tpl.use_bias = False
     tr_atten_tpl.internal_enable_per_dim_scale = False
     tr_atten_tpl.relative_bias_tpl = attentions.RelativeBias.Params().Set(

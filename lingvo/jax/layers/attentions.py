@@ -636,6 +636,8 @@ class DotProductAttention(base_layer.BaseLayer):
         'embedding to the queries and keys before computing self attention'
         'scores. This was proposed in https://arxiv.org/abs/2104.09864.')
     p.Define('relative_bias_tpl', None, 'Relative bias.')
+    p.Define('attention_extra_logit', None,
+             'Extra logit for attention softmax.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -836,6 +838,30 @@ class DotProductAttention(base_layer.BaseLayer):
     logits = cap * jnp.tanh(logits / cap)
     return logits
 
+  def _log_softmax_with_extra_logit(self, logits: JTensor) -> JTensor:
+    """Compute log softmax with extra logit.
+
+    self.params.attention_extra_logit is an user defined float value that
+    helps to stablize logit values so that they don't drift too much from it.
+
+    Args:
+      logits: input logit tensor
+
+    Returns:
+      Log softmax with extra logit value.
+    """
+    logits = jax.lax.stop_gradient(logits)
+    max_logit = jnp.max(logits, axis=-1, keepdims=True)
+    extra_logit = self.params.attention_extra_logit
+    if extra_logit is not None:
+      extra_logit = jnp.asarray(extra_logit, dtype=max_logit.dtype)
+      max_logit = jnp.maximum(max_logit, extra_logit)
+    exp_x = jnp.exp(logits - max_logit)
+    sum_exp_x = jnp.sum(exp_x, axis=-1, keepdims=True)
+    if extra_logit is not None:
+      sum_exp_x += jnp.exp(extra_logit - max_logit)
+    return logits - jnp.log(sum_exp_x) - max_logit
+
   def _dot_atten(
       self,
       theta: NestedMap,
@@ -893,7 +919,11 @@ class DotProductAttention(base_layer.BaseLayer):
     logits = logits.astype(jnp.float32)
     # Apply attention masking
     padded_logits = logits + atten_mask.astype(jnp.float32)
-    probs = jax.nn.softmax(padded_logits, axis=-1).astype(key.dtype)
+    if p.attention_extra_logit is None:
+      probs = jax.nn.softmax(padded_logits, axis=-1).astype(key.dtype)
+    else:
+      probs = jnp.exp(self._log_softmax_with_extra_logit(padded_logits)).astype(
+          key.dtype)
     # Apply attention dropout.
     probs = self.atten_dropout.fprop(theta.atten_dropout, probs)
     # Compute the attention context.
@@ -954,7 +984,10 @@ class DotProductAttention(base_layer.BaseLayer):
     # Apply attention masking
     padded_logits = logits + atten_mask.astype(jnp.float32)
     # Of shape [b, n, s]
-    probs = jax.nn.softmax(padded_logits, axis=-1).astype(key.dtype)
+    if p.attention_extra_logit is None:
+      probs = jax.nn.softmax(padded_logits, axis=-1).astype(key.dtype)
+    else:
+      probs = self._log_softmax(padded_logits).astype(key.dtype)
     # Compute the attention context.
     encoded = jnp.einsum('BNS,SBNH->BNH', probs, value)
     encoded = self._shard_bnh(encoded)
