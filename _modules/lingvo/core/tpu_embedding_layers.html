@@ -349,6 +349,8 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="c1"># A dict of slot_variable_name -&gt; slot_variable for checkpointing purposes.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_slot_var_dict</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="_TPUEmbeddingOptimizer.CreateOptimizerParameters"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer.CreateOptimizerParameters">[docs]</a>  <span class="k">def</span> <span class="nf">CreateOptimizerParameters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">learning_rate</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create TPUEmbedding API optimzier parameters.&quot;&quot;&quot;</span>
@@ -365,7 +367,11 @@
 <span class="sd">      List of load ops</span>
 <span class="sd">      List of retrieve ops</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="_TPUEmbeddingOptimizer._GetSelfVariablesDict"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers._TPUEmbeddingOptimizer._GetSelfVariablesDict">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSelfVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a dict of variables for checkpointing purposes.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slot_var_dict</span></div></div>
 
 
 <div class="viewcode-block" id="TPUEmbeddingSGDOptimizer"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingSGDOptimizer">[docs]</a><span class="k">class</span> <span class="nc">TPUEmbeddingSGDOptimizer</span><span class="p">(</span><span class="n">_TPUEmbeddingOptimizer</span><span class="p">):</span>
@@ -468,8 +474,8 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="n">slot_var_collections</span><span class="p">)</span>
         <span class="n">var_name</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">host_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/Adagrad&#39;</span>
-        <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_ada</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">accumulator_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+        <span class="n">accumulator_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateOptimizerSlotVariable</span><span class="p">(</span>
+            <span class="n">var_name</span><span class="p">,</span> <span class="n">w_ada</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slot_var_dict</span><span class="p">)</span>
 
         <span class="c1"># Only the Trainer needs these ops.</span>
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
@@ -565,8 +571,8 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="n">slot_var_collections</span><span class="p">)</span>
         <span class="n">var_name_m</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">host_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/Adam/m&#39;</span>
-        <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name_m</span><span class="p">,</span> <span class="n">m_adam</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">m_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name_m</span><span class="p">]</span>
+        <span class="n">m_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateOptimizerSlotVariable</span><span class="p">(</span>
+            <span class="n">var_name_m</span><span class="p">,</span> <span class="n">m_adam</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slot_var_dict</span><span class="p">)</span>
 
         <span class="n">v_adam</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">table_var</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span>
@@ -574,8 +580,8 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="n">slot_var_collections</span><span class="p">)</span>
         <span class="n">var_name_v</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">host_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/Adam/v&#39;</span>
-        <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name_v</span><span class="p">,</span> <span class="n">v_adam</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">v_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name_v</span><span class="p">]</span>
+        <span class="n">v_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateOptimizerSlotVariable</span><span class="p">(</span>
+            <span class="n">var_name_v</span><span class="p">,</span> <span class="n">v_adam</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slot_var_dict</span><span class="p">)</span>
 
         <span class="c1"># Only the Trainer needs these ops.</span>
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
@@ -684,9 +690,8 @@
             <span class="n">collections</span><span class="o">=</span><span class="n">slot_var_collections</span><span class="p">)</span>
         <span class="n">accumulator_name</span> <span class="o">=</span> <span class="p">(</span>
             <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">host_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/Ftrl&#39;</span><span class="p">)</span>
-        <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="n">accumulator_name</span><span class="p">,</span> <span class="n">accumulator</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">accumulator_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">accumulator_name</span><span class="p">]</span>
+        <span class="n">accumulator_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateOptimizerSlotVariable</span><span class="p">(</span>
+            <span class="n">accumulator_name</span><span class="p">,</span> <span class="n">accumulator</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slot_var_dict</span><span class="p">)</span>
 
         <span class="n">linear</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">table_var</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span>
@@ -694,8 +699,8 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="n">slot_var_collections</span><span class="p">)</span>
         <span class="n">linear_name</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">GetVariableName</span><span class="p">(</span><span class="n">host_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;/Ftrl_1&#39;</span>
-        <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">linear_name</span><span class="p">,</span> <span class="n">linear</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="n">linear_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">linear_name</span><span class="p">]</span>
+        <span class="n">linear_var</span> <span class="o">=</span> <span class="n">tpu_embedding_table</span><span class="o">.</span><span class="n">CreateOptimizerSlotVariable</span><span class="p">(</span>
+            <span class="n">linear_name</span><span class="p">,</span> <span class="n">linear</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_slot_var_dict</span><span class="p">)</span>
 
         <span class="c1"># Only the Trainer needs these ops.</span>
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
@@ -891,6 +896,19 @@
             <span class="n">embedding_table_vars</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddLoadRetrieveOps</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">load_ops</span><span class="p">,</span> <span class="n">retrieve_ops</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TPUEmbeddingTable._GetSelfVariablesDict"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable._GetSelfVariablesDict">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSelfVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a dict of variables for checkpointing purposes.&quot;&quot;&quot;</span>
+    <span class="n">all_table_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">table_variables</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span> <span class="ow">in</span> <span class="n">all_table_vars</span>
+    <span class="k">return</span> <span class="p">{</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">var</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_table_vars</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">]}</span></div>
+
+<div class="viewcode-block" id="TPUEmbeddingTable.CreateOptimizerSlotVariable"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.CreateOptimizerSlotVariable">[docs]</a>  <span class="k">def</span> <span class="nf">CreateOptimizerSlotVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="n">slot_var_dict</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create optimizer slot variable and add it to the given variable dict.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+    <span class="n">slot_var_dict</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
+    <span class="k">return</span> <span class="n">var</span></div>
 
   <span class="c1"># Return device to place sharded variables on.</span>
 <div class="viewcode-block" id="TPUEmbeddingTable.GetDeviceName"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.GetDeviceName">[docs]</a>  <span class="k">def</span> <span class="nf">GetDeviceName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">host_id</span><span class="p">):</span>
