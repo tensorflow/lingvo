@@ -2242,6 +2242,7 @@ class TransformerEncoderDecoder(TransformerLm):
     if p.encoder_embedding_tpl is not None:
       enc_emb_params = p.encoder_embedding_tpl.Copy()
       enc_emb_params.embedding_dims = p.model_dims
+      enc_emb_params.vocab_size = p.vocab_size
       self.create_child('enc_embedding_lookup', enc_emb_params)
 
     # Note that an Ngrammer layer is already created for decoder from __super__.
