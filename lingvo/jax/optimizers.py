@@ -31,6 +31,16 @@ import optax
 
 from optax_shampoo import distributed_shampoo
 
+# DistributedShampoo types
+distributed_shampoo_optimizer = distributed_shampoo.distributed_shampoo
+Preconditioner = distributed_shampoo.Preconditioner
+QuantizedValue = distributed_shampoo.QuantizedValue
+GraftingType = distributed_shampoo.GraftingType
+ShardedShampooStats = distributed_shampoo.ShardedShampooStats
+ShampooState = distributed_shampoo.ShampooState
+LocalShardedParameterStats = distributed_shampoo.LocalShardedParameterStats
+GlobalShardedParameterStats = distributed_shampoo.GlobalShardedParameterStats
+
 NestedMap = py_utils.NestedMap
 InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
@@ -686,7 +696,7 @@ class DistributedShampoo(BaseOptimizer):
              'How often to compute the inverse-pth roots.')
     p.Define('statistics_compute_steps', 1,
              'How often to compute the statistics.')
-    p.Define('graft_type', distributed_shampoo.GraftingType.ADAGRAD,
+    p.Define('graft_type', GraftingType.ADAGRAD,
              'Type of Grafting. 1 for SGD, 2 for AdaGrad, 3 for RMSPROP .')
     p.Define('batch_axis_name', 'batch', 'Batch axis name for pmap.')
     p.Define('mesh_axis_names', None, 'Axis names for the mesh (used in pjit).')
@@ -724,7 +734,7 @@ class DistributedShampoo(BaseOptimizer):
         nesterov=True,
         preconditioning_compute_steps=1,
         statistics_compute_steps=1,
-        graft_type=distributed_shampoo.GraftingType.SGD)
+        graft_type=GraftingType.SGD)
 
   @classmethod
   def ParamsLanguageModeling(cls) -> InstantiableParams:  # pylint: disable=invalid-name
@@ -736,7 +746,7 @@ class DistributedShampoo(BaseOptimizer):
         clip_gradient_norm_to_value=5.0,
         weight_decay=0.0,
         matrix_epsilon=1e-8,
-        graft_type=distributed_shampoo.GraftingType.RMSPROP_NORMALIZED,
+        graft_type=GraftingType.RMSPROP_NORMALIZED,
         nesterov=False,
         exponent_override=0,
         start_preconditioning_step=51,
@@ -748,7 +758,7 @@ class DistributedShampoo(BaseOptimizer):
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> optax.GradientTransformation:
     p = self._params
-    return distributed_shampoo.distributed_shampoo(
+    return distributed_shampoo_optimizer(
         learning_rate=lr,
         block_size=p.block_size,
         beta1=p.beta1,
@@ -782,8 +792,11 @@ class ShardedDistributedShampoo(DistributedShampoo):
     super().__init__(params)
     self._params.shard_optimizer_states = True
 
-  def quantized_dtype(self):
+  def quantized_dtype_for_momentum_buffers(self) -> jnp.dtype:
     return jnp.int8 if self._params.best_effort_memory_usage_reduction else jnp.float32
+
+  def quantized_dtype_for_statistics_buffers(self) -> jnp.dtype:
+    return jnp.bfloat16 if self._params.best_effort_memory_usage_reduction else jnp.float32
 
   # TODO(rohananil): Avoid mirroring code here for init_partition_spec.
   def _skip_preconditioning(self, param, skip_preconditioning_dim_size_gt):
@@ -811,8 +824,8 @@ class ShardedDistributedShampoo(DistributedShampoo):
     max_size = 0
     for param in params_flat:
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = distributed_shampoo.Preconditioner(
-          param_clone, p.block_size, p.best_effort_shape_interpretation)
+      preconditioner = Preconditioner(param_clone, p.block_size,
+                                      p.best_effort_shape_interpretation)
       if not self._skip_preconditioning(param,
                                         p.skip_preconditioning_dim_size_gt):
         shapes = preconditioner.shapes_for_preconditioners()
@@ -823,8 +836,8 @@ class ShardedDistributedShampoo(DistributedShampoo):
     num_statistics = 0
     for param in params_flat:
       param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = distributed_shampoo.Preconditioner(
-          param_clone, p.block_size, p.best_effort_shape_interpretation)
+      preconditioner = Preconditioner(param_clone, p.block_size,
+                                      p.best_effort_shape_interpretation)
       shapes = preconditioner.shapes_for_preconditioners()
       sizes = []
 
@@ -835,10 +848,28 @@ class ShardedDistributedShampoo(DistributedShampoo):
         shapes = preconditioner.shapes_for_preconditioners()
         num_statistics += len(shapes)
 
-      adagrad_var_params = []
-      if p.graft_type != distributed_shampoo.GraftingType.SGD:
-        adagrad_var_params = param.Copy()
-        adagrad_var_params.init = None
+      diagonal_statistics_var_params = []
+      diagonal_statistics_scale_var_params = []
+      if p.graft_type != GraftingType.SGD:
+        diagonal_statistics_var_params = param.Copy()
+        diagonal_statistics_var_params.init = None
+        if self.quantized_dtype_for_statistics_buffers() != jnp.float32:
+          scale_shape = diagonal_statistics_var_params.shape[1:]
+          diagonal_statistics_scale_split_dims_mapping = (
+              diagonal_statistics_var_params.tensor_split_dims_mapping)
+          if diagonal_statistics_scale_split_dims_mapping:
+            diagonal_statistics_scale_split_dims_mapping = (
+                gshard_utils.remove_dim(
+                    0, diagonal_statistics_scale_split_dims_mapping))
+          diagonal_statistics_scale_var_params = py_utils.weight_params(
+              shape=scale_shape,
+              init=None,
+              dtype=jnp.float32,
+              collections=None,
+              device_mesh=diagonal_statistics_var_params.device_mesh,
+              tensor_split_dims_mapping=diagonal_statistics_scale_split_dims_mapping
+          )
+
       m1_var_params = param.Copy()
       m1_var_params.init = None
       m2_var_params = param.Copy()
@@ -846,7 +877,7 @@ class ShardedDistributedShampoo(DistributedShampoo):
 
       m1_scale_var_params = []
       m2_scale_var_params = []
-      if self.quantized_dtype() != jnp.float32:
+      if self.quantized_dtype_for_momentum_buffers() != jnp.float32:
         scale_shape = m1_var_params.shape[1:]
         m_scale_split_dims_mapping = m1_var_params.tensor_split_dims_mapping
         if m_scale_split_dims_mapping:
@@ -862,14 +893,14 @@ class ShardedDistributedShampoo(DistributedShampoo):
         m2_scale_var_params = m1_scale_var_params.Copy()
 
       local_stats_flat.append(
-          distributed_shampoo.LocalShardedParameterStats(
-              adagrad_var_params,
-              distributed_shampoo.QuantizedValue(m1_var_params,
-                                                 m1_scale_var_params,
-                                                 self.quantized_dtype()),
-              distributed_shampoo.QuantizedValue(m2_var_params,
-                                                 m2_scale_var_params,
-                                                 self.quantized_dtype()),
+          LocalShardedParameterStats(
+              QuantizedValue(diagonal_statistics_var_params,
+                             diagonal_statistics_scale_var_params,
+                             self.quantized_dtype_for_statistics_buffers()),
+              QuantizedValue(m1_var_params, m1_scale_var_params,
+                             self.quantized_dtype_for_momentum_buffers()),
+              QuantizedValue(m2_var_params, m2_scale_var_params,
+                             self.quantized_dtype_for_momentum_buffers()),
               index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
@@ -887,12 +918,10 @@ class ShardedDistributedShampoo(DistributedShampoo):
         device_mesh=device_mesh,
         tensor_split_dims_mapping=p.tensor_dim_mapping)
     padded_preconditioner_var_params = padded_statistics_var_params.Copy()
-    global_stats = distributed_shampoo.GlobalShardedParameterStats(
+    global_stats = GlobalShardedParameterStats(
         padded_statistics_var_params, padded_preconditioner_var_params)
-    return distributed_shampoo.ShampooState(
-        count=count,
-        stats=distributed_shampoo.ShardedShampooStats(global_stats,
-                                                      local_stats))
+    return ShampooState(
+        count=count, stats=ShardedShampooStats(global_stats, local_stats))
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> ShardedGradientTransformation:
