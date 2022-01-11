@@ -709,6 +709,8 @@ class DistributedShampoo(BaseOptimizer):
     p.Define(
         'tensor_dim_mapping', [2, -1, -1],
         'Sharding information for statistics and preconditioner matrices.')
+    p.Define('best_effort_memory_usage_reduction', False,
+             'Experimental mode: Best effort memory usage reduction.')
     return p
 
   @classmethod
@@ -769,7 +771,8 @@ class DistributedShampoo(BaseOptimizer):
         moving_average_for_momentum=p.moving_average_for_momentum,
         skip_preconditioning_dim_size_gt=p.skip_preconditioning_dim_size_gt,
         clip_by_scaled_gradient_norm=p.clip_by_scaled_gradient_norm,
-        precision=lax.Precision.HIGHEST)
+        precision=lax.Precision.HIGHEST,
+        best_effort_memory_usage_reduction=p.best_effort_memory_usage_reduction)
 
 
 class ShardedDistributedShampoo(DistributedShampoo):
@@ -778,6 +781,9 @@ class ShardedDistributedShampoo(DistributedShampoo):
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     self._params.shard_optimizer_states = True
+
+  def quantized_dtype(self):
+    return jnp.int8 if self._params.best_effort_memory_usage_reduction else jnp.float32
 
   # TODO(rohananil): Avoid mirroring code here for init_partition_spec.
   def _skip_preconditioning(self, param, skip_preconditioning_dim_size_gt):
@@ -837,10 +843,35 @@ class ShardedDistributedShampoo(DistributedShampoo):
       m1_var_params.init = None
       m2_var_params = param.Copy()
       m2_var_params.init = None
+
+      m1_scale_var_params = []
+      m2_scale_var_params = []
+      if self.quantized_dtype() != jnp.float32:
+        scale_shape = m1_var_params.shape[1:]
+        m_scale_split_dims_mapping = m1_var_params.tensor_split_dims_mapping
+        if m_scale_split_dims_mapping:
+          m_scale_split_dims_mapping = gshard_utils.remove_dim(
+              0, m_scale_split_dims_mapping)
+        m1_scale_var_params = py_utils.weight_params(
+            shape=scale_shape,
+            init=None,
+            dtype=jnp.float32,
+            collections=None,
+            device_mesh=m1_var_params.device_mesh,
+            tensor_split_dims_mapping=m_scale_split_dims_mapping)
+        m2_scale_var_params = m1_scale_var_params.Copy()
+
       local_stats_flat.append(
           distributed_shampoo.LocalShardedParameterStats(
-              adagrad_var_params, m1_var_params, m2_var_params, index_start,
-              sizes))
+              adagrad_var_params,
+              distributed_shampoo.QuantizedValue(m1_var_params,
+                                                 m1_scale_var_params,
+                                                 self.quantized_dtype()),
+              distributed_shampoo.QuantizedValue(m2_var_params,
+                                                 m2_scale_var_params,
+                                                 self.quantized_dtype()),
+              index_start, sizes))
+
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     # Pad the statistics and preconditioner matrices to be a multiple of
     # num devices.
