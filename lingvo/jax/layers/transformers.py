@@ -1180,6 +1180,7 @@ class StackedTransformer(base_layer.BaseLayer):
     p.cross_attention = cross_attention
     # Attention setup
     p.transformer_layer_params_tpl.ln_tpl = normalizations.RmsNorm.Params()
+    p.transformer_layer_params_tpl.ln_tpl.direct_scale = True
     tr_atten_tpl = p.transformer_layer_params_tpl.tr_atten_tpl
     tr_atten_tpl.attention_extra_logit = attention_extra_logit
     tr_atten_tpl.use_bias = False
@@ -1194,6 +1195,7 @@ class StackedTransformer(base_layer.BaseLayer):
     ff_tpl.has_bias = False
     ff_tpl.apply_padding_first = True
     ff_tpl.ln_tpl = normalizations.RmsNorm.Params()
+    ff_tpl.ln_tpl.direct_scale = True
     ff_tpl.add_skip_connection = True
     ff_tpl.activation = ffn_activation
     # MoE ffn setup
@@ -1201,6 +1203,7 @@ class StackedTransformer(base_layer.BaseLayer):
     moe_p.input_dims = model_dim
     moe_p.hidden_dims = ff_dim
     moe_p.ln_tpl = normalizations.RmsNorm.Params()
+    moe_p.ln_tpl.direct_scale = True
     moe_p.num_experts = e_dim
     moe_p.num_groups = num_groups
     moe_p.expert_capacity_dim = c_dim

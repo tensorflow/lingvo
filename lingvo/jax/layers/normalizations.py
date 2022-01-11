@@ -337,6 +337,11 @@ class RmsNorm(base_layer.BaseLayer):
     p = super().Params()
     p.Define('input_dims', 0, 'Depth of the input to the network.')
     p.Define('epsilon', 1e-6, 'Tiny value to guard rsqrt.')
+    p.Define(
+        'direct_scale', True,
+        'Whether to apply scale directly without a +1.0. Var is '
+        'initialized to 1.0 instead when true. This makes the weight'
+        ' compatible with the implementation in gshard/glam.')
     return p
 
   def create_layer_variables(self) -> None:
@@ -349,11 +354,12 @@ class RmsNorm(base_layer.BaseLayer):
       # Simply replicate the weights.
       wp_scale = [-1]
     # Scale variable that scales the RMS norm output by (1 + scale).
+    init_value = 1.0 if p.direct_scale else 0.0
     self.create_variable(
         'scale',
         weight_params(
             shape=[p.input_dims],
-            init=WeightInit.Constant(0.0),
+            init=WeightInit.Constant(init_value),
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp_scale))
@@ -371,7 +377,8 @@ class RmsNorm(base_layer.BaseLayer):
     """
     var = jnp.mean(jnp.square(inputs), axis=[-1], keepdims=True)
     normed_inputs = inputs * jax.lax.rsqrt(var + self.params.epsilon)
-    normed_inputs *= (1 + theta.scale)
+    scale = theta.scale if self.params.direct_scale else 1 + theta.scale
+    normed_inputs *= scale
     return normed_inputs
 
 

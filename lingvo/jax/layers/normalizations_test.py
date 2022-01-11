@@ -223,7 +223,7 @@ class NormalizationsTest(test_util.JaxTestCase):
   def test_rms_norm(self, scale):
     input_dims = 3
     p = normalizations.RmsNorm.Params().Set(
-        name='jax_rmsn', input_dims=input_dims)
+        name='jax_rmsn', input_dims=input_dims, direct_scale=False)
     rms_norm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123456)
     prng_key, init_key = jax.random.split(prng_key)
