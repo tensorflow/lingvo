@@ -284,6 +284,8 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
     assert p.name
+    # A dict of slot_variable_name -> slot_variable for checkpointing purposes.
+    self._slot_var_dict = {}
 
   def CreateOptimizerParameters(self, learning_rate):
     """Create TPUEmbedding API optimzier parameters."""
@@ -301,6 +303,10 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
       List of retrieve ops
     """
     raise NotImplementedError()
+
+  def _GetSelfVariablesDict(self):
+    """Returns a dict of variables for checkpointing purposes."""
+    return self._slot_var_dict
 
 
 class TPUEmbeddingSGDOptimizer(_TPUEmbeddingOptimizer):
@@ -403,8 +409,8 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
             dtype=p.dtype,
             collections=slot_var_collections)
         var_name = tpu_embedding_table.GetVariableName(host_id) + '/Adagrad'
-        tpu_embedding_table.CreateVariable(var_name, w_ada, trainable=False)
-        accumulator_var = tpu_embedding_table.vars[var_name]
+        accumulator_var = tpu_embedding_table.CreateOptimizerSlotVariable(
+            var_name, w_ada, self._slot_var_dict)
 
         # Only the Trainer needs these ops.
         if py_utils.use_tpu():
@@ -500,8 +506,8 @@ class TPUEmbeddingAdamOptimizer(_TPUEmbeddingOptimizer):
             dtype=p.dtype,
             collections=slot_var_collections)
         var_name_m = tpu_embedding_table.GetVariableName(host_id) + '/Adam/m'
-        tpu_embedding_table.CreateVariable(var_name_m, m_adam, trainable=False)
-        m_var = tpu_embedding_table.vars[var_name_m]
+        m_var = tpu_embedding_table.CreateOptimizerSlotVariable(
+            var_name_m, m_adam, self._slot_var_dict)
 
         v_adam = py_utils.WeightParams(
             shape=table_var.shape.as_list(),
@@ -509,8 +515,8 @@ class TPUEmbeddingAdamOptimizer(_TPUEmbeddingOptimizer):
             dtype=p.dtype,
             collections=slot_var_collections)
         var_name_v = tpu_embedding_table.GetVariableName(host_id) + '/Adam/v'
-        tpu_embedding_table.CreateVariable(var_name_v, v_adam, trainable=False)
-        v_var = tpu_embedding_table.vars[var_name_v]
+        v_var = tpu_embedding_table.CreateOptimizerSlotVariable(
+            var_name_v, v_adam, self._slot_var_dict)
 
         # Only the Trainer needs these ops.
         if py_utils.use_tpu():
@@ -619,9 +625,8 @@ class TPUEmbeddingFTRLOptimizer(_TPUEmbeddingOptimizer):
             collections=slot_var_collections)
         accumulator_name = (
             tpu_embedding_table.GetVariableName(host_id) + '/Ftrl')
-        tpu_embedding_table.CreateVariable(
-            accumulator_name, accumulator, trainable=False)
-        accumulator_var = tpu_embedding_table.vars[accumulator_name]
+        accumulator_var = tpu_embedding_table.CreateOptimizerSlotVariable(
+            accumulator_name, accumulator, self._slot_var_dict)
 
         linear = py_utils.WeightParams(
             shape=table_var.shape.as_list(),
@@ -629,8 +634,8 @@ class TPUEmbeddingFTRLOptimizer(_TPUEmbeddingOptimizer):
             dtype=p.dtype,
             collections=slot_var_collections)
         linear_name = tpu_embedding_table.GetVariableName(host_id) + '/Ftrl_1'
-        tpu_embedding_table.CreateVariable(linear_name, linear, trainable=False)
-        linear_var = tpu_embedding_table.vars[linear_name]
+        linear_var = tpu_embedding_table.CreateOptimizerSlotVariable(
+            linear_name, linear, self._slot_var_dict)
 
         # Only the Trainer needs these ops.
         if py_utils.use_tpu():
@@ -826,6 +831,19 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
             embedding_table_vars, self)
         self._tpu_embedding_collection.AddLoadRetrieveOps(
             self.table_name, load_ops, retrieve_ops)
+
+  def _GetSelfVariablesDict(self):
+    """Returns a dict of variables for checkpointing purposes."""
+    all_table_vars = self._tpu_embedding_collection.table_variables
+    assert self.table_name in all_table_vars
+    return {var.name: var for var in all_table_vars[self.table_name]}
+
+  def CreateOptimizerSlotVariable(self, var_name, var_params, slot_var_dict):
+    """Create optimizer slot variable and add it to the given variable dict."""
+    self.CreateVariable(var_name, var_params, trainable=False)
+    var = self.vars[var_name]
+    slot_var_dict[var.name] = var
+    return var
 
   # Return device to place sharded variables on.
   def GetDeviceName(self, host_id):
