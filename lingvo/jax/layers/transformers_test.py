@@ -563,20 +563,18 @@ class TransformersTest(test_util.JaxTestCase):
         num_layers=4,
         packed_input=packed_input,
         cross_attention=cross_attention)
+    p1_one_layer = p1.Copy()
+    p1_one_layer.num_layers = 1
     p2 = transformers.StackedTransformerRepeated.Params().Set(
         name='jax_stacked_transformer_layer_repeated',
-        model_dims=model_dims,
-        hidden_dims=64,
-        num_heads=8,
-        mask_self_attention=mask_self_attention,
-        num_layers=4,
-        packed_input=packed_input,
-        cross_attention=cross_attention)
+        block=p1_one_layer,
+        x_times=p1.num_layers)
     seq_len = np.random.randint(10, 32)
     batch_size = 10
     stacked_transformer_layer = p1.Instantiate()
     repeated_transformer_layer = p2.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
+
     initial_vars = stacked_transformer_layer.instantiate_variables(prng_key)
     repeated_transformer_layer.instantiate_variable_configs()
 
@@ -584,9 +582,14 @@ class TransformersTest(test_util.JaxTestCase):
       args = [x[jnp.newaxis, :] for x in args]
       return jnp.vstack(args)
 
-    stacked_vars = py_utils.NestedMap(
+    stacked_vars = tf.nest.map_structure(_StackVars, *initial_vars.x_layers)
+    repeated_vars = py_utils.NestedMap(
         repeat=py_utils.NestedMap(
-            sub=tf.nest.map_structure(_StackVars, *initial_vars.x_layers)))
+            sub=py_utils.NestedMap(x_layers=[stacked_vars])))
+
+    tf.nest.assert_same_structure(
+        repeated_vars,
+        repeated_transformer_layer.instantiate_variables(prng_key))
 
     npy_inputs = np.random.normal(
         1.0, 0.5, [batch_size, seq_len, model_dims]).astype('float32')
@@ -628,7 +631,7 @@ class TransformersTest(test_util.JaxTestCase):
           cross_paddings=cross_paddings,
           cross_segment_mask=cross_segment_mask)
       outputs_repeated = repeated_transformer_layer.fprop(
-          stacked_vars,
+          repeated_vars,
           inputs,
           paddings,
           segment_mask=segment_mask,
@@ -643,20 +646,19 @@ class TransformersTest(test_util.JaxTestCase):
       combine_qkv, dconv_qkv, use_rotary_position_emb):
     if cross_attention and combine_qkv:
       self.skipTest('combine_qkv optimization only works for self-attention.')
-    if use_repeat_layer:
-      layer_params = transformers.StackedTransformerRepeated.Params()
-    else:
-      layer_params = transformers.StackedTransformer.Params()
+    layer_params = transformers.StackedTransformer.Params()
 
+    num_layers = 2
+    model_dims = 8
     p = layer_params.Set(
         name='jax_transformer_layer',
-        model_dims=8,
+        model_dims=model_dims,
         hidden_dims=32,
         num_heads=2,
         mask_self_attention=True,
         packed_input=packed_input,
         cross_attention=cross_attention,
-        num_layers=2,
+        num_layers=num_layers,
         enable_while_loop=enable_while_loop)
     p.transformer_layer_params_tpl.tr_atten_tpl.combine_qkv = combine_qkv
     p.transformer_layer_params_tpl.tr_atten_tpl.dconv_qkv = dconv_qkv
@@ -670,6 +672,15 @@ class TransformersTest(test_util.JaxTestCase):
       # Cross attention should not have rotary position embedding.
       p.transformer_layer_params_tpl.cross_atten_tpl.use_rotary_position_emb = (
           False)
+
+    if use_repeat_layer:
+      p_copy = p.Copy()
+      p_copy.num_layers = 1
+      p = transformers.StackedTransformerRepeated.Params()
+      p.name = 'jax_transformer_repeated_layer'
+      p.block = p_copy
+      p.x_times = num_layers
+
     seq_len = 5
     batch_size = 4
     stacked_transformer_layer = p.Instantiate()
@@ -678,7 +689,7 @@ class TransformersTest(test_util.JaxTestCase):
     initial_states = stacked_transformer_layer.init_states(
         initial_vars, batch_size, seq_len)
     npy_inputs = np.random.normal(
-        1.0, 0.5, [batch_size, seq_len, p.model_dims]).astype('float32')
+        1.0, 0.5, [batch_size, seq_len, model_dims]).astype('float32')
     inputs = jnp.asarray(npy_inputs)
     npy_paddings = np.random.randint(0, 1,
                                      [batch_size, seq_len]).astype('float32')
@@ -695,7 +706,7 @@ class TransformersTest(test_util.JaxTestCase):
     if cross_attention:
       cross_seq_len = np.random.randint(10, 32)
       npy_cross_inputs = np.random.normal(
-          1.0, 0.5, [batch_size, cross_seq_len, p.model_dims]).astype('float32')
+          1.0, 0.5, [batch_size, cross_seq_len, model_dims]).astype('float32')
       cross_inputs = jnp.asarray(npy_cross_inputs)
       npy_cross_paddings = np.random.randint(
           0, 1, [batch_size, cross_seq_len]).astype('float32')
@@ -718,7 +729,7 @@ class TransformersTest(test_util.JaxTestCase):
           cross_inputs=cross_inputs,
           cross_paddings=cross_paddings,
           cross_segment_mask=cross_segment_mask)
-      decoder_outputs = jnp.zeros(shape=[seq_len, batch_size, p.model_dims])
+      decoder_outputs = jnp.zeros(shape=[seq_len, batch_size, model_dims])
       atten_states = initial_states
       for t in range(seq_len):
         segment_mask_t = attention_mask[:, :, t, :]
@@ -1204,9 +1215,11 @@ class TransformersTest(test_util.JaxTestCase):
               vocab_size=vocab_size))
     if use_separate_encoder_stacked_transformer_tpl:
       # Over-ride the StackedTransformer by using StackedTransformerRepeated.
+      block_param = transformers.StackedTransformer.Params().Set(
+          num_layers=1, num_heads=4, model_dims=16, hidden_dims=32)
       p.encoder_stacked_transformer_tpl = (
           transformers.StackedTransformerRepeated.Params().Set(
-              num_layers=4, num_heads=4, model_dims=16, hidden_dims=32))
+              block=block_param, x_times=4))
     # Rotary position embedding.
     params = p.stacked_transformer_tpl.transformer_layer_params_tpl
     params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb

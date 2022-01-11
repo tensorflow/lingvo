@@ -1536,9 +1536,10 @@ class StackedTransformer(base_layer.BaseLayer):
       assert cross_inputs is not None
       assert cross_paddings is not None
 
-    attention_mask, cross_attention_mask = compute_attention_masks_for_extend_step(
-        time_step, max_t, segment_mask, cross_inputs, cross_paddings,
-        cross_segment_mask)
+    attention_mask, cross_attention_mask = (
+        compute_attention_masks_for_extend_step(time_step, max_t, segment_mask,
+                                                cross_inputs, cross_paddings,
+                                                cross_segment_mask))
 
     updated_states = NestedMap(x_layers=[])
     decoder_input = inputs
@@ -1563,37 +1564,31 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
   @classmethod
   def Params(cls) -> InstantiableParams:
     p = super().Params()
-    # Share the same params as the StackedTransformer.
-    p = StackedTransformer.DefineParams(p)
+    p.Define(
+        'block', StackedTransformer.Params(),
+        'The params of a block. A block can be a single transformer layer,'
+        ' multiple layers, or a dense layer followed by a sparse layer, '
+        ' a.k.a. MOE block.')
+    p.Define('x_times', 0, 'Num times to repeat a block.')
+    p.Define(
+        'checkpoint_policy', recurrent.AutodiffCheckpointType.SAVE_NOTHING,
+        'How to checkpoint residuals for BProp: save nothing, dot only or '
+        'dot with no batch dimensions.')
+    wp = p.weight_split_dims_mapping
+    wp.Define('block', None, 'How the list of blocks should be sharded.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     p = self.params
-
-    assert p.num_layers > 0
-    assert p.model_dims > 0
-    assert p.hidden_dims > 0
-    assert p.num_heads > 0
-    assert 0.0 <= p.dropout_prob < 1.0
-
-    def _sub_params():
-      """Construct i-th layer params."""
-      sub_p = p.transformer_layer_params_tpl.Copy()
-      sub_p.name = 'sub'
-      sub_p.cross_attention = p.cross_attention
-      sub_p.mask_self_attention = p.mask_self_attention
-      sub_p.num_heads = p.num_heads
-      sub_p.input_dims = p.model_dims
-      sub_p.packed_input = p.packed_input
-      sub_p.atten_dropout_prob = p.dropout_prob
-      sub_p.residual_dropout_prob = p.dropout_prob
-      sub_p.relu_dropout_prob = p.dropout_prob
-      sub_p.hidden_dims = p.hidden_dims
-      return sub_p
+    wp = p.weight_split_dims_mapping
 
     repeat_l_params = repeats.Repeat.Params().Set(
-        sub=_sub_params(), x_times=p.num_layers)
+        sub=p.block,
+        x_times=p.x_times,
+        checkpoint_policy=p.checkpoint_policy,
+        unpack_summaries=True)
+    repeat_l_params.weight_split_dims_mapping.sub = wp.block
 
     self.create_child('repeat', repeat_l_params)
 
@@ -1625,40 +1620,28 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
     Returns:
       Output vector with shape [B, T, D].
     """
-    p = self.params
-    x_out = inputs
-    if p.packed_input:
-      assert segment_mask is not None
 
-    if p.cross_attention:
-      assert cross_inputs is not None
-      assert cross_paddings is not None
-      if p.packed_input:
-        assert cross_segment_mask is not None
+    def sub_fprop_fn(sub, theta, inputs, *args: Any, **kwargs: Any):
+      # sub is expected to be an instance of StackedTransformer
+      assert isinstance(sub, StackedTransformer)
+      out = sub.fprop(theta, inputs, *args, **kwargs)
+      return out, NestedMap()
 
-    attention_mask, cross_attention_mask = compute_attention_masks_for_fprop(
-        inputs,
-        paddings,
-        p.mask_self_attention,
-        segment_mask,
-        cross_inputs,
-        cross_paddings,
-        cross_segment_mask,
-        fold_padding_with_segment_mask=p.fold_padding_with_segment_mask)
-
-    x_out = self.repeat.fprop(
-        theta.repeat,
-        inputs,
-        paddings,
-        attention_mask,
-        cross_inputs,
-        cross_attention_mask,
-        segment_pos=segment_pos)
-    return x_out
+    out, stacked_extra = self.repeat.fprop(sub_fprop_fn, theta.repeat, inputs,
+                                           paddings, segment_mask, cross_inputs,
+                                           cross_paddings, cross_segment_mask,
+                                           segment_pos)
+    del stacked_extra
+    return out
 
   def init_states(self, theta: NestedMap, *args: Any,
                   **kwargs: Any) -> NestedMap:
-    return self.repeat.init_states(theta.repeat, *args, **kwargs)
+
+    def init_fn(block, theta, *args, **kwargs):
+      assert isinstance(block, StackedTransformer)
+      return block.init_states(theta, *args, **kwargs)
+
+    return self.repeat.init_states(init_fn, theta.repeat, *args, **kwargs)
 
   def extend_step(
       self,
@@ -1700,35 +1683,21 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
       - key - [T, B, N, H].
       - value - [T, B, N, H].
     """
-    p = self.params
-    if not self.params.mask_self_attention:
-      raise ValueError('extend_step should only be used with masked attention')
 
-    if 'key' in cached_states:
-      key = cached_states.key
-      # key is of shape [num_layers, max_seq_length, batch_size, ...].
-      max_t = key.shape[1]
-    else:
-      raise ValueError('Must call init_states before extend_step')
+    def extend_fn(sub, theta, cached_states, step_inputs, *args, **kwargs):
+      assert isinstance(sub, StackedTransformer)
+      return sub.extend_step(theta, cached_states, step_inputs, *args, **kwargs)
 
-    if p.cross_attention:
-      assert cross_inputs is not None
-      assert cross_paddings is not None
-
-    attention_mask, cross_attention_mask = compute_attention_masks_for_extend_step(
-        time_step, max_t, segment_mask, cross_inputs, cross_paddings,
-        cross_segment_mask)
-
-    updated_states, dec_out = self.repeat.extend_step(
+    return self.repeat.extend_step(
+        extend_fn,
         theta.repeat,
         cached_states,
         inputs,
         time_step=time_step,
-        attention_mask=attention_mask,
+        segment_mask=segment_mask,
         cross_inputs=cross_inputs,
-        cross_attention_mask=cross_attention_mask)
-
-    return updated_states, dec_out
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
 
 
 class TransformerLm(base_layer.BaseLayer):
@@ -1838,7 +1807,15 @@ class TransformerLm(base_layer.BaseLayer):
         batch_split, None, mdl_axis
     ]
     softmax_p.lookup_style = 'matmul'
-    xformer_p = lm_p.stacked_transformer_tpl.transformer_layer_params_tpl
+
+    if lm_p.stacked_transformer_tpl.cls == StackedTransformer:
+      xformer_p = lm_p.stacked_transformer_tpl.transformer_layer_params_tpl
+    elif lm_p.stacked_transformer_tpl.cls == StackedTransformerRepeated:
+      xformer_p = (
+          lm_p.stacked_transformer_tpl.block.transformer_layer_params_tpl)
+    else:
+      assert False, f'{lm_p.stacked_transformer_tpl.cls} not supported.'
+
     xformer_p.tr_atten_tpl.activation_split_dims_mapping.blnh = [
         batch_split, None, mdl_axis, None
     ]
@@ -1854,34 +1831,6 @@ class TransformerLm(base_layer.BaseLayer):
     # [num_heads, dim_per_head].
     xformer_p.tr_atten_tpl.weight_split_dims_mapping.dconv = [mdl_axis, None]
 
-    # MoE
-    # Following GShard sharding settings for large 2D sharded models.
-    #
-    # TODO(lepikhin): Provide better reference.
-    #   lingvo/core/gshard_builder.py and
-    # specifically MoE splits
-    #   emh_split=[0, -1, 1],
-    #   ehm_split=[0, 1, -1],
-    #   egcm_split=[0, -1, -1, 1],
-    #   gecm_split=[0, -1, -1, 1],
-    #   gsec_split=[0, -1, -1, -1],
-    # for mesh with 2 dimensions.
-    moe_p = lm_p.stacked_transformer_tpl.moe_layer_tpl
-    # Weights
-    moe_wp = moe_p.weight_split_dims_mapping
-    # TODO(lepikhin): RET_CHECK with [data_axis, None] http://b/209481545
-    moe_wp.me = [None, None]  # replicated
-    moe_wp.emh = [data_axis, None, mdl_axis]
-    moe_wp.ehm = [data_axis, mdl_axis, None]
-    # Activations
-    moe_ap = moe_p.activation_split_dims_mapping
-    moe_ap.gsm = [data_axis, None, mdl_axis]
-    moe_ap.gs = [data_axis, None]
-    moe_ap.gsec = [data_axis, None, None, None]  # dispatch and combine tensors
-    moe_ap.egcm = [data_axis, None, None, mdl_axis]
-    moe_ap.egch = [data_axis, None, None, mdl_axis]
-    moe_ap.gecm = [data_axis, None, None, mdl_axis]
-
     ffw_wp = xformer_p.tr_fflayer_tpl.weight_split_dims_mapping
     ffw_ap = xformer_p.tr_fflayer_tpl.activation_split_dims_mapping
     ffw_wp.ffn0 = [data_axis, mdl_axis]
@@ -1896,6 +1845,39 @@ class TransformerLm(base_layer.BaseLayer):
       ffw_ap.ffn1 = [batch_split, mdl_axis]
     else:
       raise NotImplementedError(f'mode {mode} not supported.')
+
+    # MoE
+    # Following GShard sharding settings for large 2D sharded models.
+    #
+    # TODO(lepikhin): Provide better reference.
+    #   lingvo/core/gshard_builder.py and
+    # specifically MoE splits
+    #   emh_split=[0, -1, 1],
+    #   ehm_split=[0, 1, -1],
+    #   egcm_split=[0, -1, -1, 1],
+    #   gecm_split=[0, -1, -1, 1],
+    #   gsec_split=[0, -1, -1, -1],
+    # for mesh with 2 dimensions.
+    if lm_p.stacked_transformer_tpl.cls == StackedTransformer:
+      moe_p = lm_p.stacked_transformer_tpl.moe_layer_tpl
+    elif lm_p.stacked_transformer_tpl.cls == StackedTransformerRepeated:
+      moe_p = lm_p.stacked_transformer_tpl.block.moe_layer_tpl
+    else:
+      assert False, f'{lm_p.stacked_transformer_tpl.cls} not supported.'
+    # Weights
+    moe_wp = moe_p.weight_split_dims_mapping
+    # TODO(lepikhin): RET_CHECK with [data_axis, None] http://b/209481545
+    moe_wp.me = [None, None]  # replicated
+    moe_wp.emh = [data_axis, None, mdl_axis]
+    moe_wp.ehm = [data_axis, mdl_axis, None]
+    # Activations
+    moe_ap = moe_p.activation_split_dims_mapping
+    moe_ap.gsm = [data_axis, None, mdl_axis]
+    moe_ap.gs = [data_axis, None]
+    moe_ap.gsec = [data_axis, None, None, None]  # dispatch and combine tensors
+    moe_ap.egcm = [data_axis, None, None, mdl_axis]
+    moe_ap.egch = [data_axis, None, None, mdl_axis]
+    moe_ap.gecm = [data_axis, None, None, mdl_axis]
 
     return lm_p
 
@@ -1922,18 +1904,23 @@ class TransformerLm(base_layer.BaseLayer):
       self.create_child('ngrammer', p.ngrammer_tpl)
 
     # Transformer layers
-    xformer_params = p.stacked_transformer_tpl.Copy()
+    if p.stacked_transformer_tpl.cls == StackedTransformer:
+      xformer_params = p.stacked_transformer_tpl
+    elif p.stacked_transformer_tpl.cls == StackedTransformerRepeated:
+      xformer_params = p.stacked_transformer_tpl.block
+    else:
+      assert False, f'{p.stacked_transformer_tpl.cls} not supported.'
     assert (xformer_params.model_dims == 0 or
             xformer_params.model_dims == p.model_dims)
     xformer_params.model_dims = p.model_dims
-
     if p.masked_lm:
       xformer_params.mask_self_attention = False
     else:
       xformer_params.mask_self_attention = True
     xformer_params.packed_input = p.packed_input
     xformer_params.fold_padding_with_segment_mask = True
-    self.create_child('transformer', xformer_params)
+
+    self.create_child('transformer', p.stacked_transformer_tpl)
 
     # Final layer norm
     ln_params = normalizations.LayerNorm.Params().Set(input_dims=p.model_dims)
@@ -2218,24 +2205,34 @@ class TransformerEncoderDecoder(TransformerLm):
     super().__init__(params)
     p = self.params
 
+    def set_model_dims(stacked_transformer_tpl, model_dims):
+      if stacked_transformer_tpl.cls == StackedTransformer:
+        assert (stacked_transformer_tpl.model_dims == 0 or
+                stacked_transformer_tpl.model_dims == model_dims)
+        stacked_transformer_tpl.model_dims = model_dims
+      elif stacked_transformer_tpl.cls == StackedTransformerRepeated:
+        assert (stacked_transformer_tpl.block.model_dims == 0 or
+                stacked_transformer_tpl.block.model_dims == model_dims)
+        stacked_transformer_tpl.block.model_dims = model_dims
+      else:
+        assert False, f'{stacked_transformer_tpl.cls} not supported.'
+
     # Create the encoder.
     if p.encoder_stacked_transformer_tpl is not None:
       # Use the user specified StackedTransformer for the encoder, assuming
       # everything is set up appropriately.
       encoder_params = p.encoder_stacked_transformer_tpl
-      assert (encoder_params.model_dims == 0 or
-              encoder_params.model_dims == p.model_dims)
-      encoder_params.model_dims = p.model_dims
+      set_model_dims(encoder_params, p.model_dims)
     else:
       # Otherwise inherit from the TransformerLm StackedTransformer and set
       # things up for encoder, like disabling masking and cross attention.
       encoder_params = p.stacked_transformer_tpl.Copy()
       encoder_params.cross_attention = False
       encoder_params.name = 'encoder'
-      encoder_params.model_dims = p.model_dims
       encoder_params.mask_self_attention = False
       encoder_params.packed_input = p.packed_input
       encoder_params.fold_padding_with_segment_mask = False
+      set_model_dims(encoder_params, p.model_dims)
     self.create_child('encoder', encoder_params)
 
     # Optional separate target embedding layer.

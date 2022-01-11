@@ -114,7 +114,7 @@ def _yield_subtrees(
       # TODO(yonghui): Support other common composite types.
       yield (name, root)
   else:
-    if root:
+    if root is not None:
       yield (name, root)
 
 
@@ -345,7 +345,7 @@ def write_summary_every_n_steps(train_state: TrainState,
       # This is an SPMD model, mdl_vars can be sharded, not replicated.
       mdl_vars = train_state.mdl_vars
       mdl_vars = py_utils.maybe_gda_to_sda(mdl_vars)
-    norms = l2_norms(mdl_vars, prefix='Vars', max_level=10)
+    norms = l2_norms(mdl_vars, prefix='Vars', max_level=20)
     with train_summary_writer.as_default():
       for name in norms:
         write_summary_tensor(step_i, name, norms[name], SummaryType.SCALAR)

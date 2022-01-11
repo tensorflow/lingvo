@@ -20,6 +20,7 @@ This simply passes input through the layer stack.
 
 from typing import Any
 
+from absl import logging
 import jax
 from jax import numpy as jnp
 from lingvo.jax import base_layer
@@ -44,6 +45,14 @@ class Repeat(base_layer.BaseLayer):
     p = super().Params()
     p.Define('sub', None, 'The param of the sub-layer.')
     p.Define('x_times', 0, 'Num times to repeat sub.')
+    p.Define(
+        'unpack_summaries', False,
+        'If true, unpack summaries to the individual values from each loop'
+        ' iterations.')
+    p.Define(
+        'checkpoint_policy', recurrent.AutodiffCheckpointType.SAVE_NOTHING,
+        'How to checkpoint residuals for BProp: save nothing, dot only or '
+        'dot with no batch dimensions.')
     wp = p.weight_split_dims_mapping
     wp.Define('sub', None, 'How the list of subs should be sharded.')
     return p
@@ -81,17 +90,34 @@ class Repeat(base_layer.BaseLayer):
 
     self.create_child('sub', sub_params)
 
-  def fprop(self, theta: NestedMap, inputs: NestedJTensor, *args: Any,
+  def _forward_summary(self, summaries):
+    """Forwards summary from the inner JaxContext to the outer context."""
+    p = self.params
+    for summary_key, summary_value in summaries.items():
+      logging.info((summary_key, summary_value))
+      summary_type = base_layer.get_summary_type_from_key(summary_key)
+      assert summary_value.shape[0] == p.x_times
+      if p.unpack_summaries:
+        # unstack summary_value
+        unstacked_values = jnp.split(summary_value, p.x_times)
+        for i, v in enumerate(unstacked_values):
+          base_layer.add_summary(f'{summary_key}/{i}', v, summary_type)
+      else:
+        base_layer.add_summary('{summary_key}', summary_value, summary_type)
+
+  def fprop(self, fprop_fn, theta: NestedMap, inputs: NestedJTensor, *args: Any,
             **kwargs: Any) -> Any:
     """FProp inputs through the sub layer stack.
 
-    sub.fprop is expected to be of the following signature:
-    outputs, extra = sub.fprop(theta, inputs, *args, **kwargs)
+    fprop_fn is expected to be of the following signature:
+    outputs, extra = fprop_fn(sub, theta, inputs, *args, **kwargs)
 
     outputs are expected to be of the same structure as inputs. extra can be any
     structure.
 
     Args:
+      fprop_fn: The fprop fn to scan over. See comments above for the expected
+        signature.
       theta: The combined layer params for all layers.
       inputs: A NestedMap of inputs that goes through the sub layer stack.
       *args: Positional args to be passed to sub.fprop method.
@@ -100,34 +126,40 @@ class Repeat(base_layer.BaseLayer):
     Returns:
       Output from the last sub layer.
     """
+    p = self.params
 
     # We wrap inputs in a NestedMap so that inputs to recurrent.scan will always
     # be a NestedMap, which is required by the recurrent.scan interface.
     inputs_mp = NestedMap(carry=inputs)
 
     def _scan_fn(layer_in, layer_vars):
-      layer_out, extra = self.sub.fprop(layer_vars, layer_in.carry, *args,
-                                        **kwargs)
-      # TODO(yonghui): Maybe return stacked extra.
-      del extra
+      layer_out, extra = fprop_fn(self.sub, layer_vars, layer_in.carry, *args,
+                                  **kwargs)
       tf.nest.assert_same_structure(layer_in.carry, layer_out)
-      return NestedMap(carry=layer_out), py_utils.NestedMap()
+      return NestedMap(carry=layer_out), py_utils.NestedMap(extra=extra)
 
-    out_final, _, summaries = recurrent.scan(
-        inputs_mp, theta.sub, _scan_fn, root_layer=self)
-    # TODO(yonghui): propagate summaries to the caller.
-    del summaries
+    out_final, out_extra, summaries = recurrent.scan(
+        inputs_mp,
+        theta.sub,
+        _scan_fn,
+        root_layer=self,
+        checkpoint_policy=p.checkpoint_policy)
 
-    return out_final.carry
+    self._forward_summary(summaries)
 
-  def init_states(self, theta: NestedMap, *args: Any, **kwargs: Any) -> Any:
+    return out_final.carry, out_extra.extra
+
+  def init_states(self, init_fn, theta: NestedMap, *args: Any,
+                  **kwargs: Any) -> Any:
     """Inits decoder states for all sub layers.
 
     sub.init_states() should be of signature
 
-    init_states = sub.init_states(theta, *args, **kwargs)
+    init_fn should be of signature
+    init_states = init_fn(self.sub, theta, *args, **kwargs)
 
     Args:
+      init_fn: A callback responsible for initializing the per-block states.
       theta: The combined layer params for all layers.
       *args: Positional args to pass to the sub.init_states() method.
       **kwargs: Keyward args to pass to the sub.init_states() method.
@@ -138,7 +170,7 @@ class Repeat(base_layer.BaseLayer):
     p = self.params
     # TODO(yonghui): Fix me. We should pass in theta for one sub, instead of all
     # the subs.
-    init_states = self.sub.init_states(theta.sub, *args, **kwargs)
+    init_states = init_fn(self.sub, theta.sub, *args, **kwargs)
 
     def tile_x(x):
       a = jnp.expand_dims(x, 0)
@@ -149,18 +181,20 @@ class Repeat(base_layer.BaseLayer):
     # TODO(yonghui): Configure for spmd.
     return init_states
 
-  def extend_step(self, theta: NestedMap, cached_states: NestedMap,
+  def extend_step(self, extend_fn, theta: NestedMap, cached_states: NestedMap,
                   step_inputs: NestedJTensor, *args: Any, **kwargs: Any) -> Any:
     """Extends decoder states by one step.
 
-    sub.extend_step() should have the following signature.
+    extend_fn should have the following signature.
 
-    extended_states, step_out = sub.extend_step(theta, states, step_input,
-                                              *args, **kwargs)
+    extended_states, step_out = extend_fn(self.sub, theta, states, step_input,
+                                                *args, **kwargs)
     extended_states should have the same structure as states
     step_out should have the same structure as step_input
 
     Args:
+      extend_fn: fn to extend cached_states for one step. It should be of the
+        expected signature as described above.
       theta: The combined layer params for all sub-layers.
       cached_states: The combined states for all sub-layers.
       step_inputs: Input to the bottom decoder layer.
@@ -177,10 +211,8 @@ class Repeat(base_layer.BaseLayer):
     def _scan_fn(layer_in, vars_and_states):
       layer_vars = vars_and_states.layer_vars
       layer_states = vars_and_states.layer_states
-      extended_states, layer_out = self.sub.extend_step(layer_vars,
-                                                        layer_states,
-                                                        layer_in.carry, *args,
-                                                        **kwargs)
+      extended_states, layer_out = extend_fn(self.sub, layer_vars, layer_states,
+                                             layer_in.carry, *args, **kwargs)
       tf.nest.assert_same_structure(layer_in.carry, layer_out)
       tf.nest.assert_same_structure(extended_states, layer_states)
       return NestedMap(carry=layer_out), extended_states
@@ -190,6 +222,6 @@ class Repeat(base_layer.BaseLayer):
 
     final_out, new_states, summaries = recurrent.scan(
         step_inputs_mp, vars_and_states, _scan_fn, root_layer=self)
-    # TODO(yonghui): Propagate summaries
-    del summaries
+    # forward summaries to the out-context.
+    self._forward_summary(summaries)
     return new_states, final_out.carry
