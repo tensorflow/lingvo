@@ -768,7 +768,8 @@ class EvalProgram(BaseProgram):
       Summed eval metrics.
     """
     with tf.name_scope('tpu_eval'):
-      self._model.ConstructFPropGraph()
+      # Applies EMA if applicable to support running only eval/decode programs.
+      self._model.ConstructFPropGraph(apply_ema=True)
       per_step_eval_metrics = self._eval_metrics.SetMetrics(
           self._task.eval_metrics, args)
       summed_metrics = []
@@ -1010,7 +1011,8 @@ class DecodeProgram(BaseProgram):
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
-      _, decode_dict = self._model.ConstructDecodeGraph()
+      # Applies EMA if applicable to support running only eval/decode programs.
+      _, decode_dict = self._model.ConstructDecodeGraph(apply_ema=True)
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return self.decode_nm.Flatten()
 
@@ -1320,7 +1322,8 @@ class ExperimentalDecodeProgram(DecodeProgram):
 
     def _DecodeStep():
       """Decode call to be compiled for TPU."""
-      _, decode_dict = self._model.ConstructDecodeGraph()
+      # Applies EMA if applicable to support running only eval/decode programs.
+      _, decode_dict = self._model.ConstructDecodeGraph(apply_ema=True)
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return [self._OutfeedEnqueue(decode_dict)]
 
@@ -1514,7 +1517,9 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
       with cluster_factory.SetEval(True):
-        _, decode_dict = self._decode_model.ConstructDecodeGraph()
+        # Applies EMA if applicable to support running only eval/decode
+        # programs.
+        _, decode_dict = self._decode_model.ConstructDecodeGraph(apply_ema=True)
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return self.decode_nm.Flatten()
 
