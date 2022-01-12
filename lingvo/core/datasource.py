@@ -807,7 +807,7 @@ def GetTFDataServiceDataSet(job_name,
                             bucket_upper_bound,
                             num_hosts,
                             host_id,
-                            processing_mode='parallel_epochs',
+                            processing_mode=None,
                             dataset=None,
                             dataset_id=None,
                             element_spec=None):
@@ -847,7 +847,8 @@ def GetTFDataServiceDataSet(job_name,
     consumer_index = None
     num_consumers = None
   dataset = tf.data.experimental.service.from_dataset_id(
-      processing_mode=processing_mode,
+      processing_mode=(processing_mode or
+                       tf.data.experimental.service.ShardingPolicy.OFF),
       service=tf_data_service_address,
       dataset_id=dataset_id,
       element_spec=element_spec,
@@ -865,9 +866,8 @@ class TFDataServiceSource(TFDatasetTransform):
     p = super().Params()
     p.Define('bucket_upper_bound', [], 'Bucketing scheme. Required to be'
              'a sorted list of integers.')
-    p.Define(
-        'processing_mode', 'parallel_epochs', 'Processing mode for TF data'
-        ' service, can be parallel_epochs or distributed_epoch.')
+    p.Define('processing_mode', tf.data.experimental.service.ShardingPolicy.OFF,
+             'Processing mode for TF data service.')
     return p
 
   def __init__(self, params):
@@ -929,5 +929,5 @@ class TFDataServiceSource(TFDatasetTransform):
 
   def Reset(self, sess=None):
     # TFDataServiceSource should not be used for eval/decode, as it does not
-    # have at-most-once guarantees for parallel_epochs mode.
+    # have at-most-once guarantees for ShardingPolicy.OFF mode.
     raise ValueError('TFDataServiceSource does not support reset.')
