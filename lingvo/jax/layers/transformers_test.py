@@ -1152,9 +1152,9 @@ class TransformersTest(test_util.JaxTestCase):
   def test_transformer_encoder_decoder_extendstep(
       self, use_encoder_ngrams, use_decoder_ngrams, use_encoder_vq_ngrams,
       use_decoder_vq_ngrams, use_rotary_position_emb, use_dconv,
-      share_embedding_and_softmax, share_input_and_target_embedding,
-      use_separate_encoder_stacked_transformer_tpl):
-    vocab_size = 8
+      separate_encoder_embedding, separate_decoder_embedding,
+      use_stacked_transformer_repeated):
+    vocab_size = 4
     num_layers = 2
     num_heads = 2
     dim_per_head = 8
@@ -1196,35 +1196,90 @@ class TransformersTest(test_util.JaxTestCase):
     p = transformers.TransformerEncoderDecoder.Params().Set(
         name='jax_transformer_encoder_decoder',
         model_dims=num_heads * dim_per_head,
-        masked_lm=False,
-        packed_input=False,
-        ngrammer_tpl=decoder_ngrammer_params,
-        encoder_ngrammer_tpl=encoder_ngrammer_params,
-        vocab_size=vocab_size)
-    stacked_transformer_tpl = p.stacked_transformer_tpl
-    stacked_transformer_tpl.model_dims = num_heads * dim_per_head
-    stacked_transformer_tpl.hidden_dims = 4 * num_heads * dim_per_head
-    stacked_transformer_tpl.num_heads = num_heads
-    stacked_transformer_tpl.num_layers = num_layers
-    if not share_embedding_and_softmax:
-      p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
-      p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
-    if not share_input_and_target_embedding:
-      p.encoder_embedding_tpl = (
-          embedding_softmax.SingleShardEmbedding.Params().Set(
-              vocab_size=vocab_size))
-    if use_separate_encoder_stacked_transformer_tpl:
-      # Over-ride the StackedTransformer by using StackedTransformerRepeated.
+        decoder_ngrammer_tpl=decoder_ngrammer_params,
+        encoder_ngrammer_tpl=encoder_ngrammer_params)
+
+    # Encoder stack.
+    if use_stacked_transformer_repeated:
       block_param = transformers.StackedTransformer.Params().Set(
-          num_layers=1, num_heads=4, model_dims=16, hidden_dims=32)
+          num_layers=num_layers,
+          num_heads=num_heads,
+          model_dims=num_heads * dim_per_head,
+          hidden_dims=4 * num_heads * dim_per_head,
+          mask_self_attention=False,
+          fold_padding_with_segment_mask=True)
       p.encoder_stacked_transformer_tpl = (
           transformers.StackedTransformerRepeated.Params().Set(
-              block=block_param, x_times=4))
+              block=block_param, x_times=1))
+    else:
+      p.encoder_stacked_transformer_tpl = (
+          transformers.StackedTransformer.Params().Set(
+              model_dims=num_heads * dim_per_head,
+              hidden_dims=4 * num_heads * dim_per_head,
+              num_heads=num_heads,
+              num_layers=num_layers,
+              mask_self_attention=False,
+              fold_padding_with_segment_mask=True))
+
+    # Decoder stack.
+    if use_stacked_transformer_repeated:
+      block_param = transformers.StackedTransformer.Params().Set(
+          num_layers=num_layers,
+          num_heads=num_heads,
+          model_dims=num_heads * dim_per_head,
+          hidden_dims=4 * num_heads * dim_per_head,
+          mask_self_attention=True,
+          fold_padding_with_segment_mask=True)
+      p.decoder_stacked_transformer_tpl = (
+          transformers.StackedTransformerRepeated.Params().Set(
+              block=block_param, x_times=1))
+    else:
+      p.decoder_stacked_transformer_tpl = (
+          transformers.StackedTransformer.Params().Set(
+              model_dims=num_heads * dim_per_head,
+              hidden_dims=4 * num_heads * dim_per_head,
+              num_heads=num_heads,
+              num_layers=num_layers,
+              mask_self_attention=True,
+              fold_padding_with_segment_mask=True))
+
+    if separate_encoder_embedding:
+      p.encoder_embedding_tpl = (
+          embedding_softmax.SingleShardEmbedding.Params().Set(
+              vocab_size=vocab_size, embedding_dims=num_heads * dim_per_head))
+
+    if separate_decoder_embedding:
+      p.decoder_embedding_tpl = (
+          embedding_softmax.SingleShardEmbedding.Params().Set(
+              vocab_size=vocab_size, embedding_dims=num_heads * dim_per_head))
+
+    # Softmax params.
+    if separate_decoder_embedding:
+      p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params().Set(
+          input_dims=num_heads * dim_per_head, num_classes=vocab_size)
+    else:
+      p.softmax_tpl = (
+          embedding_softmax.SingleShardSharedEmbeddingSoftmax.Params().Set(
+              input_dims=num_heads * dim_per_head, num_classes=vocab_size))
+
     # Rotary position embedding.
-    params = p.stacked_transformer_tpl.transformer_layer_params_tpl
-    params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
+    if use_rotary_position_emb:
+      if use_stacked_transformer_repeated:
+        params = p.encoder_stacked_transformer_tpl.block
+      else:
+        params = p.encoder_stacked_transformer_tpl
+      params = params.transformer_layer_params_tpl
+      params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
+      if use_stacked_transformer_repeated:
+        params = p.decoder_stacked_transformer_tpl.block
+      else:
+        params = p.decoder_stacked_transformer_tpl
+      params = params.transformer_layer_params_tpl
+      params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
+    p.position_emb_tpl = None
+
     seq_len = 8
-    batch_size = 2
+    batch_size = 1
     transformer_enc_dec = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = transformer_enc_dec.instantiate_variables(prng_key)
@@ -1257,7 +1312,7 @@ class TransformersTest(test_util.JaxTestCase):
             targets_prefix = targets[:, t - 1:t + 1]
         cached_states, xent_output = transformer_enc_dec.extend_step(
             initial_vars, cached_states, targets_prefix)
-        self.assertAllClose(logits[:, t, :], xent_output.logits)
+        self.assertAllClose(logits[:, t, :], xent_output.logits, atol=2e-6)
 
   @parameterized.parameters(['pre', 'primer_hybrid'])
   def test_transformer_layer_norm_policies(self, norm_policy):
