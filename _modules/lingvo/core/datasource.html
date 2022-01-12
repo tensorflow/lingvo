@@ -872,7 +872,7 @@
                             <span class="n">bucket_upper_bound</span><span class="p">,</span>
                             <span class="n">num_hosts</span><span class="p">,</span>
                             <span class="n">host_id</span><span class="p">,</span>
-                            <span class="n">processing_mode</span><span class="o">=</span><span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span>
+                            <span class="n">processing_mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">dataset</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">dataset_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">element_spec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -912,7 +912,8 @@
     <span class="n">consumer_index</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="n">num_consumers</span> <span class="o">=</span> <span class="kc">None</span>
   <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">from_dataset_id</span><span class="p">(</span>
-      <span class="n">processing_mode</span><span class="o">=</span><span class="n">processing_mode</span><span class="p">,</span>
+      <span class="n">processing_mode</span><span class="o">=</span><span class="p">(</span><span class="n">processing_mode</span> <span class="ow">or</span>
+                       <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">ShardingPolicy</span><span class="o">.</span><span class="n">OFF</span><span class="p">),</span>
       <span class="n">service</span><span class="o">=</span><span class="n">tf_data_service_address</span><span class="p">,</span>
       <span class="n">dataset_id</span><span class="o">=</span><span class="n">dataset_id</span><span class="p">,</span>
       <span class="n">element_spec</span><span class="o">=</span><span class="n">element_spec</span><span class="p">,</span>
@@ -930,9 +931,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Bucketing scheme. Required to be&#39;</span>
              <span class="s1">&#39;a sorted list of integers.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;processing_mode&#39;</span><span class="p">,</span> <span class="s1">&#39;parallel_epochs&#39;</span><span class="p">,</span> <span class="s1">&#39;Processing mode for TF data&#39;</span>
-        <span class="s1">&#39; service, can be parallel_epochs or distributed_epoch.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;processing_mode&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">service</span><span class="o">.</span><span class="n">ShardingPolicy</span><span class="o">.</span><span class="n">OFF</span><span class="p">,</span>
+             <span class="s1">&#39;Processing mode for TF data service.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -994,7 +994,7 @@
 
 <div class="viewcode-block" id="TFDataServiceSource.Reset"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.TFDataServiceSource.Reset">[docs]</a>  <span class="k">def</span> <span class="nf">Reset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># TFDataServiceSource should not be used for eval/decode, as it does not</span>
-    <span class="c1"># have at-most-once guarantees for parallel_epochs mode.</span>
+    <span class="c1"># have at-most-once guarantees for ShardingPolicy.OFF mode.</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;TFDataServiceSource does not support reset.&#39;</span><span class="p">)</span></div></div>
 </pre></div>
 
