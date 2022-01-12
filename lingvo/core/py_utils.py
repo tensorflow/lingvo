@@ -6655,7 +6655,10 @@ def DecodeProtoField(serialized_protos, message_type, field_name, output_type):
 
   Args:
     serialized_protos: A string Tensor of shape [batch].
-    message_type: Name of the proto message type.
+    message_type: Name of the proto message type. Since tf.io.decode_proto() is
+    called with the default descriptor_source='local://', the C++ (not Python!)
+    proto definition(s) must be linked to the binary. You can link in a proto
+    descriptor by creating a cc_library target with alwayslink=1.
     field_name: Name of the field.
     output_type: A DType for the output.
 
