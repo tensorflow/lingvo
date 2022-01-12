@@ -454,7 +454,6 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
                               tf.constant(bias, dtype=dtype)),
           ),
           stochastic_beam_search=py_utils.NestedMap(
-              enable=tf.constant(True),
               seed=tf.concat([seed, seed], axis=0),
               top_p_threshold=tf.concat([top_p_threshold, top_p_threshold],
                                         axis=0)))
@@ -515,12 +514,12 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
               weights=tf.zeros([batch_size, 0], dtype=dtype),
           ),
           stochastic_beam_search=py_utils.NestedMap(
-              enable=tf.constant(True),
               seed=tf.constant(np.arange(batch_size), dtype=tf.int32),
-              # top_p_threshold=0.0 means only the best-scoring ID can be
+              # top_p_threshold ~ 0 means only the best-scoring ID can be
               # sampled at each time step, so the sampling becomes
-              # deterministic.
-              top_p_threshold=tf.zeros([batch_size], dtype=dtype)))
+              # deterministic. Note that stochastic beam search gets disabled if
+              # top_p_threshold is actually 0.
+              top_p_threshold=tf.fill([batch_size], 0.001)))
 
       decode = dec.StochasticBeamSearchDecodeBiased(
           encoder_outputs, biased=True, stochastic=True)
@@ -568,9 +567,9 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
                               tf.constant(bias, dtype=dtype)),
           ),
           stochastic_beam_search=py_utils.NestedMap(
-              enable=tf.constant(False),
               seed=tf.zeros([batch_size], dtype=tf.int32),
-              top_p_threshold=tf.ones([batch_size], dtype=dtype)))
+              # Stochastic beam search is disabled when top_p_threshold = 0.0.
+              top_p_threshold=tf.zeros([batch_size], dtype=dtype)))
 
       self.evaluate(tf.global_variables_initializer())
       decode_biased = dec.BeamSearchDecodeBiased(encoder_outputs.DeepCopy())

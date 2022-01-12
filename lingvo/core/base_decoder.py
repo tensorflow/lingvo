@@ -431,13 +431,12 @@ class BaseBeamSearchDecoder(BaseDecoder):
     probabilities. `encoder_outputs` must include the following auxiliary
     inputs:
 
-    - stochastic_beam_search.enable: A bool tensor that represents whether to
-      perform stochastic beam search for the input.
     - stochastic_beam_search.top_p_threshold: A float tensor of shape [batch]
-      that represents the thresholds of top-p filtering. Must be [0.0, 1.0].
-      If the value is low, the quality of samples will be high but the diversity
-      will be low. If the value is high, the quality of samples will be low but
-      the diversity will be high.
+      that represents the thresholds of top-p filtering. Must satisfy
+      0 < top_p_threshold <= 1. If the value is low, the quality of samples will
+      be high but the diversity will be low. If the value is high, the quality
+      of samples will be low but the diversity will be high. Stochastic beam
+      search is performed only if top_p_threshold > 0 for some batch items.
     - stochastic_beam_search.seed: An int tensor of shape [batch] the represents
       the seeds. If the seeds are the same, the same samples are drawn.
 
@@ -465,6 +464,12 @@ class BaseBeamSearchDecoder(BaseDecoder):
 
       targets.labels = PadToTargetSeqLen(targets.labels, 0)
       targets.weights = PadToTargetSeqLen(targets.weights, 0)
+
+    if stochastic:
+      # Determine whether to perform stochastic beam search.
+      stochastic_beam_search = encoder_outputs.stochastic_beam_search
+      stochastic_beam_search.enable = tf.reduce_any(
+          tf.greater(stochastic_beam_search.top_p_threshold, 0.0))
 
     return self.beam_search.BeamSearchDecode(
         self.theta, encoder_outputs, num_hyps_per_beam_override,
