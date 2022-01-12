@@ -393,6 +393,10 @@ class LanguageModel(BaseTask):
       row), and `.output_ids` (matrix of int ids with the decoded output).
     """
     p = self.params
+    if p.decoder.seqlen <= 0:
+      raise ValueError('Must set p.decoder.seqlen > 0, current value = '
+                       f'{p.decoder.seqlen}')
+
     batch_size = input_batch.ids.shape[0]
     maxval = jnp.sum(1 - input_batch.paddings, axis=1).astype(jnp.int32)
     minval = jnp.minimum(maxval, p.decoder.min_prefix_len)
