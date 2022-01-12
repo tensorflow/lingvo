@@ -6720,7 +6720,10 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    serialized_protos: A string Tensor of shape [batch].</span>
-<span class="sd">    message_type: Name of the proto message type.</span>
+<span class="sd">    message_type: Name of the proto message type. Since tf.io.decode_proto() is</span>
+<span class="sd">    called with the default descriptor_source=&#39;local://&#39;, the C++ (not Python!)</span>
+<span class="sd">    proto definition(s) must be linked to the binary. You can link in a proto</span>
+<span class="sd">    descriptor by creating a cc_library target with alwayslink=1.</span>
 <span class="sd">    field_name: Name of the field.</span>
 <span class="sd">    output_type: A DType for the output.</span>
 
