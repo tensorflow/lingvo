@@ -731,6 +731,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
         self.CreateCpuPassthroughEnqueueOps()
       self.CreateTpuEmbeddingEnqueueOps()
 
+  def DeviceLoopSetupInTF2(self):
+    """Set up device-loop-level params."""
+    assert py_utils.IsEagerMode(
+    ), 'This function can only be called in TF2 mode.'
+
   def PreprocessTpuEmbeddingInputBatch(self, input_batch):
     """Hook to manipulate the TPU embedding input batch.
 

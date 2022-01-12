@@ -564,6 +564,22 @@ class TrainProgram(BaseProgram):
           summed_metrics.append(x + y)
       return summed_metrics + [self._task.train_op]
 
+  def InfeedFunc(self):
+    """Infeed function. Only needed in TF2."""
+    self._task.input.DeviceLoopSetupInTF2()
+
+    def InfeedBody(i):
+      self._task.input.CreateTpuEnqueueOps()
+      # Auto control dependency may not support TPU infeed ops, so add the
+      # dependency manually.
+      with tf.control_dependencies(self._task.input.tpu_infeed_op):
+        return i + 1
+
+    tf.while_loop(
+        cond=lambda i: i < self._steps_per_loop,
+        body=InfeedBody,
+        loop_vars=[tf.constant(0)])
+
   def BuildTpuSubgraph(self):
     tf.logging.info('TrainProgram BuildTpuSubGraph')
     p = self.params
@@ -587,20 +603,6 @@ class TrainProgram(BaseProgram):
           name='train_loop')
       # Final metrics are the avg across self._steps_per_loop steps.
       return self._eval_metrics.FinalizeMetrics(loop_result)
-
-    def InfeedFunc():
-
-      def InfeedBody(i):
-        self._task.input.CreateTpuEnqueueOps()
-        # Auto control dependency may not support TPU infeed ops, so add the
-        # dependency manually.
-        with tf.control_dependencies(self._task.input.tpu_infeed_op):
-          return i + 1
-
-      tf.while_loop(
-          cond=lambda i: i < self._steps_per_loop,
-          body=InfeedBody,
-          loop_vars=[tf.constant(0)])
 
     def TrainFunc():
       # TODO(laigd): investigate how to run compilation only to catch errors
@@ -631,8 +633,8 @@ class TrainProgram(BaseProgram):
       return _ConstructPostTrainingLoop(metric_values, outfeed)
 
     if py_utils.IsEagerMode():
-      self.infeed_fn = tf.function(
-          autograph=False)(InfeedFunc).get_concrete_function()
+      self.infeed_fn = tf.function(autograph=False)(
+          self.InfeedFunc).get_concrete_function()
       self.tpu_outs = (
           tf.function(autograph=False)(TrainFunc).get_concrete_function())
     else:
@@ -775,6 +777,8 @@ class EvalProgram(BaseProgram):
       return summed_metrics
 
   def InfeedFunc(self):
+    """Infeed function. Only needed in TF2."""
+    self._task.input.DeviceLoopSetupInTF2()
 
     def InfeedBody(i):
       self._task.input.CreateTpuEnqueueOps()
@@ -988,7 +992,8 @@ class DecodeProgram(BaseProgram):
     self._decode_out_dict_lst = []
 
   def InfeedFunc(self):
-    """Infeed function."""
+    """Infeed function. Only needed in TF2."""
+    self._task.input.DeviceLoopSetupInTF2()
     self._task.input.CreateTpuEnqueueOps()
     # `CreateTpuEnqueueOps` and `CreateCpuPassthroughEnqueueOps` must be in the
     # same place, because the former enqueues `_per_host_passthrough_batches`,
