@@ -496,13 +496,12 @@
 <span class="sd">    probabilities. `encoder_outputs` must include the following auxiliary</span>
 <span class="sd">    inputs:</span>
 
-<span class="sd">    - stochastic_beam_search.enable: A bool tensor that represents whether to</span>
-<span class="sd">      perform stochastic beam search for the input.</span>
 <span class="sd">    - stochastic_beam_search.top_p_threshold: A float tensor of shape [batch]</span>
-<span class="sd">      that represents the thresholds of top-p filtering. Must be [0.0, 1.0].</span>
-<span class="sd">      If the value is low, the quality of samples will be high but the diversity</span>
-<span class="sd">      will be low. If the value is high, the quality of samples will be low but</span>
-<span class="sd">      the diversity will be high.</span>
+<span class="sd">      that represents the thresholds of top-p filtering. Must satisfy</span>
+<span class="sd">      0 &lt; top_p_threshold &lt;= 1. If the value is low, the quality of samples will</span>
+<span class="sd">      be high but the diversity will be low. If the value is high, the quality</span>
+<span class="sd">      of samples will be low but the diversity will be high. Stochastic beam</span>
+<span class="sd">      search is performed only if top_p_threshold &gt; 0 for some batch items.</span>
 <span class="sd">    - stochastic_beam_search.seed: An int tensor of shape [batch] the represents</span>
 <span class="sd">      the seeds. If the seeds are the same, the same samples are drawn.</span>
 
@@ -530,6 +529,12 @@
 
       <span class="n">targets</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">PadToTargetSeqLen</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
       <span class="n">targets</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">PadToTargetSeqLen</span><span class="p">(</span><span class="n">targets</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">stochastic</span><span class="p">:</span>
+      <span class="c1"># Determine whether to perform stochastic beam search.</span>
+      <span class="n">stochastic_beam_search</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span>
+      <span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">enable</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">top_p_threshold</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">BeamSearchDecode</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps_per_beam_override</span><span class="p">,</span>

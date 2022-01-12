@@ -469,13 +469,12 @@ normalization and coverage penalty are applied to the perturbed
 probabilities. <code class="xref py py-obj docutils literal notranslate"><span class="pre">encoder_outputs</span></code> must include the following auxiliary
 inputs:</p>
 <ul class="simple">
-<li><p>stochastic_beam_search.enable: A bool tensor that represents whether to
-perform stochastic beam search for the input.</p></li>
 <li><p>stochastic_beam_search.top_p_threshold: A float tensor of shape [batch]
-that represents the thresholds of top-p filtering. Must be [0.0, 1.0].
-If the value is low, the quality of samples will be high but the diversity
-will be low. If the value is high, the quality of samples will be low but
-the diversity will be high.</p></li>
+that represents the thresholds of top-p filtering. Must satisfy
+0 &lt; top_p_threshold &lt;= 1. If the value is low, the quality of samples will
+be high but the diversity will be low. If the value is high, the quality
+of samples will be low but the diversity will be high. Stochastic beam
+search is performed only if top_p_threshold &gt; 0 for some batch items.</p></li>
 <li><p>stochastic_beam_search.seed: An int tensor of shape [batch] the represents
 the seeds. If the seeds are the same, the same samples are drawn.</p></li>
 </ul>
