@@ -371,6 +371,10 @@ class AttentionProjection(base_layer.BaseLayer):
         '"...D,DNH->...NH" for query,key,value projection. Otherwise we use '
         '"...NH,DNH->...D" for output projection.')
     p.Define('use_bias', True, 'If to add bias in projection.')
+    p.Define(
+        'use_nhd_shape', False,
+        'If to use NHD shape for the variable, useful for dot attention output '
+        'layer.')
     return p
 
   def create_layer_variables(self) -> None:
@@ -379,9 +383,11 @@ class AttentionProjection(base_layer.BaseLayer):
     wp = p.weight_split_dims_mapping
     if p.device_mesh is not None:
       assert wp.wt is not None, self.path
-    # TODO(wangtao): add an option to create variable shape as NHD.
+    pc_shape = [p.input_dim, p.num_heads, p.dim_per_head]
+    if p.is_output_projection and p.use_nhd_shape:
+      pc_shape = [p.num_heads, p.dim_per_head, p.input_dim]
     pc = weight_params(
-        shape=[p.input_dim, p.num_heads, p.dim_per_head],
+        shape=pc_shape,
         init=p.params_init,
         dtype=p.dtype,
         device_mesh=p.device_mesh,
@@ -442,7 +448,10 @@ class AttentionProjection(base_layer.BaseLayer):
     if p.is_output_projection:
       assert shape[-2:] == (p.num_heads, p.dim_per_head)
       batch_eqn = eqn_sym[:(rank - 2)]
-      eqn = f'{batch_eqn}NH,DNH->{batch_eqn}D'
+      if p.use_nhd_shape:
+        eqn = f'{batch_eqn}NH,NHD->{batch_eqn}D'
+      else:
+        eqn = f'{batch_eqn}NH,DNH->{batch_eqn}D'
     else:
       assert shape[-1] == p.input_dim, (
           f'Expecting shape[-1] == p.input_dim, {shape[-1]} != {p.input_dim}')
@@ -620,6 +629,8 @@ class DotProductAttention(base_layer.BaseLayer):
              'Params for combined qkv projection layer.')
 
     p.Define('use_bias', True, 'Whether to use bias for projection layers.')
+    p.Define('output_proj_use_nhd_shape', False,
+             'Whether to use NHD variable shape in output projection layer.')
     p.Define(
         'internal_enable_per_dim_scale', True,
         'Internal. Setting to False disables rescaling of attention logits '
@@ -754,8 +765,17 @@ class DotProductAttention(base_layer.BaseLayer):
         num_heads=p.num_heads,
         dim_per_head=dim_per_head,
         is_output_projection=True,
-        use_bias=p.use_bias)
-    post_proj_p.weight_split_dims_mapping.wt = wp.proj
+        use_bias=p.use_bias,
+        use_nhd_shape=p.output_proj_use_nhd_shape)
+    if p.output_proj_use_nhd_shape and isinstance(wp.proj, list) and len(
+        wp.proj) == 3:
+      permutation = [1, 2, 0]
+      post_proj_p.weight_split_dims_mapping.wt = [
+          wp.proj[i] for i in permutation
+      ]
+    else:
+      post_proj_p.weight_split_dims_mapping.wt = wp.proj
+
     self.create_child('post', post_proj_p)
 
   def _shard_lbnh(self, x: JTensor) -> JTensor:

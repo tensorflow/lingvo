@@ -1188,6 +1188,7 @@ class StackedTransformer(base_layer.BaseLayer):
     tr_atten_tpl.relative_bias_tpl = attentions.RelativeBias.Params().Set(
         relative_attention_num_buckets=relative_attention_num_buckets,
         relative_attention_max_distance=relative_attention_max_distance)
+    tr_atten_tpl.output_proj_use_nhd_shape = True
     # Non-MoE ffn setup
     ff_tpl = p.transformer_layer_params_tpl.tr_fflayer_tpl
     ff_tpl.input_dims = model_dim

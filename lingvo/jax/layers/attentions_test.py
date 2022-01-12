@@ -154,13 +154,16 @@ class AttentionsTest(test_util.JaxTestCase):
                    test_utils.to_np(tf_output2))), 0.1)
     self.assertAllClose(test_utils.to_np(jax_out), test_utils.to_np(tf_output2))
 
-  def test_mhd_projection_02(self):
+  @parameterized.parameters([False, True])
+  def test_mhd_projection_02(self, use_nhd_shape):
     test_layer_p = attentions.AttentionProjection.Params().Set(
         name='mh',
         input_dim=16,
         num_heads=2,
         dim_per_head=5,
-        is_output_projection=True)
+        is_output_projection=True,
+        use_nhd_shape=use_nhd_shape,
+    )
     layer = test_layer_p.Instantiate()
 
     prng_key = jax.random.PRNGKey(seed=123)
@@ -185,6 +188,9 @@ class AttentionsTest(test_util.JaxTestCase):
 
     jax_out = comp(initial_vars, compute_key, global_step, inputs)
     logging.info('jax_output: %s', jax_out)
+
+    if use_nhd_shape:
+      initial_vars.w = np.einsum('ABC->CAB', initial_vars.w)
 
     # Now run TF based computation.
     tf_layer_p = batch_major_attention.MultiHeadedProjectionLayer.Params().Set(
