@@ -833,7 +833,8 @@
 <span class="sd">      Summed eval metrics.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tpu_eval&#39;</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
+      <span class="c1"># Applies EMA if applicable to support running only eval/decode programs.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">(</span><span class="n">apply_ema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1075,7 +1076,8 @@
 
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
-      <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">()</span>
+      <span class="c1"># Applies EMA if applicable to support running only eval/decode programs.</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span><span class="n">apply_ema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
@@ -1385,7 +1387,8 @@
 
     <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
-      <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">()</span>
+      <span class="c1"># Applies EMA if applicable to support running only eval/decode programs.</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span><span class="n">apply_ema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)</span>
       <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedEnqueue</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)]</span>
 
@@ -1579,7 +1582,9 @@
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
       <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-        <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">()</span>
+        <span class="c1"># Applies EMA if applicable to support running only eval/decode</span>
+        <span class="c1"># programs.</span>
+        <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span><span class="n">apply_ema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
