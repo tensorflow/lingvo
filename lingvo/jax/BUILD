@@ -206,6 +206,23 @@ pytype_strict_library(
     ],
 )
 
+py_strict_test(
+    name = "model_test",
+    srcs = ["model_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_layer",
+        ":model",
+        ":optimizers",
+        ":py_utils",
+        ":schedules",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit jax dependency.
+        # Implicit numpy dependency.
+    ],
+)
+
 pytype_strict_library(
     name = "model_imports_no_params",
     srcs = ["model_imports.py"],

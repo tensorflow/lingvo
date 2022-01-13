@@ -1,0 +1,258 @@
+# Lint as: python3
+# Copyright 2021 The TensorFlow Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+"""Unit tests for model."""
+
+from typing import Any, Tuple
+
+from absl.testing import absltest
+import jax
+from jax import numpy as jnp
+from jax import test_util
+from lingvo.jax import base_layer
+from lingvo.jax import model
+from lingvo.jax import optimizers
+from lingvo.jax import py_utils
+from lingvo.jax import schedules
+import numpy as np
+
+NestedMap = py_utils.NestedMap
+InstantiableParams = py_utils.InstantiableParams
+
+
+class MockLM(base_layer.BaseLayer):
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define(
+        'logits', None,
+        'results returned by extend_step(), shape [max step, batch size, '
+        'vocab size].')
+    return p
+
+  def __init__(self, p: InstantiableParams) -> None:
+    super().__init__(p)
+    self.logits = jnp.array(p.logits, dtype=jnp.float32)
+
+  def init_states(self, theta: NestedMap, *args: Any,
+                  **kwargs: Any) -> NestedMap:
+    return NestedMap(step=0)
+
+  def extend_step(
+      self,
+      theta: Any,
+      states: NestedMap,
+      inputs: Any,
+  ) -> Tuple[Any, NestedMap]:
+    del theta, inputs
+    ret = NestedMap()
+    ret.logits = self.logits.at[states.step].get()
+    states.step = states.step + 1
+    return states, ret
+
+
+class LanguageModelTest(test_util.JaxTestCase):
+
+  def _run_decode(self, decoder_p, logits, input_batch):
+    p = model.LanguageModel.Params()
+    p.name = 'mock_lm'
+    p.decoder = decoder_p.Copy()
+    p.lm = MockLM.Params()
+    p.lm.logits = logits
+    p.train.learner.loss_name = 'loss'
+    p.train.learner.optimizer = optimizers.Sgd.Params()
+    p.train.learner.optimizer.lr_schedule = schedules.Constant.Params()
+    lang_model = p.Instantiate()
+    theta = NestedMap(lm=NestedMap())
+
+    prng_key = jax.random.PRNGKey(seed=1234)
+    with base_layer.JaxContext.new_context(
+        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
+      results = lang_model.decode(theta, input_batch)
+    return results
+
+  def test_base_case(self):
+    p = model.LanguageModel.Params().decoder
+    p.seqlen = 3
+    p.min_prefix_len = 0
+    logits = [
+        [
+            [0, 1, 0, 0],
+        ],
+        [
+            [0, 0, 0, 1],
+        ],
+    ]
+    # We use full paddings to force prefix lengths to be 0 (since it is capped
+    # at the lengths of input ids.
+    input_batch = NestedMap(
+        ids=jnp.array([[11, 12, 13, 14, 15]], dtype=jnp.int32),
+        paddings=jnp.ones(shape=(1, 5), dtype=jnp.float32),
+    )
+    results = self._run_decode(p, logits, input_batch)
+    self.assertArraysEqual(results.prefix_lengths, np.array([0],
+                                                            dtype=np.int32))
+    # Decoding starts at 1 from input.ids, then each step uses argmax from the
+    # provided logits, which are 1 and 3.
+    self.assertArraysEqual(results.output_ids,
+                           np.array([[11, 1, 3]], dtype=np.int32))
+    self.assertArraysEqual(results.decode_lengths, np.array([3],
+                                                            dtype=np.int32))
+
+  def test_prefix(self):
+    p = model.LanguageModel.Params().decoder
+    p.seqlen = 5
+    p.min_prefix_len = 2
+    logits = [
+        [
+            [0, 1, 0, 0, 0, 0],  # argmax=1
+        ],
+        [
+            [0, 0, 0, 1, 0, 0],  # argmax=3
+        ],
+        [
+            [0, 0, 0, 0, 1, 0],  # argmax=4
+        ],
+        [
+            [0, 0, 0, 0, 0, 1],  # argmax=5
+        ],
+    ]
+    input_batch = NestedMap(
+        ids=jnp.array([[11, 12, 13, 14, 15]], dtype=jnp.int32),
+        paddings=jnp.array([[0., 0., 1., 1., 1.]], dtype=jnp.float32),
+    )
+    results = self._run_decode(p, logits, input_batch)
+    self.assertArraysEqual(results.prefix_lengths, np.array([2],
+                                                            dtype=np.int32))
+    # We copy prefix of length 2 from input.ids, so the first argmax
+    # from logits is unused. Remaining 3 ids are from argmax.
+    self.assertArraysEqual(results.output_ids,
+                           np.array([[11, 12, 3, 4, 5]], dtype=np.int32))
+    self.assertArraysEqual(results.decode_lengths, np.array([5],
+                                                            dtype=np.int32))
+
+  def test_eos_terminate(self):
+    p = model.LanguageModel.Params().decoder
+    p.seqlen = 6
+    p.min_prefix_len = 0
+    p.eos_id = 2
+    logits = [
+        [
+            [0, 0, 0, 0, 1],  # argmax=4
+        ],
+        [
+            [0, 0, 1, 0, 0],  # argmax=2
+        ],
+        [
+            [0, 0, 0, 1, 0],  # argmax=3
+        ],
+    ]
+    input_batch = NestedMap(
+        ids=jnp.array([[11, 13]], dtype=jnp.int32),
+        paddings=jnp.ones(shape=(1, 2), dtype=jnp.float32),
+    )
+    results = self._run_decode(p, logits, input_batch)
+    self.assertArraysEqual(results.prefix_lengths, np.array([0],
+                                                            dtype=np.int32))
+    # Decoding terminates after step 2 when eos_id=2 is encountered.
+    self.assertArraysEqual(results.output_ids,
+                           np.array([[11, 4, 2, 0, 0, 0]], dtype=np.int32))
+    self.assertArraysEqual(results.decode_lengths, np.array([3],
+                                                            dtype=np.int32))
+
+  def test_eos_independent(self):
+    p = model.LanguageModel.Params().decoder
+    p.seqlen = 5
+    p.min_prefix_len = 0
+    p.eos_id = 2
+    logits = [
+        [
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 1, 0],  # argmax=[4, 3]
+        ],
+        [
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1],  # argmax=[2, 4]
+        ],
+        [
+            [0, 0, 0, 1, 0],
+            [0, 0, 1, 0, 0],  # argmax=[3, 2]
+        ],
+    ]
+    input_batch = NestedMap(
+        ids=jnp.array([[11, 13], [12, 14]], dtype=jnp.int32),
+        paddings=jnp.ones(shape=(2, 2), dtype=jnp.float32),
+    )
+    results = self._run_decode(p, logits, input_batch)
+    self.assertArraysEqual(results.prefix_lengths,
+                           np.array([0, 0], dtype=np.int32))
+    # EOS termination are row independent: row 0 terminates at step 2 while
+    # row 1 terminates at step 3.
+    self.assertArraysEqual(
+        results.output_ids,
+        np.array([[11, 4, 2, 0, 0], [12, 3, 4, 2, 0]], dtype=np.int32))
+    self.assertArraysEqual(results.decode_lengths,
+                           np.array([3, 4], dtype=np.int32))
+
+  def test_prefix_and_eos(self):
+    p = model.LanguageModel.Params().decoder
+    p.seqlen = 5
+    p.min_prefix_len = 0
+    p.eos_id = 2
+    logits = [
+        [
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 1, 0],
+            [0, 0, 0, 1, 0],  # argmax=[4, 3, 3]
+        ],
+        [
+            [0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 1],
+            [0, 0, 1, 1, 0],  # argmax=[3, 4, 2]
+        ],
+        [
+            [0, 0, 0, 1, 0],
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 1, 0],  # argmax=[3, 2, 3]
+        ],
+        [
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 1, 0],  # argmax=[4, 4, 3]
+        ],
+    ]
+    input_batch = NestedMap(
+        ids=jnp.array([[11, 13, 15], [12, 14, 16], [20, 30, 40]],
+                      dtype=jnp.int32),
+        paddings=jnp.zeros(shape=(3, 3), dtype=jnp.float32),
+    )
+    results = self._run_decode(p, logits, input_batch)
+    # This is fixed by the prng seed provided.
+    self.assertArraysEqual(results.prefix_lengths,
+                           np.array([2, 1, 0], dtype=np.int32))
+    # Row 0 copies 2 ids from the input as prefix, and continues without
+    # ever hitting EOS. Row 1 and 2 only copies the first id from the input,
+    # and continues until EOS is found.
+    self.assertArraysEqual(
+        results.output_ids,
+        np.array([[11, 13, 3, 3, 4], [12, 3, 4, 2, 0], [20, 3, 2, 0, 0]],
+                 dtype=np.int32))
+    self.assertArraysEqual(results.decode_lengths,
+                           np.array([5, 4, 3], dtype=np.int32))
+
+
+if __name__ == '__main__':
+  absltest.main()

@@ -328,6 +328,9 @@ class LanguageModel(BaseTask):
     greedy_search_p.Define(
         'min_prefix_len', 5,
         'Minimum number of tokens picked to be used as decoding prefix.')
+    greedy_search_p.Define(
+        'eos_id', 2,
+        'The id of EOS token indicating the termination of greedy search.')
     p.Define('decoder', greedy_search_p, 'Decoder param.')
     return p
 
@@ -413,6 +416,18 @@ class LanguageModel(BaseTask):
     val.state = decoder_state
     val.step = 0
     val.output_ids = output_ids
+    # Shape [batch_size], whether each row has terminated and should stop.
+    val.done = jnp.zeros(shape=batch_size, dtype=jnp.bool_)
+    val.decode_lengths = jnp.ones_like(prefix_lengths) * max_length
+
+    def cond_func(val):
+      """Whether the while loop should continue."""
+      # We continue the greedy search iff both:
+      #   (1) We have yet to exceed the max steps set by p.decoder.seqlen, AND;
+      #   (2) At least one row in the batch has not terminated.
+      length_ok = val.step < max_length - 1
+      all_rows_done = jnp.all(val.done)
+      return jnp.logical_and(length_ok, jnp.logical_not(all_rows_done))
 
     def loop_body(val):
       """From ids at `step`, update output ids at `step + 1`."""
@@ -425,17 +440,19 @@ class LanguageModel(BaseTask):
       new_ids = jnp.where(step < prefix_lengths - 1, input_batch.ids[:,
                                                                      step + 1],
                           jnp.argmax(xent_output.logits, axis=1))
+      prev_done = val.done
+      new_ids = jnp.where(prev_done, jnp.zeros_like(new_ids), new_ids)
+      val.done = jnp.logical_or(prev_done, jnp.equal(new_ids, p.decoder.eos_id))
+      done_at_this_step = jnp.logical_and(jnp.logical_not(prev_done), val.done)
+      val.decode_lengths = jnp.where(
+          done_at_this_step,
+          jnp.ones_like(val.decode_lengths) * (step + 2), val.decode_lengths)
       val.output_ids = val.output_ids.at[:, step + 1].set(new_ids)
       val.step = val.step + 1
       return val
 
-    # TODO(b/198356509): currently we rely on the underlying layers' correctness
-    # test, e.g. extend_step() is equivalent with fprop(). Improve testing of
-    # the correctness of a model's decode() implementation.
-    result = jax.lax.while_loop(lambda val: val.step < max_length - 1,
-                                loop_body, val)
+    result = jax.lax.while_loop(cond_func, loop_body, val)
     result.prefix_lengths = prefix_lengths
-    result.decode_lengths = jnp.ones_like(prefix_lengths) * max_length
     result.original_lengths = jnp.sum(
         1.0 - input_batch.paddings, axis=1).astype(prefix_lengths.dtype)
 
@@ -450,8 +467,7 @@ class LanguageModel(BaseTask):
                            jnp.zeros_like(prefix_ids))
     result.prefix_ids = prefix_ids
 
-    del result.state
-    del result.step
+    del result.state, result.step, result.done
     result.update(input_batch)
     return result
 
