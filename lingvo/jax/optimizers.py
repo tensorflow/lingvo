@@ -849,9 +849,11 @@ class ShardedDistributedShampoo(DistributedShampoo):
         num_statistics += len(shapes)
 
       diagonal_statistics_var_params = []
+      diagonal_statistics_var_params_shape = []
       diagonal_statistics_scale_var_params = []
       if p.graft_type != GraftingType.SGD:
         diagonal_statistics_var_params = param.Copy()
+        diagonal_statistics_var_params_shape = diagonal_statistics_var_params.shape
         diagonal_statistics_var_params.init = None
         if self.quantized_dtype_for_statistics_buffers() != jnp.float32:
           scale_shape = diagonal_statistics_var_params.shape[1:]
@@ -894,14 +896,16 @@ class ShardedDistributedShampoo(DistributedShampoo):
 
       local_stats_flat.append(
           LocalShardedParameterStats(
-              QuantizedValue(diagonal_statistics_var_params,
+              QuantizedValue(diagonal_statistics_var_params, [],
                              diagonal_statistics_scale_var_params,
-                             self.quantized_dtype_for_statistics_buffers()),
-              QuantizedValue(m1_var_params, m1_scale_var_params,
-                             self.quantized_dtype_for_momentum_buffers()),
-              QuantizedValue(m2_var_params, m2_scale_var_params,
-                             self.quantized_dtype_for_momentum_buffers()),
-              index_start, sizes))
+                             self.quantized_dtype_for_statistics_buffers(),
+                             False, diagonal_statistics_var_params_shape),
+              QuantizedValue(m1_var_params, [], m1_scale_var_params,
+                             self.quantized_dtype_for_momentum_buffers(), False,
+                             m1_var_params.shape),
+              QuantizedValue(m2_var_params, [], m2_scale_var_params,
+                             self.quantized_dtype_for_momentum_buffers(), False,
+                             m2_var_params.shape), index_start, sizes))
 
     local_stats = jax.tree_unflatten(treedef, local_stats_flat)
     # Pad the statistics and preconditioner matrices to be a multiple of
