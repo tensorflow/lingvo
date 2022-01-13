@@ -4092,20 +4092,27 @@ def LengthsFromPaddings(paddings, dtype=None):
     sequence in the batch.
   """
   paddings = HasRank(paddings, 2)
-  paddings = tf.cast(paddings, tf.int32)
-  # Find the last unpadded value.
-  # Cannot just use tf.reduce_sum because there might be leading paddings.
-  # Everything after the last unpadded value has 1.0 - paddings == 0.0, so in
-  # the cumsum below they will have the same value.
-  cumsum = tf.cumsum(1 - paddings, axis=1)
+  mask = 1 - tf.cast(paddings, tf.int32)
+  # We cannot just use `tf.reduce_sum(mask, axis=1)` to compute the number of
+  # elements prior to the trailing padding, because there might be leading
+  # padding. Thus, to identify the amount of trailing padding, we notice that
+  # the mask values for all the trailing padding will be zero, and thus in the
+  # cumsum below they will all be equal to the last element of the cumsum. Note
+  # that the final unpadded value will also be equal to the final cumsum value.
+  cumsum = tf.cumsum(mask, axis=1)
   same_as_last_element = tf.equal(cumsum, cumsum[:, -1:])
-  # Counting the number of elements with the same value gives us num_padded + 1
-  # and so counting the number that differs gives us num_padded - 1.
-  length = tf.reduce_sum(
+  # Counting the number of elements with the same value as the last cumsum value
+  # gives us num_trailing_paddings + 1, and so counting the number of elements
+  # that *differ* from the last cumsum value gives us the unpadded_length - 1.
+  unpadded_length = tf.reduce_sum(
       1 - tf.cast(same_as_last_element, tf.int32), axis=1) + 1
-  # Special case for all 0 paddings.
-  all_zero_paddings = tf.equal(tf.reduce_sum(1 - paddings, axis=1), 0)
-  result = tf.where(all_zero_paddings, tf.zeros_like(length), length)
+  # Special case for when the mask is all zeros.
+  # In this case, all the entries in the cumsum will be equal to the last
+  # element, so the number that differ would be zero, and thus the
+  # unpadded_length value would be 1 (which is incorrect). We thus set it to 0.
+  all_zero_mask = tf.equal(tf.reduce_sum(mask, axis=1), 0)
+  result = tf.where(all_zero_mask, tf.zeros_like(unpadded_length),
+                    unpadded_length)
   if dtype and result.dtype != dtype:
     result = tf.cast(result, dtype)
   return result
