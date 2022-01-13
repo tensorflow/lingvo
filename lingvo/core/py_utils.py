@@ -1552,7 +1552,7 @@ _VARIABLE_STORE_STACK = ThreadLocalStack()
 
 
 @contextlib.contextmanager
-def VariableStore():
+def VariableStore(default_store=None):
   """Keeps track of {variable_name: (variable, var_params)}.
 
   When CreateVariable would result in a variable name that exists in the store,
@@ -1567,10 +1567,16 @@ def VariableStore():
   variable store object. That is, the scope of the variable store is the
   outermost context.
 
+  Args:
+    default_store: variable store dict. If set, and there is no store in the
+      stack, use this store instead of creating a new dict.
   Yields:
     A dictionary representing the variable store.
   """
-  store = _VARIABLE_STORE_STACK.stack[-1] if _VARIABLE_STORE_STACK.stack else {}
+  if _VARIABLE_STORE_STACK.stack:
+    store = _VARIABLE_STORE_STACK.stack[-1]
+  else:
+    store = default_store or {}
   _VARIABLE_STORE_STACK.stack.append(store)
   try:
     yield store
