@@ -4157,20 +4157,27 @@
 <span class="sd">    sequence in the batch.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">paddings</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-  <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-  <span class="c1"># Find the last unpadded value.</span>
-  <span class="c1"># Cannot just use tf.reduce_sum because there might be leading paddings.</span>
-  <span class="c1"># Everything after the last unpadded value has 1.0 - paddings == 0.0, so in</span>
-  <span class="c1"># the cumsum below they will have the same value.</span>
-  <span class="n">cumsum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">mask</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="c1"># We cannot just use `tf.reduce_sum(mask, axis=1)` to compute the number of</span>
+  <span class="c1"># elements prior to the trailing padding, because there might be leading</span>
+  <span class="c1"># padding. Thus, to identify the amount of trailing padding, we notice that</span>
+  <span class="c1"># the mask values for all the trailing padding will be zero, and thus in the</span>
+  <span class="c1"># cumsum below they will all be equal to the last element of the cumsum. Note</span>
+  <span class="c1"># that the final unpadded value will also be equal to the final cumsum value.</span>
+  <span class="n">cumsum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
   <span class="n">same_as_last_element</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">cumsum</span><span class="p">,</span> <span class="n">cumsum</span><span class="p">[:,</span> <span class="o">-</span><span class="mi">1</span><span class="p">:])</span>
-  <span class="c1"># Counting the number of elements with the same value gives us num_padded + 1</span>
-  <span class="c1"># and so counting the number that differs gives us num_padded - 1.</span>
-  <span class="n">length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+  <span class="c1"># Counting the number of elements with the same value as the last cumsum value</span>
+  <span class="c1"># gives us num_trailing_paddings + 1, and so counting the number of elements</span>
+  <span class="c1"># that *differ* from the last cumsum value gives us the unpadded_length - 1.</span>
+  <span class="n">unpadded_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
       <span class="mi">1</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">same_as_last_element</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
-  <span class="c1"># Special case for all 0 paddings.</span>
-  <span class="n">all_zero_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
-  <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">all_zero_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">length</span><span class="p">),</span> <span class="n">length</span><span class="p">)</span>
+  <span class="c1"># Special case for when the mask is all zeros.</span>
+  <span class="c1"># In this case, all the entries in the cumsum will be equal to the last</span>
+  <span class="c1"># element, so the number that differ would be zero, and thus the</span>
+  <span class="c1"># unpadded_length value would be 1 (which is incorrect). We thus set it to 0.</span>
+  <span class="n">all_zero_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+  <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">all_zero_mask</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">unpadded_length</span><span class="p">),</span>
+                    <span class="n">unpadded_length</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">dtype</span> <span class="ow">and</span> <span class="n">result</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">dtype</span><span class="p">:</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="n">dtype</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">result</span></div>
