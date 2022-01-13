@@ -1617,7 +1617,7 @@
 
 
 <div class="viewcode-block" id="VariableStore"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.VariableStore">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">VariableStore</span><span class="p">():</span>
+<span class="k">def</span> <span class="nf">VariableStore</span><span class="p">(</span><span class="n">default_store</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Keeps track of {variable_name: (variable, var_params)}.</span>
 
 <span class="sd">  When CreateVariable would result in a variable name that exists in the store,</span>
@@ -1632,10 +1632,16 @@
 <span class="sd">  variable store object. That is, the scope of the variable store is the</span>
 <span class="sd">  outermost context.</span>
 
+<span class="sd">  Args:</span>
+<span class="sd">    default_store: variable store dict. If set, and there is no store in the</span>
+<span class="sd">      stack, use this store instead of creating a new dict.</span>
 <span class="sd">  Yields:</span>
 <span class="sd">    A dictionary representing the variable store.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">store</span> <span class="o">=</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span> <span class="p">{}</span>
+  <span class="k">if</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">store</span> <span class="o">=</span> <span class="n">default_store</span> <span class="ow">or</span> <span class="p">{}</span>
   <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
     <span class="k">yield</span> <span class="n">store</span>

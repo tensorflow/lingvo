@@ -1012,7 +1012,7 @@ GetVarLeadingDimsAsCombinedLayers().</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.VariableStore">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">VariableStore</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#VariableStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.VariableStore" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">VariableStore</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">default_store</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#VariableStore"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.VariableStore" title="Permalink to this definition"></a></dt>
 <dd><p>Keeps track of {variable_name: (variable, var_params)}.</p>
 <p>When CreateVariable would result in a variable name that exists in the store,
 the existing variable is returned, or an error is raised, depending on whether
@@ -1024,8 +1024,12 @@ only applies to variables created via CreateVariable.</p>
 variable store object. That is, the scope of the variable store is the
 outermost context.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Yields</dt>
-<dd class="field-odd"><p>A dictionary representing the variable store.</p>
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>default_store</strong> – variable store dict. If set, and there is no store in the
+stack, use this store instead of creating a new dict.</p>
+</dd>
+<dt class="field-even">Yields</dt>
+<dd class="field-even"><p>A dictionary representing the variable store.</p>
 </dd>
 </dl>
 </dd></dl>
