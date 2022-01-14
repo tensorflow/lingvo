@@ -526,6 +526,8 @@
         <span class="s1">&#39;bool. When enabled, for input of length 1, decoding completes in 1 &#39;</span>
         <span class="s1">&#39;step. This reserves a special sentinel input with fast beam search. &#39;</span>
         <span class="s1">&#39;It can be used to pad inputs to a fixed batch size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;zero_token_embs_first_time_step&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If True, the first time step uses zeros as the post-emb lookup.&#39;</span><span class="p">)</span>
 
     <span class="n">disable_vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
     <span class="n">default_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="mf">0.04</span><span class="p">)</span>
@@ -721,6 +723,29 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">x</span></div>
 
+<div class="viewcode-block" id="MTDecoderV1._ZeroOutFirstTimeStep"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1._ZeroOutFirstTimeStep">[docs]</a>  <span class="k">def</span> <span class="nf">_ZeroOutFirstTimeStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">token_embs</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">time</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Zeroes out the first time step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      token_embs:  [time, batch, model_dim] embeding lookups.</span>
+<span class="sd">      batch: Batch size scalar.</span>
+<span class="sd">      time: Target sequence length scalar.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      modified token_embs with the first time step zeroed out.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># [[[0]]]</span>
+    <span class="n">zero_out_index</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># [[[0]] ... [[time-1]]]</span>
+    <span class="n">time_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">time</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">condition</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">zero_out_index</span><span class="p">,</span> <span class="n">time_steps</span><span class="p">)</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">condition</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">]))</span>
+    <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">token_embs</span> <span class="o">*</span> <span class="n">mask</span></div>
+
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/ComputePredictions&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decodes `targets` given encoded source.</span>
@@ -772,6 +797,13 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">emb_device</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
           <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">target_ids</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">zero_token_embs_first_time_step</span><span class="p">:</span>
+          <span class="c1"># For models that do not use an explicit start-of-sequence token</span>
+          <span class="c1"># with associated embedding, but instead use zeros.</span>
+          <span class="n">target_time</span><span class="p">,</span> <span class="n">target_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_ids</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+          <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ZeroOutFirstTimeStep</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">target_batch</span><span class="p">,</span> <span class="n">target_time</span><span class="p">)</span>
+
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
         <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;input_emb&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyDropout</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
@@ -1080,6 +1112,13 @@
       <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">step_ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">zero_token_embs_first_time_step</span><span class="p">:</span>
+      <span class="c1"># For models that do not use an explicit start-of-sequence token</span>
+      <span class="c1"># with associated embedding, but instead use zeros.</span>
+      <span class="n">zeros</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">embs</span><span class="p">)</span>
+      <span class="n">embs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">states</span><span class="o">.</span><span class="n">time_step</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">zeros</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">embs</span><span class="p">)</span>
+
     <span class="n">embs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">embs</span><span class="p">)</span>
     <span class="n">atten_context</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">rnn_states</span><span class="p">,</span> <span class="n">step_out</span><span class="p">,</span> <span class="n">atten_states</span> <span class="o">=</span> <span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">embs</span><span class="p">,</span> <span class="n">step_paddings</span><span class="p">,</span>
