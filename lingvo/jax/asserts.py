@@ -16,7 +16,10 @@
 
 These asserts are convenient helpers to quickly validate parameters. If an
 assert fails, it will by default raise a ValueError exception (this may be
-overridden when the assert is defined).
+overridden when the assert is defined). (The Google style guide prohibits using
+`assert` when validating arguments to a function; see
+https://google.github.io/styleguide/pyguide.html#244-decision for additional
+context.)
 
 The following asserts are currently defined:
   - asserts.none(a): Check that the value is equal to None.
