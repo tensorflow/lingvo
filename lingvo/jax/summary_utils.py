@@ -39,7 +39,6 @@ TrainState = train_states.TrainState
 SummaryType = base_layer.SummaryType
 SummaryWriter = tf.summary.SummaryWriter
 
-
 # Maximum number of images written to a single summary entry.
 MAX_IMAGES_PER_SUMMARY = 64
 
@@ -118,10 +117,10 @@ def _yield_subtrees(
       yield (name, root)
 
 
-def l2_norms(tree: NestedJTensor,
-             prefix: str = '',
-             max_level: int = 4,
-             sep: str = '/') -> Dict[str, jnp.float32]:
+def l2_mean(tree: NestedJTensor,
+            prefix: str = '',
+            max_level: int = 4,
+            sep: str = '/') -> Dict[str, jnp.float32]:
   """L2 Norms over pytree."""
   squares = jax.tree_map(lambda x: jnp.array([x.size, jnp.sum(x**2)]), tree)
   names, squares = zip(*_yield_subtrees(squares, max_level=max_level))
@@ -345,7 +344,7 @@ def write_summary_every_n_steps(train_state: TrainState,
       # This is an SPMD model, mdl_vars can be sharded, not replicated.
       mdl_vars = train_state.mdl_vars
       mdl_vars = py_utils.maybe_gda_to_sda(mdl_vars)
-    norms = l2_norms(mdl_vars, prefix='Vars', max_level=20)
+    norms = l2_mean(mdl_vars, prefix='Vars', max_level=20)
     with train_summary_writer.as_default():
       for name in norms:
         write_summary_tensor(step_i, name, norms[name], SummaryType.SCALAR)
