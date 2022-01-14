@@ -918,6 +918,17 @@ class Transformer(base_layer.BaseLayer):
 
   def init_states(self, theta: NestedMap, target_batch_size: int,
                   target_max_length: int) -> NestedMap:
+    """Initialize the cache for the Transformer layer.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      target_batch_size: Batch size for the target.
+      target_max_length: The length to decode the target.
+
+    Returns:
+      Initialized cache for decoding.
+    """
     return self.self_attention.init_states(theta.self_attention,
                                            target_batch_size, target_max_length)
 
@@ -1320,6 +1331,17 @@ class StackedTransformer(base_layer.BaseLayer):
 
   def init_states(self, theta: NestedMap, *args: Any,
                   **kwargs: Any) -> NestedMap:
+    """Initialize the cache for the StackedTransformer layer.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      *args: Other arguments.
+      **kwargs: Other keyword arguments.
+
+    Returns:
+      Initialized cache for decoding.
+    """
     return NestedMap(x_layers=[
         layer.init_states(layer_theta, *args, **kwargs)
         for layer, layer_theta in zip(self.x_layers, theta.x_layers)
@@ -1640,6 +1662,17 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
 
   def init_states(self, theta: NestedMap, *args: Any,
                   **kwargs: Any) -> NestedMap:
+    """Initialize the cache for the StackedTransformerRepeated layer.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      *args: Other arguments.
+      **kwargs: Other keyword arguments.
+
+    Returns:
+      Initialized cache for decoding.
+    """
 
     def init_fn(block, theta, *args, **kwargs):
       assert isinstance(block, StackedTransformer)

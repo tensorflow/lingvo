@@ -1157,13 +1157,13 @@ class TransformersTest(test_util.JaxTestCase):
     vocab_size = 4
     num_layers = 2
     num_heads = 2
-    dim_per_head = 8
-    ngram_emb_dim = 4
+    dim_per_head = 4
+    ngram_emb_dim = 2
     encoder_ngrammer_params = None
     decoder_ngrammer_params = None
     if use_encoder_vq_ngrams:
       encoder_ngrammer_params = ngrammer.VQNgrammer.Params().Set(
-          ngram_vocab_size=64,
+          ngram_vocab_size=8,
           ngram_emb_dim=ngram_emb_dim,
           num_heads=num_heads,
           concat_ngrams=True,
@@ -1171,7 +1171,7 @@ class TransformersTest(test_util.JaxTestCase):
           dim_per_head=dim_per_head)
     if use_encoder_ngrams:
       encoder_ngrammer_params = ngrammer.Ngrammer.Params().Set(
-          ngram_vocab_size=64,
+          ngram_vocab_size=16,
           unigram_vocab_size=vocab_size,
           ngram_emb_dim=ngram_emb_dim,
           num_heads=num_heads,
@@ -1179,7 +1179,7 @@ class TransformersTest(test_util.JaxTestCase):
           dim_per_head=dim_per_head)
     if use_decoder_vq_ngrams:
       decoder_ngrammer_params = ngrammer.VQNgrammer.Params().Set(
-          ngram_vocab_size=64,
+          ngram_vocab_size=8,
           ngram_emb_dim=ngram_emb_dim,
           num_heads=num_heads,
           concat_ngrams=True,
@@ -1187,7 +1187,7 @@ class TransformersTest(test_util.JaxTestCase):
           dim_per_head=dim_per_head)
     if use_decoder_ngrams:
       decoder_ngrammer_params = ngrammer.Ngrammer.Params().Set(
-          ngram_vocab_size=64,
+          ngram_vocab_size=16,
           unigram_vocab_size=vocab_size,
           ngram_emb_dim=ngram_emb_dim,
           num_heads=num_heads,
@@ -1205,7 +1205,7 @@ class TransformersTest(test_util.JaxTestCase):
           num_layers=num_layers,
           num_heads=num_heads,
           model_dims=num_heads * dim_per_head,
-          hidden_dims=4 * num_heads * dim_per_head,
+          hidden_dims=num_heads * dim_per_head,
           mask_self_attention=False,
           fold_padding_with_segment_mask=True)
       p.encoder_stacked_transformer_tpl = (
@@ -1215,7 +1215,7 @@ class TransformersTest(test_util.JaxTestCase):
       p.encoder_stacked_transformer_tpl = (
           transformers.StackedTransformer.Params().Set(
               model_dims=num_heads * dim_per_head,
-              hidden_dims=4 * num_heads * dim_per_head,
+              hidden_dims=num_heads * dim_per_head,
               num_heads=num_heads,
               num_layers=num_layers,
               mask_self_attention=False,
@@ -1227,7 +1227,7 @@ class TransformersTest(test_util.JaxTestCase):
           num_layers=num_layers,
           num_heads=num_heads,
           model_dims=num_heads * dim_per_head,
-          hidden_dims=4 * num_heads * dim_per_head,
+          hidden_dims=num_heads * dim_per_head,
           mask_self_attention=True,
           fold_padding_with_segment_mask=True)
       p.decoder_stacked_transformer_tpl = (
@@ -1237,7 +1237,7 @@ class TransformersTest(test_util.JaxTestCase):
       p.decoder_stacked_transformer_tpl = (
           transformers.StackedTransformer.Params().Set(
               model_dims=num_heads * dim_per_head,
-              hidden_dims=4 * num_heads * dim_per_head,
+              hidden_dims=num_heads * dim_per_head,
               num_heads=num_heads,
               num_layers=num_layers,
               mask_self_attention=True,
@@ -1278,7 +1278,7 @@ class TransformersTest(test_util.JaxTestCase):
       params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
     p.position_emb_tpl = None
 
-    seq_len = 8
+    seq_len = 4
     batch_size = 1
     transformer_enc_dec = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)

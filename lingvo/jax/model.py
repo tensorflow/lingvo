@@ -14,8 +14,7 @@
 # limitations under the License.
 # ==============================================================================
 """Base class for all Jax models."""
-
-from typing import Any, Dict, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import jax
 from jax import numpy as jnp
@@ -91,6 +90,111 @@ def compute_xent_loss_helper(
   if return_predictions:
     per_example_output = predictions
   return metrics, per_example_output
+
+
+def greedy_decode(extend_step_fn: Callable[[NestedMap, JTensor],
+                                           Tuple[NestedMap, JTensor]],
+                  decoder_state: NestedMap,
+                  target_ids: JTensor,
+                  target_paddings: JTensor,
+                  seq_len: int,
+                  prefix_lengths: Optional[JTensor] = None,
+                  eos_id: Optional[int] = None) -> NestedMap:
+  """Greedy decode the input batch.
+
+  Args:
+    extend_step_fn: A function that takes in `states` and the decoded sequence
+      at the current time step (with shape [B] or [B, P] where B corresponds to
+      the batch size and P corresponds to a possible prefix) and returns a tuple
+      of (`NestedMap`, `JTensor`), where the first `NestedMap` corresponds to
+      the `new_states` and the second `JTensor` corresponds to the logits of the
+      next step.
+    decoder_state: The initialized cache for autoregressive cached decoding.
+    target_ids: The token ids that correspond to the target sequence.
+    target_paddings: The paddings corresponding to the target sequence, with a 1
+      denoting padding token and 0 denoting non-padding tokens.
+    seq_len: Sequence length to decode to.
+    prefix_lengths: Optional argument supplying a prefix sizes to initialize the
+      model to decode from a certain target prefix for each position in the
+      batch. This can either be None or a JTensor of shape [batch] signifying
+      the prefix length for each sequence in the batch.
+    eos_id: Optional EOS id which to terminate the decoding early.
+
+  Returns:
+    A NestedMap with `.prefix_lengths` (indicating the lengths of prefixes for
+    each target sequence), and `.output_ids` (matrix of int ids with the
+    decoded output).
+  """
+  if seq_len <= 0:
+    raise ValueError('The sequence length for decoding must be > 0, '
+                     f'current value = {seq_len}.')
+
+  batch_size = target_ids.shape[0]
+
+  # If prefix length is not specified set it to 0.
+  if prefix_lengths is None:
+    prefix_lengths = jnp.zeros([batch_size], dtype=jnp.int32)
+
+  output_ids = jnp.zeros(shape=(batch_size, seq_len), dtype=jnp.int32)
+  output_ids = output_ids.at[:, 0].set(target_ids[:, 0])
+
+  val = NestedMap()
+  val.state = decoder_state
+  val.step = 0
+  val.output_ids = output_ids
+  # Shape [batch_size], whether each row has terminated and should stop.
+  val.done = jnp.zeros(shape=batch_size, dtype=jnp.bool_)
+  val.decode_lengths = jnp.ones_like(prefix_lengths) * seq_len
+
+  def cond_func(val):
+    """Whether the while loop should continue."""
+    # We continue the greedy search iff both:
+    #   (1) We have yet to exceed the max steps set by p.decoder.seqlen, AND;
+    #   (2) At least one row in the batch has not terminated.
+    length_ok = val.step < seq_len - 1
+    all_rows_done = jnp.all(val.done)
+    return jnp.logical_and(length_ok, jnp.logical_not(all_rows_done))
+
+  def loop_body(val):
+    """From ids at `step`, update output ids at `step + 1`."""
+    step = val.step
+    decoder_state, logits = extend_step_fn(val.state, val.output_ids[:, step])
+    val.state = decoder_state
+    # When step becomes prefix_length - 1, the new output has index beyond
+    # the known prefix.
+    # If prefix_length is 0, the condition is always False, so we take the
+    # decoded output rather than the gold target.
+    new_ids = jnp.where(step < prefix_lengths - 1, target_ids[:, step + 1],
+                        jnp.argmax(logits, axis=1))
+    prev_done = val.done
+    new_ids = jnp.where(prev_done, jnp.zeros_like(new_ids), new_ids)
+    if eos_id is not None:
+      val.done = jnp.logical_or(prev_done, jnp.equal(new_ids, eos_id))
+    done_at_this_step = jnp.logical_and(jnp.logical_not(prev_done), val.done)
+    val.decode_lengths = jnp.where(
+        done_at_this_step,
+        jnp.ones_like(val.decode_lengths) * (step + 2), val.decode_lengths)
+    val.output_ids = val.output_ids.at[:, step + 1].set(new_ids)
+    val.step += 1
+    return val
+
+  result = jax.lax.while_loop(cond_func, loop_body, val)
+  result.prefix_lengths = prefix_lengths
+  result.original_lengths = jnp.sum(
+      1.0 - target_paddings, axis=1).astype(jnp.int32)
+
+  prefix_ids = target_ids
+  # We manually pad out the ids not belonging to the prefix because some
+  # tokenizers tested do not always obey the lengths arg.
+  indices = jnp.tile(jnp.arange(prefix_ids.shape[1]), (prefix_ids.shape[0], 1))
+  prefix_lengths_2d = jnp.tile(prefix_lengths[:, None],
+                               (1, prefix_ids.shape[1]))
+  prefix_ids = jnp.where(indices < prefix_lengths_2d, prefix_ids,
+                         jnp.zeros_like(prefix_ids))
+  result.prefix_ids = prefix_ids
+
+  del result.state, result.step, result.done
+  return result
 
 
 class BaseTask(base_layer.BaseLayer):
@@ -384,7 +488,7 @@ class LanguageModel(BaseTask):
                                     self.params.return_predictions)
 
   def decode(self, theta: NestedMap, input_batch: NestedMap) -> NestedMap:
-    """Decodes input_batch with model weights 'theta'.
+    """Greedy decodes the input_batch with model weights 'theta'.
 
     Args:
       theta: A NestedMap of variable values of this task.
@@ -399,75 +503,29 @@ class LanguageModel(BaseTask):
     if p.decoder.seqlen <= 0:
       raise ValueError('Must set p.decoder.seqlen > 0, current value = '
                        f'{p.decoder.seqlen}')
-
     batch_size = input_batch.ids.shape[0]
     maxval = jnp.sum(1 - input_batch.paddings, axis=1).astype(jnp.int32)
     minval = jnp.minimum(maxval, p.decoder.min_prefix_len)
-    max_length = p.decoder.seqlen
     prefix_lengths = jax.random.randint(base_layer.next_prng_key(),
                                         [batch_size], minval, maxval + 1,
                                         input_batch.ids.dtype)
     decoder_state = self.lm.init_states(
-        theta.lm, target_batch_size=batch_size, target_max_length=max_length)
-    output_ids = jnp.zeros(shape=(batch_size, max_length), dtype=jnp.int32)
-    output_ids = output_ids.at[:, 0].set(input_batch.ids[:, 0])
+        theta.lm,
+        target_batch_size=batch_size,
+        target_max_length=p.decoder.seqlen)
 
-    val = py_utils.NestedMap()
-    val.state = decoder_state
-    val.step = 0
-    val.output_ids = output_ids
-    # Shape [batch_size], whether each row has terminated and should stop.
-    val.done = jnp.zeros(shape=batch_size, dtype=jnp.bool_)
-    val.decode_lengths = jnp.ones_like(prefix_lengths) * max_length
+    def extend_step_fn(states, ids):
+      new_states, xent = self.lm.extend_step(theta.lm, states, ids)
+      return new_states, xent.logits
 
-    def cond_func(val):
-      """Whether the while loop should continue."""
-      # We continue the greedy search iff both:
-      #   (1) We have yet to exceed the max steps set by p.decoder.seqlen, AND;
-      #   (2) At least one row in the batch has not terminated.
-      length_ok = val.step < max_length - 1
-      all_rows_done = jnp.all(val.done)
-      return jnp.logical_and(length_ok, jnp.logical_not(all_rows_done))
-
-    def loop_body(val):
-      """From ids at `step`, update output ids at `step + 1`."""
-      step = val.step
-      decoder_state, xent_output = self.lm.extend_step(
-          theta.lm, val.state, inputs=val.output_ids[:, step])
-      val.state = decoder_state
-      # When step becomes prefix_length - 1, the new output has index beyond
-      # the known prefix.
-      new_ids = jnp.where(step < prefix_lengths - 1, input_batch.ids[:,
-                                                                     step + 1],
-                          jnp.argmax(xent_output.logits, axis=1))
-      prev_done = val.done
-      new_ids = jnp.where(prev_done, jnp.zeros_like(new_ids), new_ids)
-      val.done = jnp.logical_or(prev_done, jnp.equal(new_ids, p.decoder.eos_id))
-      done_at_this_step = jnp.logical_and(jnp.logical_not(prev_done), val.done)
-      val.decode_lengths = jnp.where(
-          done_at_this_step,
-          jnp.ones_like(val.decode_lengths) * (step + 2), val.decode_lengths)
-      val.output_ids = val.output_ids.at[:, step + 1].set(new_ids)
-      val.step = val.step + 1
-      return val
-
-    result = jax.lax.while_loop(cond_func, loop_body, val)
-    result.prefix_lengths = prefix_lengths
-    result.original_lengths = jnp.sum(
-        1.0 - input_batch.paddings, axis=1).astype(prefix_lengths.dtype)
-
-    prefix_ids = input_batch.ids
-    # We manually pad out the ids not belong to the prefix because some
-    # tokenizers tested do not always obey the lengths arg.
-    indices = jnp.tile(
-        jnp.arange(prefix_ids.shape[1]), (prefix_ids.shape[0], 1))
-    prefix_lengths_2d = jnp.tile(prefix_lengths[:, None],
-                                 (1, prefix_ids.shape[1]))
-    prefix_ids = jnp.where(indices < prefix_lengths_2d, prefix_ids,
-                           jnp.zeros_like(prefix_ids))
-    result.prefix_ids = prefix_ids
-
-    del result.state, result.step, result.done
+    result = greedy_decode(
+        extend_step_fn,
+        decoder_state,
+        input_batch.ids,
+        input_batch.paddings,
+        p.decoder.seqlen,
+        prefix_lengths=prefix_lengths,
+        eos_id=p.decoder.eos_id)
     result.update(input_batch)
     return result
 
@@ -511,6 +569,12 @@ class SequenceModel(BaseTask):
         'return_predictions', False, 'Whether to return predictions during'
         'eval. Returning predictions is more expensive, but may be useful'
         'for debugging.')
+    decoder_p = py_utils.Params()
+    decoder_p.Define('seqlen', 0, 'Maximum output sequence length.')
+    decoder_p.Define(
+        'eos_id', 2,
+        'The id of EOS token indicating the termination of decoding.')
+    p.Define('decoder', decoder_p, 'Decoder params.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -561,6 +625,77 @@ class SequenceModel(BaseTask):
     """
     return compute_xent_loss_helper(predictions, input_batch.tgt,
                                     self.params.return_predictions)
+
+  def decode(self, theta: NestedMap, input_batch: NestedMap) -> NestedMap:
+    """Decodes input_batch with model weights 'theta'.
+
+    Args:
+      theta: A NestedMap of variable values of this task.
+      input_batch: The input batch, with a field `.src` and `.tgt` corresponding
+        to source and target, which itself contains the `.ids` and `.paddings.`
+
+    Returns:
+      A NestedMap like `input_batch`, with `.output_ids` (matrix of int ids
+        with the decoded output) as well as the decoded length.
+    """
+    p = self.params
+    if p.decoder.seqlen <= 0:
+      raise ValueError('Must set p.decoder.seqlen > 0, current value = '
+                       f'{p.decoder.seqlen}')
+    batch_size = input_batch.tgt.ids.shape[0]
+    decoder_state = self.model.init_states(
+        theta.model,
+        inputs=input_batch.src.ids,
+        input_paddings=input_batch.src.paddings,
+        target_batch_size=batch_size,
+        target_max_length=p.decoder.seqlen)
+
+    def extend_step_fn(states, ids):
+      new_states, xent = self.model.extend_step(theta.model, states, ids)
+      return new_states, xent.logits
+
+    result = greedy_decode(
+        extend_step_fn,
+        decoder_state,
+        input_batch.tgt.ids,
+        input_batch.tgt.paddings,
+        p.decoder.seqlen,
+        eos_id=p.decoder.eos_id)
+    # Prefix lengths are not needed for sequence model decoding.
+    del result.prefix_lengths
+    result.update(input_batch)
+    return result
+
+  def process_decode_out(self, input_obj: base_input.BaseInput,
+                         decode_out: NestedMap) -> Sequence[Tuple[str, Any]]:
+    """Processes one batch of decoded outputs.
+
+    Args:
+      input_obj: The input object where a tokenizer is accessible.
+      decode_out: The output from decode(). May have an extra leading axis.
+
+    Returns:
+      A dict where each entry corresponds to a row in the batch. The keys should
+      be unique across the entire decode dataset. The returned dict contains
+      the source sequence, the decoded sequence and the gold truth target
+      sequence.
+    """
+    decoded_strs = input_obj.ids_to_strings(
+        decode_out.output_ids, decode_out.decode_lengths, key='tgt')
+    source_lengths = jnp.sum(
+        1.0 - decode_out.src.paddings, axis=1).astype(jnp.int32)
+    source_strs = input_obj.ids_to_strings(
+        decode_out.src.ids, source_lengths, key='src')
+    target_strs = input_obj.ids_to_strings(
+        decode_out.tgt.ids, decode_out.original_lengths, key='tgt')
+    ret = list()
+    for idx, decoded_str in enumerate(decoded_strs):
+      ret.append((source_strs[idx], {
+          'source': source_strs[idx],
+          'decoded': decoded_str,
+          'target': target_strs[idx],
+      }))
+    return ret
 
 
 class ClassificationTask(BaseTask):

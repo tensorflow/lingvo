@@ -15,7 +15,7 @@
 # ==============================================================================
 """Base classes for the lingvo Jax input layers."""
 
-from typing import List
+from typing import List, Optional
 
 from lingvo.core import datasource
 from lingvo.jax import py_utils
@@ -115,8 +115,10 @@ class BaseInput:
   def reset(self) -> None:
     pass
 
-  def ids_to_strings(self, ids: pytypes.NpTensor,
-                     lengths: pytypes.NpTensor) -> List[str]:
+  def ids_to_strings(self,
+                     ids: pytypes.NpTensor,
+                     lengths: pytypes.NpTensor,
+                     key: Optional[str] = None) -> List[str]:
     """Converts int ids into strings.
 
     Args:
@@ -124,6 +126,10 @@ class BaseInput:
         converted.
       lengths: A vector of shape [batch]. lens[i] is the sequence length of the
         i-th row. Only the first lens[i] tokens in ids[i, :] are valid tokens.
+      key: Optional argument to specify whether a tokenizer to use is the source
+        or target. This is useful for example in a sequence model where the
+        source and targets have different tokenizers. For the source corpus the
+        key should be `src` while for the target corpus the key should be `tgt`.
 
     Returns:
       A list strings of shape [batch]. The converted texts.
@@ -218,8 +224,10 @@ class LingvoInputAdaptor(BaseInput):
     # reinstantiate the input and retrace self._get_batch.
     self._initialize()
 
-  def ids_to_strings(self, ids: pytypes.NpTensor,
-                     lengths: pytypes.NpTensor) -> List[str]:
+  def ids_to_strings(self,
+                     ids: pytypes.NpTensor,
+                     lengths: pytypes.NpTensor,
+                     key: Optional[str] = None) -> List[str]:
     """Converts int ids into strings."""
-    bytes_list = self.input.IdsToStrings(ids, lengths).numpy()
+    bytes_list = self.input.IdsToStrings(ids, lengths, key=key).numpy()
     return [b.decode('utf-8') for b in bytes_list]
