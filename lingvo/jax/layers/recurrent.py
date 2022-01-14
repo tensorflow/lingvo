@@ -35,7 +35,7 @@ recurrent_func computes, roughly::
       state = cell_fn(theta, state, inputs[t, :])
       accumulate_state[t, :] = state
       t += 1
-    return accumulate_state, state
+    return state, accumulate_state
 """
 
 import enum
