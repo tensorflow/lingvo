@@ -239,6 +239,157 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
     return embs
 
 
+class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
+  """Softmax layer with embedding lookup and Gaussian init used in gshard.
+
+  Features:
+  1) Weight shape is [V, M] where V is num_classes and M is input_dims.
+  2) No bias
+  3) Apply 1/sqrt(M) to the input activations before computing the logits.
+  4) Optionally using soft clipping and absolute value clipping of logits.
+  """
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define('input_dims', 0, 'Dimension of the input.')
+    p.Define('num_classes', 0, 'Total number of target classes.')
+    # logits_abs_max = 20 for m4_hybrid model
+    p.Define(
+        'soft_cap_logits', 0.,
+        'If not None logits are soft capped to this value before '
+        ' the absolute value clipping with p.logits_abs_max.')
+    p.Define('logits_abs_max', None, 'Absolute logits clipping.')
+    ap = p.activation_split_dims_mapping
+    ap.Define('emb_out_split_dims_mapping', None,
+              'Mesh split for embedding outputs..')
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    p = self.params
+    wp = p.weight_split_dims_mapping
+    ap = p.activation_split_dims_mapping
+    emb_p = linears.Linear.Params().Set(
+        input_dims=p.num_classes,
+        output_dims=p.input_dims,
+        # Same as in gshard_builder.DenseBuilder.Embedding
+        params_init=py_utils.WeightInit.Gaussian(),
+        weight_split_dims_mapping=wp.Copy(),
+        activation_split_dims_mapping=ap.Copy())
+    self.create_child('embedding', emb_p)
+
+  def emb_lookup(self, theta: NestedMap, ids: JTensor) -> JTensor:
+    p = self.params
+    ap = p.activation_split_dims_mapping
+    # BL -> BLV
+    one_hot_ids = jax.nn.one_hot(ids, p.num_classes, dtype=self.fprop_dtype)
+    # BLV,VH -> BLH
+    embs = linears.project_last_dim(one_hot_ids, theta.embedding.w)
+    embs = base_layer.maybe_shard(embs, ap.emb_out_split_dims_mapping,
+                                  p.mesh_axis_names)
+    return embs
+
+  def get_logits(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+    """Returns logits given the inputs with an option to cap it.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: a single JTensor with shape [..., input_dim].
+
+    Returns:
+      logits: with shape [..., num_classes]. Unnormalized softmax's logits.
+    """
+    p = self.params
+    ap = p.activation_split_dims_mapping
+    # activations are scaled with 1/sqrt(input_dims)
+    inputs *= (p.input_dims**-0.5)
+    # VH -> HV
+    softmax_var = jnp.transpose(theta.embedding.w)
+    # Compute logits:  BLH,HV -> BLV
+    logits = linears.project_last_dim(inputs, softmax_var)
+    logits = base_layer.maybe_shard(logits, ap.out, p.mesh_axis_names)
+
+    # Soft cap logits if applicable
+    if p.soft_cap_logits:
+      logits = p.soft_cap_logits * jnp.tanh(logits / p.soft_cap_logits)
+
+    # abs cap logits if applicable
+    if p.logits_abs_max:
+      logits = jnp.clip(logits, -p.logits_abs_max, p.logits_abs_max)
+    return logits
+
+  def fprop(self,
+            theta: NestedMap,
+            inputs: JTensor,
+            class_weights: JTensor,
+            class_ids: Optional[JTensor] = None,
+            class_probabilities: Optional[JTensor] = None) -> NestedMap:
+    """Computes logits, cross entropy etc.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: a single JTensor with shape [..., input_dim].
+      class_weights: a JTensor with shape [..., 1] containing the weights for
+        each target word.
+      class_ids: a JTensor with shape [..., 1] of int32 dtype containing the
+        target class labels.
+      class_probabilities: a JTensor with shape [..., num_classes] of float
+        values indicating class-membership probabilities.
+
+    Returns:
+      A `.NestedMap` containing the following fields
+
+      - logits: with shape [..., num_classes]. Unnormalized softmax's logits.
+      - per_example_argmax: with shape [...]. argmax of i-th example.
+      - per_example_xent: with shape [...]. Cross entropy between i-th example's
+        prediction and its label.
+      - per_example_weight: with shape [...]. class_weights casted to
+        this layer's dtype.
+      - total_xent: A scalar. The sum of per_example_weight * per_example_xent.
+      - total_weight: A scalar. The sum of per_example_weight.
+      - avg_xent: A scalar. total_loss / total_weight.
+    """
+    p = self.params
+    # Assert one of class_ids or class_probabilities is not None
+    if class_ids is None and class_probabilities is None:
+      raise ValueError('One of class_ids or class_probabilities must be given.')
+
+    # Compute logits
+    inputs_dtype = inputs.dtype
+    logits = self.get_logits(theta, inputs)
+    # We perform softmax in float32 to improve stability.
+    logits = logits.astype(jnp.float32)
+    log_probs = jax.nn.log_softmax(logits)
+
+    if class_probabilities is None:
+      class_probabilities = jax.nn.one_hot(
+          jnp.squeeze(class_ids, axis=-1), p.num_classes)
+      class_probabilities = jax.lax.stop_gradient(class_probabilities)
+
+    per_example_xent = -jnp.sum(log_probs * class_probabilities, axis=-1)
+
+    per_example_argmax = jax.lax.stop_gradient(jnp.argmax(logits, axis=-1))
+
+    # Compute total softmax for the entire sequence
+    total_xent = jnp.sum(
+        jnp.expand_dims(per_example_xent, axis=-1) * class_weights)
+    total_weight = jnp.sum(class_weights)
+
+    output_nmap = NestedMap(
+        logits=logits.astype(inputs_dtype),
+        log_probs=log_probs.astype(inputs_dtype),
+        per_example_argmax=per_example_argmax.astype(inputs_dtype),
+        per_example_xent=per_example_xent.astype(inputs_dtype),
+        total_xent=total_xent.astype(inputs_dtype),
+        total_weight=total_weight,
+        avg_xent=(total_xent / total_weight).astype(inputs_dtype))
+
+    return output_nmap
+
+
 class PositionalEmbedding(base_layer.BaseLayer):
   """Generates position embedding for a given 1-d sequence."""
 

@@ -1783,9 +1783,14 @@ class TransformerLm(base_layer.BaseLayer):
 
     # We assume activation batch is split on both replica_axis and data_axis.
     batch_split = (replica_axis, data_axis)
-    # Softmax weight is of shape [input_dim, vocab_size].
     softmax_p = lm_p.softmax_tpl
-    softmax_p.weight_split_dims_mapping.wt = [data_axis, mdl_axis]
+    if isinstance(softmax_p.cls,
+                  embedding_softmax.GShardSharedEmebeddingSoftmax):
+      # Softmax weight is of shape [vocab_size, input_dim].
+      softmax_p.weight_split_dims_mapping.wt = [mdl_axis, data_axis]
+    else:
+      # Softmax weight is of shape [input_dim, vocab_size].
+      softmax_p.weight_split_dims_mapping.wt = [data_axis, mdl_axis]
 
     pos_emb_p = lm_p.position_emb_tpl
     pos_emb_p.weight_split_dims_mapping.wt = [data_axis, mdl_axis]

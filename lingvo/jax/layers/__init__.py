@@ -30,6 +30,7 @@ from lingvo.jax.layers.convolutions import Conv2D
 from lingvo.jax.layers.convolutions import ConvBNAct
 from lingvo.jax.layers.convolutions import DepthwiseConv1D
 from lingvo.jax.layers.convolutions import LightConv1D
+from lingvo.jax.layers.embedding_softmax import GShardSharedEmebeddingSoftmax
 from lingvo.jax.layers.embedding_softmax import PositionalEmbedding
 from lingvo.jax.layers.embedding_softmax import SingleShardEmbedding
 from lingvo.jax.layers.embedding_softmax import SingleShardFullSoftmax
