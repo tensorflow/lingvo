@@ -461,6 +461,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'bool. When enabled, for input of length 1, decoding completes in 1 '
         'step. This reserves a special sentinel input with fast beam search. '
         'It can be used to pad inputs to a fixed batch size.')
+    p.Define('zero_token_embs_first_time_step', False,
+             'If True, the first time step uses zeros as the post-emb lookup.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
     default_params_init = py_utils.WeightInit.Uniform(0.04)
@@ -656,6 +658,29 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     else:
       return x
 
+  def _ZeroOutFirstTimeStep(self, token_embs, batch, time):
+    """Zeroes out the first time step.
+
+    Args:
+      token_embs:  [time, batch, model_dim] embeding lookups.
+      batch: Batch size scalar.
+      time: Target sequence length scalar.
+
+    Returns:
+      modified token_embs with the first time step zeroed out.
+    """
+    p = self.params
+
+    # [[[0]]]
+    zero_out_index = tf.expand_dims(
+        tf.expand_dims(tf.constant([0]), axis=1), axis=1)
+    # [[[0]] ... [[time-1]]]
+    time_steps = tf.expand_dims(tf.expand_dims(tf.range(time), axis=1), axis=1)
+    condition = tf.equal(zero_out_index, time_steps)
+    mask = tf.logical_not(tf.tile(condition, [1, batch, p.emb.embedding_dim]))
+    mask = tf.cast(mask, dtype=tf.float32)
+    return token_embs * mask
+
   @py_utils.NameScopeDecorator('MTDecoderV1/ComputePredictions')
   def ComputePredictions(self, theta, encoder_outputs, targets):
     """Decodes `targets` given encoded source.
@@ -707,6 +732,13 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       with tf.device(emb_device):
         if not self._share_sm_emb:
           inputs = self.emb.EmbLookup(theta.emb, target_ids)
+
+        if p.zero_token_embs_first_time_step:
+          # For models that do not use an explicit start-of-sequence token
+          # with associated embedding, but instead use zeros.
+          target_time, target_batch = py_utils.GetShape(target_ids, 2)
+          inputs = self._ZeroOutFirstTimeStep(inputs, target_batch, target_time)
+
         inputs = self.ApplyClipping(theta, inputs)
         summary_utils.histogram('input_emb', inputs)
         inputs = self.ApplyDropout(inputs)
@@ -1015,6 +1047,13 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       embs = self.softmax.EmbLookup(theta.softmax, tf.reshape(step_ids, [-1]))
     else:
       embs = self.emb.EmbLookup(theta.emb, tf.reshape(step_ids, [-1]))
+
+    if p.zero_token_embs_first_time_step:
+      # For models that do not use an explicit start-of-sequence token
+      # with associated embedding, but instead use zeros.
+      zeros = tf.zeros_like(embs)
+      embs = tf.cond(tf.equal(states.time_step, 0), lambda: zeros, lambda: embs)
+
     embs = self.ApplyClipping(theta, embs)
     atten_context, atten_probs, rnn_states, step_out, atten_states = (
         self._DecodeStep(theta, encoder_outputs, embs, step_paddings,
