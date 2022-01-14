@@ -4577,7 +4577,7 @@ class TransformerLayer(base_layer.BaseLayer):
           per_step_padding_override=per_step_padding_override)
       atten_probs = py_utils.NestedMap(self_atten=self_atten_probs)
 
-    if p.has_aux_atten:
+    if p.has_aux_atten and aux_vec is not None:
       with tf.name_scope('aux_atten'):
         # Next the cross-attention layer.
         target_batch, target_time, dim = py_utils.GetShape(query_vec, 3)
