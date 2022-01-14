@@ -527,6 +527,12 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">subgraph_filter</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subgraph_filter</span><span class="p">:</span>
               <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
 
+          <span class="k">if</span> <span class="ow">not</span> <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span> <span class="ow">and</span> <span class="n">subgraph_filter</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Subgraph filters </span><span class="si">{</span><span class="n">subgraph_filter</span><span class="si">}</span><span class="s1"> filtered out all &#39;</span>
+                <span class="s1">&#39;subgraphs. Defined subgraphs: &#39;</span>
+                <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">list</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
           <span class="c1"># Yes, graph collections are bad, however this seems to be the</span>
           <span class="c1"># easiest way to get this assets registered from</span>
           <span class="c1"># TextFileInitializer.</span>

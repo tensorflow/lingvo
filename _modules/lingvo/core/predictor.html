@@ -158,7 +158,22 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Reading inference graph from </span><span class="si">%s</span><span class="s2">.&quot;</span><span class="p">,</span> <span class="n">inference_graph</span><span class="p">)</span>
       <span class="n">inference_graph</span> <span class="o">=</span> <span class="n">LoadInferenceGraph</span><span class="p">(</span><span class="n">inference_graph</span><span class="p">,</span>
                                            <span class="n">clear_device_placement</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No subgraphs were defined in inference_graph. &quot;</span>
+                       <span class="s2">&quot;Check that subgraphs were defined and subgraph filters &quot;</span>
+                       <span class="s2">&quot;did not filter out all defined subgraphs.&quot;</span><span class="p">)</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span> <span class="o">=</span> <span class="n">inference_graph</span>
+
+    <span class="k">if</span> <span class="n">subgraph_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;Subgraph </span><span class="si">{</span><span class="n">subgraph_name</span><span class="si">}</span><span class="s2"> not defined. Valid subgraphs: &quot;</span>
+          <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subgraphs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+    <span class="n">subgraph</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">subgraph_name</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span> <span class="o">=</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">fetches</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span> <span class="o">=</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">feeds</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_default_subgraph_name</span> <span class="o">=</span> <span class="n">subgraph_name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_device_type</span> <span class="o">=</span> <span class="n">device_type</span>
@@ -182,21 +197,6 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;tpu_init_op&quot;</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
-
-    <span class="k">if</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">subgraph_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s2">&quot;Subgraph </span><span class="si">{</span><span class="n">subgraph_name</span><span class="si">}</span><span class="s2"> not defined. Valid subgraphs: &quot;</span>
-            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">subgraphs</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-      <span class="n">subgraph</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">subgraph_name</span><span class="p">]</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span> <span class="o">=</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">fetches</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span> <span class="o">=</span> <span class="n">subgraph</span><span class="o">.</span><span class="n">feeds</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="k">if</span> <span class="s2">&quot;fetches&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inference_graph</span> <span class="ow">or</span> <span class="s2">&quot;feeds&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">inference_graph</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Graph does not contain feeds or fetches. Inference &quot;</span>
-                         <span class="s2">&quot;graph is probably empty!&quot;</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">fetches</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span> <span class="o">=</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">feeds</span>
 
     <span class="c1"># Lock for creating new sessions.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_sess_lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
