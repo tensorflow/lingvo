@@ -1648,16 +1648,31 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
     """
 
     def sub_fprop_fn(sub, theta, inputs, *args: Any, **kwargs: Any):
-      # sub is expected to be an instance of StackedTransformer
-      assert isinstance(sub, StackedTransformer)
-      out = sub.fprop(theta, inputs, *args, **kwargs)
-      return out, NestedMap()
+      with py_utils.AuxLossContext(reentrant=True) as al_ctx:
+        assert al_ctx is not None
+        # sub is expected to be an instance of StackedTransformer
+        assert isinstance(sub, StackedTransformer)
+        out = sub.fprop(theta, inputs, *args, **kwargs)
+
+        if al_ctx.aux_losses:
+          assert isinstance(al_ctx.aux_losses, list)
+          aux_loss_inc = sum(al_ctx.aux_losses).astype(self.fprop_dtype)
+          base_layer.add_summary('aux_loss_inc', aux_loss_inc)
+        else:
+          aux_loss_inc = jnp.array(0.0, dtype=self.fprop_dtype)
+
+        return out, NestedMap(aux_loss=aux_loss_inc)
 
     out, stacked_extra = self.repeat.fprop(sub_fprop_fn, theta.repeat, inputs,
                                            paddings, segment_mask, cross_inputs,
                                            cross_paddings, cross_segment_mask,
                                            segment_pos)
-    del stacked_extra
+    aux_loss = jnp.sum(stacked_extra.aux_loss)
+    aux_loss_ctx = py_utils.AuxLossContext.Current()
+    # Scan can not have sideeffects so we have to capture side effect
+    # "aux_loss" in the moe layer and propagate it explicitly.
+    if aux_loss_ctx is not None:
+      aux_loss_ctx.AddLoss(aux_loss)
     return out
 
   def init_states(self, theta: NestedMap, *args: Any,
