@@ -113,6 +113,12 @@ class InferenceGraphExporterTest(test_utils.TestCase):
     self.assertEqual(subgraph.fetches['fetch1'], 'inference/fetch1_node:0')
     self.assertEqual(subgraph.fetches['fetch_op'], 'inference/fetch1_node')
 
+  def testSubgraphFilterNotValid(self):
+    params = model_registry.GetParams('test.DummyLegacyModelParams', 'Test')
+    with self.assertRaises(ValueError):
+      _ = inference_graph_exporter.InferenceGraphExporter.Export(
+          params, subgraph_filter=['not-present'])
+
   def testExportModelParamsWithInferenceGraph(self):
     params = model_registry.GetParams('test.DummyModelParams', 'Test')
     inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(

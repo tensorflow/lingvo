@@ -462,6 +462,12 @@ class InferenceGraphExporter:
             if not subgraph_filter or name in subgraph_filter:
               inference_graph_proto.subgraphs[name].CopyFrom(subgraph)
 
+          if not inference_graph_proto.subgraphs and subgraph_filter:
+            raise ValueError(
+                f'Subgraph filters {subgraph_filter} filtered out all '
+                'subgraphs. Defined subgraphs: '
+                f'{list(subgraphs_proto.subgraphs.keys())}')
+
           # Yes, graph collections are bad, however this seems to be the
           # easiest way to get this assets registered from
           # TextFileInitializer.

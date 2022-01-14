@@ -93,7 +93,22 @@ class Predictor:
       tf.logging.info("Reading inference graph from %s.", inference_graph)
       inference_graph = LoadInferenceGraph(inference_graph,
                                            clear_device_placement)
+
+    if not inference_graph.subgraphs:
+      raise ValueError("No subgraphs were defined in inference_graph. "
+                       "Check that subgraphs were defined and subgraph filters "
+                       "did not filter out all defined subgraphs.")
+
     self._inference_graph = inference_graph
+
+    if subgraph_name not in inference_graph.subgraphs:
+      raise ValueError(
+          f"Subgraph {subgraph_name} not defined. Valid subgraphs: "
+          f"{self.subgraphs}")
+    subgraph = inference_graph.subgraphs[subgraph_name]
+    self._fetches = subgraph.fetches
+    self._feeds = subgraph.feeds
+
     self._default_subgraph_name = subgraph_name
     self._checkpoint = checkpoint
     self._device_type = device_type
@@ -117,21 +132,6 @@ class Predictor:
           tf.group(tf.tpu.initialize_system(), name="tpu_init_op")
 
     self._graph.finalize()
-
-    if inference_graph.subgraphs:
-      if subgraph_name not in inference_graph.subgraphs:
-        raise ValueError(
-            f"Subgraph {subgraph_name} not defined. Valid subgraphs: "
-            f"{self.subgraphs}")
-      subgraph = inference_graph.subgraphs[subgraph_name]
-      self._fetches = subgraph.fetches
-      self._feeds = subgraph.feeds
-    else:
-      if "fetches" not in inference_graph or "feeds" not in inference_graph:
-        raise ValueError("Graph does not contain feeds or fetches. Inference "
-                         "graph is probably empty!")
-      self._fetches = inference_graph.fetches
-      self._feeds = inference_graph.feeds
 
     # Lock for creating new sessions.
     self._sess_lock = threading.Lock()
