@@ -286,9 +286,9 @@ def train_and_evaluate_pmap(
     # We either run p.eval_loop_num_batches steps or one epoch (when supported
     # by a resettable input) per eval loop during training. When
     # p.reset_for_eval is set to True, we run the eval loop until
-    # tf.errors.OutOfRangeError is raised, which can be triggered either because
-    # input pipeline has reached the end of the input sequence, or a
-    # pre-determined num_batches has reached.
+    # tf.errors.OutOfRangeError (or StopIteration) is raised, which can be
+    # triggered either because input pipeline has reached the end of the input
+    # sequence, or a pre-determined num_batches has reached.
     eval_num_steps = [
         -1 if p.reset_for_eval else p.eval_loop_num_batches
         for p in eval_input_p
@@ -526,9 +526,9 @@ def train_and_evaluate_spmd_model(
       # We either run p.eval_loop_num_batches steps or one epoch (when supported
       # by a resettable input) per eval loop during training. When
       # p.reset_for_eval is set to True, we run the eval loop until
-      # tf.errors.OutOfRangeError is raised, which can be triggered either
-      # because input pipeline has reached the end of the input sequence, or a
-      # pre-determined num_batches has reached.
+      # tf.errors.OutOfRangeError (or StopIteration) is raised, which can be
+      # triggered either because input pipeline has reached the end of the input
+      # sequence, or a pre-determined num_batches has reached.
       eval_num_steps = [
           -1 if p.reset_for_eval else p.eval_loop_num_batches
           for p in eval_input_p

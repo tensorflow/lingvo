@@ -453,7 +453,7 @@ def decode_once_pmap_model(
       step_num += 1
       try:
         batch = inputs[split].get_next()
-      except tf.errors.OutOfRangeError:
+      except (tf.errors.OutOfRangeError, StopIteration):
         break
       batch = tf.nest.map_structure(py_utils.reshard, batch)
       out = decode_step_func(batch)
@@ -584,7 +584,7 @@ def decode_once_spmd_model(
         step_num += 1
         try:
           batch = inputs[split].get_next()
-        except tf.errors.OutOfRangeError:
+        except (tf.errors.OutOfRangeError, StopIteration):
           break
         out = spmd_decode_step_fn(batch)
         # Gathers all local shards to a SDA.

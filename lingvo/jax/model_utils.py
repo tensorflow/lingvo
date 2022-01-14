@@ -116,7 +116,7 @@ def run_eval_loop_over_test_splits(
         eval_loss = py_utils.maybe_gda_to_sda(eval_loss)
         eval_metrics = py_utils.maybe_gda_to_sda(eval_metrics)
         eval_summary_tensors = py_utils.maybe_gda_to_sda(eval_summary_tensors)
-      except tf.errors.OutOfRangeError:
+      except (tf.errors.OutOfRangeError, StopIteration):
         if num_split_steps > 0:
           raise
         logging.info('Exhausted eval data split=%d after %d steps', split,
