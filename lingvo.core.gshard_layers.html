@@ -1022,12 +1022,13 @@ tensors, mask_dtype is a special dtype for such tensors.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A tuple (combine_tensor, dispatch_tensor).</p>
-<ul class="simple">
-<li><p>combine_tensor: G`EC Tensor for combining expert outputs.</p></li>
-<li><p>dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to
-experts.</p></li>
-</ul>
+<dd class="field-even"><p><p>A tuple (aux_loss, combine_tensor, dispatch_tensor).
+- aux_loss: Always 0.0, because we don’t need an aux_loss in this method.
+- combine_tensor: G`EC Tensor for combining expert outputs.
+- dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to</p>
+<blockquote>
+<div><p>experts.</p>
+</div></blockquote>
 </p>
 </dd>
 </dl>
