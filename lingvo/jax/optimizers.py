@@ -321,7 +321,13 @@ def apply_lp_regularizer(
   asserts.in_set(p, [1.0, 2.0])
 
   # TODO(aurkor, yonghui): we need respect SKIP_LP_REGULARIZATION var collection
-  # by propagating var names into ShardedGradientTransformation.
+  # by propagating var names into ShardedGradientTransformation. Right now
+  # disable all 1d vars from lp regularizers.
+  def not_1d(p):
+    if len(p.shape) == 1:
+      return 0.0
+    else:
+      return 1.0
 
   def update_fn(updates, state, params):
     count = state.count
@@ -330,9 +336,9 @@ def apply_lp_regularizer(
         raise ValueError('Params must not be empty when applying weight decay.')
 
       if p == 1.0:
-        fn = lambda g, p: g + regularizer_weight * jnp.sign(p)
+        fn = lambda g, p: g + regularizer_weight * jnp.sign(p) * not_1d(p)
       elif p == 2.0:
-        fn = lambda g, p: g + regularizer_weight * p
+        fn = lambda g, p: g + regularizer_weight * p * not_1d(p)
 
       updates = jax.tree_multimap(fn, updates, params)
     updated_state = NestedMap(count=count + 1)
