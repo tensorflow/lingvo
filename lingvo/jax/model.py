@@ -779,26 +779,25 @@ class ClassificationTask(BaseTask):
     metrics = NestedMap(
         avg_xent=(avg_xent, total_weight),
         num_predictions=(total_weight, jnp.array(1.0, total_weight.dtype)))
-    if self.do_eval:
-      # Compute top-1 and top-5 accuracy and add summary.
-      acc1 = metric_utils.top_k_accuracy(
-          1,
-          predictions.softmax_output.logits,
-          label_probs=input_batch.label_probs,
-          weights=predictions.example_weights)
-      acc5 = metric_utils.top_k_accuracy(
-          5,
-          predictions.softmax_output.logits,
-          label_probs=input_batch.label_probs,
-          weights=predictions.example_weights)
-      metrics.update(
-          accuracy=(acc1, predictions.softmax_output.total_weight),
-          acc5=(acc5, predictions.softmax_output.total_weight),
-          error=(1.0 - acc1, predictions.softmax_output.total_weight),
-          error5=(1.0 - acc5, predictions.softmax_output.total_weight))
-      # Add top-1 and top-5 accuracies to summaries.
-      base_layer.add_summary('acc1', acc1)
-      base_layer.add_summary('acc5', acc5)
+    # Compute top-1 and top-5 accuracy and add summary.
+    acc1 = metric_utils.top_k_accuracy(
+        1,
+        predictions.softmax_output.logits,
+        label_probs=input_batch.label_probs,
+        weights=predictions.example_weights)
+    acc5 = metric_utils.top_k_accuracy(
+        5,
+        predictions.softmax_output.logits,
+        label_probs=input_batch.label_probs,
+        weights=predictions.example_weights)
+    metrics.update(
+        accuracy=(acc1, predictions.softmax_output.total_weight),
+        acc5=(acc5, predictions.softmax_output.total_weight),
+        error=(1.0 - acc1, predictions.softmax_output.total_weight),
+        error5=(1.0 - acc5, predictions.softmax_output.total_weight))
+    # Add top-1 and top-5 accuracies to summaries.
+    base_layer.add_summary('acc1', acc1)
+    base_layer.add_summary('acc5', acc5)
     return metrics, {}
 
 

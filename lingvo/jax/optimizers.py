@@ -23,6 +23,7 @@ from absl import logging
 import jax
 from jax import lax
 from jax import numpy as jnp
+from lingvo.jax import asserts
 from lingvo.jax import base_layer
 from lingvo.jax import gshard_utils
 from lingvo.jax import py_utils
@@ -294,61 +295,40 @@ def sharded_masked(
         init_partition_spec=init_partition_spec_fn)
 
 
-def apply_l2_weight_decay(
+def apply_lp_weight_decay(
     learning_rate_fn: optax.Schedule,
-    l2_regularizer_weight: Optional[float] = 0.
+    regularizer_weight: Optional[float] = 0.0,
+    p: Optional[float] = 2.0,
 ) -> ShardedGradientTransformation:
-  """Applies L2 weight decay.
+  """Applies Lp weight decay.
 
   Args:
     learning_rate_fn: An optax schedule that infers the lr given the step.
-    l2_regularizer_weight: Weight for L2 regularization.
+    regularizer_weight: Weight for L2 regularization.
+    p: 1 or 2 as L1/L2 regularization.
 
   Returns:
-    A ShardedGradientTransformation applying L2 weight decay.
+    A ShardedGradientTransformation applying Lp weight decay.
   """
+
+  asserts.in_set(p, [1.0, 2.0])
+
+  # TODO(aurkor, yonghui): we need respect SKIP_LP_REGULARIZATION var collection
+  # by propagating var names into ShardedGradientTransformation.
 
   def update_fn(updates, state, params):
     count = state.count
-    lr_multiplier = learning_rate_fn(count)
-    if l2_regularizer_weight:
+    lr = learning_rate_fn(count)
+    if regularizer_weight:
       if params is None:
         raise ValueError('Params must not be empty when applying weight decay.')
-      updates = jax.tree_multimap(
-          lambda g, p: g - lr_multiplier * l2_regularizer_weight * p, updates,
-          params)
-    updated_state = NestedMap(count=count + 1)
-    return updates, updated_state
 
-  return ShardedGradientTransformation(
-      init=count_init_fn,
-      update=update_fn,
-      init_partition_spec=count_init_partition_spec_fn)
+      if p == 1.0:
+        fn = lambda g, p: g - lr * regularizer_weight * jnp.sign(p)
+      elif p == 2.0:
+        fn = lambda g, p: g - lr * regularizer_weight * p
 
-
-def apply_l1_weight_decay(
-    learning_rate_fn: optax.Schedule,
-    l1_regularizer_weight: Optional[float] = 0.
-) -> ShardedGradientTransformation:
-  """Applies L1 weight decay.
-
-  Args:
-    learning_rate_fn: An optax schedule that infers the lr given the step.
-    l1_regularizer_weight: Weight for L1 regularization.
-
-  Returns:
-    A ShardedGradientTransformation applying L1 weight decay.
-  """
-
-  def update_fn(updates, state, params):
-    count = state.count
-    lr_multiplier = learning_rate_fn(count)
-    if l1_regularizer_weight:
-      if params is None:
-        raise ValueError('Params must not be empty when applying weight decay.')
-      updates = jax.tree_multimap(
-          lambda g, p: g - lr_multiplier * l1_regularizer_weight * jnp.sign(p),
-          updates, params)
+      updates = jax.tree_multimap(fn, updates, params)
     updated_state = NestedMap(count=count + 1)
     return updates, updated_state
 
@@ -503,12 +483,14 @@ class BaseOptimizer:
     p = self.params
     return sharded_chain(
         self._get_raw_grad_transformation(self.get_learning_rate),
-        apply_l1_weight_decay(
+        apply_lp_weight_decay(
             self.get_learning_rate,
-            l1_regularizer_weight=p.l1_regularizer_weight),
-        apply_l2_weight_decay(
+            regularizer_weight=p.l1_regularizer_weight,
+            p=1.0),
+        apply_lp_weight_decay(
             self.get_learning_rate,
-            l2_regularizer_weight=p.l2_regularizer_weight))
+            regularizer_weight=p.l2_regularizer_weight,
+            p=2.0))
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> GeneralGradientTransformation:
