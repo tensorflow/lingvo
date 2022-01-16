@@ -299,6 +299,7 @@ def apply_lp_regularizer(
     learning_rate_fn: optax.Schedule,
     regularizer_weight: Optional[float] = 0.0,
     p: Optional[float] = 2.0,
+    skip_lp_1d_vectors: Optional[bool] = False,
 ) -> ShardedGradientTransformation:
   """Applies Lp regularization by adjusting gradients.
 
@@ -311,6 +312,7 @@ def apply_lp_regularizer(
     learning_rate_fn: An optax schedule that infers the lr given the step.
     regularizer_weight: Weight for L2 regularization.
     p: 1 or 2 as L1/L2 regularization.
+    skip_lp_1d_vectors: If True, skip L1/L2 regularization for 1d vector vars.
 
   Returns:
     A ShardedGradientTransformation applying Lp regularizers.
@@ -322,9 +324,9 @@ def apply_lp_regularizer(
 
   # TODO(aurkor, yonghui): we need respect SKIP_LP_REGULARIZATION var collection
   # by propagating var names into ShardedGradientTransformation. Right now
-  # disable all 1d vars from lp regularizers.
-  def not_1d(p):
-    if len(p.shape) == 1:
+  # disable all 1d vars from lp regularizers if skip_lp_1d_vectors is True.
+  def skip_mask(var):
+    if skip_lp_1d_vectors and var.ndim <= 1:
       return 0.0
     else:
       return 1.0
@@ -336,9 +338,9 @@ def apply_lp_regularizer(
         raise ValueError('Params must not be empty when applying weight decay.')
 
       if p == 1.0:
-        fn = lambda g, p: g + regularizer_weight * jnp.sign(p) * not_1d(p)
+        fn = lambda g, p: g + regularizer_weight * jnp.sign(p) * skip_mask(p)
       elif p == 2.0:
-        fn = lambda g, p: g + regularizer_weight * p * not_1d(p)
+        fn = lambda g, p: g + regularizer_weight * p * skip_mask(p)
 
       updates = jax.tree_multimap(fn, updates, params)
     updated_state = NestedMap(count=count + 1)
@@ -492,6 +494,11 @@ class BaseOptimizer:
         'l1_regularizer_weight', None,
         'If not None, L1 regularization to apply to the model weights. '
         'Otherwise, disable L1 regularization.')
+    # TODO(aurkor, yonghui): remove skip_lp_1d_vectors once we respect
+    # SKIP_LP_REGULARIZATION var collection by propagating var names into
+    # ShardedGradientTransformation.
+    p.Define('skip_lp_1d_vectors', False,
+             'If True, skip L1/L2 regularization for 1d vector vars.')
     p.Define(
         'decoupled_weight_decay', None,
         'If not None, (decoupled) weight decay to apply to the model weights. '
@@ -550,11 +557,15 @@ class BaseOptimizer:
         apply_lp_regularizer(
             self.get_learning_rate,
             regularizer_weight=p.l1_regularizer_weight,
-            p=1.0),
+            p=1.0,
+            skip_lp_1d_vectors=p.skip_lp_1d_vectors,
+        ),
         apply_lp_regularizer(
             self.get_learning_rate,
             regularizer_weight=p.l2_regularizer_weight,
-            p=2.0),
+            p=2.0,
+            skip_lp_1d_vectors=p.skip_lp_1d_vectors,
+        ),
         self._get_raw_grad_transformation(self.get_learning_rate),
         apply_decoupled_weight_decay(
             self.get_learning_rate,
