@@ -1015,21 +1015,15 @@ group <code class="xref py py-obj docutils literal notranslate"><span class="pre
 <li><p><strong>logits</strong> – G`SE Tensor.</p></li>
 <li><p><strong>experts_dim</strong> – number of experts.</p></li>
 <li><p><strong>fprop_dtype</strong> – activations datatype to use.</p></li>
-<li><p><strong>use_xla_sharding</strong> – bool, True if this function is used for the xla_sharding
-case.</p></li>
-<li><p><strong>mask_dtype</strong> – using bfloat16 for fprop_dtype could be problematic for mask
-tensors, mask_dtype is a special dtype for such tensors.</p></li>
+<li><p><strong>use_xla_sharding</strong> – True if this function is used for the xla_sharding case.</p></li>
+<li><p><strong>mask_dtype</strong> – dtype for mask tensors as bfloat16 could be problematic.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A tuple (aux_loss, combine_tensor, dispatch_tensor).
-- aux_loss: Always 0.0, because we don’t need an aux_loss in this method.
+<dd class="field-even"><p>A tuple (aux_loss, combine_tensor, dispatch_tensor).
+- aux_loss: Always 0, because we don’t need an aux_loss in this method.
 - combine_tensor: G`EC Tensor for combining expert outputs.
-- dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to</p>
-<blockquote>
-<div><p>experts.</p>
-</div></blockquote>
-</p>
+- dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to experts.</p>
 </dd>
 </dl>
 </dd></dl>

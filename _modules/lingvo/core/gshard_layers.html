@@ -2302,17 +2302,14 @@
 <span class="sd">    logits: G`SE Tensor.</span>
 <span class="sd">    experts_dim: number of experts.</span>
 <span class="sd">    fprop_dtype: activations datatype to use.</span>
-<span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
-<span class="sd">      case.</span>
-<span class="sd">    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask</span>
-<span class="sd">      tensors, mask_dtype is a special dtype for such tensors.</span>
+<span class="sd">    use_xla_sharding: True if this function is used for the xla_sharding case.</span>
+<span class="sd">    mask_dtype: dtype for mask tensors as bfloat16 could be problematic.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A tuple (aux_loss, combine_tensor, dispatch_tensor).</span>
-<span class="sd">    - aux_loss: Always 0.0, because we don&#39;t need an aux_loss in this method.</span>
+<span class="sd">    - aux_loss: Always 0, because we don&#39;t need an aux_loss in this method.</span>
 <span class="sd">    - combine_tensor: G`EC Tensor for combining expert outputs.</span>
-<span class="sd">    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to</span>
-<span class="sd">      experts.</span>
+<span class="sd">    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to experts.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">mask_dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">mask_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span>
