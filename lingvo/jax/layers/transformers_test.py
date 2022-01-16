@@ -170,7 +170,7 @@ class TransformersTest(test_util.JaxTestCase):
       p.cross_atten_tpl.use_rotary_position_emb = False
 
     p.tr_atten_tpl.dconv_kernel_size = 2
-    seq_len = 16
+    seq_len = 4
     batch_size = 4
     transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
@@ -640,10 +640,11 @@ class TransformersTest(test_util.JaxTestCase):
           cross_segment_mask=cross_segment_mask)
       self.assertAllClose(outputs, outputs_repeated, atol=1e-5)
 
-  @parameterized.parameters(*list(itertools.product([True, False], repeat=7)))
-  def test_stacked_transformer_layer_extendstep(
-      self, packed_input, cross_attention, enable_while_loop, use_repeat_layer,
-      combine_qkv, dconv_qkv, use_rotary_position_emb):
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=5)))
+  def test_stacked_transformer_layer_extendstep(self, packed_input,
+                                                cross_attention, combine_qkv,
+                                                dconv_qkv,
+                                                use_rotary_position_emb):
     if cross_attention and combine_qkv:
       self.skipTest('combine_qkv optimization only works for self-attention.')
     layer_params = transformers.StackedTransformer.Params()
@@ -658,8 +659,7 @@ class TransformersTest(test_util.JaxTestCase):
         mask_self_attention=True,
         packed_input=packed_input,
         cross_attention=cross_attention,
-        num_layers=num_layers,
-        enable_while_loop=enable_while_loop)
+        num_layers=num_layers)
     p.transformer_layer_params_tpl.tr_atten_tpl.combine_qkv = combine_qkv
     p.transformer_layer_params_tpl.tr_atten_tpl.dconv_qkv = dconv_qkv
     p.transformer_layer_params_tpl.tr_atten_tpl.use_rotary_position_emb = (
@@ -673,15 +673,14 @@ class TransformersTest(test_util.JaxTestCase):
       p.transformer_layer_params_tpl.cross_atten_tpl.use_rotary_position_emb = (
           False)
 
-    if use_repeat_layer:
-      p_copy = p.Copy()
-      p_copy.num_layers = 1
-      p = transformers.StackedTransformerRepeated.Params()
-      p.name = 'jax_transformer_repeated_layer'
-      p.block = p_copy
-      p.x_times = num_layers
+    p_copy = p.Copy()
+    p_copy.num_layers = 1
+    p = transformers.StackedTransformerRepeated.Params()
+    p.name = 'jax_transformer_repeated_layer'
+    p.block = p_copy
+    p.x_times = num_layers
 
-    seq_len = 5
+    seq_len = 4
     batch_size = 4
     stacked_transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
@@ -988,7 +987,7 @@ class TransformersTest(test_util.JaxTestCase):
     # Rotary position embedding.
     params = p.stacked_transformer_tpl.transformer_layer_params_tpl
     params.tr_atten_tpl.use_rotary_position_emb = use_rotary_position_emb
-    seq_len = 8
+    seq_len = 4
     batch_size = 2
     transformer_lm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
@@ -1039,7 +1038,7 @@ class TransformersTest(test_util.JaxTestCase):
     if not share_embedding_and_softmax:
       p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
       p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
-    seq_len = 16
+    seq_len = 4
     batch_size = 3
     # Turn on dconv as in Primer.
     params = p.stacked_transformer_tpl.transformer_layer_params_tpl
@@ -1112,7 +1111,7 @@ class TransformersTest(test_util.JaxTestCase):
     if not share_embedding_and_softmax:
       p.separate_embedding_tpl = embedding_softmax.SingleShardEmbedding.Params()
       p.softmax_tpl = embedding_softmax.SingleShardFullSoftmax.Params()
-    seq_len = 8
+    seq_len = 4
     batch_size = 2
     # Turn on dconv as in Primer.
     params = p.stacked_transformer_tpl.transformer_layer_params_tpl
@@ -1148,10 +1147,10 @@ class TransformersTest(test_util.JaxTestCase):
             initial_vars, cached_states, inputs_prefix)
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
-  @parameterized.parameters(*list(itertools.product([True, False], repeat=9)))
+  @parameterized.parameters(*list(itertools.product([True, False], repeat=8)))
   def test_transformer_encoder_decoder_extendstep(
       self, use_encoder_ngrams, use_decoder_ngrams, use_encoder_vq_ngrams,
-      use_decoder_vq_ngrams, use_rotary_position_emb, use_dconv,
+      use_decoder_vq_ngrams, use_rotary_position_emb,
       separate_encoder_embedding, separate_decoder_embedding,
       use_stacked_transformer_repeated):
     vocab_size = 4

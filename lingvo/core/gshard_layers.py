@@ -2237,17 +2237,14 @@ def TokenShufflingOnlogits(inputs,
     logits: G`SE Tensor.
     experts_dim: number of experts.
     fprop_dtype: activations datatype to use.
-    use_xla_sharding: bool, True if this function is used for the xla_sharding
-      case.
-    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
-      tensors, mask_dtype is a special dtype for such tensors.
+    use_xla_sharding: True if this function is used for the xla_sharding case.
+    mask_dtype: dtype for mask tensors as bfloat16 could be problematic.
 
   Returns:
     A tuple (aux_loss, combine_tensor, dispatch_tensor).
-    - aux_loss: Always 0.0, because we don't need an aux_loss in this method.
+    - aux_loss: Always 0, because we don't need an aux_loss in this method.
     - combine_tensor: G`EC Tensor for combining expert outputs.
-    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to
-      experts.
+    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to experts.
   """
   if mask_dtype is None:
     mask_dtype = fprop_dtype
