@@ -295,12 +295,17 @@ def sharded_masked(
         init_partition_spec=init_partition_spec_fn)
 
 
-def apply_lp_weight_decay(
+def apply_lp_regularizer(
     learning_rate_fn: optax.Schedule,
     regularizer_weight: Optional[float] = 0.0,
     p: Optional[float] = 2.0,
 ) -> ShardedGradientTransformation:
-  """Applies Lp weight decay.
+  """Applies Lp regularization by adjusting gradients.
+
+  Note, lp regularizers add loss to final loss objective, while decoupled
+  weight decay adds decay directly into weights. They are different especially
+  when there are moment statistics in optimizers. A good reference can be found
+  in: https://www.fast.ai/2018/07/02/adam-weight-decay/#adamw
 
   Args:
     learning_rate_fn: An optax schedule that infers the lr given the step.
@@ -308,10 +313,55 @@ def apply_lp_weight_decay(
     p: 1 or 2 as L1/L2 regularization.
 
   Returns:
-    A ShardedGradientTransformation applying Lp weight decay.
+    A ShardedGradientTransformation applying Lp regularizers.
   """
+  # Adjust raw gradients directly.
+  del learning_rate_fn
 
   asserts.in_set(p, [1.0, 2.0])
+
+  # TODO(aurkor, yonghui): we need respect SKIP_LP_REGULARIZATION var collection
+  # by propagating var names into ShardedGradientTransformation.
+
+  def update_fn(updates, state, params):
+    count = state.count
+    if regularizer_weight:
+      if params is None:
+        raise ValueError('Params must not be empty when applying weight decay.')
+
+      if p == 1.0:
+        fn = lambda g, p: g + regularizer_weight * jnp.sign(p)
+      elif p == 2.0:
+        fn = lambda g, p: g + regularizer_weight * p
+
+      updates = jax.tree_multimap(fn, updates, params)
+    updated_state = NestedMap(count=count + 1)
+    return updates, updated_state
+
+  return ShardedGradientTransformation(
+      init=count_init_fn,
+      update=update_fn,
+      init_partition_spec=count_init_partition_spec_fn)
+
+
+def apply_decoupled_weight_decay(
+    learning_rate_fn: optax.Schedule,
+    regularizer_weight: Optional[float] = 0.0,
+) -> ShardedGradientTransformation:
+  """Applies decoupled weight decay on weights.
+
+  Note, lp regularizers add loss to final loss objective, while decoupled
+  weight decay adds decay directly into weights. They are different especially
+  when there are moment statistics in optimizers. A good reference can be found
+  in: https://www.fast.ai/2018/07/02/adam-weight-decay/#adamw
+
+  Args:
+    learning_rate_fn: An optax schedule that infers the lr given the step.
+    regularizer_weight: Weight for decoupled weight decay.
+
+  Returns:
+    A ShardedGradientTransformation applying weight decay.
+  """
 
   # TODO(aurkor, yonghui): we need respect SKIP_LP_REGULARIZATION var collection
   # by propagating var names into ShardedGradientTransformation.
@@ -323,10 +373,7 @@ def apply_lp_weight_decay(
       if params is None:
         raise ValueError('Params must not be empty when applying weight decay.')
 
-      if p == 1.0:
-        fn = lambda g, p: g - lr * regularizer_weight * jnp.sign(p)
-      elif p == 2.0:
-        fn = lambda g, p: g - lr * regularizer_weight * p
+      fn = lambda g, p: g - lr * regularizer_weight * p
 
       updates = jax.tree_multimap(fn, updates, params)
     updated_state = NestedMap(count=count + 1)
@@ -440,6 +487,14 @@ class BaseOptimizer:
         'If not None, L1 regularization to apply to the model weights. '
         'Otherwise, disable L1 regularization.')
     p.Define(
+        'decoupled_weight_decay', None,
+        'If not None, (decoupled) weight decay to apply to the model weights. '
+        'Otherwise, disable weight decay. Note, lp regularizers add loss to '
+        'final loss objective, while decoupled weight decay adds decay '
+        'directly into weights. They are different especially when there are '
+        'moment statistics in optimizers. A good reference can be found in: '
+        'https://www.fast.ai/2018/07/02/adam-weight-decay/#adamw')
+    p.Define(
         'clip_gradient_norm_to_value', 0.0,
         'Clip gradient by global norm to this value. This is similar to '
         'the bahaviour of tf.clip_by_global_norm. If you are looking for '
@@ -458,9 +513,13 @@ class BaseOptimizer:
     self._params = params.Copy()
     p = self._params
     self._lr_schedule = self._params.lr_schedule.Instantiate()
-    # Should not mix L1 and L2 weight decay together.
+    # Should not mix L1, L2 regularizer and weight decay together.
     if p.l2_regularizer_weight and p.l1_regularizer_weight:
-      raise ValueError('Should not mix L1 and L2 regularization together.')
+      raise ValueError('Should not mix L1 and L2 regularization.')
+    if (p.decoupled_weight_decay and
+        (p.l2_regularizer_weight or p.l1_regularizer_weight)):
+      raise ValueError(
+          'Should not mix decoupled weight decay with L1 or L2 regularization.')
 
   @property
   def params(self) -> InstantiableParams:
@@ -482,15 +541,19 @@ class BaseOptimizer:
     # TODO(yonghui): respect gradient clipping, etc transformations.
     p = self.params
     return sharded_chain(
-        self._get_raw_grad_transformation(self.get_learning_rate),
-        apply_lp_weight_decay(
+        apply_lp_regularizer(
             self.get_learning_rate,
             regularizer_weight=p.l1_regularizer_weight,
             p=1.0),
-        apply_lp_weight_decay(
+        apply_lp_regularizer(
             self.get_learning_rate,
             regularizer_weight=p.l2_regularizer_weight,
-            p=2.0))
+            p=2.0),
+        self._get_raw_grad_transformation(self.get_learning_rate),
+        apply_decoupled_weight_decay(
+            self.get_learning_rate,
+            regularizer_weight=p.decoupled_weight_decay),
+    )
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> GeneralGradientTransformation:

@@ -358,9 +358,10 @@ class LearnersTest(test_util.JaxTestCase):
         var_weight_params=old_vars)
     partition_spec = grad_tx.init_partition_spec(old_vars)
     partition_spec_single = grad_tx_single.init_partition_spec(old_vars)
-    for k in partition_spec_single[0]._fields:
+    # Optimizers are chained as l1 - l2 - optimizer update - weight_decay.
+    for k in partition_spec_single[2]._fields:
       tf.nest.assert_same_structure(
-          getattr(partition_spec[0], k), getattr(partition_spec_single[0], k))
+          getattr(partition_spec[2], k), getattr(partition_spec_single[2], k))
 
   def test_vectorized_prefix(self):
 
@@ -411,19 +412,23 @@ class LearnersTest(test_util.JaxTestCase):
 
     grad_tx = learner_instance.get_grad_tx(var_weight_params=var_params)
     partition_spec = grad_tx.init_partition_spec(var_params)
-    self.assertEqual(partition_spec['p#2#i-1'][0].a.shape, ())
-    self.assertEqual(partition_spec['p#2#i-1'][0].a.repeat_prefix, [2])
+    # Optimizers are chained as l1 - l2 - optimizer update - weight_decay.
+    opt_idx = 2
+    self.assertEqual(partition_spec['p#2#i-1'][opt_idx].a.shape, ())
+    self.assertEqual(partition_spec['p#2#i-1'][opt_idx].a.repeat_prefix, [2])
     self.assertEqual(
-        partition_spec['p#2#i-1'][0].a.repeat_prefix_split_dims_mapping, [-1])
-    self.assertEqual(partition_spec[opt_vec.NO_PREFIX_KEY][0].b.shape, (2,))
-    self.assertEmpty(partition_spec[opt_vec.NO_PREFIX_KEY][0].b.repeat_prefix or
-                     [])
-    self.assertEqual(partition_spec['p#2.2#tsdata,smdl.'][0].c.shape, ())
-    self.assertEqual(partition_spec['p#2.2#tsdata,smdl.'][0].c.repeat_prefix,
-                     [2, 2])
+        partition_spec['p#2#i-1'][opt_idx].a.repeat_prefix_split_dims_mapping,
+        [-1])
+    self.assertEqual(partition_spec[opt_vec.NO_PREFIX_KEY][opt_idx].b.shape,
+                     (2,))
+    self.assertEmpty(
+        partition_spec[opt_vec.NO_PREFIX_KEY][opt_idx].b.repeat_prefix or [])
+    self.assertEqual(partition_spec['p#2.2#tsdata,smdl.'][opt_idx].c.shape, ())
+    self.assertEqual(
+        partition_spec['p#2.2#tsdata,smdl.'][opt_idx].c.repeat_prefix, [2, 2])
     self.assertEqual(
         partition_spec['p#2.2#tsdata,smdl.']
-        [0].c.repeat_prefix_split_dims_mapping, [('data', 'mdl'), None])
+        [opt_idx].c.repeat_prefix_split_dims_mapping, [('data', 'mdl'), None])
 
     state = grad_tx.init(variables)
     # Computed update is 0 + state, and state is sum of each variable.
