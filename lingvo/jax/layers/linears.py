@@ -429,8 +429,5 @@ class StackingOverTime(base_layer.BaseLayer):
     def gather_nd_unbatched(params, indices):
       return params[tuple(jnp.moveaxis(indices, -1, 0))]
 
-    if batch_size == 1:
-      return gather_nd_unbatched(stacked, window_and_frame_indices)
-    else:
-      return vmap(gather_nd_unbatched, (0, 0), 0)(stacked,
-                                                  window_and_frame_indices)
+    return vmap(gather_nd_unbatched, (0, 0), 0)(stacked,
+                                                window_and_frame_indices)
