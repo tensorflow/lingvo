@@ -23,6 +23,7 @@ from absl import logging
 import jax
 from jax import lax
 from jax import numpy as jnp
+import jax.experimental.pjit as pjit
 from lingvo.jax import asserts
 from lingvo.jax import base_layer
 from lingvo.jax import gshard_utils
@@ -854,148 +855,74 @@ class ShardedDistributedShampoo(DistributedShampoo):
     super().__init__(params)
     self._params.shard_optimizer_states = True
 
-  def quantized_dtype_for_momentum_buffers(self) -> jnp.dtype:
-    return jnp.int8 if self._params.best_effort_memory_usage_reduction else jnp.float32
-
-  def quantized_dtype_for_statistics_buffers(self) -> jnp.dtype:
-    return jnp.bfloat16 if self._params.best_effort_memory_usage_reduction else jnp.float32
-
-  # TODO(rohananil): Avoid mirroring code here for init_partition_spec.
-  def _skip_preconditioning(self, param, skip_preconditioning_dim_size_gt):
-    return len(param.shape) < 1 or any(
-        [s > skip_preconditioning_dim_size_gt for s in param.shape])
-
-  def init_partition_spec_fn(self, params):
+  def init_partition_spec_fn(self, init_pspec, init_shapes_dtypes, axes_names,
+                             params):
     """Annotates the PartitionSpec for optimizer states."""
     p = self._params
-    var_spec_flattened, _ = jax.tree_flatten(params)
-    assert var_spec_flattened
-    first_var = var_spec_flattened[0]
-    assert isinstance(first_var, py_utils.Params)
-    device_mesh = first_var.device_mesh
-    count = py_utils.weight_params(
-        shape=[],
-        init=None,
-        dtype=jnp.int32,
-        collections=None,
-        device_mesh=device_mesh,
-        tensor_split_dims_mapping=[])
+    param_pspec_flattened, _ = jax.tree_flatten(params)
+    assert param_pspec_flattened
+    first_param = param_pspec_flattened[0]
+    assert isinstance(first_param, py_utils.Params)
+    assert len(axes_names) == len(p.tensor_dim_mapping)
+    device_mesh = first_param.device_mesh
 
-    params_flat, treedef = jax.tree_flatten(params)
-    # Find max size to pad to.
-    max_size = 0
-    for param in params_flat:
-      param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = Preconditioner(param_clone, p.block_size,
-                                      p.best_effort_shape_interpretation)
-      if not self._skip_preconditioning(param,
-                                        p.skip_preconditioning_dim_size_gt):
-        shapes = preconditioner.shapes_for_preconditioners()
-        sizes = [s[0] for s in shapes]
-        max_size = max(max(sizes), max_size)
+    def _sharded_axes(tensor_split_dims_mapping):
+      axes = []
+      if not tensor_split_dims_mapping:
+        return [None]
+      for tsdm in tensor_split_dims_mapping:
+        if isinstance(tsdm, str):
+          axes.append(tsdm)
+        elif tsdm and tsdm != -1:
+          axes.append(axes_names[tsdm])
+        elif tsdm == -1 or not tsdm:
+          axes.append(None)
+      return tuple(axes)
 
-    local_stats_flat = []
-    num_statistics = 0
-    for param in params_flat:
-      param_clone = jnp.zeros(param.shape, dtype=param.dtype)
-      preconditioner = Preconditioner(param_clone, p.block_size,
-                                      p.best_effort_shape_interpretation)
-      shapes = preconditioner.shapes_for_preconditioners()
-      sizes = []
+    partition_spec_statistics = pjit.PartitionSpec(
+        *_sharded_axes(p.tensor_dim_mapping))
 
-      index_start = num_statistics
-      if not self._skip_preconditioning(param,
-                                        p.skip_preconditioning_dim_size_gt):
-        sizes = [s[0] for s in shapes]
-        shapes = preconditioner.shapes_for_preconditioners()
-        num_statistics += len(shapes)
+    def _pspec_from_weight_param(param):
+      p = pjit.PartitionSpec(*_sharded_axes(param.tensor_split_dims_mapping))
+      return p
 
-      diagonal_statistics_var_params = []
-      diagonal_statistics_var_params_shape = []
-      diagonal_statistics_scale_var_params = []
-      if p.graft_type != GraftingType.SGD:
-        diagonal_statistics_var_params = param.Copy()
-        diagonal_statistics_var_params_shape = diagonal_statistics_var_params.shape
-        diagonal_statistics_var_params.init = None
-        if self.quantized_dtype_for_statistics_buffers() != jnp.float32:
-          scale_shape = diagonal_statistics_var_params.shape[1:]
-          diagonal_statistics_scale_split_dims_mapping = (
-              diagonal_statistics_var_params.tensor_split_dims_mapping)
-          if diagonal_statistics_scale_split_dims_mapping:
-            diagonal_statistics_scale_split_dims_mapping = (
-                gshard_utils.remove_dim(
-                    0, diagonal_statistics_scale_split_dims_mapping))
-          diagonal_statistics_scale_var_params = py_utils.weight_params(
-              shape=scale_shape,
-              init=None,
-              dtype=jnp.float32,
-              collections=None,
-              device_mesh=diagonal_statistics_var_params.device_mesh,
-              tensor_split_dims_mapping=diagonal_statistics_scale_split_dims_mapping
-          )
+    partition_spec_params = jax.tree_map(_pspec_from_weight_param, params)
+    shapes_and_dtypes = init_shapes_dtypes(params)
+    partition_spec_opt_state = init_pspec(params, partition_spec_params,
+                                          partition_spec_statistics)
 
-      m1_var_params = param.Copy()
-      m1_var_params.init = None
-      m2_var_params = param.Copy()
-      m2_var_params.init = None
+    def _weight_param_from_pspec_shape_dtype(pspec, shapes_and_dtypes):
+      if not pspec:
+        tensor_split_dims_mapping = []
+      else:
+        tensor_split_dims_mapping = []
+        tensor_split_dims_mapping = [
+            axes_names.index(axis) if axis else -1 for axis in pspec
+        ]
+      return py_utils.weight_params(
+          shape=shapes_and_dtypes[0],
+          init=None,
+          dtype=shapes_and_dtypes[1],
+          collections=None,
+          device_mesh=device_mesh,
+          tensor_split_dims_mapping=tensor_split_dims_mapping)
 
-      m1_scale_var_params = []
-      m2_scale_var_params = []
-      if self.quantized_dtype_for_momentum_buffers() != jnp.float32:
-        scale_shape = m1_var_params.shape[1:]
-        m_scale_split_dims_mapping = m1_var_params.tensor_split_dims_mapping
-        if m_scale_split_dims_mapping:
-          m_scale_split_dims_mapping = gshard_utils.remove_dim(
-              0, m_scale_split_dims_mapping)
-        m1_scale_var_params = py_utils.weight_params(
-            shape=scale_shape,
-            init=None,
-            dtype=jnp.float32,
-            collections=None,
-            device_mesh=m1_var_params.device_mesh,
-            tensor_split_dims_mapping=m_scale_split_dims_mapping)
-        m2_scale_var_params = m1_scale_var_params.Copy()
-
-      local_stats_flat.append(
-          LocalShardedParameterStats(
-              QuantizedValue(diagonal_statistics_var_params, [],
-                             diagonal_statistics_scale_var_params,
-                             self.quantized_dtype_for_statistics_buffers(),
-                             False, diagonal_statistics_var_params_shape),
-              QuantizedValue(m1_var_params, [], m1_scale_var_params,
-                             self.quantized_dtype_for_momentum_buffers(), False,
-                             m1_var_params.shape),
-              QuantizedValue(m2_var_params, [], m2_scale_var_params,
-                             self.quantized_dtype_for_momentum_buffers(), False,
-                             m2_var_params.shape), index_start, sizes))
-
-    local_stats = jax.tree_unflatten(treedef, local_stats_flat)
-    # Pad the statistics and preconditioner matrices to be a multiple of
-    # num devices.
-    # TODO(rohananil): Relax to only the size of the mesh axis where the dim
-    # is split on.
-    to_pad = -num_statistics % p.num_devices_for_pjit
-    num_statistics += to_pad
-    padded_statistics_var_params = py_utils.weight_params(
-        shape=[num_statistics, max_size, max_size],
-        init=None,
-        dtype=jnp.float32,
-        collections=None,
-        device_mesh=device_mesh,
-        tensor_split_dims_mapping=p.tensor_dim_mapping)
-    padded_preconditioner_var_params = padded_statistics_var_params.Copy()
-    global_stats = GlobalShardedParameterStats(
-        padded_statistics_var_params, padded_preconditioner_var_params)
-    return ShampooState(
-        count=count, stats=ShardedShampooStats(global_stats, local_stats))
+    return jax.tree_multimap(_weight_param_from_pspec_shape_dtype,
+                             partition_spec_opt_state, shapes_and_dtypes)
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> ShardedGradientTransformation:
     result = super()._get_raw_grad_transformation(lr)
+    # TODO(rohananil): Refactor after PartitionSpec layering is finalized in
+    # the JAX ecosystem.
+    fns = result.init(None)
     return ShardedGradientTransformation(
-        init=result.init,
+        init=fns.init_fn,
         update=result.update,
-        init_partition_spec=self.init_partition_spec_fn)
+        init_partition_spec=functools.partial(self.init_partition_spec_fn,
+                                              fns.pspec_fn,
+                                              fns.shape_and_dtype_fn,
+                                              self.params.mesh_axis_names))
 
 
 class Adagrad(BaseOptimizer):
