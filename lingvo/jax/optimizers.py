@@ -519,6 +519,8 @@ class BaseOptimizer:
         'Clip gradient by single tensor norm to this value. This is '
         'similar to the bahaviour of tf.clip_by_norm. Note this is mutually '
         'exclusive to using clip_gradient_norm_to_value.')
+    p.Define('skip_step_gradient_norm_value', 0.0,
+             'We skip a step entirely if gradient_norm exceeds this value.')
     p.Define('learning_rate', 0.0, 'learning rate to use.')
     p.Define('lr_schedule', None, 'Learning rate decay schedule.')
     return p
@@ -1393,11 +1395,20 @@ class _ShardedAdafactorHelper:
   def compute_var_and_slot_update(self, count, grad, m, m_scale, vr, vc, v,
                                   param, var_name):
     """Computes the var and optimizer slots updates for a single variable."""
+    # keep a copy of slot vars such that in the end we can decide to not change
+    # them.
+    orig_m = m
+    orig_m_scale = m_scale
+    orig_vr = vr
+    orig_vc = vc
+    orig_v = v
+
     # We can probably skip this step
     grad = self.sanitize_values(grad)
     grad = grad.astype(jnp.float32)
     # Add epsilon1_grad_sq_reg as per Algorithm 4
     # of https://arxiv.org/pdf/1804.04235.pdf
+    grad_sum_squared = jnp.sum(jnp.square(grad))
     grad_squared = jnp.square(grad) + self._epsilon1
     grad_squared_mean = self.sanitize_values(reduce_mean(grad_squared))
     if self._decay_method == 'adam':
@@ -1496,13 +1507,33 @@ class _ShardedAdafactorHelper:
 
     # TODO(bf-jax): Add support for layerwise adaptation
 
+    def skip_step_cond(grad_sum_squared):
+      # When something bad happens, e.g. some grad is NaN or inf, we reset all
+      # gradient value to be 0. When this happens, grad_sum_squared will be 0,
+      # and here we simply skip the step.
+      return jnp.less_equal(grad_sum_squared, jnp.array(1e-30, jnp.float32))
+
+    def keep_step(update, m, m_scale, vr, vc, v, orig_m, orig_m_scale, orig_vr,
+                  orig_vc, orig_v):
+      del orig_m, orig_m_scale, orig_vr, orig_vc, orig_v
+      return update, m, m_scale, vr, vc, v
+
+    def skip_step(update, m, m_scale, vr, vc, v, orig_m, orig_m_scale, orig_vr,
+                  orig_vc, orig_v):
+      del m, m_scale, vr, vc, v
+      return (jnp.zeros_like(update), orig_m, orig_m_scale, orig_vr, orig_vc,
+              orig_v)
+
+    # jax.lax.cond returns the original slot values if gradients are all zero
+    # (which is an indication of gradient anomaly being detected), otherwise,
+    # returns the new slot values.
+    update, m, m_scale, vr, vc, v = jax.lax.cond(
+        skip_step_cond(grad_sum_squared), skip_step, keep_step, -subtrahend,
+        output_m, output_m_scale, output_vr, output_vc, output_v, orig_m,
+        orig_m_scale, orig_vr, orig_vc, orig_v)
+
     return _ShardedAdafactorUpdateResult(
-        update=-subtrahend,
-        m=output_m,
-        m_scale=output_m_scale,
-        vr=output_vr,
-        vc=output_vc,
-        v=output_v)
+        update=update, m=m, m_scale=m_scale, vr=vr, vc=vc, v=v)
 
 
 def sharded_adafactor(
@@ -1577,12 +1608,12 @@ def sharded_adafactor(
       by size, for the factored second moment.
     min_dim_size_to_factor: an integer, only factor the statistics if two array
       dimensions have at least this size. NOTE: min_dim_size_to_factor is only
-      used when sort_factored_second_moment_dims=True.
-    multiply_by_parameter_scale: a boolean, if True, then scale learning_rate
-      by parameter scale. if False provided learning_rate is absolute step
+        used when sort_factored_second_moment_dims=True.
+    multiply_by_parameter_scale: a boolean, if True, then scale learning_rate by
+      parameter scale. if False provided learning_rate is absolute step
       size. NOTE: False by default.
-    epsilon2_param_scale_reg: Regularization constant for parameter scale.
-      Only used when multiply_by_parameter_scale is True.
+    epsilon2_param_scale_reg: Regularization constant for parameter scale. Only
+      used when multiply_by_parameter_scale is True.
 
   Returns:
     A `ShardedGradientTransformation`.

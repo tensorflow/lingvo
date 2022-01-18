@@ -87,11 +87,11 @@ class Learner(base_layer.BaseLayer):
     return opt_vec.get_transformations_with_vectorized_repeat_prefix(
         self._grad_tx, var_weight_params)
 
-  def scale_gradients(self, grads: NestedMap) -> NestedMap:
+  def scale_gradients(self, raw_grads: NestedMap) -> NestedMap:
     """Scales the gradient.
 
     Args:
-      grads: A nested structure of gradient values.
+      raw_grads: A nested structure of gradient values.
 
     Returns:
      A nested structure with the rescaled gradient values.
@@ -99,7 +99,7 @@ class Learner(base_layer.BaseLayer):
     p = self.params
     learner_name = self.params.name
     # Compute gradient norm.
-    grad_squared = jax.tree_map(lambda x: jnp.sum(x * x), grads)
+    grad_squared = jax.tree_map(lambda x: jnp.sum(x * x), raw_grads)
 
     if p.grad_norm_individual_vars:
       grad_norms = jax.tree_map(jnp.sqrt, grad_squared)
@@ -112,27 +112,59 @@ class Learner(base_layer.BaseLayer):
 
     grad_squared, _ = jax.tree_flatten(grad_squared)
     grad_squared = jnp.concatenate([x[jnp.newaxis] for x in grad_squared])
-    grad_norm = jnp.sqrt(jnp.sum(grad_squared))
-    base_layer.add_summary(f'{learner_name}/grad_norm', grad_norm)
-    if p.optimizer.clip_gradient_norm_to_value:
-      assert p.optimizer.clip_gradient_single_norm_to_value == 0.
-      grad_scale = jnp.minimum(
-          jnp.array(1, grad_norm.dtype),
-          jnp.array(p.optimizer.clip_gradient_norm_to_value, grad_norm.dtype) /
-          grad_norm)
-      base_layer.add_summary('grad_scale', grad_scale)
-      grads = jax.tree_map(lambda g: g * grad_scale, grads)
-    elif p.optimizer.clip_gradient_single_norm_to_value:
-      assert p.optimizer.clip_gradient_norm_to_value == 0.
-      grad_single_norm = jax.tree_map(lambda x: jnp.sqrt(jnp.sum(x * x)), grads)
+    raw_grad_norm = jnp.sqrt(jnp.sum(grad_squared))
+    base_layer.add_summary(f'{learner_name}/grad_norm', raw_grad_norm)
 
-      def scale_gradient(grad, norm):
-        return grad * jnp.minimum(
+    def keep_step(grad_norm):
+      keep_threshold = p.optimizer.skip_step_gradient_norm_value
+      if keep_threshold:
+        return jnp.logical_and(
+            jnp.all(jnp.isfinite(grad_norm)),
+            jnp.all(jnp.less(grad_norm, keep_threshold)))
+      else:
+        return jnp.all(jnp.isfinite(grad_norm))
+
+    def clip_grads(grads, grad_norm):
+      if p.optimizer.clip_gradient_norm_to_value:
+        assert p.optimizer.clip_gradient_single_norm_to_value == 0.
+        grad_scale = jnp.minimum(
             jnp.array(1, grad_norm.dtype),
-            jnp.array(p.optimizer.clip_gradient_single_norm_to_value,
-                      grad_norm.dtype) / norm)
+            jnp.array(p.optimizer.clip_gradient_norm_to_value, grad_norm.dtype)
+            / grad_norm)
+        grads = jax.tree_map(lambda g: g * grad_scale, grads)
+      elif p.optimizer.clip_gradient_single_norm_to_value:
+        assert p.optimizer.clip_gradient_norm_to_value == 0.
+        grad_single_norm = jax.tree_map(lambda x: jnp.sqrt(jnp.sum(x * x)),
+                                        grads)
 
-      grads = jax.tree_map(scale_gradient, grads, grad_single_norm)
+        def scale_gradient(grad, norm):
+          return grad * jnp.minimum(
+              jnp.array(1, norm.dtype),
+              jnp.array(p.optimizer.clip_gradient_single_norm_to_value,
+                        norm.dtype) / norm)
+
+        grads = jax.tree_map(scale_gradient, grads, grad_single_norm)
+        grad_scale = jnp.array(1.0)
+      else:
+        # no clipping is needed.
+        grad_scale = jnp.array(1.0)
+      return grads, grad_scale
+
+    def zero_grads(grads, grad_norm):
+      del grad_norm
+      return jax.tree_map(jnp.zeros_like, grads), jnp.array(0.0)
+
+    # jax.lax.cond zeros out gradient if any gradient anomaly is detected (e.g.
+    # Nan or Inf, or excessively big gradient norm).
+    #
+    # TODO(yonghui): Move grad scaling as an optax transformation so that we can
+    # keep track of how many steps being skipped.
+    grads, grad_scale = jax.lax.cond(
+        keep_step(raw_grad_norm), clip_grads, zero_grads, raw_grads,
+        raw_grad_norm)
+
+    base_layer.add_summary('grad_scale', grad_scale)
+
     return grads
 
   def update_states(
