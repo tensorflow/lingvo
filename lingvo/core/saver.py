@@ -18,18 +18,20 @@ The implementation mimics tf.train.Saver. Meanwhile, it allows us
 to carry out extra sanity checks on the checkpoint.
 """
 
+import collections
 import re
 import threading
 import time
 from lingvo import compat as tf
-# pylint: enable=g-direct-tensorflow-import
 from lingvo.core import py_utils
 import numpy as np
 from google.protobuf import text_format
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.lib.io import file_io
+from tensorflow.python.ops import gen_io_ops
 from tensorflow.python.ops import io_ops
 from tensorflow.python.training.checkpoint_state_pb2 import CheckpointState
+# pylint: enable=g-direct-tensorflow-import
 
 
 class SanityCheck:
@@ -124,6 +126,34 @@ class Saver:
     tf.logging.info("Saver: %s %s %s", self._logdir, self._keep_latest_n,
                     self._keep_every_n_hours)
 
+  def _AddShardedSaveOps(self, variables, checkpoint_prefix, var_key_fn):
+    """Adds per-device save ops to save `variables` to `checkpoint_prefix`."""
+    with variables[0].graph.as_default():
+      per_device = collections.defaultdict(lambda: [])
+      for var in variables:
+        per_device[var.device].append(var)
+
+      tmp_save_prefix = tf.strings.join([checkpoint_prefix, "_temp/part"])
+      num_shards = tf.constant(len(per_device))
+      sharded_saves = []
+      sharded_prefixes = []
+
+      for shard, (device, var_list) in enumerate(per_device.items()):
+        with tf.device(device):
+          sharded_filename = gen_io_ops.sharded_filename(
+              tmp_save_prefix, shard, num_shards)
+          sharded_prefixes.append(sharded_filename)
+          save_op = io_ops.save_v2(
+              prefix=sharded_filename,
+              tensor_names=[var_key_fn(v) for v in var_list],
+              tensors=[v.read_value() for v in var_list],
+              shape_and_slices=[""] * len(var_list))
+          sharded_saves.append(save_op)
+
+      with tf.control_dependencies(sharded_saves):
+        return gen_io_ops.merge_v2_checkpoints(
+            sharded_prefixes, checkpoint_prefix, delete_old_dirs=True)
+
   def _BuildSave(self):
     """Builds save ops."""
     self._save_global_step = py_utils.GetGlobalStep()
@@ -131,22 +161,26 @@ class Saver:
         self._logdir_ph, "/ckpt-",
         tf.as_string(self._save_global_step, width=8, fill="0")
     ])
-    self._save_op = io_ops.save_v2(
-        prefix=self._save_prefix,
-        tensor_names=[_VarKey(v) for v in self._vars],
-        tensors=[v.read_value() for v in self._vars],
-        shape_and_slices=[""] * len(self._vars))
+    self._save_op = self._AddShardedSaveOps(self._vars, self._save_prefix,
+                                            _VarKey)
 
   def _BuildRestore(self):
     """Builds restore ops."""
-    assign_ops = []
+    per_device = collections.defaultdict(lambda: [])
     for var in self._vars:
-      val, = io_ops.restore_v2(
-          prefix=self._restore_prefix_ph,
-          tensor_names=[_VarKey(var)],
-          shape_and_slices=[""],
-          dtypes=[var.dtype])
-      assign_ops.append(var.assign(val))
+      per_device[var.device].append(var)
+
+    assign_ops = []
+    for device, var_list in per_device.items():
+      with tf.device(device):
+        for var in var_list:
+          val, = io_ops.restore_v2(
+              prefix=self._restore_prefix_ph,
+              tensor_names=[_VarKey(var)],
+              shape_and_slices=[""],
+              dtypes=[var.dtype])
+          assign_ops.append(var.assign(val))
+
     self._restore_op = tf.group(*assign_ops)
 
   def _GetState(self):
@@ -249,11 +283,13 @@ class Saver:
 
     def _Async(prefix):
       try:
-        save_op = io_ops.save_v2(
-            prefix=prefix,
-            tensor_names=[_VarKey(v) for v in self._vars],
-            tensors=[v.read_value() for v in self._copied_vars],
-            shape_and_slices=[""] * len(self._vars))
+        copied_var_map = {
+            id(copied_var): var
+            for copied_var, var in zip(self._copied_vars, self._vars)
+        }
+        save_op = self._AddShardedSaveOps(
+            self._copied_vars, prefix,
+            lambda copied_var: _VarKey(copied_var_map[id(copied_var)]))
         _ = sess.run(fetches=[save_op], feed_dict={})
         # Many users expect this as the tf.train.Saver does this by default.
         prefix = tf.compat.as_text(prefix)
