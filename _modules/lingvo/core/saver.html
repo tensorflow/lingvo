@@ -83,18 +83,20 @@
 <span class="sd">to carry out extra sanity checks on the checkpoint.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
-<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">text_format</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.lib.io</span> <span class="kn">import</span> <span class="n">file_io</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">gen_io_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">io_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.training.checkpoint_state_pb2</span> <span class="kn">import</span> <span class="n">CheckpointState</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
 <div class="viewcode-block" id="SanityCheck"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.SanityCheck">[docs]</a><span class="k">class</span> <span class="nc">SanityCheck</span><span class="p">:</span>
@@ -189,6 +191,34 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saver: </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span><span class="p">,</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span><span class="p">)</span>
 
+<div class="viewcode-block" id="Saver._AddShardedSaveOps"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._AddShardedSaveOps">[docs]</a>  <span class="k">def</span> <span class="nf">_AddShardedSaveOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variables</span><span class="p">,</span> <span class="n">checkpoint_prefix</span><span class="p">,</span> <span class="n">var_key_fn</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds per-device save ops to save `variables` to `checkpoint_prefix`.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">variables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="n">per_device</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+      <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+        <span class="n">per_device</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+      <span class="n">tmp_save_prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">checkpoint_prefix</span><span class="p">,</span> <span class="s2">&quot;_temp/part&quot;</span><span class="p">])</span>
+      <span class="n">num_shards</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">per_device</span><span class="p">))</span>
+      <span class="n">sharded_saves</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">sharded_prefixes</span> <span class="o">=</span> <span class="p">[]</span>
+
+      <span class="k">for</span> <span class="n">shard</span><span class="p">,</span> <span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">var_list</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">per_device</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+          <span class="n">sharded_filename</span> <span class="o">=</span> <span class="n">gen_io_ops</span><span class="o">.</span><span class="n">sharded_filename</span><span class="p">(</span>
+              <span class="n">tmp_save_prefix</span><span class="p">,</span> <span class="n">shard</span><span class="p">,</span> <span class="n">num_shards</span><span class="p">)</span>
+          <span class="n">sharded_prefixes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sharded_filename</span><span class="p">)</span>
+          <span class="n">save_op</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">save_v2</span><span class="p">(</span>
+              <span class="n">prefix</span><span class="o">=</span><span class="n">sharded_filename</span><span class="p">,</span>
+              <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">var_key_fn</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">],</span>
+              <span class="n">tensors</span><span class="o">=</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">],</span>
+              <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">var_list</span><span class="p">))</span>
+          <span class="n">sharded_saves</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">save_op</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">sharded_saves</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">gen_io_ops</span><span class="o">.</span><span class="n">merge_v2_checkpoints</span><span class="p">(</span>
+            <span class="n">sharded_prefixes</span><span class="p">,</span> <span class="n">checkpoint_prefix</span><span class="p">,</span> <span class="n">delete_old_dirs</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="Saver._BuildSave"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._BuildSave">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildSave</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Builds save ops.&quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
@@ -196,22 +226,26 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span><span class="p">,</span> <span class="s2">&quot;/ckpt-&quot;</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">as_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
     <span class="p">])</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">save_v2</span><span class="p">(</span>
-        <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">,</span>
-        <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">],</span>
-        <span class="n">tensors</span><span class="o">=</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">],</span>
-        <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">))</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddShardedSaveOps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">,</span>
+                                            <span class="n">_VarKey</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Saver._BuildRestore"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._BuildRestore">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildRestore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Builds restore ops.&quot;&quot;&quot;</span>
-    <span class="n">assign_ops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">per_device</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
     <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">:</span>
-      <span class="n">val</span><span class="p">,</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">restore_v2</span><span class="p">(</span>
-          <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span><span class="p">,</span>
-          <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">var</span><span class="p">)],</span>
-          <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
-          <span class="n">dtypes</span><span class="o">=</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="p">])</span>
-      <span class="n">assign_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+      <span class="n">per_device</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+    <span class="n">assign_ops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">device</span><span class="p">,</span> <span class="n">var_list</span> <span class="ow">in</span> <span class="n">per_device</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">:</span>
+          <span class="n">val</span><span class="p">,</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">restore_v2</span><span class="p">(</span>
+              <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span><span class="p">,</span>
+              <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">var</span><span class="p">)],</span>
+              <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+              <span class="n">dtypes</span><span class="o">=</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="p">])</span>
+          <span class="n">assign_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_restore_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">assign_ops</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Saver._GetState"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._GetState">[docs]</a>  <span class="k">def</span> <span class="nf">_GetState</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -314,11 +348,13 @@
 
     <span class="k">def</span> <span class="nf">_Async</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
       <span class="k">try</span><span class="p">:</span>
-        <span class="n">save_op</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">save_v2</span><span class="p">(</span>
-            <span class="n">prefix</span><span class="o">=</span><span class="n">prefix</span><span class="p">,</span>
-            <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">],</span>
-            <span class="n">tensors</span><span class="o">=</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">],</span>
-            <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">))</span>
+        <span class="n">copied_var_map</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="nb">id</span><span class="p">(</span><span class="n">copied_var</span><span class="p">):</span> <span class="n">var</span>
+            <span class="k">for</span> <span class="n">copied_var</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">)</span>
+        <span class="p">}</span>
+        <span class="n">save_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddShardedSaveOps</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span>
+            <span class="k">lambda</span> <span class="n">copied_var</span><span class="p">:</span> <span class="n">_VarKey</span><span class="p">(</span><span class="n">copied_var_map</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">copied_var</span><span class="p">)]))</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="n">save_op</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{})</span>
         <span class="c1"># Many users expect this as the tf.train.Saver does this by default.</span>
         <span class="n">prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
