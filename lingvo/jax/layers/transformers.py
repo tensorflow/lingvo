@@ -228,6 +228,10 @@ class TransformerFeedForward(base_layer.BaseLayer):
         'Options are: '
         '(1) "pre", applied before transformation.'
         '(2) "primer_hybrid", applied before and after transformation.')
+    p.Define(
+        'internal_gshard_variance_scaling_fan_in_init', False,
+        'Feedforward weight init follows uniform distribution with'
+        ' bound = 1.0 / sqrt(3 / dim_0).')
     p.weight_split_dims_mapping = py_utils.Params()
     wp = p.weight_split_dims_mapping
     wp.Define('ffn0', None,
@@ -296,6 +300,9 @@ class TransformerFeedForward(base_layer.BaseLayer):
     ffn1_p.output_dims = p.hidden_dims
     ffn1_p.weight_split_dims_mapping.wt = wp.ffn0
     ffn1_p.activation_split_dims_mapping.out = ap.ffn0
+    if p.internal_gshard_variance_scaling_fan_in_init:
+      scale = (1. / p.input_dims)**0.5 * (3.0**0.5)
+      ffn1_p.linear_tpl.params_init = WeightInit.Uniform(scale)
     self.create_child('ffn_layer1', ffn1_p)
 
     if self._is_ffn1_gated:
@@ -308,6 +315,9 @@ class TransformerFeedForward(base_layer.BaseLayer):
       gate_p.output_dims = p.hidden_dims
       gate_p.weight_split_dims_mapping.wt = wp.ffn0
       gate_p.activation_split_dims_mapping.out = ap.ffn0
+      if p.internal_gshard_variance_scaling_fan_in_init:
+        scale = (1. / p.input_dims)**0.5 * (3.0**0.5)
+        gate_p.linear_tpl.params_init = WeightInit.Uniform(scale)
       self.create_child('ffn_layer1_gate', gate_p)
 
     # Create RELU dropout layer
@@ -324,6 +334,9 @@ class TransformerFeedForward(base_layer.BaseLayer):
     ffn2_p.output_dims = p.output_dims
     ffn2_p.weight_split_dims_mapping.wt = wp.ffn1
     ffn2_p.activation_split_dims_mapping.out = ap.ffn1
+    if p.internal_gshard_variance_scaling_fan_in_init:
+      scale = (1. / p.hidden_dims)**0.5 * (3.0**0.5)
+      ffn2_p.linear_tpl.params_init = WeightInit.Uniform(scale)
     self.create_child('ffn_layer2', ffn2_p)
 
     # Create residual dropout layer
@@ -836,8 +849,7 @@ class Transformer(base_layer.BaseLayer):
         'Options are: '
         '(1) "pre", applied before transformation.'
         '(2) "primer_hybrid", applied before and after transformation.')
-    p.Define('tr_atten_tpl',
-             attentions.DotProductAttention.Params().Set(),
+    p.Define('tr_atten_tpl', attentions.DotProductAttention.Params(),
              'DotProductAttention Layer params.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
@@ -1193,8 +1205,10 @@ class StackedTransformer(base_layer.BaseLayer):
     p.transformer_layer_params_tpl.ln_tpl = normalizations.RmsNorm.Params()
     p.transformer_layer_params_tpl.ln_tpl.direct_scale = True
     tr_atten_tpl = p.transformer_layer_params_tpl.tr_atten_tpl
+    assert tr_atten_tpl.cls == attentions.DotProductAttention
     tr_atten_tpl.attention_extra_logit = attention_extra_logit
     tr_atten_tpl.use_bias = False
+    tr_atten_tpl.internal_gshard_gaussian_init = True
     tr_atten_tpl.internal_enable_per_dim_scale = False
     tr_atten_tpl.relative_bias_tpl = attentions.RelativeBias.Params().Set(
         relative_attention_num_buckets=relative_attention_num_buckets,
@@ -1202,6 +1216,7 @@ class StackedTransformer(base_layer.BaseLayer):
     tr_atten_tpl.output_proj_use_nhd_shape = True
     # Non-MoE ffn setup
     ff_tpl = p.transformer_layer_params_tpl.tr_fflayer_tpl
+    assert ff_tpl.cls == TransformerFeedForward
     ff_tpl.input_dims = model_dim
     ff_tpl.hidden_dims = ff_dim
     ff_tpl.has_bias = False
@@ -1210,8 +1225,10 @@ class StackedTransformer(base_layer.BaseLayer):
     ff_tpl.ln_tpl.direct_scale = True
     ff_tpl.add_skip_connection = True
     ff_tpl.activation = ffn_activation
+    ff_tpl.internal_gshard_variance_scaling_fan_in_init = True
     # MoE ffn setup
     moe_p = p.moe_layer_tpl
+    assert moe_p.cls == TransformerFeedForwardMoe
     moe_p.input_dims = model_dim
     moe_p.hidden_dims = ff_dim
     moe_p.ln_tpl = normalizations.RmsNorm.Params()
@@ -1220,6 +1237,7 @@ class StackedTransformer(base_layer.BaseLayer):
     moe_p.num_groups = num_groups
     moe_p.expert_capacity_dim = c_dim
     moe_p.expert_capacity_factor = capacity_factor
+    moe_p.internal_gshard_variance_scaling_fan_in_init = True
     return p
 
   @staticmethod
@@ -1832,8 +1850,7 @@ class TransformerLm(base_layer.BaseLayer):
     # We assume activation batch is split on both replica_axis and data_axis.
     batch_split = (replica_axis, data_axis)
     softmax_p = lm_p.softmax_tpl
-    if isinstance(softmax_p.cls,
-                  embedding_softmax.GShardSharedEmebeddingSoftmax):
+    if softmax_p.cls == embedding_softmax.GShardSharedEmebeddingSoftmax:
       # Softmax weight is of shape [vocab_size, input_dim].
       softmax_p.weight_split_dims_mapping.wt = [mdl_axis, data_axis]
     else:

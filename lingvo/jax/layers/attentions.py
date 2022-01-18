@@ -620,6 +620,8 @@ class DotProductAttention(base_layer.BaseLayer):
     p.Define(
         'dconv_kernel_size', 3, 'Size of the kernel window over the sequence '
         'dimension in the depth-wise convolution.')
+    p.Define('internal_gshard_gaussian_init', False,
+             'Projection weight init follows Gaussian distribution.')
     # Note: supported for encoder only.
     p.Define(
         'combine_qkv', False,
@@ -694,12 +696,14 @@ class DotProductAttention(base_layer.BaseLayer):
       assert p.weight_split_dims_mapping is not None
       assert p.activation_split_dims_mapping is not None
 
-    def project_input(input_dim):
+    def project_input(input_dim, gaussian_std=None):
       proj_p = p.proj_tpl.Copy().Set(
           input_dim=input_dim,
           num_heads=p.num_heads,
           dim_per_head=dim_per_head,
           use_bias=p.use_bias)
+      if gaussian_std:
+        proj_p.params_init = WeightInit.Gaussian(gaussian_std)
       proj_p.weight_split_dims_mapping.wt = wp.proj
       return proj_p
 
@@ -723,15 +727,26 @@ class DotProductAttention(base_layer.BaseLayer):
       value_input_dim = p.input_dim
       query_input_dim = p.input_dim
 
+    if p.internal_gshard_gaussian_init:
+      query_std = (query_input_dim * dim_per_head)**-0.5
+      key_std = (key_input_dim)**-0.5
+      value_std = (value_input_dim)**-0.5
+      post_std = (p.num_heads * dim_per_head)**-0.5
+    else:
+      query_std = None
+      key_std = None
+      value_std = None
+      post_std = None
+
     if p.combine_qkv:
       assert key_input_dim == value_input_dim
       assert key_input_dim == query_input_dim
       self.create_child('combined_qkv',
                         combined_qkv_project_input(query_input_dim))
     else:
-      self.create_child('key', project_input(key_input_dim))
-      self.create_child('query', project_input(query_input_dim))
-      self.create_child('value', project_input(value_input_dim))
+      self.create_child('key', project_input(key_input_dim, key_std))
+      self.create_child('query', project_input(query_input_dim, query_std))
+      self.create_child('value', project_input(value_input_dim, value_std))
 
     if p.use_rotary_position_emb:
       pos_emb_p = embedding_softmax.RotaryPositionalEmbedding.Params()
@@ -767,6 +782,8 @@ class DotProductAttention(base_layer.BaseLayer):
         is_output_projection=True,
         use_bias=p.use_bias,
         use_nhd_shape=p.output_proj_use_nhd_shape)
+    if post_std is not None:
+      post_proj_p.params_init = WeightInit.Gaussian(post_std)
     if p.output_proj_use_nhd_shape and isinstance(wp.proj, list) and len(
         wp.proj) == 3:
       permutation = [1, 2, 0]

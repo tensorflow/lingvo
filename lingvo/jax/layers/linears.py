@@ -146,6 +146,7 @@ class FeedForward(base_layer.BaseLayer):
     p.Define('input_dims', 0, 'Depth of the input.')
     p.Define('output_dims', 0, 'Depth of the output.')
     p.Define('has_bias', True, 'Adds bias weights or not.')
+    p.Define('linear_tpl', Linear.Params(), 'Linear layer params')
     p.Define(
         'activation', 'RELU', 'Activation function to use.'
         'Options are RELU, RELU6, RELU^2, RELU^3, SIGMOID, TANH, GELU, NONE.')
@@ -156,7 +157,8 @@ class FeedForward(base_layer.BaseLayer):
     p = self.params
     wp = p.weight_split_dims_mapping
     ap = p.activation_split_dims_mapping
-    linear_layer_p = Linear.Params().Set(
+    linear_layer_p = p.linear_tpl.Copy()
+    linear_layer_p.Set(
         input_dims=p.input_dims,
         output_dims=p.output_dims,
         weight_split_dims_mapping=wp.Copy(),
