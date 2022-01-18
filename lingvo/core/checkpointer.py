@@ -447,6 +447,24 @@ class _EagerCheckpointer(Checkpointer):
   def RestoreIfNeeded(self, sess):
     raise TypeError('Not supported in Eager mode')
 
+  def _MaybeOverwriteModelVariablesWithEMA(self):
+    """Overwrite model variables with EMA shadow variables in eval mode."""
+    do_eval = cluster_factory.Current().do_eval
+    if not self._save_only and do_eval:
+      for model in self._models:
+        if not model.ema:
+          continue
+        tf.logging.info('Using EMA for evaluation.')
+        # TODO(jiaweix): this implementation will load both the model variables
+        # and EMA variables. As a result the memory usage will be higher than
+        # the eval jobs in TF1 mode.
+        ema = model.ema
+        cur_vars = model.GetVariablesDict()
+        for v in cur_vars.values():
+          shadow_v = ema.average(v)
+          if shadow_v is not None:
+            v.assign(shadow_v)
+
 
 class EagerCheckpointerV1(_EagerCheckpointer):
   """Eager mode V1 checkpointer."""
@@ -530,6 +548,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     # Check all model vars are matched from the checkpoint.
     load_status.assert_existing_objects_matched()
     tf.logging.info('Load checkpoint done.')
+    self._MaybeOverwriteModelVariablesWithEMA()
 
   def Save(self, sess=None, gsteps=None):
     """`sess` is unused in Eager context."""
@@ -619,6 +638,7 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     load_status = self._saver.restore(checkpoint_path)
     tf.logging.info('Load checkpoint done.')
     load_status.assert_existing_objects_matched()
+    self._MaybeOverwriteModelVariablesWithEMA()
 
   def Save(self, sess=None, gsteps=None):
     """`sess` is unused in Eager context."""

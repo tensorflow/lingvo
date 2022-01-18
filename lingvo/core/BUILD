@@ -2656,6 +2656,7 @@ py_strict_test(
         ":base_model",
         ":base_model_params",
         ":checkpointer_lib",
+        ":cluster_factory",
         ":learner",
         ":optimizer",
         ":py_utils",

@@ -23,6 +23,7 @@ from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import base_model_params
 from lingvo.core import checkpointer
+from lingvo.core import cluster_factory
 from lingvo.core import learner
 from lingvo.core import optimizer
 from lingvo.core import py_utils
@@ -31,7 +32,7 @@ from lingvo.core import test_utils
 FLAGS = tf.flags.FLAGS
 
 
-def _get_checkpoint_keys(save_path):
+def _GetCheckpointKeys(save_path):
   reader = tf.train.load_checkpoint(save_path)
   shapes = reader.get_variable_to_shape_map()
   return set(shapes.keys())
@@ -86,22 +87,100 @@ class LinearModelParams(base_model_params.SingleTaskModelParams):
         learner.Learner.Params().Set(
             name='loss2', optimizer=optimizer.Adam.Params().Set(name='Adam2'))
     ]
+    p.train.ema_decay = 0.999
     return p
 
 
+# We cannnot use `variables_to_restore()` becase it will create new EMA
+# variables if they don't exist. Here we just want existing EMA variables.
+def _GetModelEMAVariablePairs(model, ema):
+  res = {}
+  for v in model.variables:
+    shadow_v = ema.average(v)
+    if shadow_v is not None:
+      res[v.ref()] = shadow_v
+
+  return res
+
+
 class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
+
+  def testEagerEMACheckpointCompatibility(self):
+    self.assertTrue(tf.executing_eagerly())
+    cfg = model_registry.GetParams('test.LinearModelParams', 'Train')
+    # Use non-zero learning rate so that the weights are updated
+    cfg.task.train.learner[0].learning_rate = 0.1
+    cfg.task.train.learner[1].learning_rate = 0.1
+
+    eager_v1_logdir = os.path.join(self.get_temp_dir(), 'eager_v1')
+    eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
+    mdl = cfg.Instantiate()
+
+    @tf.function
+    def _Update():
+      with py_utils.GradientTape(persistent=True):
+        mdl.ConstructFPropBPropGraph()
+
+    # Step 1
+    _Update()
+    # Save V1 checkpoints at step 1.
+    ckpt_v1 = checkpointer.EagerCheckpointerV1(eager_v1_logdir, mdl)
+    ckpt_v1.Save(gsteps=1)
+
+    ema = mdl.ema
+    model_to_ema_map = _GetModelEMAVariablePairs(mdl, ema)
+    model_to_ema_map_snapshot_step1 = {
+        k: v.value() for k, v in model_to_ema_map.items()
+    }
+
+    # Step 2
+    _Update()
+    # Save V2 checkpoints at step 2.
+    ckpt_v2 = checkpointer.EagerCheckpointerV2(eager_v2_logdir, mdl)
+    ckpt_v2.Save(gsteps=2)
+
+    model_to_ema_map = _GetModelEMAVariablePairs(mdl, ema)
+    model_to_ema_map_snapshot_step2 = {
+        k: v.value() for k, v in model_to_ema_map.items()
+    }
+
+    with cluster_factory.SetEval(True):
+      # Restores variables to values saved in `eager_v1_logdir`
+      ckpt_v1.Restore()
+    # Verify that the EMA variables from V1 checkpoints at step 1 successfully
+    # overwrite the model variables.
+    for v in mdl.variables:
+      if v.ref() in model_to_ema_map_snapshot_step1:
+        self.assertAllEqual(v, model_to_ema_map_snapshot_step1[v.ref()])
+
+    with cluster_factory.SetEval(True):
+      # Restores variables to values saved in `eager_v2_logdir`
+      ckpt_v2.Restore()
+    # Verify that the EMA variables from V2 checkpoints at step 2 successfully
+    # overwrite the model variables.
+    for v in mdl.variables:
+      if v.ref() in model_to_ema_map_snapshot_step2:
+        self.assertAllEqual(v, model_to_ema_map_snapshot_step2[v.ref()])
 
   def testEagerMultiLearnerCheckpointCompatibility(self):
     self.assertTrue(tf.executing_eagerly())
     cfg = model_registry.GetParams('test.LinearModelParams', 'Train')
 
-    eager_logdir = os.path.join(self.get_temp_dir(), 'eager')
+    eager_v1_logdir = os.path.join(self.get_temp_dir(), 'eager_v1')
+    eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
     mdl = cfg.Instantiate()
     with py_utils.GradientTape(persistent=True):
       mdl.ConstructFPropBPropGraph()
-    checkpointer.EagerCheckpointerV1(eager_logdir, mdl).Save(gsteps=0)
-    eager_keys = _get_checkpoint_keys(
-        os.path.join(eager_logdir, 'ckpt_V1', 'ckpt-0'))
+    checkpointer.EagerCheckpointerV1(eager_v1_logdir, mdl).Save(gsteps=0)
+    eager_v1_keys = _GetCheckpointKeys(
+        os.path.join(eager_v1_logdir, 'ckpt_V1', 'ckpt-0'))
+    checkpointer.EagerCheckpointerV2(eager_v2_logdir, mdl).Save(gsteps=0)
+    eager_v2_keys = _GetCheckpointKeys(
+        os.path.join(eager_v2_logdir, 'ckpt_V2', 'ckpt-0'))
+    # Expecting two more variables in V2 checkpoints:
+    # _CHECKPOINTABLE_OBJECT_GRAPH
+    # save_counter
+    self.assertEqual(len(eager_v1_keys) + 2, len(eager_v2_keys))  # pylint:disable=g-generic-assert
 
     py_utils.SetEagerMode(False)
     self.assertFalse(tf.executing_eagerly())
@@ -114,9 +193,8 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
       mdl.ConstructFPropBPropGraph()
       sess.run(tf.global_variables_initializer())
       checkpointer.Checkpointer(graph_logdir, mdl).Save(sess)
-    graph_keys = _get_checkpoint_keys(os.path.join(graph_logdir, 'ckpt'))
-
-    self.assertEqual(eager_keys, graph_keys)
+    graph_keys = _GetCheckpointKeys(os.path.join(graph_logdir, 'ckpt'))
+    self.assertEqual(eager_v1_keys, graph_keys)
 
 
 if __name__ == '__main__':
