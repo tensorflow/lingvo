@@ -15,7 +15,6 @@
 # ==============================================================================
 """Optimizers."""
 
-import contextlib
 import copy
 import re
 
@@ -507,10 +506,10 @@ class Accumulator(Base):
       """Updating accumulators."""
 
       v, g = vg
-      with contextlib.ExitStack() as stack:
-        if not py_utils.IsEagerMode():
-          stack.enter_context(tf.variable_scope(v.op.name))
-
+      scope_name = v.name
+      if scope_name.endswith(':0'):
+        scope_name = scope_name[:-2]
+      with tf.variable_scope(scope_name):
         a = py_utils.CreateVariable(
             'grad_accumulator',
             py_utils.WeightParams(v.get_shape(),

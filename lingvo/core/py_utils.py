@@ -1600,6 +1600,7 @@ _VARIABLE_CREATOR_STACK = ThreadLocalStack()
 
 def _GetVariableCreator():
   fn = _DefaultVariableCreator
+  # Latest entry in _VARIABLE_CREATOR_STACK is called last.
   for wrapper in reversed(_VARIABLE_CREATOR_STACK.stack):
     fn = functools.partial(wrapper, fn)
   return fn
@@ -1709,6 +1710,25 @@ def MaybeOpportunisticVariableReuse(next_creator, **kwargs):
     with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
       return next_creator(**kwargs)
   return next_creator(**kwargs)
+
+
+def GetLingvoVariableCreator(name, var_name):
+  """Returns a variable creator function."""
+
+  def LingvoVariableCreator(next_creator, **kwargs):
+    """Lingvo variable creator."""
+    # TODO(yonghui): Possibly get away from variable_scope and implement our own
+    # variable sharing mechanism.
+    with tf.variable_scope(name) as scope:
+      var_scope = tf.VariableScope(
+          scope.reuse,
+          custom_getter=scope.custom_getter,
+          caching_device=scope.caching_device,
+          use_resource=True)
+    with tf.variable_scope(var_scope), tf.variable_scope(var_name):
+      return next_creator(**kwargs)
+
+  return LingvoVariableCreator
 
 
 # TODO(yonghui): Add support for partitioned Variables.
@@ -1856,21 +1876,15 @@ def _CreateVariableStateful(name,
 
     v_init = FloatToInt8Wrapper(v_init)
 
-  def LingvoVariableCreator(next_creator, **kwargs):
-    """Lingvo variable creator."""
-    # TODO(yonghui): Possibly get away from variable_scope and implement our own
-    # variable sharing mechanism.
-    with tf.variable_scope(name) as scope:
-      var_scope = tf.VariableScope(
-          scope.reuse,
-          custom_getter=scope.custom_getter,
-          caching_device=scope.caching_device,
-          use_resource=True)
-    with tf.variable_scope(var_scope), tf.variable_scope(var_name):
-      return next_creator(**kwargs)
+  if collections is None:
+    collections = []
+  # tf.Variable() does not have a "collections" arg that tf.get_variable() has.
+  # So instead add the passed collections into p.collections so that
+  # MaybeReuseFromVariableStore will add the variable to the collections.
+  p.collections = list(set(p.collections) | set(collections))
 
   with contextlib.ExitStack() as context_stack:
-    for variable_creator_fn in (LingvoVariableCreator,
+    for variable_creator_fn in (GetLingvoVariableCreator(name, var_name),
                                 MaybeOpportunisticVariableReuse,
                                 MaybePinVarsToCpu, MaybeReuseFromVariableStore):
       context_stack.enter_context(VariableCreatorScope(variable_creator_fn))
@@ -1885,7 +1899,6 @@ def _CreateVariableStateful(name,
         shape=call_shape,
         dtype=var_dtype,
         initializer=v_init,
-        collections=collections,
         trainable=trainable,
         validate_shape=True,
         synchronization=synchronization,
@@ -1974,21 +1987,15 @@ def _CreateVariableStateless(name,
     raise TypeError(
         'Stateless variable initialization does not support tf.complex64.')
 
-  def LingvoVariableCreator(next_creator, **kwargs):
-    """Lingvo variable creator."""
-    # TODO(yonghui): Possibly get away from variable_scope and implement our own
-    # variable sharing mechanism.
-    with tf.variable_scope(name) as scope:
-      var_scope = tf.VariableScope(
-          scope.reuse,
-          custom_getter=scope.custom_getter,
-          caching_device=scope.caching_device,
-          use_resource=True)
-    with tf.variable_scope(var_scope), tf.variable_scope(var_name):
-      return next_creator(**kwargs)
+  if collections is None:
+    collections = []
+  # tf.Variable() does not have a "collections" arg that tf.get_variable() has.
+  # So instead add the passed collections into p.collections so that
+  # MaybeReuseFromVariableStore will add the variable to the collections.
+  p.collections = list(set(p.collections) | set(collections))
 
   with contextlib.ExitStack() as context_stack:
-    for variable_creator_fn in (LingvoVariableCreator,
+    for variable_creator_fn in (GetLingvoVariableCreator(name, var_name),
                                 MaybeOpportunisticVariableReuse,
                                 MaybeReuseFromVariableStore):
       context_stack.enter_context(VariableCreatorScope(variable_creator_fn))
@@ -1999,7 +2006,6 @@ def _CreateVariableStateless(name,
         shape=GetVariableShapePrefixes() + list(shape),
         dtype=var_dtype,
         initializer=v_init,
-        collections=collections,
         trainable=trainable,
         validate_shape=True,
         synchronization=synchronization,
@@ -2929,12 +2935,12 @@ def ComputeGradients(
   # This doesn't work if the training loop is wrapped inside a tf.function,
   # since all variables will be lifted out and trainable_variables will be
   # empty. In that case we skip the check.
-  trainable_variables = set(tf.trainable_variables())
+  trainable_variables = set([v.ref() for v in tf.trainable_variables()])
   if trainable_variables:
 
     def Needed(v):
       if isinstance(v, tf.Variable):
-        if v not in trainable_variables:
+        if v.ref() not in trainable_variables:
           # Skip non-trainable variables. Otherwise,
           # tf.Optimizer.apply_gradients throws up an exception instead
           # of skipping the update.

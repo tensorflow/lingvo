@@ -34,32 +34,29 @@ def _StubOutCreateVariable(variable_cache):
     variable_cache: a dict from unique shapes to a dummy tensor of that shape.
   """
 
+  old_fn = py_utils.CreateVariable
+
   def _CreateVariableStub(name,
                           params,
-                          reuse=None,
                           trainable=True,
                           collections=None,
                           default_seed=None,
                           synchronization=None,
                           aggregation=None):
     """Return a zero tensor of the right shape instead of creating variable."""
-    del reuse
-    del default_seed
-    del synchronization
-    del aggregation
     dtype = params.dtype
     shape = py_utils.ToStaticShape(params.shape)
     # For total samples counters we have to actually create variables so that
     # we can access the 'value' attribute during construction.
     if 'total_samples' in name:
-      var = tf.get_variable(
+      var = old_fn(
           name,
-          shape,
-          dtype,
-          tf.constant_initializer(0),
-          collections=collections,
+          params,
           trainable=trainable,
-          validate_shape=True)
+          collections=collections,
+          default_seed=default_seed,
+          synchronization=synchronization,
+          aggregation=aggregation)
     else:
       key = (tf.get_default_graph(), tuple(shape))
       if key in variable_cache:

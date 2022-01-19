@@ -136,7 +136,7 @@ class OptimizerTest(test_utils.TestCase):
 
     tf.random.set_seed(123456)
     params = layers.ProjectionLayer.Params()
-    params.name = 'proj'
+    params.name = 'proj2'
     params.dtype = tf.float64
     params.input_dim = 3
     params.output_dim = 2
