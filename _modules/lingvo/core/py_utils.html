@@ -1613,9 +1613,6 @@
     <span class="k">return</span> <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span></div>
 
 
-<span class="n">_VARIABLE_STORE_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
-
-
 <div class="viewcode-block" id="VariableStore"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.VariableStore">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">VariableStore</span><span class="p">(</span><span class="n">default_store</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Keeps track of {variable_name: (variable, var_params)}.</span>
@@ -1638,20 +1635,24 @@
 <span class="sd">  Yields:</span>
 <span class="sd">    A dictionary representing the variable store.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
-    <span class="n">store</span> <span class="o">=</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="n">store</span> <span class="o">=</span> <span class="n">default_store</span> <span class="ow">or</span> <span class="p">{}</span>
-  <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">store</span><span class="p">)</span>
-  <span class="k">try</span><span class="p">:</span>
-    <span class="k">yield</span> <span class="n">store</span>
-  <span class="k">finally</span><span class="p">:</span>
-    <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+  <span class="n">old_store</span> <span class="o">=</span> <span class="n">_GetVariableStore</span><span class="p">()</span>
+  <span class="n">default_store</span> <span class="o">=</span> <span class="n">default_store</span> <span class="ow">or</span> <span class="p">{}</span>
+  <span class="n">store</span> <span class="o">=</span> <span class="n">old_store</span> <span class="k">if</span> <span class="n">old_store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">default_store</span>
+  <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+  <span class="k">while</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="s1">&#39;outer_graph&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">outer_graph</span><span class="p">:</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">outer_graph</span>
+  <span class="n">graph</span><span class="o">.</span><span class="n">lingvo_variable_store</span> <span class="o">=</span> <span class="n">store</span>
+  <span class="k">yield</span> <span class="n">store</span>
+  <span class="n">graph</span><span class="o">.</span><span class="n">lingvo_variable_store</span> <span class="o">=</span> <span class="n">old_store</span></div>
 
 
 <div class="viewcode-block" id="_GetVariableStore"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._GetVariableStore">[docs]</a><span class="k">def</span> <span class="nf">_GetVariableStore</span><span class="p">():</span>
-  <span class="k">return</span> <span class="p">(</span><span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-          <span class="k">if</span> <span class="n">_VARIABLE_STORE_STACK</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span></div>
+  <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+  <span class="k">while</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="s1">&#39;outer_graph&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">graph</span><span class="o">.</span><span class="n">outer_graph</span><span class="p">:</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">graph</span><span class="o">.</span><span class="n">outer_graph</span>
+  <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">graph</span><span class="p">,</span> <span class="s1">&#39;lingvo_variable_store&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">graph</span><span class="o">.</span><span class="n">lingvo_variable_store</span>
+  <span class="k">return</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="_DefaultVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._DefaultVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">_DefaultVariableCreator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -1665,6 +1666,7 @@
 
 <div class="viewcode-block" id="_GetVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._GetVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">_GetVariableCreator</span><span class="p">():</span>
   <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefaultVariableCreator</span>
+  <span class="c1"># Latest entry in _VARIABLE_CREATOR_STACK is called last.</span>
   <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">_VARIABLE_CREATOR_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">):</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">fn</span></div>
@@ -1744,15 +1746,21 @@
   <span class="n">var_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;var_name&#39;</span><span class="p">]</span>
   <span class="n">p</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;var_params&#39;</span><span class="p">]</span>
   <span class="n">store</span> <span class="o">=</span> <span class="n">_GetVariableStore</span><span class="p">()</span>
-  <span class="k">if</span> <span class="n">store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">store</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span><span class="o">.</span><span class="n">reuse</span><span class="p">:</span>
-      <span class="n">var</span><span class="p">,</span> <span class="n">cached_p</span> <span class="o">=</span> <span class="n">store</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reusing var </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="n">cached_p</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="p">(</span>
-          <span class="s1">&#39;Cached config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> vs new config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cached_p</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
-      <span class="k">return</span> <span class="n">var</span>
+  <span class="k">if</span> <span class="n">store</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">var_name</span> <span class="ow">in</span> <span class="n">store</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span><span class="o">.</span><span class="n">reuse</span><span class="p">:</span>
+        <span class="n">var</span><span class="p">,</span> <span class="n">cached_p</span> <span class="o">=</span> <span class="n">store</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Reusing var </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="n">cached_p</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="p">(</span>
+            <span class="s1">&#39;Cached config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> vs new config:</span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">cached_p</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
+        <span class="k">return</span> <span class="n">var</span>
 
   <span class="n">var</span> <span class="o">=</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s1">/var:0&#39;</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;Expected </span><span class="si">%s</span><span class="s1"> but created variable </span><span class="si">%s</span><span class="s1">. Did you mean to set reuse=True &#39;</span>
+        <span class="s1">&#39;or reuse=tf.AUTO_REUSE in VarScope, or did not create a &#39;</span>
+        <span class="s1">&#39;VariableStore for variable reuse?&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">var_name</span><span class="si">}</span><span class="s1">/var:0&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating var </span><span class="si">%s</span><span class="s1"> shape=</span><span class="si">%s</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
                   <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
@@ -1774,6 +1782,25 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">(),</span> <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetLingvoVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetLingvoVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">GetLingvoVariableCreator</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_name</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a variable creator function.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">LingvoVariableCreator</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lingvo variable creator.&quot;&quot;&quot;</span>
+    <span class="c1"># TODO(yonghui): Possibly get away from variable_scope and implement our own</span>
+    <span class="c1"># variable sharing mechanism.</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+      <span class="n">var_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span>
+          <span class="n">scope</span><span class="o">.</span><span class="n">reuse</span><span class="p">,</span>
+          <span class="n">custom_getter</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">custom_getter</span><span class="p">,</span>
+          <span class="n">caching_device</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">caching_device</span><span class="p">,</span>
+          <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_scope</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_name</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">LingvoVariableCreator</span></div>
 
 
 <span class="c1"># TODO(yonghui): Add support for partitioned Variables.</span>
@@ -1921,21 +1948,15 @@
 
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">FloatToInt8Wrapper</span><span class="p">(</span><span class="n">v_init</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">LingvoVariableCreator</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Lingvo variable creator.&quot;&quot;&quot;</span>
-    <span class="c1"># TODO(yonghui): Possibly get away from variable_scope and implement our own</span>
-    <span class="c1"># variable sharing mechanism.</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
-      <span class="n">var_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span>
-          <span class="n">scope</span><span class="o">.</span><span class="n">reuse</span><span class="p">,</span>
-          <span class="n">custom_getter</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">custom_getter</span><span class="p">,</span>
-          <span class="n">caching_device</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">caching_device</span><span class="p">,</span>
-          <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_scope</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_name</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">collections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">collections</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="c1"># tf.Variable() does not have a &quot;collections&quot; arg that tf.get_variable() has.</span>
+  <span class="c1"># So instead add the passed collections into p.collections so that</span>
+  <span class="c1"># MaybeReuseFromVariableStore will add the variable to the collections.</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">collections</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">)</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">collections</span><span class="p">))</span>
 
   <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">variable_creator_fn</span> <span class="ow">in</span> <span class="p">(</span><span class="n">LingvoVariableCreator</span><span class="p">,</span>
+    <span class="k">for</span> <span class="n">variable_creator_fn</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GetLingvoVariableCreator</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_name</span><span class="p">),</span>
                                 <span class="n">MaybeOpportunisticVariableReuse</span><span class="p">,</span>
                                 <span class="n">MaybePinVarsToCpu</span><span class="p">,</span> <span class="n">MaybeReuseFromVariableStore</span><span class="p">):</span>
       <span class="n">context_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">variable_creator_fn</span><span class="p">))</span>
@@ -1950,7 +1971,6 @@
         <span class="n">shape</span><span class="o">=</span><span class="n">call_shape</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
         <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
         <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
@@ -2039,21 +2059,15 @@
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
         <span class="s1">&#39;Stateless variable initialization does not support tf.complex64.&#39;</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">LingvoVariableCreator</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Lingvo variable creator.&quot;&quot;&quot;</span>
-    <span class="c1"># TODO(yonghui): Possibly get away from variable_scope and implement our own</span>
-    <span class="c1"># variable sharing mechanism.</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
-      <span class="n">var_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span>
-          <span class="n">scope</span><span class="o">.</span><span class="n">reuse</span><span class="p">,</span>
-          <span class="n">custom_getter</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">custom_getter</span><span class="p">,</span>
-          <span class="n">caching_device</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">caching_device</span><span class="p">,</span>
-          <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_scope</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_name</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">collections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">collections</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="c1"># tf.Variable() does not have a &quot;collections&quot; arg that tf.get_variable() has.</span>
+  <span class="c1"># So instead add the passed collections into p.collections so that</span>
+  <span class="c1"># MaybeReuseFromVariableStore will add the variable to the collections.</span>
+  <span class="n">p</span><span class="o">.</span><span class="n">collections</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">)</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">collections</span><span class="p">))</span>
 
   <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">variable_creator_fn</span> <span class="ow">in</span> <span class="p">(</span><span class="n">LingvoVariableCreator</span><span class="p">,</span>
+    <span class="k">for</span> <span class="n">variable_creator_fn</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GetLingvoVariableCreator</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_name</span><span class="p">),</span>
                                 <span class="n">MaybeOpportunisticVariableReuse</span><span class="p">,</span>
                                 <span class="n">MaybeReuseFromVariableStore</span><span class="p">):</span>
       <span class="n">context_stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">variable_creator_fn</span><span class="p">))</span>
@@ -2064,7 +2078,6 @@
         <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
         <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
         <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
@@ -2994,12 +3007,12 @@
   <span class="c1"># This doesn&#39;t work if the training loop is wrapped inside a tf.function,</span>
   <span class="c1"># since all variables will be lifted out and trainable_variables will be</span>
   <span class="c1"># empty. In that case we skip the check.</span>
-  <span class="n">trainable_variables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span>
+  <span class="n">trainable_variables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">()])</span>
   <span class="k">if</span> <span class="n">trainable_variables</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="nf">Needed</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">trainable_variables</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">trainable_variables</span><span class="p">:</span>
           <span class="c1"># Skip non-trainable variables. Otherwise,</span>
           <span class="c1"># tf.Optimizer.apply_gradients throws up an exception instead</span>
           <span class="c1"># of skipping the update.</span>

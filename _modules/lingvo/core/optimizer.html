@@ -80,7 +80,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Optimizers.&quot;&quot;&quot;</span>
 
-<span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
@@ -572,10 +571,10 @@
       <span class="sd">&quot;&quot;&quot;Updating accumulators.&quot;&quot;&quot;</span>
 
       <span class="n">v</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">vg</span>
-      <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-          <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
-
+      <span class="n">scope_name</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span>
+      <span class="k">if</span> <span class="n">scope_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;:0&#39;</span><span class="p">):</span>
+        <span class="n">scope_name</span> <span class="o">=</span> <span class="n">scope_name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">scope_name</span><span class="p">):</span>
         <span class="n">a</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
             <span class="s1">&#39;grad_accumulator&#39;</span><span class="p">,</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get_shape</span><span class="p">(),</span>
