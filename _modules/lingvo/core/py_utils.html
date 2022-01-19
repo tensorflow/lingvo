@@ -1948,13 +1948,6 @@
 
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">FloatToInt8Wrapper</span><span class="p">(</span><span class="n">v_init</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">collections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">collections</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="c1"># tf.Variable() does not have a &quot;collections&quot; arg that tf.get_variable() has.</span>
-  <span class="c1"># So instead add the passed collections into p.collections so that</span>
-  <span class="c1"># MaybeReuseFromVariableStore will add the variable to the collections.</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">collections</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">)</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">collections</span><span class="p">))</span>
-
   <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">variable_creator_fn</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GetLingvoVariableCreator</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_name</span><span class="p">),</span>
                                 <span class="n">MaybeOpportunisticVariableReuse</span><span class="p">,</span>
@@ -1971,6 +1964,7 @@
         <span class="n">shape</span><span class="o">=</span><span class="n">call_shape</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
         <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
         <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
@@ -2059,13 +2053,6 @@
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
         <span class="s1">&#39;Stateless variable initialization does not support tf.complex64.&#39;</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">collections</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">collections</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="c1"># tf.Variable() does not have a &quot;collections&quot; arg that tf.get_variable() has.</span>
-  <span class="c1"># So instead add the passed collections into p.collections so that</span>
-  <span class="c1"># MaybeReuseFromVariableStore will add the variable to the collections.</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">collections</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">)</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">collections</span><span class="p">))</span>
-
   <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">context_stack</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">variable_creator_fn</span> <span class="ow">in</span> <span class="p">(</span><span class="n">GetLingvoVariableCreator</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_name</span><span class="p">),</span>
                                 <span class="n">MaybeOpportunisticVariableReuse</span><span class="p">,</span>
@@ -2078,6 +2065,7 @@
         <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">var_dtype</span><span class="p">,</span>
         <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
         <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
         <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
         <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
