@@ -43,6 +43,9 @@ class TestCase(tf.test.TestCase):
 
   def setUp(self):
     super().setUp()
+    with contextlib.ExitStack() as stack:
+      stack.enter_context(py_utils.VariableStore())
+      self.addCleanup(stack.pop_all().close)
     # Ensure the global_step variable is created in the default graph.
     py_utils.GetOrCreateGlobalStepVar()
     cluster = cluster_factory.SetRequireSequentialInputOrder(True)
