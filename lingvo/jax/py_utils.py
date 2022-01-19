@@ -17,15 +17,13 @@
 
 import dataclasses
 import functools
-from typing import Any
+from typing import Any, Sequence
 import zlib
 
 from absl import logging
 import flax
 import jax
-from jax.experimental import pjit
-import jax.experimental.global_device_array as gda_lib
-from jax.interpreters import pxla
+from jax.experimental import global_device_array as gda_lib
 import jax.numpy as jnp
 from lingvo.core import cluster
 from lingvo.core import hyperparams
@@ -86,59 +84,16 @@ def reshard(array: jnp.ndarray) -> np.ndarray:
 
 
 def maybe_unreplicate_gda(data):
-  """Returns the first local shard in `data`.
-
-  This is typically used when `data` is fully replicated and we only want one
-  unreplicated shard.
+  """Returns the first local shard in `data` if it is a GDA.
 
   Args:
     data: A Pytree of fully replicated GlobalDeviceArray or other arrays.
   Returns: A Pytree of DeviceArray or the original input.
   """
-  leaves, _ = jax.tree_flatten(data)
-  if all(
-      isinstance(x, gda_lib.GlobalDeviceArray) and x.is_fully_replicated
-      for x in leaves):
-    return jax.tree_map(lambda x: x.local_data(0), data)
-  else:
-    return data
-
-
-def maybe_gda_to_sda(data):
-  """Returns a ShardedDeviceArray with local shards from GlobalDeviceArray.
-
-  This is typically used when `data` is partially replicated and we only want
-  one SDA gathering all local shards from GDA.
-
-  Args:
-    data: A Pytree of partially or fully replicated GlobalDeviceArray or other
-      arrays.
-  Returns: A Pytree of SDA or original input.
-  """
-  leaves, _ = jax.tree_flatten(data)
-  if all(isinstance(x, gda_lib.GlobalDeviceArray) for x in leaves):
-
-    def gda_to_sda(gda):
-      mesh_axes = gda._mesh_axes  # pylint: disable=protected-access
-      if not isinstance(mesh_axes, pjit.PartitionSpec):
-        pspec = pjit.PartitionSpec(*mesh_axes)
-      else:
-        pspec = mesh_axes
-      parsed_pspec, _, _ = pjit._prepare_axis_resources(pspec, 'mesh_axes')  # pylint: disable=protected-access
-      array_mapping = pjit.get_array_mapping(parsed_pspec)
-      global_aval = jax.core.ShapedArray(gda.shape, gda.dtype)
-      # Will convert to host local shape
-      global_mesh = gda._global_mesh  # pylint: disable=protected-access
-      local_aval = global_mesh.global_to_local(array_mapping, global_aval)
-      sharding_spec = pxla.mesh_sharding_specs(
-          global_mesh.local_mesh.shape,
-          global_mesh.local_mesh.axis_names)(local_aval, array_mapping)
-      return pxla.make_sharded_device_array(local_aval, sharding_spec,
-                                            [s.data for s in gda.local_shards])
-
-    return jax.tree_map(gda_to_sda, data)
-  else:
-    return data
+  return jax.tree_map(
+      lambda x: x.local_data(0)  # pylint: disable=g-long-lambda
+      if isinstance(x, gda_lib.GlobalDeviceArray) else x,
+      data)
 
 
 def extract_keys(n, p, key_separator, left_separator, right_separator):
@@ -220,3 +175,21 @@ def sync_global_devices(name: str) -> None:
     raise ValueError(f'Sync point {name} expected: {expected}; got: {actual}')
   logging.info('Finished sync_global_devices %s across %s devices globally',
                name, global_device_count)
+
+
+def put_arrays_on_device(x: np.ndarray) -> Sequence[jnp.ndarray]:
+  """Evenly device_put x to jax.local_devices().
+
+  Evenly partitioning x along axis 0 and device_put shards to local devices.
+
+  Args:
+    x: np.array to be device_put.
+
+  Returns:
+    A list of jnp.ndarray, one for each jax.local_devices().
+  """
+  local_devices = jax.local_devices()
+  per_device_arrays = np.split(x, len(local_devices), axis=0)
+  return [
+      jax.device_put(a, d) for a, d in zip(per_device_arrays, local_devices)
+  ]

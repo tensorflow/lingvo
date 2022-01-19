@@ -25,6 +25,7 @@ from typing import Optional, Sequence
 
 from absl import logging
 import jax
+from jax.experimental import global_device_array as gda_lib
 from jax.experimental import maps
 from jax.experimental import mesh_utils
 from lingvo.jax import base_input
@@ -408,6 +409,11 @@ def train_and_evaluate_pmap(
       logging.debug('step=`%d`: End', step_i - 1)
 
 
+def _create_gda(global_mesh, global_shape, pspec, device_buffers):
+  return gda_lib.GlobalDeviceArray(global_shape.shape, global_mesh, pspec,
+                                   device_buffers)
+
+
 def train_and_evaluate_spmd_model(
     model_p: InstantiableParams, train_input_p: InstantiableParams,
     job_log_dir: Optional[str],
@@ -433,8 +439,24 @@ def train_and_evaluate_spmd_model(
   """
   logging.info('Using SPMD sharding for model parallelism.')
   train_input_pipeline = train_input_p.Instantiate()
+
+  def get_shape_dtype(x):
+    # We assume all the hosts infeed the same data.
+    process_count = jax.process_count()
+    assert len(x.shape) >= 1
+    x_shape = (x.shape[0] * process_count,) + x.shape[1:]
+    y = jax.ShapeDtypeStruct(x_shape, x.dtype)
+    return y
+
   if eval_input_p is not None:
     eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
+    # Do not mutate eval_input_pipelines itself. Instantiate a new one
+    # to get sample input.
+    sample_eval_model_inputs = eval_input_p[0].Instantiate().get_next()
+    eval_test_inputs_shape = tf.nest.map_structure(get_shape_dtype,
+                                                   sample_eval_model_inputs)
+    eval_test_inputs_pspecs = trainer_lib.get_input_partition_specs(
+        model_p.mesh_axis_names, eval_test_inputs_shape)
 
   # TODO(bf-jax): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
@@ -465,15 +487,6 @@ def train_and_evaluate_spmd_model(
 
   logging.info('Retrieving model inputs for shape info.')
   model_inputs_for_shape = train_input_pipeline.get_next()
-
-  def get_shape_dtype(x):
-    # We assume all the hosts infeed the same data.
-    process_count = jax.process_count()
-    assert len(x.shape) >= 1
-    x_shape = (x.shape[0] * process_count,) + x.shape[1:]
-    y = jax.ShapeDtypeStruct(x_shape, x.dtype)
-    return y
-
   inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs_for_shape)
 
   mesh_shape = model_p.device_mesh.shape
@@ -482,24 +495,22 @@ def train_and_evaluate_spmd_model(
   # TODO(zhangqiaorjc): maps.mesh should yield Mesh.
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
-    (partitioned_train_state, partitioned_specs, train_step, eval_step,
-     total_num_params) = trainer_lib.partition_spmd_model(
+    (partitioned_train_state, train_state_pspecs, inputs_pspecs, train_step,
+     eval_step, total_num_params) = trainer_lib.partition_spmd_model(
          model_p, init_key, inputs_shape)
 
     partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
         restore_checkpoint_task_dir,
         global_mesh=global_mesh,
-        mesh_axes=partitioned_specs,
+        mesh_axes=train_state_pspecs,
         checkpoint_type=checkpoint_type,
-        state_specs=partitioned_specs,
+        state_specs=train_state_pspecs,
         step=restore_checkpoint_step)
-    # Print local sharded shape of train_state, and not the global shape if
-    # it is a GDA.
     logging.info(
-        'partitioned_train_state shapes: %s',
-        jax.tree_map(lambda x: x.shape,
-                     py_utils.maybe_gda_to_sda(partitioned_train_state)))
+        'partitioned_train_state shapes '
+        '(global shape for GDA, host-local shape for non-GDA: %s',
+        jax.tree_map(lambda x: x.shape, partitioned_train_state))
     if multi_host_checkpointing:
       py_utils.sync_global_devices(f'checkpointer:restored:{checkpoint_dir}')
 
@@ -584,7 +595,7 @@ def train_and_evaluate_spmd_model(
                 partitioned_train_state,
                 checkpoint_task_dir,
                 checkpoint_type=checkpoint_type,
-                state_specs=partitioned_specs,
+                state_specs=train_state_pspecs,
                 unreplicate=False)
           checkpoint_manager.save_metadata(global_step_id=step_i)
           if multi_host_checkpointing:
@@ -596,6 +607,14 @@ def train_and_evaluate_spmd_model(
           logging.info('step=`%d`: Retrieving model inputs.', step_i)
         logging.debug('  Retrieving inputs.')
         model_inputs = train_input_pipeline.get_next()
+
+        if jax.config.jax_parallel_functions_output_gda:
+          model_inputs_device_buffers = jax.tree_map(
+              py_utils.put_arrays_on_device, model_inputs)
+          model_inputs = jax.tree_map(
+              functools.partial(_create_gda, global_mesh), inputs_shape,
+              inputs_pspecs, model_inputs_device_buffers)
+
         logging.debug('  Retrieved inputs.')
 
         logging.debug('  Performing train_step().')
@@ -634,8 +653,17 @@ def train_and_evaluate_spmd_model(
           logging.debug('  Starting eval_step().')
           logging.debug('  Retrieving eval model_inputs.')
           eval_inputs = train_input_pipeline.get_next()
+
+          if jax.config.jax_parallel_functions_output_gda:
+            eval_inputs_device_buffers = jax.tree_map(
+                py_utils.put_arrays_on_device, eval_inputs)
+            eval_inputs = jax.tree_map(
+                functools.partial(_create_gda, global_mesh), inputs_shape,
+                inputs_pspecs, eval_inputs_device_buffers)
+
           logging.debug('  Retrieved eval model_inputs.')
           logging.debug('  Performing eval_step() runs on training split.')
+
           eval_step_fn = functools.partial(eval_step,
                                            partitioned_train_state.mdl_vars,
                                            eval_key,
@@ -667,6 +695,9 @@ def train_and_evaluate_spmd_model(
                 eval_test_summary_writers,
                 step_i,
                 eval_input_pipelines,
+                eval_test_inputs_pspecs,
+                eval_test_inputs_shape,
+                global_mesh,
                 reshard_inputs=False)
             logging.debug('  Completed eval_step() runs on test splits.')
 

@@ -80,7 +80,8 @@ def pretty_repr_shapes(replicated_vars: NestedJTensor,
       return 'x'.join(str(e) for e in x.shape[1:])
     else:
       # If var is not replicated, no need to remove the first dim.
-      x_sda = py_utils.maybe_gda_to_sda(x)
+      # Retrieves the global shape for GDA; otherwise host-local shape.
+      x_sda = x
       return 'x'.join(str(e) for e in x_sda.shape)
 
   out = jax.tree_map(pps, replicated_vars)
@@ -242,9 +243,9 @@ def write_summary_entry(summary_writer: SummaryWriter,
     metrics = jax.tree_map(lambda x: x[0], metrics)
   else:
     # SPMD training may produce GDA.
-    loss = py_utils.maybe_gda_to_sda(loss)
-    metrics = py_utils.maybe_gda_to_sda(metrics)
-    summary_tensors = py_utils.maybe_gda_to_sda(summary_tensors)
+    loss = py_utils.maybe_unreplicate_gda(loss)
+    metrics = py_utils.maybe_unreplicate_gda(metrics)
+    summary_tensors = py_utils.maybe_unreplicate_gda(summary_tensors)
 
   mean_loss = np.mean(loss).item()
   with summary_writer.as_default():
@@ -316,10 +317,10 @@ def write_summary_every_n_steps(train_state: TrainState,
   result = False
 
   if step_i % summary_every_n_steps == summary_every_n_steps - 1:
-    loss = py_utils.maybe_gda_to_sda(loss)
-    metrics = py_utils.maybe_gda_to_sda(metrics)
-    per_example_out = py_utils.maybe_gda_to_sda(per_example_out)
-    summary_tensors = py_utils.maybe_gda_to_sda(summary_tensors)
+    loss = py_utils.maybe_unreplicate_gda(loss)
+    metrics = py_utils.maybe_unreplicate_gda(metrics)
+    per_example_out = py_utils.maybe_unreplicate_gda(per_example_out)
+    summary_tensors = py_utils.maybe_unreplicate_gda(summary_tensors)
     logging.info('step_i: %d, training loss: %s', step_i, loss)
     logging.info('metrics: %s', metrics)
     logging.info('per_example_out: %s', per_example_out)
@@ -343,7 +344,8 @@ def write_summary_every_n_steps(train_state: TrainState,
     else:
       # This is an SPMD model, mdl_vars can be sharded, not replicated.
       mdl_vars = train_state.mdl_vars
-      mdl_vars = py_utils.maybe_gda_to_sda(mdl_vars)
+      mdl_vars = py_utils.maybe_unreplicate_gda(mdl_vars)
+    # For GDA training, this returns device-0 norms.
     norms = l2_mean(mdl_vars, prefix='Vars', max_level=20)
     with train_summary_writer.as_default():
       for name in norms:

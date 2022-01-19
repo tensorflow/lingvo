@@ -228,7 +228,7 @@ def evaluate_spmd_model(
   logging.info('device_mesh: %s', device_mesh)
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
-    partitioned_train_state, partitioned_specs, _, eval_step, _ = (
+    partitioned_train_state, partitioned_specs, eval_inputs_partition_specs, _, eval_step, _ = (
         trainer_lib.partition_spmd_model(model_p, init_key, inputs_shape))
     partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
@@ -275,6 +275,9 @@ def evaluate_spmd_model(
             eval_summary_writers,
             step_i,
             eval_input_pipelines,
+            eval_inputs_partition_specs,
+            inputs_shape,
+            global_mesh,
             reshard_inputs=False)
         # If the last check point evaluated matches max train steps, exit.
         if last_checkpoint is not None:
@@ -588,8 +591,10 @@ def decode_once_spmd_model(
         except (tf.errors.OutOfRangeError, StopIteration):
           break
         out = spmd_decode_step_fn(batch)
-        # Gathers all local shards to a SDA.
-        out = py_utils.maybe_gda_to_sda(out)
+        # TODO(zhangqiaorjc): Handle sharded output of _decode_step. It is fully
+        # replicated for now, so it's ok to unreplicate it by retrieving from
+        # device 0 only.
+        out = py_utils.maybe_unreplicate_gda(out)
         if jax.process_index() == 0:
           processed = jax_model.process_decode_out(inputs[split], out)
           decodes[split].extend(processed)

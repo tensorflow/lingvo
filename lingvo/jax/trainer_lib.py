@@ -562,11 +562,18 @@ def infer_partition_spec_based_on_rank_fn(
     return base_layer.to_partition_spec(mapping_dict[key], mesh_names)
 
 
+def get_input_partition_specs(mesh_axis_names, inputs_shape):
+  # Compute inputs PartitionSpec from inputs_shape
+  inputs_partition_spec_fn = functools.partial(
+      shard_on_batch_dim_partition_spec, mesh_axis_names)
+  return tf.nest.map_structure(inputs_partition_spec_fn, inputs_shape)
+
+
 def partition_spmd_model(
     mdl_params: InstantiableParams,
     init_key: PRNGKey,
     inputs_shape: NestedShapeDtypeStruct,
-) -> Tuple[TrainState, TrainState, TrainStepFn, EvalStepFn, int]:
+) -> Tuple[TrainState, TrainState, TrainState, TrainStepFn, EvalStepFn, int]:
   """Setup the SPMD model and return sharded train and eval step function.
 
   For partitioning inputs, it is assumed the `mdl_params` has a field
@@ -579,23 +586,19 @@ def partition_spmd_model(
     inputs_shape: Shape of the inputs for use in pjit sharding.
 
   Returns:
-    (partitioned_train_state, train_state_partition_specs, train_step_fn,
-    eval_step_fn, total_num_params): The partitioned TrainState, the
-    corresponding partitioned TrainState specs, the train step function, eval
-    step function and total number of parameters.
+    (partitioned_train_state, train_state_partition_specs,
+    inputs_partition_spec, train_step_fn, eval_step_fn, total_num_params):
+    The partitioned TrainState, the corresponding partitioned TrainState specs,
+    the train step function, eval step function and total number of parameters.
   """
   mesh_names = mdl_params.mesh_axis_names
   mdl = mdl_params.Instantiate()
 
-  # Compute inputs PartitionSpec from inputs_shape
-  inputs_partition_spec_fn = functools.partial(
-      shard_on_batch_dim_partition_spec, mdl_params.mesh_axis_names)
   reshard_inputs_fn = functools.partial(reshard_input_based_on_rank_fn,
                                         mdl_params.train.inputs_split_mapping,
                                         mdl_params.mesh_axis_names)
-
-  inputs_partition_spec = tf.nest.map_structure(inputs_partition_spec_fn,
-                                                inputs_shape)
+  inputs_partition_spec = get_input_partition_specs(mdl_params.mesh_axis_names,
+                                                    inputs_shape)
 
   # Initialize the partitioned vars.
   train_state_partition_specs, var_shapes, partitioned_train_state = (
@@ -675,8 +678,8 @@ def partition_spmd_model(
       in_axis_resources=eval_fn_in_partition_specs,
       out_axis_resources=eval_fn_out_partition_specs)
 
-  return (partitioned_train_state, train_state_partition_specs, train_step,
-          eval_step, total_num_params)
+  return (partitioned_train_state, train_state_partition_specs,
+          inputs_partition_spec, train_step, eval_step, total_num_params)
 
 
 def partition_spmd_model_decode(

@@ -15,10 +15,11 @@
 # ==============================================================================
 """Utils for training and evaluation of lingvo Jax models."""
 
+import functools
 from typing import Any, Callable, List, Optional, Union
-
 from absl import logging
 import jax
+from jax.experimental import global_device_array as gda_lib
 from lingvo.jax import base_input
 from lingvo.jax import base_model_params
 from lingvo.jax import model
@@ -28,7 +29,6 @@ from lingvo.jax import summary_utils
 from lingvo.jax import train_states
 import numpy as np
 import tensorflow.compat.v2 as tf
-
 from lingvo.jax import model_imports
 from lingvo.jax import model_registry
 
@@ -71,12 +71,20 @@ def run_eval_one_step(eval_inputs: NestedJTensor,
   return loss, mean_metrics, summary_tensors
 
 
+def _create_gda(global_mesh, global_shape, pspec, device_buffers):
+  return gda_lib.GlobalDeviceArray(global_shape.shape, global_mesh, pspec,
+                                   device_buffers)
+
+
 def run_eval_loop_over_test_splits(
     num_steps: List[int],
     eval_step: Callable[[NestedJTensor], Any],
     summary_writers: List[SummaryWriter],
     step: int,
     model_inputs: List[base_input.BaseInput],
+    eval_inputs_pspecs=None,
+    eval_inputs_shape=None,
+    global_mesh=None,
     reshard_inputs: Optional[bool] = False) -> List[Metrics]:
   """Run evaluation in a loop over a list of test sets.
 
@@ -86,6 +94,9 @@ def run_eval_loop_over_test_splits(
     summary_writers: The summary writer objects to log summaries.
     step: The step at which we are evaling the model.
     model_inputs: List of BaseInput instances.
+    eval_inputs_pspecs: PartitionSpec for eval inputs.
+    eval_inputs_shape: Global shape of eval inputs
+    global_mesh: Device mesh used by pjit.
     reshard_inputs: Whether to reshard inputs.
 
   Returns:
@@ -94,7 +105,6 @@ def run_eval_loop_over_test_splits(
   # If reshard_inputs = True, meaning this is called from pmap, hence we need to
   # unreplicate metrics for reporting.
   unreplicate_metrics = reshard_inputs
-
   metrics_output = []
   for split, num_split_steps in enumerate(num_steps):
     logging.info('Starting eval data split=%d with num_steps=%d', split,
@@ -109,13 +119,20 @@ def run_eval_loop_over_test_splits(
     while num_split_steps < 0 or step_num < num_split_steps:
       step_num += 1
       try:
+        eval_inputs = model_inputs[split].get_next()
+        if (jax.config.jax_parallel_functions_output_gda and
+            eval_inputs_pspecs is not None):
+          eval_inputs_device_buffers = jax.tree_map(
+              py_utils.put_arrays_on_device, eval_inputs)
+          eval_inputs = jax.tree_map(
+              functools.partial(_create_gda, global_mesh), eval_inputs_shape,
+              eval_inputs_pspecs, eval_inputs_device_buffers)
         eval_loss, eval_metrics, eval_summary_tensors = run_eval_one_step(
-            model_inputs[split].get_next(),
-            eval_step,
-            reshard_inputs=reshard_inputs)
-        eval_loss = py_utils.maybe_gda_to_sda(eval_loss)
-        eval_metrics = py_utils.maybe_gda_to_sda(eval_metrics)
-        eval_summary_tensors = py_utils.maybe_gda_to_sda(eval_summary_tensors)
+            eval_inputs, eval_step, reshard_inputs=reshard_inputs)
+        eval_loss = py_utils.maybe_unreplicate_gda(eval_loss)
+        eval_metrics = py_utils.maybe_unreplicate_gda(eval_metrics)
+        eval_summary_tensors = py_utils.maybe_unreplicate_gda(
+            eval_summary_tensors)
       except (tf.errors.OutOfRangeError, StopIteration):
         if num_split_steps > 0:
           raise
@@ -148,7 +165,6 @@ def run_eval_loop_over_test_splits(
       metrics[k] = (value, weight)
     loss = np.mean(loss, axis=0)
     logging.info('step_i: %d, eval test split %s loss: %s', step, split, loss)
-
     for key, value in metrics.items():
       metric_values = value[0]
       metric_weights = value[1]
@@ -157,7 +173,6 @@ def run_eval_loop_over_test_splits(
           metric_values * metric_weights) / sum_metric_weights
       logging.info('  %s=%f (weight=%f)', key, weighted_average.item(),
                    sum_metric_weights.item())
-
     summary_utils.write_summary_entry(
         summary_writers[split],
         step,

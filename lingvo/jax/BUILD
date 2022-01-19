@@ -387,6 +387,7 @@ pytype_strict_library(
         # Implicit jax:mesh_utils dependency.
         "//lingvo/jax:checkpoints",
         "//lingvo/jax:model_imports",
+        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )
