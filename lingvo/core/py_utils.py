@@ -1883,13 +1883,6 @@ def _CreateVariableStateful(name,
 
     v_init = FloatToInt8Wrapper(v_init)
 
-  if collections is None:
-    collections = []
-  # tf.Variable() does not have a "collections" arg that tf.get_variable() has.
-  # So instead add the passed collections into p.collections so that
-  # MaybeReuseFromVariableStore will add the variable to the collections.
-  p.collections = list(set(p.collections) | set(collections))
-
   with contextlib.ExitStack() as context_stack:
     for variable_creator_fn in (GetLingvoVariableCreator(name, var_name),
                                 MaybeOpportunisticVariableReuse,
@@ -1906,6 +1899,7 @@ def _CreateVariableStateful(name,
         shape=call_shape,
         dtype=var_dtype,
         initializer=v_init,
+        collections=collections,
         trainable=trainable,
         validate_shape=True,
         synchronization=synchronization,
@@ -1994,13 +1988,6 @@ def _CreateVariableStateless(name,
     raise TypeError(
         'Stateless variable initialization does not support tf.complex64.')
 
-  if collections is None:
-    collections = []
-  # tf.Variable() does not have a "collections" arg that tf.get_variable() has.
-  # So instead add the passed collections into p.collections so that
-  # MaybeReuseFromVariableStore will add the variable to the collections.
-  p.collections = list(set(p.collections) | set(collections))
-
   with contextlib.ExitStack() as context_stack:
     for variable_creator_fn in (GetLingvoVariableCreator(name, var_name),
                                 MaybeOpportunisticVariableReuse,
@@ -2013,6 +2000,7 @@ def _CreateVariableStateless(name,
         shape=GetVariableShapePrefixes() + list(shape),
         dtype=var_dtype,
         initializer=v_init,
+        collections=collections,
         trainable=trainable,
         validate_shape=True,
         synchronization=synchronization,
