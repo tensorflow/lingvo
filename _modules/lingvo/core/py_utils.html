@@ -6730,6 +6730,27 @@
   <span class="n">_</span><span class="p">,</span> <span class="p">[</span><span class="n">output</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">decode_proto</span><span class="p">(</span><span class="n">serialized_protos</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span>
                                    <span class="p">[</span><span class="n">field_name</span><span class="p">],</span> <span class="p">[</span><span class="n">output_type</span><span class="p">])</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="DecodeRepeatedProtoField"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.DecodeRepeatedProtoField">[docs]</a><span class="k">def</span> <span class="nf">DecodeRepeatedProtoField</span><span class="p">(</span><span class="n">serialized_protos</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span> <span class="n">field_name</span><span class="p">,</span>
+                             <span class="n">output_type</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Decodes a repeated field in a proto.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    serialized_protos: A string Tensor of shape [batch].</span>
+<span class="sd">    message_type: Name of the proto message type. Since tf.io.decode_proto() is</span>
+<span class="sd">    called with the default descriptor_source=&#39;local://&#39;, the C++ (not Python!)</span>
+<span class="sd">      proto definition(s) must be linked to the binary. You can link in a proto</span>
+<span class="sd">      descriptor by creating a cc_library target with alwayslink=1.</span>
+<span class="sd">    field_name: Name of the field.</span>
+<span class="sd">    output_type: A DType for the output.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Tensor of shape [batch, field_name_size].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="p">[</span><span class="n">output</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">decode_proto</span><span class="p">(</span><span class="n">serialized_protos</span><span class="p">,</span> <span class="n">message_type</span><span class="p">,</span> <span class="p">[</span><span class="n">field_name</span><span class="p">],</span>
+                                <span class="p">[</span><span class="n">output_type</span><span class="p">])</span><span class="o">.</span><span class="n">values</span>
+  <span class="k">return</span> <span class="n">output</span></div>
 </pre></div>
 
            </div>

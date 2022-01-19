@@ -3489,6 +3489,28 @@ ret_tensors: same as extra_tensors.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.py_utils.DecodeRepeatedProtoField">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">DecodeRepeatedProtoField</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">serialized_protos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">message_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">field_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_type</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#DecodeRepeatedProtoField"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.DecodeRepeatedProtoField" title="Permalink to this definition"></a></dt>
+<dd><p>Decodes a repeated field in a proto.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>serialized_protos</strong> – A string Tensor of shape [batch].</p></li>
+<li><p><strong>message_type</strong> – Name of the proto message type. Since tf.io.decode_proto() is</p></li>
+<li><p><strong>descriptor_source='local</strong> (<em>called with the default</em>) – //’, the C++ (not Python!)
+proto definition(s) must be linked to the binary. You can link in a proto
+descriptor by creating a cc_library target with alwayslink=1.</p></li>
+<li><p><strong>field_name</strong> – Name of the field.</p></li>
+<li><p><strong>output_type</strong> – A DType for the output.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape [batch, field_name_size].</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
