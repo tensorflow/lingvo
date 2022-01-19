@@ -219,8 +219,9 @@ def evaluate_spmd_model(
     y = jax.ShapeDtypeStruct(x.shape, x.dtype)
     return y
 
-  model_inputs = eval_input_pipelines[0].get_next()
-  inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs)
+  # Do not ues eval_input_pipelines[0] directly.
+  sample_model_inputs = eval_input_p[0].Instantiate().get_next()
+  inputs_shape = tf.nest.map_structure(get_shape_dtype, sample_model_inputs)
 
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
