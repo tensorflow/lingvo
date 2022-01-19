@@ -1827,12 +1827,12 @@ def _CreateVariableStateful(name,
 
     def ComplexWrapper(init):
 
-      def _Wrapper(shape, dtype, partition_info):
+      def _Wrapper(shape, dtype):
         del dtype
         # A more complex alternative may be to use the init function for
         # magnitudes and uniform random for phases instead.
         shape = [2] + shape
-        value = init(shape, init_dtype, partition_info)
+        value = init(shape, init_dtype)
         return tf.complex(value[0], value[1])
 
       return _Wrapper
@@ -1843,9 +1843,9 @@ def _CreateVariableStateful(name,
 
     def FloatToInt8Wrapper(init):
 
-      def _Wrapper(shape, dtype, partition_info):
+      def _Wrapper(shape, dtype):
         del dtype
-        value = init(shape, init_dtype, partition_info)
+        value = init(shape, init_dtype)
         scale = tf.math.maximum(
             tf.math.reduce_min(value) / -127,
             tf.math.reduce_max(value) / 127)
@@ -2029,9 +2029,8 @@ def _RandomXavierUniformInitializer(method, scale, seed):
   """Creates a random Xavier uniform initializer."""
   combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
 
-  def XavierUniform(shape, dtype, partition_info):
+  def XavierUniform(shape, dtype):
     """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
-    del partition_info  # Unused.
     if not shape:
       raise ValueError('\'shape\' must not be \'None\' or 0 for XavierUniform')
     fan_in, fan_out = GetFanInFanOut(shape, combined_layers_dims)
@@ -2115,9 +2114,8 @@ def _CreateVarInitStateful(name,
     v_init = init_ops.constant_initializer(value=scale, dtype=init_dtype)
   elif method in ['xavier', 'geo_mean_xavier']:
 
-    def XavierUniform(shape, dtype, partition_info):
+    def XavierUniform(shape, dtype):
       """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
-      del partition_info  # Unused.
       if not shape:
         raise ValueError(
             '\'shape\' must not be \'None\' or 0 for XavierUniform')
@@ -2175,8 +2173,7 @@ def _GenerateStatelessRngSeed(name, seed):
 def _DeterministicRandomNormalInitializer(seed, mean, stddev):
   """Creates a random normal initializer."""
 
-  def DeterministicNormal(shape, dtype, partition_info):
-    del partition_info  # Unused.
+  def DeterministicNormal(shape, dtype):
     return stateless_random_ops.stateless_random_normal(
         shape=shape, seed=seed, mean=mean, stddev=stddev, dtype=dtype)
 
@@ -2186,8 +2183,7 @@ def _DeterministicRandomNormalInitializer(seed, mean, stddev):
 def _DeterministicRandomUniformInitializer(seed, minval, maxval):
   """Creates a random uniform initializer."""
 
-  def DeterministicUniform(shape, dtype, partition_info):
-    del partition_info  # Unused.
+  def DeterministicUniform(shape, dtype):
     return stateless_random_ops.stateless_random_uniform(
         shape=shape, seed=seed, minval=minval, maxval=maxval, dtype=dtype)
 
@@ -2197,8 +2193,7 @@ def _DeterministicRandomUniformInitializer(seed, minval, maxval):
 def _DeterministicRandomTruncatedNormalInitializer(seed, mean, stddev):
   """Creates a random truncated normal initializer."""
 
-  def DeterministicTruncatedNormal(shape, dtype, partition_info):
-    del partition_info  # Unused.
+  def DeterministicTruncatedNormal(shape, dtype):
     return stateless_random_ops.stateless_truncated_normal(
         shape=shape, seed=seed, mean=mean, stddev=stddev, dtype=dtype)
 
@@ -2208,12 +2203,10 @@ def _DeterministicRandomTruncatedNormalInitializer(seed, mean, stddev):
 def _DeterministicRandomUniformUnitScalingInitializer(seed, factor):
   """Creates a random uniform unit scaling initializer."""
 
-  def DeterministicUniformUnitScaling(shape, dtype, partition_info):
+  def DeterministicUniformUnitScaling(shape, dtype):
     # The following logic is originally from (UniformUnitScaling.__call__())
     # in TensorFlow: python/ops/init_ops.py
     scale_shape = shape
-    if partition_info is not None:
-      scale_shape = partition_info.full_shape
 
     input_size = 1.0
     # Estimating input size is not possible to do perfectly, but we try.
@@ -2246,11 +2239,9 @@ def _DeterministicRandomVarianceScalingInitializer(scale, mode, distribution,
 
   combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
 
-  def DeterministicVarianceScaling(shape, dtype, partition_info):
+  def DeterministicVarianceScaling(shape, dtype):
     # This is originally from TensorFlow: python/ops/init_ops.py
     scale_shape = shape
-    if partition_info is not None:
-      scale_shape = partition_info.full_shape
     # Handle special case of empty list as shape, since fan_in and fan_out
     # are numerically added below. Without this, GetFanInFanOut() would
     # return None, None instead.
@@ -2286,9 +2277,8 @@ def _DeterministicRandomXavierUniformInitializer(method, scale, seed):
   """Creates a variance scaling initializer."""
   combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
 
-  def XavierUniform(shape, dtype, partition_info):
+  def XavierUniform(shape, dtype):
     """Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x])."""
-    del partition_info  # Unused.
     if not shape:
       raise ValueError('\'shape\' must not be \'None\' or 0 for XavierUniform')
     fan_in, fan_out = GetFanInFanOut(shape, combined_layers_dims)
