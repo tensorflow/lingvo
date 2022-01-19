@@ -1892,12 +1892,12 @@
 
     <span class="k">def</span> <span class="nf">ComplexWrapper</span><span class="p">(</span><span class="n">init</span><span class="p">):</span>
 
-      <span class="k">def</span> <span class="nf">_Wrapper</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+      <span class="k">def</span> <span class="nf">_Wrapper</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
         <span class="k">del</span> <span class="n">dtype</span>
         <span class="c1"># A more complex alternative may be to use the init function for</span>
         <span class="c1"># magnitudes and uniform random for phases instead.</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex</span><span class="p">(</span><span class="n">value</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">value</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 
       <span class="k">return</span> <span class="n">_Wrapper</span>
@@ -1908,9 +1908,9 @@
 
     <span class="k">def</span> <span class="nf">FloatToInt8Wrapper</span><span class="p">(</span><span class="n">init</span><span class="p">):</span>
 
-      <span class="k">def</span> <span class="nf">_Wrapper</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+      <span class="k">def</span> <span class="nf">_Wrapper</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
         <span class="k">del</span> <span class="n">dtype</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">)</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">init</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">init_dtype</span><span class="p">)</span>
         <span class="n">scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="o">-</span><span class="mi">127</span><span class="p">,</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">/</span> <span class="mi">127</span><span class="p">)</span>
@@ -2094,9 +2094,8 @@
   <span class="sd">&quot;&quot;&quot;Creates a random Xavier uniform initializer.&quot;&quot;&quot;</span>
   <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
 
-  <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
-    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
     <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
@@ -2180,9 +2179,8 @@
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">constant_initializer</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
   <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;xavier&#39;</span><span class="p">,</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">]:</span>
 
-    <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
-      <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
             <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
@@ -2240,8 +2238,7 @@
 <div class="viewcode-block" id="_DeterministicRandomNormalInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._DeterministicRandomNormalInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomNormalInitializer</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates a random normal initializer.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">DeterministicNormal</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
-    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+  <span class="k">def</span> <span class="nf">DeterministicNormal</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_normal</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">stddev</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
@@ -2251,8 +2248,7 @@
 <div class="viewcode-block" id="_DeterministicRandomUniformInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._DeterministicRandomUniformInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomUniformInitializer</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="p">,</span> <span class="n">maxval</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates a random uniform initializer.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">DeterministicUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
-    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+  <span class="k">def</span> <span class="nf">DeterministicUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_random_uniform</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">minval</span><span class="o">=</span><span class="n">minval</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="n">maxval</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
@@ -2262,8 +2258,7 @@
 <div class="viewcode-block" id="_DeterministicRandomTruncatedNormalInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._DeterministicRandomTruncatedNormalInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomTruncatedNormalInitializer</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates a random truncated normal initializer.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">DeterministicTruncatedNormal</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
-    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
+  <span class="k">def</span> <span class="nf">DeterministicTruncatedNormal</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">stateless_random_ops</span><span class="o">.</span><span class="n">stateless_truncated_normal</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="o">=</span><span class="n">stddev</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
 
@@ -2273,12 +2268,10 @@
 <div class="viewcode-block" id="_DeterministicRandomUniformUnitScalingInitializer"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._DeterministicRandomUniformUnitScalingInitializer">[docs]</a><span class="k">def</span> <span class="nf">_DeterministicRandomUniformUnitScalingInitializer</span><span class="p">(</span><span class="n">seed</span><span class="p">,</span> <span class="n">factor</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates a random uniform unit scaling initializer.&quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">DeterministicUniformUnitScaling</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">DeterministicUniformUnitScaling</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
     <span class="c1"># The following logic is originally from (UniformUnitScaling.__call__())</span>
     <span class="c1"># in TensorFlow: python/ops/init_ops.py</span>
     <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">shape</span>
-    <span class="k">if</span> <span class="n">partition_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">partition_info</span><span class="o">.</span><span class="n">full_shape</span>
 
     <span class="n">input_size</span> <span class="o">=</span> <span class="mf">1.0</span>
     <span class="c1"># Estimating input size is not possible to do perfectly, but we try.</span>
@@ -2311,11 +2304,9 @@
 
   <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
 
-  <span class="k">def</span> <span class="nf">DeterministicVarianceScaling</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">DeterministicVarianceScaling</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
     <span class="c1"># This is originally from TensorFlow: python/ops/init_ops.py</span>
     <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">shape</span>
-    <span class="k">if</span> <span class="n">partition_info</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">scale_shape</span> <span class="o">=</span> <span class="n">partition_info</span><span class="o">.</span><span class="n">full_shape</span>
     <span class="c1"># Handle special case of empty list as shape, since fan_in and fan_out</span>
     <span class="c1"># are numerically added below. Without this, GetFanInFanOut() would</span>
     <span class="c1"># return None, None instead.</span>
@@ -2351,9 +2342,8 @@
   <span class="sd">&quot;&quot;&quot;Creates a variance scaling initializer.&quot;&quot;&quot;</span>
   <span class="n">combined_layers_dims</span> <span class="o">=</span> <span class="n">GetVariableNumLeadingDimsForCombinedLayersContext</span><span class="p">()</span>
 
-  <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">XavierUniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Xavier initialization (x = sqrt(6. / (in + out)); scale*[-x, x]).&quot;&quot;&quot;</span>
-    <span class="k">del</span> <span class="n">partition_info</span>  <span class="c1"># Unused.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">shape</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">shape</span><span class="se">\&#39;</span><span class="s1"> must not be </span><span class="se">\&#39;</span><span class="s1">None</span><span class="se">\&#39;</span><span class="s1"> or 0 for XavierUniform&#39;</span><span class="p">)</span>
     <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span> <span class="o">=</span> <span class="n">GetFanInFanOut</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">combined_layers_dims</span><span class="p">)</span>
