@@ -108,9 +108,6 @@
 
 <div class="viewcode-block" id="TestCase.setUp"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.setUp">[docs]</a>  <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">setUp</span><span class="p">()</span>
-    <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
-      <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">VariableStore</span><span class="p">())</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">addCleanup</span><span class="p">(</span><span class="n">stack</span><span class="o">.</span><span class="n">pop_all</span><span class="p">()</span><span class="o">.</span><span class="n">close</span><span class="p">)</span>
     <span class="c1"># Ensure the global_step variable is created in the default graph.</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetRequireSequentialInputOrder</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
