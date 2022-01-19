@@ -1548,6 +1548,9 @@ def GetFanInFanOut(shape, prefix_dims_to_skip):
     return fan_in, fan_out
 
 
+_VARIABLE_STORE_STACK = ThreadLocalStack()
+
+
 @contextlib.contextmanager
 def VariableStore(default_store=None):
   """Keeps track of {variable_name: (variable, var_params)}.
@@ -1570,24 +1573,20 @@ def VariableStore(default_store=None):
   Yields:
     A dictionary representing the variable store.
   """
-  old_store = _GetVariableStore()
-  default_store = default_store or {}
-  store = old_store if old_store is not None else default_store
-  graph = tf.get_default_graph()
-  while hasattr(graph, 'outer_graph') and graph.outer_graph:
-    graph = graph.outer_graph
-  graph.lingvo_variable_store = store
-  yield store
-  graph.lingvo_variable_store = old_store
+  if _VARIABLE_STORE_STACK.stack:
+    store = _VARIABLE_STORE_STACK.stack[-1]
+  else:
+    store = default_store or {}
+  _VARIABLE_STORE_STACK.stack.append(store)
+  try:
+    yield store
+  finally:
+    _VARIABLE_STORE_STACK.stack.pop()
 
 
 def _GetVariableStore():
-  graph = tf.get_default_graph()
-  while hasattr(graph, 'outer_graph') and graph.outer_graph:
-    graph = graph.outer_graph
-  if hasattr(graph, 'lingvo_variable_store'):
-    return graph.lingvo_variable_store
-  return None
+  return (_VARIABLE_STORE_STACK.stack[-1]
+          if _VARIABLE_STORE_STACK.stack else None)
 
 
 def _DefaultVariableCreator(**kwargs):
@@ -1681,21 +1680,15 @@ def MaybeReuseFromVariableStore(next_creator, **kwargs):
   var_name = kwargs['var_name']
   p = kwargs['var_params']
   store = _GetVariableStore()
-  if store is not None:
-    if var_name in store:
-      if tf.get_variable_scope().reuse:
-        var, cached_p = store[var_name]
-        tf.logging.info('Reusing var %s', var.name)
-        assert cached_p == p.ToText(), (
-            'Cached config:\n %s vs new config:\n %s' % (cached_p, p.ToText()))
-        return var
+  if store is not None and var_name in store:
+    if tf.get_variable_scope().reuse:
+      var, cached_p = store[var_name]
+      tf.logging.info('Reusing var %s', var.name)
+      assert cached_p == p.ToText(), (
+          'Cached config:\n %s vs new config:\n %s' % (cached_p, p.ToText()))
+      return var
 
   var = next_creator(**kwargs)
-  if var.name != f'{var_name}/var:0':
-    raise ValueError(
-        'Expected %s but created variable %s. Did you mean to set reuse=True '
-        'or reuse=tf.AUTO_REUSE in VarScope, or did not create a '
-        'VariableStore for variable reuse?' % (f'{var_name}/var:0', var.name))
   tf.logging.info('Creating var %s shape=%s on device %s', var.name, var.shape,
                   var.device)
   for col in p.collections:
