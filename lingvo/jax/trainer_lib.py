@@ -409,12 +409,13 @@ def eval_step_single_learner(
   return mean_loss, mean_metrics, per_example_out, summary_tensors
 
 
-def decode_step(mdl: Model,
-                mdl_vars: NestedJTensor,
-                prng_key: JTensor,
-                global_step: JTensor,
-                inputs: Union[JTensor, NestedMap],
-                fprop_dtype: jnp.dtype = jnp.float32) -> NestedMap:
+def decode_step(
+    mdl: Model,
+    mdl_vars: NestedJTensor,
+    prng_key: JTensor,
+    global_step: JTensor,
+    inputs: Union[JTensor, NestedMap],
+    fprop_dtype: jnp.dtype = jnp.float32) -> Tuple[NestedMap, NestedMap]:
   """Decodes a model for a single step.
 
   Args:
@@ -427,7 +428,7 @@ def decode_step(mdl: Model,
     fprop_dtype: fprop datatype, can be either jnp.float32 or jnp.bfloat16.
 
   Returns:
-    A NestedMap as computed by mdl.decode().
+    A tuple of (metrics, results) as computed by mdl.decode().
   """
   context_p = base_layer.JaxContext.Params().Set(do_eval=True)
   # Fold in global_step as part of the random seed key, so that random

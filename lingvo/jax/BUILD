@@ -123,9 +123,11 @@ pytype_strict_library(
     srcs = ["eval.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_input",
         ":base_layer",
         ":base_model_params",
         ":checkpoint_py_pb2",
+        ":model",
         ":model_utils",
         ":py_utils",
         ":pytypes",
@@ -138,6 +140,7 @@ pytype_strict_library(
         "//lingvo/jax:checkpoints",
         "//lingvo/jax:io_utils",
         "//lingvo/jax:model_imports",
+        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )

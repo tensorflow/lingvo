@@ -81,7 +81,7 @@ class LanguageModelTest(test_util.JaxTestCase):
     prng_key = jax.random.PRNGKey(seed=1234)
     with base_layer.JaxContext.new_context(
         prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
-      results = lang_model.decode(theta, input_batch)
+      _, results = lang_model.decode(theta, input_batch)
     return results
 
   def test_base_case(self):

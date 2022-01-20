@@ -45,7 +45,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string('model', None, 'Lingvo Jax model name.')
 flags.DEFINE_string('job_log_dir', None,
                     'Directory where all experiment assets will be stored.')
-flags.DEFINE_enum('mode', 'train', ['train', 'eval', 'decode_once'],
+flags.DEFINE_enum('mode', 'train', ['train', 'eval', 'decode', 'decode_once'],
                   'Flag to control which job is called.')
 flags.DEFINE_bool(
     'eval_on_test', False, 'If True, then the training loop '
@@ -163,18 +163,30 @@ def main(argv: Sequence[str]) -> None:
         multi_host_checkpointing=FLAGS.multi_host_checkpointing,
         maybe_use_persistence_checkpointing=FLAGS
         .maybe_use_persistence_checkpointing)
-  # TODO(zhouwk): support continuous decode mode "decode".
+  elif FLAGS.mode == 'decode':
+    eval_lib.decode(
+        model_name=FLAGS.model,
+        job_log_dir=FLAGS.job_log_dir,
+        multi_host_checkpointing=FLAGS.multi_host_checkpointing,
+        maybe_use_persistence_checkpointing=FLAGS
+        .maybe_use_persistence_checkpointing,
+        restore_checkpoint_dir=None,
+        restore_checkpoint_step=None,
+        continuous_decode=True,
+    )
   elif FLAGS.mode == 'decode_once':
     if not FLAGS.restore_checkpoint_dir:
       raise ValueError('--mode=decode_once requires --restore_checkpoint_dir.')
-    eval_lib.decode_once(
+    eval_lib.decode(
         model_name=FLAGS.model,
         job_log_dir=FLAGS.job_log_dir,
         multi_host_checkpointing=FLAGS.multi_host_checkpointing,
         maybe_use_persistence_checkpointing=FLAGS
         .maybe_use_persistence_checkpointing,
         restore_checkpoint_dir=FLAGS.restore_checkpoint_dir,
-        restore_checkpoint_step=FLAGS.restore_checkpoint_step)
+        restore_checkpoint_step=FLAGS.restore_checkpoint_step,
+        continuous_decode=False,
+    )
 
 
 _TASK_HANDLE_RE = re.compile(r'(?:logs\.)?(\d+)\.(.*)\.([^.]+)\.\d+')
