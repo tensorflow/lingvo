@@ -626,7 +626,9 @@
                         <span class="n">norm_policy</span><span class="o">=</span><span class="s1">&#39;pre&#39;</span><span class="p">,</span>
                         <span class="n">use_repeat_layer</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                         <span class="n">spmd_pipeline_stages</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                        <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                        <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">start_layer_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                        <span class="n">has_final_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Clean DecoderLayerStack, similar to EncoderLayerStack.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">_DecoderLayer</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
@@ -639,7 +641,8 @@
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerStack</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span>
                             <span class="n">spmd_pipeline_stages</span><span class="p">,</span> <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="n">_DecoderLayer</span><span class="p">)</span></div>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="n">_DecoderLayer</span><span class="p">,</span>
+                            <span class="n">start_layer_id</span><span class="p">,</span> <span class="n">has_final_layer</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.Repeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Repeat">[docs]</a>  <span class="k">def</span> <span class="nf">Repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">per_layer_vars</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper to call builder_layers.RepeatLayer.&quot;&quot;&quot;</span>
@@ -655,9 +658,17 @@
     <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">LayerwiseShardablePipelinedLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">num_stages</span><span class="o">=</span><span class="n">stages</span><span class="p">,</span> <span class="n">single_stage_body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder._LayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">_LayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub_layers</span><span class="p">,</span> <span class="n">num</span><span class="p">,</span> <span class="n">use_repeat_layer</span><span class="p">,</span>
-                  <span class="n">spmd_pipeline_stages</span><span class="p">,</span> <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span> <span class="n">imap_keys</span><span class="p">,</span>
-                  <span class="n">layer_fn</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder._LayerStack"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._LayerStack">[docs]</a>  <span class="k">def</span> <span class="nf">_LayerStack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                  <span class="n">name</span><span class="p">,</span>
+                  <span class="n">sub_layers</span><span class="p">,</span>
+                  <span class="n">num</span><span class="p">,</span>
+                  <span class="n">use_repeat_layer</span><span class="p">,</span>
+                  <span class="n">spmd_pipeline_stages</span><span class="p">,</span>
+                  <span class="n">spmd_pipeline_microbatches</span><span class="p">,</span>
+                  <span class="n">imap_keys</span><span class="p">,</span>
+                  <span class="n">layer_fn</span><span class="p">,</span>
+                  <span class="n">start_layer_id</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                  <span class="n">has_final_layer</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="c1"># TODO(yuanzx): Consider refactor this into a layer.</span>
     <span class="k">assert</span> <span class="s1">&#39;segment_id&#39;</span> <span class="ow">in</span> <span class="n">imap_keys</span>
     <span class="k">if</span> <span class="n">use_repeat_layer</span><span class="p">:</span>
@@ -668,9 +679,10 @@
           <span class="p">(</span><span class="s1">&#39;i.&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span><span class="p">)))</span>
 
     <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="n">imap_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_split-&gt;x_000&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">imap_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_split-&gt;x_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">start_layer_id</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.aux_loss-&gt;loss_000&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_000&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.aux_loss-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">start_layer_id</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">start_layer_id</span><span class="p">)),</span>
     <span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">_SubLayersBlock</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
@@ -685,7 +697,7 @@
               <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,omap_</span><span class="si">%03d</span><span class="s1">.aux_loss-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
 
-    <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">i</span> <span class="o">=</span> <span class="n">start_layer_id</span>
     <span class="k">assert</span> <span class="n">num</span> <span class="o">%</span> <span class="n">spmd_pipeline_stages</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="n">layers_per_stage</span> <span class="o">=</span> <span class="n">num</span> <span class="o">//</span> <span class="n">spmd_pipeline_stages</span>
     <span class="n">main_stack</span> <span class="o">=</span> <span class="p">[]</span>
@@ -694,8 +706,9 @@
       <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
         <span class="n">blocks</span> <span class="o">+=</span> <span class="n">_SubLayersBlock</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
-      <span class="n">body_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_000,loss_000,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+      <span class="n">body_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,loss_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">%</span> <span class="p">(</span>
+          <span class="n">start_layer_id</span><span class="p">,</span> <span class="n">start_layer_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+              <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
       <span class="n">body_outputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,loss_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
           <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
       <span class="n">body_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="s1">&#39;blocks_body&#39;</span><span class="p">,</span> <span class="n">body_inputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span>
@@ -753,8 +766,9 @@
       <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
           <span class="p">(</span><span class="s1">&#39;loss_000-&gt;loss_000_m&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;loss_padded_microbatched&#39;</span><span class="p">,</span>
                                             <span class="n">_PadLoss</span><span class="p">)))</span>
-      <span class="n">body_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_000,loss_000,&#39;</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
+      <span class="n">body_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,loss_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">%</span> <span class="p">(</span>
+          <span class="n">start_layer_id</span><span class="p">,</span> <span class="n">start_layer_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+              <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
       <span class="n">body_outputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,loss_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
           <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
       <span class="n">body_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="s1">&#39;pipeline_body&#39;</span><span class="p">,</span> <span class="n">body_inputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span>
@@ -789,13 +803,19 @@
                          <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;loss_combined&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">)))</span>
 
     <span class="n">stack</span> <span class="o">+=</span> <span class="n">main_stack</span>
-    <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
-        <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;o.aux_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
-        <span class="p">((</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">-&gt;y_norm&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
-    <span class="p">]</span>
+    <span class="k">if</span> <span class="n">has_final_layer</span><span class="p">:</span>
+      <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;o.aux_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
+          <span class="p">((</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">-&gt;y_norm&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;final_layer_norm&#39;</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+      <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;o.aux_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,segment_id_split-&gt;o.vec&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+      <span class="p">]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span> <span class="o">*</span><span class="n">stack</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._DenseReluDenseWeights"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._DenseReluDenseWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_DenseReluDenseWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -3216,6 +3236,27 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_eos_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;&lt;/s&gt; is in model SPM&#39;</span><span class="p">)</span>
     <span class="c1"># bos_id is not used in prefix decoding</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_bos_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;&lt;s&gt; is in model SPM&#39;</span><span class="p">)</span>
+    <span class="c1"># start_layer_id, has_embedding_layer and has_final_layer  are usedful to</span>
+    <span class="c1"># construct a sub model during inference, each sub model only contains part</span>
+    <span class="c1"># of layers from the model. The uni-transformer model is composed of an</span>
+    <span class="c1"># embedding layer, following by num_sub_layer * num_transformer_layer</span>
+    <span class="c1"># transformer layers and final softmax feedforward layer.</span>
+    <span class="c1"># For example, if num_transformer_layer = 16 and num_sub_layer = 2, and we</span>
+    <span class="c1"># want to split the model into 3 sub models with num_transformer_layer = 4</span>
+    <span class="c1"># in each sub model:</span>
+    <span class="c1">#   1. To configure the 1st sub model, we need to have</span>
+    <span class="c1"># num_transformer_layer = 4, start_layer_id = 0, has_embedding_layer = True,</span>
+    <span class="c1"># has_final_layer = False;</span>
+    <span class="c1">#   2. To configure the 2nd sub model, we need to have</span>
+    <span class="c1"># num_transformer_layer = 4, start_layer_id = 1 * num_transformer_layer *</span>
+    <span class="c1"># num_sub_layer = 8, has_embedding_layer = False, has_final_layer = False;</span>
+    <span class="c1">#   3. To configure the 3rd sub model, we need to have</span>
+    <span class="c1"># num_transformer_layer = 4, start_layer_id = 2 * num_transformer_layer *</span>
+    <span class="c1"># num_sub_layer = 16, has_embedding_layer = False, has_final_layer = True;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;start_layer_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Start layer id.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;has_embedding_layer&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Model has embedding layer or not.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;has_final_layer&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;The model has the final layer such as &#39;</span>
+             <span class="s1">&#39;feedforward net.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -3239,17 +3280,29 @@
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">gated_ffn_activation</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">gated_ffn_activation</span>
       <span class="n">gated_ffn_activation</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="n">dec_emb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="s1">&#39;dec_emb&#39;</span><span class="p">,</span> <span class="n">tgt_vocab_size</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dec_emb&#39;</span><span class="p">,</span> <span class="n">dec_emb</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_embedding_layer</span><span class="p">:</span>
+      <span class="n">dec_emb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="s1">&#39;dec_emb&#39;</span><span class="p">,</span> <span class="n">tgt_vocab_size</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dec_emb&#39;</span><span class="p">,</span> <span class="n">dec_emb</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
-      <span class="n">dec_pos_emb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="s1">&#39;dec_pos_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max_length</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dec_pos_emb&#39;</span><span class="p">,</span> <span class="n">dec_pos_emb</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
+        <span class="n">dec_pos_emb</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">Embedding</span><span class="p">(</span><span class="s1">&#39;dec_pos_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max_length</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dec_pos_emb&#39;</span><span class="p">,</span> <span class="n">dec_pos_emb</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+      <span class="c1"># Make sure training won&#39;t enable partially constructed model code</span>
+      <span class="c1"># path.</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">start_layer_id</span> <span class="o">==</span> <span class="mi">0</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">has_embedding_layer</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">has_final_layer</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">parallel_ffn</span><span class="p">:</span>  <span class="c1"># Only works with RecurrentDenseBuilderParallelDecode.</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">positional_embedding</span>
       <span class="k">assert</span> <span class="n">gated_ffn_activation</span>
       <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">RecurrentDenseBuilderParallelDecode</span><span class="p">)</span>
+      <span class="c1"># Make sure multi stage inference won&#39;t jump into this path.</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">start_layer_id</span> <span class="o">==</span> <span class="mi">0</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">has_embedding_layer</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">has_final_layer</span>
       <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span>
           <span class="n">b</span><span class="o">.</span><span class="n">Repeat</span><span class="p">(</span>
               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span>
@@ -3306,7 +3359,9 @@
           <span class="n">norm_policy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">norm_policy</span><span class="p">,</span>
           <span class="n">use_repeat_layer</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_repeat_layer</span><span class="p">,</span>
           <span class="n">spmd_pipeline_stages</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_stages</span><span class="p">,</span>
-          <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_microbatches</span><span class="p">)</span>
+          <span class="n">spmd_pipeline_microbatches</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_spmd_pipeline_microbatches</span><span class="p">,</span>
+          <span class="n">start_layer_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">start_layer_id</span><span class="p">,</span>
+          <span class="n">has_final_layer</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">has_final_layer</span><span class="p">)</span>
     <span class="n">dec</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Xavier</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 
     <span class="n">emb_w_split</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;w_split&#39;</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">emb_w_split</span><span class="p">)</span>
@@ -3320,10 +3375,15 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;logits_split&#39;</span><span class="p">,</span> <span class="n">logits_split</span><span class="p">)</span>
 
 <div class="viewcode-block" id="UniTransformer._ComputeDecoderInput"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._ComputeDecoderInput">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeDecoderInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_emb</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
-      <span class="n">y</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_pos_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_pos_emb</span><span class="p">,</span>
-                                  <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_embedding_layer</span><span class="p">:</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_emb</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">positional_embedding</span><span class="p">:</span>
+        <span class="n">y</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_pos_emb</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_pos_emb</span><span class="p">,</span>
+                                    <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
+
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">vec</span><span class="o">=</span><span class="n">y</span><span class="p">,</span>
         <span class="n">segment_id</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span><span class="p">,</span>
@@ -3350,6 +3410,10 @@
       <span class="n">decoder_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeDecoderInput</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
       <span class="n">all_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec</span><span class="p">,</span> <span class="n">decoder_input</span><span class="p">)</span>
       <span class="n">dec_outputs</span><span class="p">,</span> <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">all_outputs</span><span class="o">.</span><span class="n">vec</span><span class="p">,</span> <span class="n">all_outputs</span><span class="o">.</span><span class="n">aux_loss</span>
+
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">has_final_layer</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">dec_outputs</span><span class="p">,</span> <span class="n">aux_loss</span>
+
       <span class="n">dec_outputs</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
       <span class="n">dec_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_out_split</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_out_split</span><span class="p">,</span> <span class="n">dec_outputs</span><span class="p">)</span>
       <span class="c1"># TODO(lepikhin): we only support</span>
