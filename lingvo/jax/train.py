@@ -611,9 +611,12 @@ def train_and_evaluate_spmd_model(
         if jax.config.jax_parallel_functions_output_gda:
           model_inputs_device_buffers = jax.tree_map(
               py_utils.put_arrays_on_device, model_inputs)
+          start = time.time()
           model_inputs = jax.tree_map(
               functools.partial(_create_gda, global_mesh), inputs_shape,
               inputs_pspecs, model_inputs_device_buffers)
+          logging.info('GDA train batch input creation time %s',
+                       time.time() - start)
 
         logging.debug('  Retrieved inputs.')
 
