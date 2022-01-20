@@ -358,10 +358,15 @@ class LearnersTest(test_util.JaxTestCase):
         var_weight_params=old_vars)
     partition_spec = grad_tx.init_partition_spec(old_vars)
     partition_spec_single = grad_tx_single.init_partition_spec(old_vars)
+    # Assert that the length of partition spec is the same as the total
+    # auxiliary optimizers plus 1 (for the primary optimizer).
+    self.assertLen(partition_spec,
+                   len(learner_instance._auxiliary_optimizers) + 1)
     # Optimizers are chained as l1 - l2 - optimizer update - weight_decay.
     for k in partition_spec_single[2]._fields:
-      tf.nest.assert_same_structure(
-          getattr(partition_spec[2], k), getattr(partition_spec_single[2], k))
+      for p in partition_spec:
+        tf.nest.assert_same_structure(
+            getattr(p[2], k), getattr(partition_spec_single[2], k))
 
   def test_vectorized_prefix(self):
 

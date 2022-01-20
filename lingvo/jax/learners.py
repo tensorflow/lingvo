@@ -278,9 +278,9 @@ class MultiOptimizerLearner(Learner):
     self._auxiliary_optimizers = [
         opt.Instantiate() for opt in p.auxiliary_optimizers
     ]
-    self._grad_tx_fn = self._optimizer._get_raw_grad_transformation
+    self._grad_tx_fn = self._optimizer.get_grad_transformation
     self._auxiliary_grad_tx_fn = [
-        opt._get_raw_grad_transformation for opt in self._auxiliary_optimizers
+        opt.get_grad_transformation for opt in self._auxiliary_optimizers
     ]
 
   def get_grad_tx(
@@ -301,14 +301,10 @@ class MultiOptimizerLearner(Learner):
     optimizer_mask = []
 
     # Aggregate all the auxiliary optimizer masks.
-    for regex, grad_tx_fn, optimizer in zip(p.auxiliary_regex,
-                                            self._auxiliary_grad_tx_fn,
-                                            self._auxiliary_optimizers):
+    for regex, grad_tx_fn in zip(p.auxiliary_regex, self._auxiliary_grad_tx_fn):
       prefix = py_utils.extract_prefixed_keys_from_nested_map(var_weight_params)
       mask = jax.tree_map(lambda x, regex=regex: regex in x, prefix)
-      optimizer_chain.append(
-          optimizers.sharded_masked(
-              grad_tx_fn(optimizer.get_learning_rate), mask))
+      optimizer_chain.append(optimizers.sharded_masked(grad_tx_fn(), mask))
       optimizer_mask.append(mask)
 
     # Create the default optimizer mask.
@@ -328,9 +324,7 @@ class MultiOptimizerLearner(Learner):
                                      *optimizer_mask)
     default_mask = jax.tree_map(lambda mask: not mask, default_mask)
     optimizer_chain.insert(
-        0,
-        optimizers.sharded_masked(
-            self._grad_tx_fn(self._optimizer.get_learning_rate), default_mask))
+        0, optimizers.sharded_masked(self._grad_tx_fn(), default_mask))
     grad_tx = optimizers.sharded_chain(*optimizer_chain)
     # Finally, apply vectorization on prefix dims.
     if p.vectorize_on_repeat_prefix:
