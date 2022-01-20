@@ -20,7 +20,6 @@ pytype_strict_library(
         ":conformers",
         ":convolutions",
         ":embedding_softmax",
-        ":flax_wrapper",
         ":linears",
         ":losses",
         ":ngrammer",
@@ -104,20 +103,6 @@ pytype_strict_library(
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
         # Implicit numpy dependency.
-    ],
-)
-
-pytype_strict_library(
-    name = "flax_wrapper",
-    srcs = ["flax_wrapper.py"],
-    srcs_version = "PY3",
-    deps = [
-        # Implicit flax's core dependency.
-        # Implicit jax dependency.
-        "//lingvo/jax:base_layer",
-        "//lingvo/jax:py_utils",
-        "//lingvo/jax:pytypes",
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -329,11 +314,9 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         ":conformers",
-        ":flax_wrapper",
         ":linears",
         ":normalizations",
         ":transformers",
-        # Implicit flax's core dependency.
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:model",

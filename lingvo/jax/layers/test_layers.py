@@ -15,17 +15,13 @@
 # ==============================================================================
 """A few utility layers to facilitate writing unit-tests."""
 
-from typing import Any, Tuple
+from typing import Tuple
 
-import flax.linen as flax_nn
-import jax
 from jax import numpy as jnp
-from jax import random as jrandom
 from lingvo.jax import base_layer
 from lingvo.jax import model
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
-from lingvo.jax.layers import flax_wrapper
 from lingvo.jax.layers import linears
 from lingvo.jax.layers import normalizations
 from lingvo.jax.layers import transformers
@@ -98,74 +94,6 @@ class TestLayer(base_layer.BaseLayer):
     x5 = linears.project_last_dim(x4, theta.final_proj)
     x6 = self.add_one.fprop(theta.add_one, x5)
     return x6
-
-
-class CNN(flax_nn.Module):
-  """A simple CNN model."""
-
-  @flax_nn.compact
-  def __call__(self, x: JTensor) -> JTensor:
-    x = flax_nn.Conv(features=32, kernel_size=(3, 3))(x)
-    x = flax_nn.relu(x)
-    x = flax_nn.avg_pool(x, window_shape=(2, 2), strides=(2, 2))
-    x = flax_nn.Conv(features=64, kernel_size=(3, 3))(x)
-    x = flax_nn.relu(x)
-    x = flax_nn.avg_pool(x, window_shape=(2, 2), strides=(2, 2))
-    x = x.reshape((x.shape[0], -1))  # flatten
-    x = flax_nn.Dense(features=256)(x)
-    x = flax_nn.relu(x)
-    x = flax_nn.Dense(features=10)(x)
-    x = flax_nn.log_softmax(x)
-    return x
-
-
-class MnistCnnLayer(flax_wrapper.FlaxModule):
-  """A wrapper of the CNN layer above."""
-
-  def _create_flax_module(self) -> flax_nn.Module:
-    return CNN()
-
-  def _init_module_states(self, prng_key: JTensor) -> NestedMap:
-    prng_key, sub_key1 = jrandom.split(prng_key)
-    prng_key, sub_key2 = jrandom.split(prng_key)
-    jit_init = jax.jit(self._module.init)
-    initial_vars = jit_init({
-        'params': sub_key1,
-        'dropout': sub_key2
-    }, jnp.ones([2, 32, 32, 1], dtype=jnp.float32))
-    return initial_vars
-
-  def fprop(self, theta: NestedMap, *args: Any, **kwargs: Any) -> JTensor:
-    prng_key1 = base_layer.next_prng_key()
-    prng_key2 = base_layer.next_prng_key()
-    out = self._module.apply(
-        theta,
-        *args,
-        rngs={
-            'params': prng_key1,
-            'dropout': prng_key2
-        },
-        **kwargs)
-    return out
-
-
-class FlaxTestLayer(base_layer.BaseLayer):
-  """A composite layer that consists of a flax module."""
-
-  def __init__(self, params: InstantiableParams) -> None:
-    super().__init__(params)
-    cnn_p = MnistCnnLayer.Params()
-    self.create_child('cnn_p1', cnn_p.Copy())
-    self.create_child('cnn_p2', cnn_p.Copy())
-    bn_p = normalizations.BatchNorm.Params().Set(dim=10)
-    self.create_child('bn', bn_p)
-
-  def fprop(self, theta: NestedMap,
-            x: JTensor) -> Tuple[JTensor, JTensor, JTensor]:
-    out1 = self.cnn_p1.fprop(theta.cnn_p1, x)
-    out2 = self.cnn_p2.fprop(theta.cnn_p2, x)
-    out = self.bn.fprop(theta.bn, out1 + out2)
-    return out1, out2, out
 
 
 class VarUnusedLayer(base_layer.BaseLayer):
