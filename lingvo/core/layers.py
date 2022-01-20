@@ -6020,6 +6020,116 @@ class StatisticalPoolingLayer(base_layer.BaseLayer):
       return mean
 
 
+class PerFrameStatisticalPoolingLayer(base_layer.BaseLayer):
+  """A statistical pooling layer that perform sequence pooling at every frame.
+
+  Convert a sequence of vectors into a sequence of mean and standard
+  deviation vectors. The layer has no trainable parameters.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('has_stddev', True, 'Include standard deviation.')
+    p.Define(
+        'input_data_format', 'BTC',
+        'String(enum) specifying the output data format of the encoder. '
+        'Also used for output converters.')
+    p.Define('left_context', -1, 'Number of left context frames.')
+    p.Define('right_context', 0, 'Number of right context frames.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+    assert p.input_data_format in {'BTC', 'TBC'}, 'Expect TBC or BTC inputs.'
+    assert p.left_context >= -1 and p.right_context >= -1
+    assert p.left_context != 0 or p.right_context != 0
+
+  def FProp(self, inputs, paddings=None):
+    # transform input features
+    p = self.params
+    if p.input_data_format == 'TBC':
+      inputs = tf.transpose(inputs, [1, 0, 2])
+      if paddings is not None:
+        paddings = tf.transpose(paddings, [1, 0])
+    # process paddings & compute sequence lengths etc.
+    [batch, time, dim] = py_utils.GetShape(inputs)
+    if paddings is not None:
+      padding_mask = 1 - paddings
+    else:
+      padding_mask = tf.ones([batch, time])
+    padding_mask = tf.expand_dims(padding_mask, axis=-1)
+    # duplicate through time
+    inputs = inputs * padding_mask
+    inputs = tf.repeat(tf.expand_dims(inputs, axis=1), repeats=time, axis=1)
+
+    # functions for computing the mask matrix
+    def ComputeSequenceMaskElement(idx, mask):
+      ridx = tf.cast(tf.math.divide(idx, time), tf.int32)
+      cidx = tf.cast(tf.math.floormod(idx, time), tf.int32)
+
+      def _Branch2True(cmask):
+        if p.right_context < 0:
+          return cmask.write(idx, 1.0)
+        else:
+          diff = tf.subtract(cidx, ridx)
+          return tf.cond(
+              tf.math.greater(diff, p.right_context),
+              lambda: cmask.write(idx, 0.0), lambda: cmask.write(idx, 1.0))
+
+      def _Branch2False(cmask):
+        if p.left_context < 0:
+          return cmask.write(idx, 1.0)
+        else:
+          diff = tf.subtract(ridx, cidx)
+          return tf.cond(
+              tf.math.greater(diff, p.left_context),
+              lambda: cmask.write(idx, 0.0), lambda: cmask.write(idx, 1.0))
+
+      def _Branch1False(cmask):
+        return tf.cond(
+            tf.math.greater(cidx, ridx), lambda: _Branch2True(cmask),
+            lambda: _Branch2False(cmask))
+
+      # loop through ComputeSequenceMaskElement
+      return tf.add(idx, 1), tf.cond(
+          tf.math.equal(ridx, cidx), lambda: mask.write(idx, 1.0),
+          lambda: _Branch1False(mask))
+
+    # compute the mask matrix in parallel
+    index = tf.constant(0)
+    time2 = time * time
+    seq_mask = tf.TensorArray(dtype=tf.float32, size=time2)
+    index, seq_mask = tf.while_loop(
+        lambda idx, mask: idx < time2,
+        ComputeSequenceMaskElement,
+        loop_vars=[index, seq_mask])
+    seq_mask = seq_mask.stack()
+    seq_mask = tf.reshape(seq_mask, [time, time])
+    seq_mask = tf.repeat(
+        tf.expand_dims(seq_mask, axis=0), repeats=batch, axis=0)
+    # compute seqlens and update seq_mask
+    seqlens = tf.reduce_sum(seq_mask, axis=1)
+    seqlens = tf.repeat(tf.expand_dims(seqlens, axis=-1), repeats=dim, axis=-1)
+    seq_mask = tf.expand_dims(seq_mask, axis=-1)
+    # compute the mean
+    inputs = inputs * seq_mask
+    mean = tf.math.divide_no_nan(
+        tf.math.reduce_sum(inputs, axis=2, keepdims=False), seqlens)
+    # compute stddev if required
+    if p.has_stddev:
+      values = tf.repeat(tf.expand_dims(mean, axis=2), repeats=time, axis=2)
+      values = tf.math.square(inputs - values) * seq_mask
+      values = tf.math.divide_no_nan(
+          tf.math.reduce_sum(values, axis=2, keepdims=False), seqlens)
+      stddev = tf.math.sqrt(values)
+      return tf.concat([mean, stddev], axis=-1)
+    else:
+      return mean
+
+
 class MaskedLmDataAugmenter(base_layer.BaseLayer):
   """Performs data augmentation as according to the BERT paper.
 

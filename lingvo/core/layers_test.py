@@ -6310,6 +6310,43 @@ class StatisticalPoolingLayerTest(test_utils.TestCase):
       self.assertEqual(results2.shape, (features.shape[0], features.shape[2]))
 
 
+class PerFrameStatisticalPoolingLayerTest(test_utils.TestCase):
+
+  def testFProp(self):
+    with self.session(use_gpu=False) as sess:
+      # batch = 4, time = 5, depth = 2
+      features = tf.constant(np.random.normal(size=(4, 5, 2)), dtype=tf.float32)
+      paddings = tf.constant(
+          [[0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0],
+           [0.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]],
+          dtype=tf.float32)
+      paddings = tf.constant(
+          [[0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 1.0],
+           [0.0, 0.0, 1.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0]],
+          dtype=tf.float32)
+      # test fprop with both mean & stddev
+      params = layers.PerFrameStatisticalPoolingLayer.Params()
+      params.name = 'mean_stddev_pooling'
+      params.has_stddev = True
+      params.left_context = -1
+      params.right_context = 0
+      layer1 = layers.PerFrameStatisticalPoolingLayer(params)
+      results1 = layer1.FProp(features, paddings)
+      # test fprop with only mean
+      params.has_stddev = False
+      layer2 = layers.PerFrameStatisticalPoolingLayer(params)
+      results2 = layer2.FProp(features, paddings)
+      # check the results
+      tf.global_variables_initializer().run()
+      results1, results2 = sess.run([results1, results2])
+      self.assertEqual(
+          results1.shape,
+          (features.shape[0], features.shape[1], 2 * features.shape[2]))
+      self.assertEqual(
+          results2.shape,
+          (features.shape[0], features.shape[1], features.shape[2]))
+
+
 class MaskedLmDataAugmenterTest(test_utils.TestCase):
 
   def testFProp(self):
