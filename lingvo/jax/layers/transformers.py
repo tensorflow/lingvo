@@ -496,7 +496,8 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
              'How to pick second expert: all, sampling or random.')
     p.Define('internal_gshard_variance_scaling_fan_in_init', True,
              'Internal. Do not use. To study MoE layer init.')
-
+    p.Define('moe_load_balance_loss_weight', 1.0,
+             'Weight for the load balancing loss of the MoE layer')
     # SPMD partition related params.
     # M - model_dim, for both inputs and outputs
     # E - experts dim
@@ -803,6 +804,11 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
 
     # Add loss to a global collection. We don't return the loss to the caller
     # to avoid the change of the api here.
+    assert p.moe_load_balance_loss_weight, (
+        'p.moe_load_balance_loss_weight > 0 when there is an aux '
+        'load balancing loss in MoE layers.')
+    aux_loss *= p.moe_load_balance_loss_weight
+    base_layer.add_summary('aux_moe_load_balance_loss_weight', aux_loss)
     aux_loss_ctx = py_utils.AuxLossContext.Current()
     if aux_loss_ctx is not None:
       aux_loss_ctx.AddLoss(aux_loss)
@@ -1793,7 +1799,6 @@ class TransformerLm(base_layer.BaseLayer):
         'share parameters in this case.')
     p.Define('vocab_size', 0, 'Size of the vocabulary for LM.')
     p.Define('packed_input', False, 'Whether the inputs are packed.')
-    p.Define('aux_loss_weight', 0.0, 'Weight of the aux loss for MoE layers.')
     p.Define('masked_lm', False, 'Whether this is BERT style masked LM.')
     p.Define(
         'ngrammer_tpl', None,
@@ -2072,10 +2077,7 @@ class TransformerLm(base_layer.BaseLayer):
       if AuxLossContext.Current() and AuxLossContext.Current().aux_losses:
         aux_loss_tensors = AuxLossContext.Current().aux_losses
         assert isinstance(aux_loss_tensors, list)
-        p = self.params
-        if p.aux_loss_weight == 0.0:
-          logging.warn('p.aux_loss_weight == 0 when there is aux_loss')
-        aux_loss = p.aux_loss_weight * sum(aux_loss_tensors)
+        aux_loss = sum(aux_loss_tensors)
       else:
         aux_loss = 0.0
       if not isinstance(aux_loss, jnp.ndarray):
@@ -2292,7 +2294,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
         'SingleSharedEmbeddingSoftmax so the softmax and embedding lookup '
         'share parameters in this case.')
     p.Define('packed_input', False, 'Whether the inputs are packed.')
-    p.Define('aux_loss_weight', 0.0, 'Weight of the aux loss for MoE layers.')
     return p
 
   def __init__(self, params):
@@ -2530,10 +2531,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
       if AuxLossContext.Current() and AuxLossContext.Current().aux_losses:
         aux_loss_tensors = AuxLossContext.Current().aux_losses
         assert isinstance(aux_loss_tensors, list)
-        p = self.params
-        if p.aux_loss_weight == 0.0:
-          logging.warn('p.aux_loss_weight == 0 when there is aux_loss')
-        aux_loss = p.aux_loss_weight * sum(aux_loss_tensors)
+        aux_loss = sum(aux_loss_tensors)
       else:
         aux_loss = 0.0
       if not isinstance(aux_loss, jnp.ndarray):
