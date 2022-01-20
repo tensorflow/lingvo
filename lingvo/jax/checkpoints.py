@@ -17,6 +17,7 @@
 
 import asyncio
 from concurrent import futures
+import datetime
 import os
 import re
 from typing import Optional
@@ -35,9 +36,10 @@ from lingvo.jax import train_states
 import tensorflow.compat.v2 as tf
 
 CHECKPOINT_PREFIX = 'checkpoint_'
-CHECKPOINT_SUBDIR_RE = re.compile(rf'{CHECKPOINT_PREFIX}[\d]+$')
-TMP_CHECKPOINT_SUBDIR_RE = re.compile(rf'{CHECKPOINT_PREFIX}[\d]+.tmp_[\d]+$')
-_TMP_DIR_KEYWORD = '.tmp'
+TMP_PREFIX = 'tmp_'
+CHECKPOINT_PATTERN_RE = re.compile(rf'{CHECKPOINT_PREFIX}[\d]+$')
+TMP_CHECKPOINT_PATTERN_RE = re.compile(
+    rf'{TMP_PREFIX}[\d]+.{CHECKPOINT_PREFIX}[\d]+$')
 # Large value to disable flax-specific checkpoint management.
 _MAX_CHECKPOINT_FLAX = 1000000
 
@@ -45,31 +47,39 @@ CheckpointType = checkpoint_pb2.CheckpointType
 InstantiableParams = py_utils.InstantiableParams
 
 
-def _is_checkpoint_dir(x: str) -> bool:
-  return bool(CHECKPOINT_SUBDIR_RE.match(x))
+def _is_checkpoint_asset(x: str) -> bool:
+  return bool(CHECKPOINT_PATTERN_RE.match(os.path.basename(x)))
 
 
-def _is_tmp_checkpoint_dir(x: str) -> bool:
-  return bool(TMP_CHECKPOINT_SUBDIR_RE.match(x))
+def _is_tmp_checkpoint_asset(x: str) -> bool:
+  return bool(TMP_CHECKPOINT_PATTERN_RE.match(os.path.basename(x)))
+
+
+def _to_timestamp(datetime_instance: datetime.datetime) -> int:
+  """Converts a datetime instance into an int timestamp."""
+  timedelta = datetime_instance - datetime.datetime.fromtimestamp(0)
+  return int(round(timedelta.total_seconds()))
 
 
 def _make_checkpoint_step_dir(
     checkpoint_dir: str,
     step: int,
 ) -> str:
-  return os.path.join(checkpoint_dir, f'{CHECKPOINT_PREFIX}{step:08}')
+  return os.path.join(checkpoint_dir, f'{CHECKPOINT_PREFIX}{step:08d}')
 
 
 def _make_tmp_checkpoint_dir(checkpoint_dir: str, step: int) -> str:
+  timestamp = _to_timestamp(datetime.datetime.utcnow())
+  tmp_prefix = f'{TMP_PREFIX}{timestamp}'
   return os.path.join(checkpoint_dir,
-                      f'{CHECKPOINT_PREFIX}{step:08}{_TMP_DIR_KEYWORD}')
+                      f'{tmp_prefix}.{CHECKPOINT_PREFIX}{step:08d}')
 
 
-def _get_step_from_checkpoint_dirname(checkpoint_dir: str) -> int:
-  if _TMP_DIR_KEYWORD in checkpoint_dir:
-    start_of_tmp = checkpoint_dir.find(_TMP_DIR_KEYWORD)
-    return int(checkpoint_dir[len(CHECKPOINT_PREFIX):start_of_tmp])
-  return int(checkpoint_dir[len(CHECKPOINT_PREFIX):])
+def get_step_from_checkpoint_asset(checkpoint_dir: str) -> int:
+  if _is_tmp_checkpoint_asset(checkpoint_dir):
+    end_of_tmp = checkpoint_dir.rfind('.')
+    return int(checkpoint_dir[end_of_tmp + 1 + len(CHECKPOINT_PREFIX):])
+  return int(os.path.basename(checkpoint_dir)[len(CHECKPOINT_PREFIX):])
 
 
 def retrieve_checkpoint_type(multi_host_checkpointing: bool,
@@ -139,8 +149,10 @@ def save_checkpoint(
   if checkpoint_type in {
       CheckpointType.CHECKPOINT_FLAX, CheckpointType.CHECKPOINT_MULTI_HOST_FLAX
   }:
+    use_multi_host = (
+        checkpoint_type == CheckpointType.CHECKPOINT_MULTI_HOST_FLAX)
     _save_checkpoint_flax(train_state, checkpoint_dir, overwrite, unreplicate,
-                          step)
+                          step, use_multi_host)
   else:
     raise ValueError(f'Unexpected checkpoint_type `{checkpoint_type}`.')
 
@@ -154,7 +166,18 @@ def latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
   Returns:
     Path to latest checkpoint or None if there is no checkpoint.
   """
-  return checkpoints.latest_checkpoint(checkpoint_dir)
+  if not tf.io.gfile.exists(checkpoint_dir):
+    return None
+  # Note: _is_checkpoint_asset() already filters out flax temporary checkpoints
+  # that would be ending with `tmp`.
+  checkpoint_assets = [
+      v for v in tf.io.gfile.listdir(checkpoint_dir) if _is_checkpoint_asset(v)
+  ]
+  if not checkpoint_assets:
+    return None
+  checkpoint_assets = sorted(
+      checkpoint_assets, key=get_step_from_checkpoint_asset)
+  return os.path.join(checkpoint_dir, checkpoint_assets[-1])
 
 
 def restore_checkpoint(
@@ -208,7 +231,8 @@ def restore_checkpoint(
 
 def _save_checkpoint_flax(train_state: train_states.TrainState,
                           checkpoint_dir: str, overwrite: bool,
-                          unreplicate: bool, step: int) -> None:
+                          unreplicate: bool, step: int,
+                          use_multi_host: bool) -> None:
   """Saves a checkpoint using Flax serialization mechanism."""
   if not overwrite:
     previous_filename = latest_checkpoint(checkpoint_dir)
@@ -239,12 +263,34 @@ def _save_checkpoint_flax(train_state: train_states.TrainState,
       # mismatch caused by different versions of saver/restorer.
       'str_pytree_state': str(pytree_state),
   }
+
+  prefix = CHECKPOINT_PREFIX
+  if use_multi_host:
+    # Notes:
+    # 1. We currently don't broadcast / synchronize the timestamp across
+    #    all the JAX processes.
+    # 2. Flax checkpointing already saves the checkpoint file into a temporary
+    #    file that is ultimately moved. We, hence, don't need to add a second
+    #    layer of temporary files for single-host checkpointing.
+    timestamp = _to_timestamp(datetime.datetime.utcnow())
+    prefix = f'{TMP_PREFIX}{timestamp}.{prefix}'
+
   checkpoints.save_checkpoint(
       checkpoint_dir,
       checkpoint_target,
       step,
+      prefix=prefix,
       keep=_MAX_CHECKPOINT_FLAX,
       overwrite=overwrite)
+
+  if use_multi_host:
+    py_utils.sync_global_devices(
+        f'Renaming temporary checkpoint files at step {step} into their final '
+        'destination.')
+    tmp_filename = os.path.join(checkpoint_dir, f'{prefix}{step}')
+    new_filename = os.path.join(checkpoint_dir, f'{CHECKPOINT_PREFIX}{step}')
+    logging.debug('Renaming %s to %s', tmp_filename, new_filename)
+    tf.io.gfile.rename(tmp_filename, new_filename)
 
 
 def _restore_checkpoint_flax(
@@ -330,7 +376,7 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
     # Delete tmp directories if any.
     if jax.process_index() == 0:
       tmp_checkpoint_dirnames = [
-          x for x in checkpoint_dirnames if _is_tmp_checkpoint_dir(x)
+          x for x in checkpoint_dirnames if _is_tmp_checkpoint_asset(x)
       ]
       if tmp_checkpoint_dirnames:
         logging.warn('Found incompletely saved checkpoints %s; deleting them',
@@ -341,14 +387,11 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
     py_utils.sync_global_devices('Wait for checkpoint tmp dir deletions to '
                                  'finish.')
 
-    sorted_dirnames = sorted([
-        x for x in checkpoint_dirnames
-        if _is_checkpoint_dir(x) and not _is_tmp_checkpoint_dir(x)
-    ])
+    sorted_dirnames = sorted(
+        [x for x in checkpoint_dirnames if _is_checkpoint_asset(x)])
     if sorted_dirnames:
       latest_checkpoint_dirname = sorted_dirnames[-1]
-      previous_step = _get_step_from_checkpoint_dirname(
-          latest_checkpoint_dirname)
+      previous_step = get_step_from_checkpoint_asset(latest_checkpoint_dirname)
       if previous_step >= step:
         logging.warning(
             'A more recent checkpoint `%d` has already been saved compared '
@@ -414,20 +457,18 @@ def _restore_checkpoint_gda(
   if step is None:
     checkpoint_dirnames = tf.io.gfile.listdir(checkpoint_dir)
     tmp_checkpoint_dirnames = [
-        x for x in checkpoint_dirnames if _is_tmp_checkpoint_dir(x)
+        x for x in checkpoint_dirnames if _is_tmp_checkpoint_asset(x)
     ]
     if tmp_checkpoint_dirnames:
       logging.warn('Found incompletely saved checkpoints %s; skipping them',
                    tmp_checkpoint_dirnames)
-    sorted_dirnames = sorted([
-        x for x in checkpoint_dirnames
-        if _is_checkpoint_dir(x) and not _is_tmp_checkpoint_dir(x)
-    ])
+    sorted_dirnames = sorted(
+        [x for x in checkpoint_dirnames if _is_checkpoint_asset(x)])
     if not sorted_dirnames:
       raise FileNotFoundError(
           f'No checkpoint found for restore in {checkpoint_dir}')
     latest_checkpoint_dirname = sorted_dirnames[-1]
-    step = _get_step_from_checkpoint_dirname(latest_checkpoint_dirname)
+    step = get_step_from_checkpoint_asset(latest_checkpoint_dirname)
     checkpoint_step_dir = _make_checkpoint_step_dir(checkpoint_dir, step)
     logging.info('Found latest checkpoint: %s', checkpoint_step_dir)
   else:

@@ -166,7 +166,8 @@ def evaluate_pmap_model(
           reshard_inputs=True)
       # If the last check point evaluated matches max train steps, exit.
       if last_checkpoint is not None:
-        last_ckpt_step = int(last_checkpoint.split('_')[-1])
+        last_ckpt_step = checkpoints.get_step_from_checkpoint_asset(
+            last_checkpoint)
         exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
         if exceeded_ckpt >= model_p.train.num_train_steps:
           break
@@ -284,7 +285,8 @@ def evaluate_spmd_model(
             reshard_inputs=False)
         # If the last check point evaluated matches max train steps, exit.
         if last_checkpoint is not None:
-          last_ckpt_step = int(last_checkpoint.split('_')[-1])
+          last_ckpt_step = checkpoints.get_step_from_checkpoint_asset(
+              last_checkpoint)
           exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
           if exceeded_ckpt >= model_p.train.num_train_steps:
             break
