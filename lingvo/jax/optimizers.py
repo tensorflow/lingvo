@@ -782,8 +782,18 @@ class DistributedShampoo(BaseOptimizer):
         'Shard optimizer states, used by ShardedDistributedShampoo'
         ' (Do not explicitly set this).')
     p.Define(
-        'tensor_dim_mapping', [2, -1, -1],
+        'statistics_partition_spec', None,
+        'PartitionSpec used by ShardedDistributedShampoo'
+        ' (Do not explicitly set this).')
+    p.Define(
+        'tensor_split_dims_mapping', [-1, 1, -1],
         'Sharding information for statistics and preconditioner matrices.')
+    p.Define(
+        'preconditioner_partition_spec', None,
+        'PartitionSpec used by ShardedDistributedShampoo'
+        ' (Do not explicitly set this).')
+    p.Define('tensor_split_dims_mapping_for_inverse_pth_root', [1, -1, -1],
+             'Sharding information for preconditioner matrices.')
     p.Define('best_effort_memory_usage_reduction', False,
              'Experimental mode: Best effort memory usage reduction.')
     return p
@@ -839,8 +849,9 @@ class DistributedShampoo(BaseOptimizer):
         nesterov=p.nesterov,
         exponent_override=p.exponent_override,
         batch_axis_name=p.batch_axis_name,
-        mesh_axis_names=p.mesh_axis_names,
         num_devices_for_pjit=p.num_devices_for_pjit,
+        statistics_partition_spec=p.statistics_partition_spec,
+        preconditioner_partition_spec=p.preconditioner_partition_spec,
         shard_optimizer_states=p.shard_optimizer_states,
         inverse_failure_threshold=0.1,
         moving_average_for_momentum=p.moving_average_for_momentum,
@@ -856,6 +867,27 @@ class ShardedDistributedShampoo(DistributedShampoo):
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     self._params.shard_optimizer_states = True
+    self._params.statistics_partition_spec = pjit.PartitionSpec(
+        *self._sharded_axes(self._params.mesh_axis_names,
+                            self._params.tensor_split_dims_mapping))
+    self._params.preconditioner_partition_spec = pjit.PartitionSpec(
+        *self._sharded_axes(
+            self._params.mesh_axis_names,
+            self._params.tensor_split_dims_mapping_for_inverse_pth_root))
+
+  def _sharded_axes(self, axes_names, tensor_split_dims_mapping):
+    """Returns the axes to shard with."""
+    axes = []
+    if not tensor_split_dims_mapping:
+      return [None]
+    for tsdm in tensor_split_dims_mapping:
+      if isinstance(tsdm, str):
+        axes.append(tsdm)
+      elif tsdm and tsdm != -1:
+        axes.append(axes_names[tsdm])
+      elif tsdm == -1 or not tsdm:
+        axes.append(None)
+    return tuple(axes)
 
   def init_partition_spec_fn(self, init_pspec, init_shapes_dtypes, axes_names,
                              params):
@@ -865,27 +897,15 @@ class ShardedDistributedShampoo(DistributedShampoo):
     assert param_pspec_flattened
     first_param = param_pspec_flattened[0]
     assert isinstance(first_param, py_utils.Params)
-    assert len(axes_names) == len(p.tensor_dim_mapping)
+    assert len(axes_names) == len(p.tensor_split_dims_mapping)
     device_mesh = first_param.device_mesh
 
-    def _sharded_axes(tensor_split_dims_mapping):
-      axes = []
-      if not tensor_split_dims_mapping:
-        return [None]
-      for tsdm in tensor_split_dims_mapping:
-        if isinstance(tsdm, str):
-          axes.append(tsdm)
-        elif tsdm and tsdm != -1:
-          axes.append(axes_names[tsdm])
-        elif tsdm == -1 or not tsdm:
-          axes.append(None)
-      return tuple(axes)
-
     partition_spec_statistics = pjit.PartitionSpec(
-        *_sharded_axes(p.tensor_dim_mapping))
+        *self._sharded_axes(axes_names, p.tensor_split_dims_mapping))
 
     def _pspec_from_weight_param(param):
-      p = pjit.PartitionSpec(*_sharded_axes(param.tensor_split_dims_mapping))
+      p = pjit.PartitionSpec(
+          *self._sharded_axes(axes_names, param.tensor_split_dims_mapping))
       return p
 
     partition_spec_params = jax.tree_map(_pspec_from_weight_param, params)
@@ -895,12 +915,22 @@ class ShardedDistributedShampoo(DistributedShampoo):
 
     def _weight_param_from_pspec_shape_dtype(pspec, shapes_and_dtypes):
       if not pspec:
-        tensor_split_dims_mapping = []
+        if len(shapes_and_dtypes[0]) == 1:
+          tensor_split_dims_mapping = [-1]
+        else:
+          tensor_split_dims_mapping = []
       else:
         tensor_split_dims_mapping = []
-        tensor_split_dims_mapping = [
-            axes_names.index(axis) if axis else -1 for axis in pspec
-        ]
+        if len(pspec) == 1 and not pspec[0]:
+          if len(shapes_and_dtypes[0]) == 1:
+            tensor_split_dims_mapping = [-1]
+          else:
+            tensor_split_dims_mapping = []
+        else:
+          tensor_split_dims_mapping = [
+              axes_names.index(axis) if axis else -1 for axis in pspec
+          ]
+      assert len(shapes_and_dtypes[0]) == len(tensor_split_dims_mapping)
       return py_utils.weight_params(
           shape=shapes_and_dtypes[0],
           init=None,
