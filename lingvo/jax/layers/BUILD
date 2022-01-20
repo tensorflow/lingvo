@@ -601,6 +601,7 @@ py_strict_test(
         # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.
         "//lingvo/core:batch_major_attention",
+        "//lingvo/core:gshard_builder",
         "//lingvo/core:layers_with_attention",
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",

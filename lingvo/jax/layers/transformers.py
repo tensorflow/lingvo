@@ -1142,7 +1142,7 @@ class StackedTransformer(base_layer.BaseLayer):
                  ff_dim,
                  attention_num_heads,
                  attention_key_value_dim,
-                 name='transfromer',
+                 name='transformer',
                  moe=False,
                  moe_hidden_dim=None,
                  ffn_activation='GATED_GELU',
@@ -1151,6 +1151,7 @@ class StackedTransformer(base_layer.BaseLayer):
                  attention_extra_logit=0.0,
                  relative_attention_num_buckets=32,
                  relative_attention_max_distance=128,
+                 moe_load_balance_loss_weight=0.01,
                  num_groups=1,
                  c_dim=None,
                  capacity_factor=0.0,
@@ -1181,6 +1182,7 @@ class StackedTransformer(base_layer.BaseLayer):
       attention_extra_logit: Extra logit for attention softmax.
       relative_attention_num_buckets: Relative attention num buckets
       relative_attention_max_distance: Max relative distance.
+      moe_load_balance_loss_weight: Weight of load balancing loss in MoE layers.
       num_groups: Total number of groups for token dispatching in MoE layer.
       c_dim: Expert capacity.
       capacity_factor: This is the ratio between max allowed examples per expert
@@ -1244,6 +1246,7 @@ class StackedTransformer(base_layer.BaseLayer):
     moe_p.expert_capacity_dim = c_dim
     moe_p.expert_capacity_factor = capacity_factor
     moe_p.internal_gshard_variance_scaling_fan_in_init = True
+    moe_p.moe_load_balance_loss_weight = moe_load_balance_loss_weight
     return p
 
   @staticmethod
@@ -1811,6 +1814,113 @@ class TransformerLm(base_layer.BaseLayer):
         'None since the softmax and embedding lookup share parameters, however '
         'if we wish to separate the parameters of embedding lookup and softmax '
         'then we can set this param.')
+    p.Define('final_ln_tpl', normalizations.LayerNorm.Params(),
+             'Layer norm params.')
+    return p
+
+  @classmethod
+  def GLaMUniTransformerParams(cls,
+                               vocab_size,
+                               model_dim,
+                               ff_dim,
+                               attention_num_heads,
+                               attention_key_value_dim,
+                               num_transformer_layers,
+                               name='transformer',
+                               moe=False,
+                               moe_hidden_dim=None,
+                               ffn_activation='GATED_GELU',
+                               attention_extra_logit=0.0,
+                               relative_attention_num_buckets=32,
+                               relative_attention_max_distance=128,
+                               num_groups=1,
+                               c_dim=None,
+                               capacity_factor=0.0,
+                               e_dim=None,
+                               moe_load_balance_loss_weight=0.01,
+                               z_loss_weight=1e-4):
+    """Common setup for GLaM Decoder-only Transformer Model.
+
+    This function sets up configs for both MoE and dense GLaM models.
+    The MoE block consists of two transformer layer with the feedforward
+    sublayer of the first one replaced by a MoE layer. The dense block consists
+    of a transformer. The transformer layer used by GLam differs from the
+    standard transformer in these configs:
+
+    1) The feedforward sublayer used gated gleu so there are two wi and one wo.
+    2) No bias in all projections and embeddings.
+    3) Use no bias RMS norm for the layer norm.
+    4) Use relative attention bias.
+    5) Add an optional z-loss to stablize final softmax logits.
+
+    Args:
+      vocab_size: Size of the vocabulary for LM.
+      model_dim: model dimension.
+      ff_dim: hidden dimension of feed-forward inner layer.
+      attention_num_heads: number of attention heads.
+      attention_key_value_dim: key value dimension of attention inner layer.
+      num_transformer_layers: Number of transformer layers.
+      name: Name of the this layer
+      moe: If this is a moe block or not.
+      moe_hidden_dim: hidden dimension of MoE layer.
+      ffn_activation: Activation function used in the ffn layer.
+      attention_extra_logit: Extra logit for attention softmax.
+      relative_attention_num_buckets: Relative attention num buckets
+      relative_attention_max_distance: Max relative distance.
+      num_groups: Total number of groups for token dispatching in MoE layer.
+      c_dim: Expert capacity.
+      capacity_factor: This is the ratio between max allowed examples per expert
+        over the average number of examples per expert assuming routing is
+        completely uniform.
+      e_dim: Number of experts.
+      moe_load_balance_loss_weight: Weight of the aux loss for MoE layers.
+      z_loss_weight: additional loss term to stablize the final softmax logit.
+
+    Returns:
+      A Params object to set up a StackedTransformer.
+    """
+    p = cls.Params()
+    p.name = name
+    p.packed_input = True
+    p.model_dims = model_dim
+    p.vocab_size = vocab_size
+    p.position_emb_tpl = None
+
+    p.final_ln_tpl = normalizations.RmsNorm.Params().Set(
+        name='rms_norm', input_dims=model_dim)
+
+    p.softmax_tpl = (
+        embedding_softmax.GShardSharedEmebeddingSoftmax.Params().Set(
+            name='emb',
+            input_dims=model_dim,
+            num_classes=vocab_size,
+            z_loss_weight=z_loss_weight))
+
+    glam_p = StackedTransformer.GLaMParams(
+        model_dim=model_dim,
+        ff_dim=ff_dim,
+        attention_num_heads=attention_num_heads,
+        attention_key_value_dim=attention_key_value_dim,
+        name='decoder_block',
+        moe=moe,
+        moe_hidden_dim=moe_hidden_dim,
+        ffn_activation=ffn_activation,
+        mask_self_attention=True,
+        cross_attention=False,
+        attention_extra_logit=attention_extra_logit,
+        relative_attention_num_buckets=relative_attention_num_buckets,
+        relative_attention_max_distance=relative_attention_max_distance,
+        moe_load_balance_loss_weight=moe_load_balance_loss_weight,
+        num_groups=num_groups,
+        c_dim=c_dim,
+        capacity_factor=capacity_factor,
+        e_dim=e_dim)
+
+    p.stacked_transformer_tpl = StackedTransformerRepeated.Params()
+    num_blocks = num_transformer_layers // 2 if moe else num_transformer_layers
+    p.stacked_transformer_tpl.Set(
+        name='decoder', block=glam_p, x_times=num_blocks)
+
     return p
 
   @classmethod
@@ -1854,16 +1964,10 @@ class TransformerLm(base_layer.BaseLayer):
 
     # We assume activation batch is split on both replica_axis and data_axis.
     batch_split = (replica_axis, data_axis)
-    softmax_p = lm_p.softmax_tpl
-    if softmax_p.cls == embedding_softmax.GShardSharedEmebeddingSoftmax:
-      # Softmax weight is of shape [vocab_size, input_dim].
-      softmax_p.weight_split_dims_mapping.wt = [mdl_axis, data_axis]
-    else:
-      # Softmax weight is of shape [input_dim, vocab_size].
-      softmax_p.weight_split_dims_mapping.wt = [data_axis, mdl_axis]
 
-    pos_emb_p = lm_p.position_emb_tpl
-    pos_emb_p.weight_split_dims_mapping.wt = [data_axis, mdl_axis]
+    if lm_p.position_emb_tpl is not None:
+      pos_emb_p = lm_p.position_emb_tpl
+      pos_emb_p.weight_split_dims_mapping.wt = [data_axis, mdl_axis]
 
     # NGrammer embedding table is currently replicated.
     # TODO(aurkor): Explore different sharding configs for the table.
@@ -1871,6 +1975,15 @@ class TransformerLm(base_layer.BaseLayer):
     if lm_p.ngrammer_tpl is not None:
       ngrammer_p = lm_p.ngrammer_tpl
       ngrammer_p.weight_split_dims_mapping.wt = [mdl_axis, data_axis]
+
+    softmax_p = lm_p.softmax_tpl
+    if softmax_p.cls == embedding_softmax.GShardSharedEmebeddingSoftmax:
+      # Softmax weight is of shape [vocab_size, input_dim].
+      softmax_p.weight_split_dims_mapping.wt = [mdl_axis, data_axis]
+    else:
+      # Softmax weight is of shape [input_dim, vocab_size].
+      softmax_p.weight_split_dims_mapping.wt = [data_axis, mdl_axis]
+      softmax_p.lookup_style = 'matmul'
     if mode == 'train':
       # During training, softmax output is 3d.
       softmax_p.activation_split_dims_mapping.out = [
@@ -1885,7 +1998,6 @@ class TransformerLm(base_layer.BaseLayer):
     softmax_p.activation_split_dims_mapping.emb_out_split_dims_mapping = [
         batch_split, None, mdl_axis
     ]
-    softmax_p.lookup_style = 'matmul'
 
     if lm_p.stacked_transformer_tpl.cls == StackedTransformer:
       xformer_p = lm_p.stacked_transformer_tpl.transformer_layer_params_tpl
@@ -2002,8 +2114,9 @@ class TransformerLm(base_layer.BaseLayer):
     self.create_child('transformer', p.stacked_transformer_tpl)
 
     # Final layer norm
-    ln_params = normalizations.LayerNorm.Params().Set(input_dims=p.model_dims)
-    self.create_child('final_ln', ln_params)
+    if p.final_ln_tpl is not None:
+      ln_params = p.final_ln_tpl.Set(input_dims=p.model_dims)
+      self.create_child('final_ln', ln_params)
 
     # Final softmax
     softmax_params = p.softmax_tpl.Copy()
@@ -2165,8 +2278,8 @@ class TransformerLm(base_layer.BaseLayer):
           segment_pos=segment_pos)
 
       # Final layer norm
-      output = self.final_ln.fprop(theta.final_ln, output)
-
+      if p.final_ln_tpl is not None:
+        output = self.final_ln.fprop(theta.final_ln, output)
       return self.compute_loss(theta, output, labels)
 
   def extend_step(
@@ -2236,7 +2349,8 @@ class TransformerLm(base_layer.BaseLayer):
         time_step=time_step)
     cached_states.transformer = updated_cache
     cached_states.step += 1
-    outputs = self.final_ln.fprop(theta.final_ln, outputs)
+    if p.final_ln_tpl is not None:
+      outputs = self.final_ln.fprop(theta.final_ln, outputs)
     xent_output = self.compute_loss(theta, outputs)
     return cached_states, xent_output
 

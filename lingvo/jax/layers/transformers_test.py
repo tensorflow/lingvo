@@ -24,6 +24,7 @@ import jax
 from jax import numpy as jnp
 from jax import test_util
 from lingvo.core import batch_major_attention
+from lingvo.core import gshard_builder
 from lingvo.core import layers_with_attention
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
@@ -1408,6 +1409,193 @@ class TransformersTest(test_util.JaxTestCase):
     # Plumbing test.
     self.assertAllClose(np_outputs, np_outputs, atol=1e-5)
 
+  def testGlamUniTransformer(self):
+    batch = 2
+    length = 3
+    d_model = 6
+    num_heads = 2
+    vocab_size = 16
+    ff_dim = 8
+    c_dim = 3
+    e_dim = 2
+    num_layers = 4
+    # Build jax layer
+    jax_p = transformers.TransformerLm.GLaMUniTransformerParams(
+        name='model',
+        vocab_size=vocab_size,
+        num_transformer_layers=num_layers,
+        moe=True,
+        model_dim=d_model,
+        ff_dim=ff_dim,
+        moe_hidden_dim=ff_dim,
+        attention_num_heads=num_heads,
+        attention_key_value_dim=d_model // num_heads,
+        attention_extra_logit=0.0,
+        moe_load_balance_loss_weight=0.01,
+        z_loss_weight=1e-4,
+        c_dim=c_dim,
+        e_dim=e_dim)
+    assert jax_p.packed_input
+    jax_layer = jax_p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=42)
+    jax_vars = jax_layer.instantiate_variables(prng_key)
+
+    builder_p = gshard_builder.DenseBuilder.Params().Set(
+        num_groups=1,
+        second_expert_policy='all',
+        relative_attention_type='bias',
+        model_dim=d_model,
+        attention_key_value_dim=d_model // num_heads,
+        attention_num_heads=num_heads,
+        c_dim=c_dim,
+        capacity_factor=None,
+        attention_extra_logit=0.0,
+        e_dim=e_dim,
+        moe_hidden_dim=ff_dim,
+        ff_dim=ff_dim)
+    tf_layer = gshard_builder.UniTransformer.Params().Set(
+        name='model',
+        num_transformer_layers=num_layers,
+        builder=builder_p,
+        vocab_size=vocab_size,
+        sequence_length=length,
+        label_smoothing=0,
+        aux_loss_coef=0.01,
+        z_loss=1e-4,
+        use_tgt_labels_size_as_loss_denominator=False,
+        positional_embedding=False,
+        gated_gelu=True,
+        moe=True).Instantiate()
+
+    # Build Jax Inputs
+    np.random.seed(42)
+    npy_ids = np.random.randint(0, vocab_size - 1, [batch, length])
+    jax_ids = jnp.asarray(npy_ids)
+    npy_paddings = np.array([[0, 0, 1], [0, 0, 1]], dtype=np.float32)
+
+    jax_paddings = jnp.asarray(npy_paddings)
+    npy_segment_ids = np.array([[1, 2, 0], [1, 1, 0]], dtype=np.int32)
+    npy_segment_pos = np.array([[0, 0, 0], [0, 1, 0]], dtype=np.int32)
+    npy_labels = np.roll(npy_ids, -1, axis=1)
+    jax_labels = jnp.asarray(npy_labels)
+    jax_seg_ids = jnp.asarray(npy_segment_ids)
+    jax_seg_pos = jnp.asarray(npy_segment_pos)
+    jax_label_weighs = jnp.asarray([[1, 1, 0], [1, 1, 0]])
+
+    # Build TF Inputs
+    tf_tgt_inputs = py_utils.NestedMap(
+        ids=tf.convert_to_tensor(npy_ids, dtype=tf.int32),
+        labels=tf.convert_to_tensor(npy_labels, dtype=tf.int32),
+        segment_ids=tf.convert_to_tensor(npy_segment_ids, dtype=tf.int32),
+        segment_pos=tf.convert_to_tensor(npy_segment_pos, dtype=tf.int32))
+    tf_inputs = py_utils.NestedMap(tgt=tf_tgt_inputs)
+
+    with base_layer.JaxContext.new_context(
+        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
+
+      # Compute jax outputs
+      jax_outputs = jax_layer.fprop(
+          jax_vars,
+          jax_ids,
+          jax_paddings,
+          labels=py_utils.NestedMap(
+              class_ids=jax_labels,
+              class_weights=jax_label_weighs,
+          ),
+          segment_ids=jax_seg_ids,
+          segment_pos=jax_seg_pos)
+
+      # Copy jax vars to tf ones.
+      tf_theta = tf_layer.theta.DeepCopy()
+
+      # GShardBuilder softmax weight use self.vars rather than theta.
+      tf_layer.vars.dec_emb.w.embedding.assign(jax_vars.softmax.embedding.w)
+      tf_theta.dec_emb.w.embedding = jax_vars.softmax.embedding.w
+      tf_theta.dec.final_layer_norm.w.scale = jax_vars.final_ln.scale
+      jax_layer_0_var = tf.nest.map_structure(
+          lambda v: jnp.squeeze(jnp.split(v, 2)[0], axis=0),
+          jax_vars.transformer.repeat.sub.x_layers[0])
+      tf_theta.dec.layer_000.ln.w.scale = jax_layer_0_var.layer_norm.scale
+      jax_atten_var = jax_layer_0_var.self_attention
+      tf_atten_var = tf_theta.dec.layer_000.dec_self_attention
+      tf_atten_var.w.wk = jax_atten_var.key.w
+      tf_atten_var.w.wq = jax_atten_var.query.w
+      tf_atten_var.w.wv = jax_atten_var.value.w
+      tf_atten_var.w.wo = jax_atten_var.post.w
+      tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
+
+      jax_moe_var = jax_layer_0_var.ff_layer
+      tf_theta.dec.layer_001.ln.w.scale = jax_moe_var.layer_norm.scale
+      tf_theta.dec.layer_001.moe.ffw.top_2_gating.w = jax_moe_var.gate
+      tf_theta.dec.layer_001.moe.moe.wi = jax_moe_var.wi_0
+      tf_theta.dec.layer_001.moe.moe.wo = jax_moe_var.wo_0
+
+      jax_layer_1_var = tf.nest.map_structure(
+          lambda v: jnp.squeeze(jnp.split(v, 2)[0], axis=0),
+          jax_vars.transformer.repeat.sub.x_layers[1])
+      tf_theta.dec.layer_002.ln.w.scale = jax_layer_1_var.layer_norm.scale
+      jax_atten_var = jax_layer_1_var.self_attention
+      tf_atten_var = tf_theta.dec.layer_002.dec_self_attention
+      tf_atten_var.w.wk = jax_atten_var.key.w
+      tf_atten_var.w.wq = jax_atten_var.query.w
+      tf_atten_var.w.wv = jax_atten_var.value.w
+      tf_atten_var.w.wo = jax_atten_var.post.w
+      tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
+
+      jax_ffn_var = jax_layer_1_var.ff_layer
+      tf_ffn_var = tf_theta.dec.layer_003.dense_relu_dense
+      tf_ffn_var.w.wi_0 = jax_ffn_var.ffn_layer1_gate.linear.w
+      tf_ffn_var.w.wi_1 = jax_ffn_var.ffn_layer1.linear.w
+      tf_ffn_var.w.wo = jax_ffn_var.ffn_layer2.linear.w
+      tf_theta.dec.layer_003.ln.w.scale = jax_ffn_var.layer_norm.scale
+
+      jax_layer_2_var = tf.nest.map_structure(
+          lambda v: jnp.squeeze(jnp.split(v, 2)[1], axis=0),
+          jax_vars.transformer.repeat.sub.x_layers[0])
+      tf_theta.dec.layer_004.ln.w.scale = jax_layer_2_var.layer_norm.scale
+      jax_atten_var = jax_layer_2_var.self_attention
+      tf_atten_var = tf_theta.dec.layer_004.dec_self_attention
+      tf_atten_var.w.wk = jax_atten_var.key.w
+      tf_atten_var.w.wq = jax_atten_var.query.w
+      tf_atten_var.w.wv = jax_atten_var.value.w
+      tf_atten_var.w.wo = jax_atten_var.post.w
+      tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
+
+      jax_moe_var = jax_layer_2_var.ff_layer
+      tf_theta.dec.layer_005.ln.w.scale = jax_moe_var.layer_norm.scale
+      tf_theta.dec.layer_005.moe.ffw.top_2_gating.w = jax_moe_var.gate
+      tf_theta.dec.layer_005.moe.moe.wi = jax_moe_var.wi_0
+      tf_theta.dec.layer_005.moe.moe.wo = jax_moe_var.wo_0
+
+      jax_layer_3_var = tf.nest.map_structure(
+          lambda v: jnp.squeeze(jnp.split(v, 2)[1], axis=0),
+          jax_vars.transformer.repeat.sub.x_layers[1])
+      tf_theta.dec.layer_006.ln.w.scale = jax_layer_3_var.layer_norm.scale
+      jax_atten_var = jax_layer_3_var.self_attention
+      tf_atten_var = tf_theta.dec.layer_006.dec_self_attention
+      tf_atten_var.w.wk = jax_atten_var.key.w
+      tf_atten_var.w.wq = jax_atten_var.query.w
+      tf_atten_var.w.wv = jax_atten_var.value.w
+      tf_atten_var.w.wo = jax_atten_var.post.w
+      tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
+
+      jax_ffn_var = jax_layer_3_var.ff_layer
+      tf_ffn_var = tf_theta.dec.layer_007.dense_relu_dense
+      tf_ffn_var.w.wi_0 = jax_ffn_var.ffn_layer1_gate.linear.w
+      tf_ffn_var.w.wi_1 = jax_ffn_var.ffn_layer1.linear.w
+      tf_ffn_var.w.wo = jax_ffn_var.ffn_layer2.linear.w
+      tf_theta.dec.layer_007.ln.w.scale = jax_ffn_var.layer_norm.scale
+
+      tf_theta = test_utils.to_tf_nmap(tf_theta)
+
+      # Compute TF outputs
+      tf_out, _ = tf_layer.FProp(tf_theta, tf_inputs)
+      self.assertAllClose(
+          test_utils.to_np(jax_outputs.avg_xent),
+          test_utils.to_np(tf_out['mean_xent'][0]))
+      self.assertAllClose(
+          test_utils.to_np(jax_outputs.total_loss),
+          test_utils.to_np(tf_out['loss'][0]))
 
 if __name__ == '__main__':
   absltest.main()

@@ -260,6 +260,9 @@ class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
         'If not None logits are soft capped to this value before '
         ' the absolute value clipping with p.logits_abs_max.')
     p.Define('logits_abs_max', None, 'Absolute logits clipping.')
+    p.Define(
+        'z_loss_weight', 0, 'if z_loss_weight is nonzero, we add a loss equal '
+        'to z_loss_weight * square(logsumexp(logits, -1))')
     ap = p.activation_split_dims_mapping
     ap.Define('emb_out_split_dims_mapping', None,
               'Mesh split for embedding outputs..')
@@ -320,6 +323,15 @@ class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
       logits = jnp.clip(logits, -p.logits_abs_max, p.logits_abs_max)
     return logits
 
+  def compute_z_loss(self, logits):
+    """Returns a z_loss regularization which stablize logits."""
+    logits = jax.lax.stop_gradient(logits)
+    max_logit = jnp.max(logits, axis=-1, keepdims=True)
+    exp_x = jnp.exp(logits - max_logit)
+    sum_exp_x = jnp.sum(exp_x, axis=-1, keepdims=True)
+    log_z = jnp.log(sum_exp_x) + max_logit
+    return jnp.square(log_z)
+
   def fprop(self,
             theta: NestedMap,
             inputs: JTensor,
@@ -377,6 +389,14 @@ class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
     total_xent = jnp.sum(
         jnp.expand_dims(per_example_xent, axis=-1) * class_weights)
     total_weight = jnp.sum(class_weights)
+
+    z_loss = jnp.sum(self.compute_z_loss(logits) * class_weights) / total_weight
+    z_loss *= p.z_loss_weight
+    base_layer.add_summary('aux_z_loss', z_loss)
+    aux_loss_ctx = py_utils.AuxLossContext.Current()
+
+    if aux_loss_ctx is not None:
+      aux_loss_ctx.AddLoss(z_loss)
 
     output_nmap = NestedMap(
         logits=logits.astype(inputs_dtype),
