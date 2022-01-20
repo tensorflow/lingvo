@@ -561,7 +561,9 @@ class MoEBuilder(builder.Base):
                         norm_policy='pre',
                         use_repeat_layer=False,
                         spmd_pipeline_stages=1,
-                        spmd_pipeline_microbatches=None):
+                        spmd_pipeline_microbatches=None,
+                        start_layer_id=0,
+                        has_final_layer=True):
     """Clean DecoderLayerStack, similar to EncoderLayerStack."""
 
     def _DecoderLayer(n, p):
@@ -574,7 +576,8 @@ class MoEBuilder(builder.Base):
 
     return self._LayerStack(name, sub_layers, num, use_repeat_layer,
                             spmd_pipeline_stages, spmd_pipeline_microbatches,
-                            self._DecoderLayerInMapKeys, _DecoderLayer)
+                            self._DecoderLayerInMapKeys, _DecoderLayer,
+                            start_layer_id, has_final_layer)
 
   def Repeat(self, name, body, repeat=1, per_layer_vars=True):
     """Wrapper to call builder_layers.RepeatLayer."""
@@ -590,9 +593,17 @@ class MoEBuilder(builder.Base):
     return gshard_layers.LayerwiseShardablePipelinedLayer.Params().Set(
         name=name, num_stages=stages, single_stage_body=body)
 
-  def _LayerStack(self, name, sub_layers, num, use_repeat_layer,
-                  spmd_pipeline_stages, spmd_pipeline_microbatches, imap_keys,
-                  layer_fn):
+  def _LayerStack(self,
+                  name,
+                  sub_layers,
+                  num,
+                  use_repeat_layer,
+                  spmd_pipeline_stages,
+                  spmd_pipeline_microbatches,
+                  imap_keys,
+                  layer_fn,
+                  start_layer_id=0,
+                  has_final_layer=True):
     # TODO(yuanzx): Consider refactor this into a layer.
     assert 'segment_id' in imap_keys
     if use_repeat_layer:
@@ -603,9 +614,10 @@ class MoEBuilder(builder.Base):
           ('i.' + key + '->' + key + '_split', self.Split(key + '_split')))
 
     stack += [
-        (imap_keys[0] + '_split->x_000',
+        (imap_keys[0] + '_split->x_%03d' % start_layer_id,
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
-        ('i.aux_loss->loss_000', self._Identity('loss_000')),
+        ('i.aux_loss->loss_%03d' % start_layer_id,
+         self._Identity('loss_%03d' % start_layer_id)),
     ]
 
     def _SubLayersBlock(l, idx):
@@ -620,7 +632,7 @@ class MoEBuilder(builder.Base):
               ('loss_%03d,omap_%03d.aux_loss->loss_%03d' % (idx, idx, idx + 1),
                self._Add('loss_%03d' % (idx + 1)))]
 
-    i = 0
+    i = start_layer_id
     assert num % spmd_pipeline_stages == 0
     layers_per_stage = num // spmd_pipeline_stages
     main_stack = []
@@ -629,8 +641,9 @@ class MoEBuilder(builder.Base):
       for l in sub_layers:
         blocks += _SubLayersBlock(l, i)
         i += 1
-      body_inputs = 'x_000,loss_000,' + ','.join(
-          [key + '_split' for key in imap_keys[1:]])
+      body_inputs = 'x_%03d,loss_%03d,' % (
+          start_layer_id, start_layer_id) + ','.join(
+              [key + '_split' for key in imap_keys[1:]])
       body_outputs = 'x_%03d,loss_%03d,' % (i, i) + ','.join(
           [key + '_split' for key in imap_keys[1:]])
       body_p = self._Graph('blocks_body', body_inputs.split(','),
@@ -688,8 +701,9 @@ class MoEBuilder(builder.Base):
       stack.append(
           ('loss_000->loss_000_m', self._Fn('loss_padded_microbatched',
                                             _PadLoss)))
-      body_inputs = 'x_000,loss_000,' + ','.join(
-          [key + '_split' for key in imap_keys[1:]])
+      body_inputs = 'x_%03d,loss_%03d,' % (
+          start_layer_id, start_layer_id) + ','.join(
+              [key + '_split' for key in imap_keys[1:]])
       body_outputs = 'x_%03d,loss_%03d,' % (i, i) + ','.join(
           [key + '_split' for key in imap_keys[1:]])
       body_p = self._Graph('pipeline_body', body_inputs.split(','),
@@ -724,13 +738,19 @@ class MoEBuilder(builder.Base):
                          self._Fn('loss_combined', tf.reduce_sum)))
 
     stack += main_stack
-    stack += [
-        (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
-        (('x_%03d->y_norm' % i), self._LN('final_layer_norm')),
-        ('y_norm->y_dropout',
-         self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
-        ('y_dropout,segment_id_split->o.vec', self.Mask()),
-    ]
+    if has_final_layer:
+      stack += [
+          (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
+          (('x_%03d->y_norm' % i), self._LN('final_layer_norm')),
+          ('y_norm->y_dropout',
+           self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
+          ('y_dropout,segment_id_split->o.vec', self.Mask()),
+      ]
+    else:
+      stack += [
+          (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
+          ('x_%03d,segment_id_split->o.vec' % i, self.Mask()),
+      ]
     return self._Graph(name, ['i'], ['o'], *stack)
 
   def _DenseReluDenseWeights(self,
@@ -3151,6 +3171,27 @@ class UniTransformer(base_model.BaseTask):
     p.Define('decoder_eos_id', 1, '</s> is in model SPM')
     # bos_id is not used in prefix decoding
     p.Define('decoder_bos_id', 0, '<s> is in model SPM')
+    # start_layer_id, has_embedding_layer and has_final_layer  are usedful to
+    # construct a sub model during inference, each sub model only contains part
+    # of layers from the model. The uni-transformer model is composed of an
+    # embedding layer, following by num_sub_layer * num_transformer_layer
+    # transformer layers and final softmax feedforward layer.
+    # For example, if num_transformer_layer = 16 and num_sub_layer = 2, and we
+    # want to split the model into 3 sub models with num_transformer_layer = 4
+    # in each sub model:
+    #   1. To configure the 1st sub model, we need to have
+    # num_transformer_layer = 4, start_layer_id = 0, has_embedding_layer = True,
+    # has_final_layer = False;
+    #   2. To configure the 2nd sub model, we need to have
+    # num_transformer_layer = 4, start_layer_id = 1 * num_transformer_layer *
+    # num_sub_layer = 8, has_embedding_layer = False, has_final_layer = False;
+    #   3. To configure the 3rd sub model, we need to have
+    # num_transformer_layer = 4, start_layer_id = 2 * num_transformer_layer *
+    # num_sub_layer = 16, has_embedding_layer = False, has_final_layer = True;
+    p.Define('start_layer_id', 0, 'Start layer id.')
+    p.Define('has_embedding_layer', True, 'Model has embedding layer or not.')
+    p.Define('has_final_layer', True, 'The model has the final layer such as '
+             'feedforward net.')
     return p
 
   def __init__(self, params):
@@ -3174,17 +3215,29 @@ class UniTransformer(base_model.BaseTask):
       assert not p.gated_ffn_activation, p.gated_ffn_activation
       gated_ffn_activation = None
 
-    dec_emb = b.Embedding('dec_emb', tgt_vocab_size)
-    self.CreateChild('dec_emb', dec_emb)
+    if p.has_embedding_layer:
+      dec_emb = b.Embedding('dec_emb', tgt_vocab_size)
+      self.CreateChild('dec_emb', dec_emb)
 
-    if p.positional_embedding:
-      dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
-      self.CreateChild('dec_pos_emb', dec_pos_emb)
+      if p.positional_embedding:
+        dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
+        self.CreateChild('dec_pos_emb', dec_pos_emb)
+
+    if not self.do_eval:
+      # Make sure training won't enable partially constructed model code
+      # path.
+      assert p.start_layer_id == 0
+      assert p.has_embedding_layer
+      assert p.has_final_layer
 
     if p.parallel_ffn:  # Only works with RecurrentDenseBuilderParallelDecode.
       assert not p.positional_embedding
       assert gated_ffn_activation
       assert isinstance(b, RecurrentDenseBuilderParallelDecode)
+      # Make sure multi stage inference won't jump into this path.
+      assert p.start_layer_id == 0
+      assert p.has_embedding_layer
+      assert p.has_final_layer
       decoder_sub_layers = [
           b.Repeat(
               name='blocks',
@@ -3241,7 +3294,9 @@ class UniTransformer(base_model.BaseTask):
           norm_policy=p.norm_policy,
           use_repeat_layer=p.use_repeat_layer,
           spmd_pipeline_stages=p.num_spmd_pipeline_stages,
-          spmd_pipeline_microbatches=p.num_spmd_pipeline_microbatches)
+          spmd_pipeline_microbatches=p.num_spmd_pipeline_microbatches,
+          start_layer_id=p.start_layer_id,
+          has_final_layer=p.has_final_layer)
     dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
     emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
@@ -3255,10 +3310,15 @@ class UniTransformer(base_model.BaseTask):
     self.CreateChild('logits_split', logits_split)
 
   def _ComputeDecoderInput(self, theta, input_batch):
-    y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
-    if self.params.positional_embedding:
-      y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
-                                  input_batch.tgt.segment_pos)
+    p = self.params
+    if p.has_embedding_layer:
+      y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
+      if self.params.positional_embedding:
+        y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
+                                    input_batch.tgt.segment_pos)
+    else:
+      y = tf.cast(input_batch.tgt.ids, py_utils.FPropDtype(self.params))
+
     return py_utils.NestedMap(
         vec=y,
         segment_id=input_batch.tgt.segment_ids,
@@ -3285,6 +3345,10 @@ class UniTransformer(base_model.BaseTask):
       decoder_input = self._ComputeDecoderInput(theta, input_batch)
       all_outputs = self.dec.FProp(theta.dec, decoder_input)
       dec_outputs, aux_loss = all_outputs.vec, all_outputs.aux_loss
+
+      if not p.has_final_layer:
+        return dec_outputs, aux_loss
+
       dec_outputs *= (p.builder.model_dim**-0.5)
       dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
       # TODO(lepikhin): we only support
