@@ -19,7 +19,6 @@ from typing import Any
 
 import jax
 from jax import numpy as jnp
-from jax.experimental import maps
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -39,7 +38,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
 
   It creates a loop over microbatches around a loop-body layer. The wrapped body
   layer represents a single stage, which will be added a leading num_stages
-  dimension with xmap() in the input/output data and weights.
+  dimension with vmap() in the input/output data and weights.
 
   It can run on a single core, or sharded using GSPMD annotations. If the stage
   dimension is sharded, GSPMD will produce a cross-core pipelining pattern.
@@ -67,7 +66,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
         shifted_state = jnp.pad(state, [[1, 0], ...])[:-1]
         in_mask = jnp.equal(jnp.arange(num_stages), 0)
         stages_in = jnp.where(in_mask, padded_input[i],  shifted_state)
-        state = xmap(single_stage_body.fprop)(theta.body, stages_in)
+        state = vmap(single_stage_body.fprop)(theta.body, stages_in)
   """
 
   @classmethod
@@ -104,17 +103,17 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
                  per_stage_inputs: NestedJTensor) -> NestedJTensor:
     """Runs the fprop function of the stages."""
     p = self.params
-    axis_resources = {}
     if p.mesh_axis_names is not None:
-      mesh_axis = base_layer.to_partition_spec(
-          p.weight_split_dims_mapping.stages, p.mesh_axis_names)[0]
-      if mesh_axis is not None:
-        axis_resources = {'num_stages': mesh_axis}
-    return maps.xmap(
-        self.body.fprop,
-        in_axes=['num_stages', ...],
-        out_axes=['num_stages', ...],
-        axis_resources=axis_resources)(theta.body, per_stage_inputs)
+
+      def annotate(x):
+        unconstrained_dims = list(range(1, x.ndim))
+        dims_mapping = (
+            p.weight_split_dims_mapping.stages + [None] * (x.ndim - 1))
+        return base_layer.maybe_shard(x, dims_mapping, p.mesh_axis_names,
+                                      unconstrained_dims)
+
+      per_stage_inputs = jax.tree_map(annotate, per_stage_inputs)
+    return jax.vmap(self.body.fprop)(theta.body, per_stage_inputs)
 
   def fprop(self, theta: NestedMap, inputs: NestedJTensor) -> Any:
     """FProp inputs through the pipeline body.
@@ -148,27 +147,35 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     state0 = jax.tree_map(
         lambda x: jnp.zeros((L,) + x.shape[1:], dtype=x.dtype), padded_inputs)
 
-    def _ScanFn(carry, inputs):
+    def _scan_fn(carry, inputs):
       in_state, inp = carry.data, inputs.data
-      # Shift state to the right by 1.
-      padding = [[1, 0]] + [[0, 0]] * (len(in_state.shape) - 1)
-      shifted_state = jnp.pad(in_state, padding)[0:L, ...]
+
       # Bring in the next microbatch.
-      iota = jax.lax.broadcasted_iota('int32', shifted_state.shape, 0)
-      stages_in = jax.tree_map(lambda x, s: jnp.where(iota == 0, x, s), inp,
-                               shifted_state)
+      def _select_state_or_input(x, s):
+        return jnp.where(
+            jax.lax.broadcasted_iota('int32', s.shape, 0) == 0, x, s)
+
+      stages_in = jax.tree_map(_select_state_or_input, inp, in_state)
+
       # Run through pipeline body.
       out_state = self.body_fprop(theta, stages_in)
       py_utils.assert_same_shape_and_dtype(stages_in, out_state)
+
+      # Shift state to the right by 1.
+      def _shift_right(x):
+        padding = [[1, 0]] + [[0, 0]] * (len(x.shape) - 1)
+        return jnp.pad(x, padding)[0:L, ...]
+
+      shifted_out_state = jax.tree_map(_shift_right, out_state)
       # Accumulator saves out_state for final output retrieval.
-      return NestedMap(data=out_state), NestedMap(data=out_state)
+      return NestedMap(data=shifted_out_state), NestedMap(data=out_state)
 
     # Loop over num_microbatches + (num_stages - 1), where input to each iter
     # has the same shape as the loop state.
     _, accum, summaries = recurrent.scan(
         NestedMap(data=state0),
         NestedMap(data=padded_inputs),
-        _ScanFn,
+        _scan_fn,
         root_layer=self)
     # TODO(xxx): deal with summaries.
     del summaries

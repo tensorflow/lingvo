@@ -197,7 +197,8 @@ def with_sharding_constraint(
 
 def maybe_shard(x: JTensor,
                 split_dims_mapping: Optional[SplitDimsMapping] = None,
-                mesh_axis_names: Optional[Sequence[str]] = None) -> JTensor:
+                mesh_axis_names: Optional[Sequence[str]] = None,
+                unconstrained_dims: Optional[Sequence[int]] = None) -> JTensor:
   """Adds explicit xla sharding constraints.
 
   This is a wrap around jax.with_sharding_constraint to allow for adding
@@ -220,6 +221,9 @@ def maybe_shard(x: JTensor,
       over both the 'replica' and 'data' axes, while the second dim over the
       'mdl' axis.
     mesh_axis_names: A tuple/list of strings of the name of the device mesh.
+    unconstrained_dims: A tuple/list of dimensions for which the sharding will
+      be determined by XLA (sharding propagation). We allow this only for this
+      internal annotation function, not for the program inputs/outputs.
 
   Returns:
     An annotated JTensor.
@@ -232,6 +236,13 @@ def maybe_shard(x: JTensor,
       f'is {len(x.shape)}, while it is {len(split_dims_mapping)}. '
       f'x.shape = {x.shape} and split_dims_mapping = {split_dims_mapping}')
   partition_spec = to_partition_spec(split_dims_mapping, mesh_axis_names)
+
+  if unconstrained_dims is not None:
+    partition_spec_list = list(partition_spec)
+    for dim in unconstrained_dims:
+      partition_spec_list[dim] = partition_spec.UNCONSTRAINED
+    partition_spec = pjit.PartitionSpec(*partition_spec_list)
+
   return with_sharding_constraint(x, partition_spec)
 
 
