@@ -336,8 +336,9 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def process_decode_out(self, input_obj: base_input.BaseInput,
-                         decode_out: NestedMap) -> Sequence[Tuple[str, Any]]:
+  def process_decode_out(
+      self, input_obj: base_input.BaseInput,
+      decode_out: NestedMap) -> Tuple[NestedMap, Sequence[Tuple[str, Any]]]:
     """Processes one batch of decoded outputs.
 
     Args:
@@ -345,10 +346,11 @@ class BaseTask(base_layer.BaseLayer):
       decode_out: The output from decode(). May have an extra leading axis.
 
     Returns:
-      A list of tuples where each element corresponds to a row in the batch.
-      Each tuple is a key value pair.
+      - metrics, a NestedMap containing str keys and (metric, weight) pairs for
+        the current batch (a tuple of two scalars).
+      - A list of tuples where each element corresponds to a row in the batch.
+        Each tuple is a key value pair.
     """
-    # TODO(http://b/214589358): add metrics to be returned as well.
     raise NotImplementedError('Abstract method')
 
   def create_train_state_partition_specs(
@@ -539,8 +541,9 @@ class LanguageModel(BaseTask):
                      jnp.array(batch_size, jnp.float32)))
     return metrics, result
 
-  def process_decode_out(self, input_obj: base_input.BaseInput,
-                         decode_out: NestedMap) -> Sequence[Tuple[str, Any]]:
+  def process_decode_out(
+      self, input_obj: base_input.BaseInput,
+      decode_out: NestedMap) -> Tuple[NestedMap, Sequence[Tuple[str, Any]]]:
     """Processes one batch of decoded outputs.
 
     Args:
@@ -548,8 +551,10 @@ class LanguageModel(BaseTask):
       decode_out: The output from decode(). May have an extra leading axis.
 
     Returns:
-      A dict where each entry corresponds to a row in the batch. The keys should
-      be unique across the entire decode dataset.
+      - metrics, a NestedMap containing str keys and (metric, weight) pairs for
+        the current batch (a tuple of two scalars).
+      - A list of dict where each entry corresponds to a row in the batch. The
+        keys should be unique across the entire decode dataset.
     """
     decoded_strs = input_obj.ids_to_strings(decode_out.output_ids,
                                             decode_out.decode_lengths)
@@ -564,7 +569,10 @@ class LanguageModel(BaseTask):
           'decoded': decoded_str,
           'original': original_strs[idx],
       }))
-    return ret
+    decoded_lengths = jnp.average(decode_out.decode_lengths).astype(jnp.float32)
+    metrics = NestedMap(
+        decoded_length=(decoded_lengths, jnp.array(1.0, jnp.float32)))
+    return metrics, ret
 
 
 class SequenceModel(BaseTask):

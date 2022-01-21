@@ -83,6 +83,11 @@ def reshard(array: jnp.ndarray) -> np.ndarray:
                     (num_devices, batch_size // num_devices) + array.shape[1:])
 
 
+def unshard(array: jnp.ndarray) -> np.ndarray:
+  """Undo the resharding to reshape away the local device count leading dim."""
+  return np.reshape(array, (-1,) + array.shape[2:])
+
+
 def maybe_unreplicate_gda(data):
   """Returns the first local shard in `data` if it is a GDA.
 

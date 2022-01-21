@@ -26,6 +26,7 @@ from absl import logging
 import jax
 from jax.experimental import maps
 from jax.experimental import mesh_utils
+import jax.numpy as jnp
 from lingvo.jax import base_input
 from lingvo.jax import base_layer
 from lingvo.jax import base_model_params
@@ -387,7 +388,7 @@ def _get_step(step: base_layer.JTensorOrPartitionSpec) -> int:
 def _get_filename(step: base_layer.JTensorOrPartitionSpec) -> str:
   """Returns a filename for the given step."""
   step_num = _get_step(step)
-  return f'decoder_out_{step_num}'
+  return f'decoder_out_{step_num}_shard_{jax.process_index()}'
 
 
 def decode_pmap_model(
@@ -484,6 +485,17 @@ def decode_pmap_model(
       last_checkpoint = new_checkpoint
 
 
+def _aggregate_metrics(metrics_dict, pmap_axis_name):
+  """Aggregate a dict of metrics over all replicas."""
+  mean_metrics = type(metrics_dict)()
+  for k, v in metrics_dict.items():
+    value, weight = v
+    sum_value = jax.lax.psum(value * weight, axis_name=pmap_axis_name)
+    sum_weight = jax.lax.psum(weight, axis_name=pmap_axis_name)
+    mean_metrics[k] = (sum_value / (sum_weight + 1e-8), sum_weight)
+  return mean_metrics
+
+
 def _decode_once_pmap_model(
     jax_model: model.BaseTask,
     model_p: InstantiableParams,
@@ -508,20 +520,16 @@ def _decode_once_pmap_model(
   """
   step_i = _get_step(replicated_model_states.step)
   pmap_axis_name = 'batch'
+  aggregate_metrics = functools.partial(
+      _aggregate_metrics, pmap_axis_name=pmap_axis_name)
+  pmap_aggregate_metrics = jax.pmap(
+      aggregate_metrics, axis_name=pmap_axis_name, out_axes=None)
 
   def decode_step(mdl_vars, prng_key, global_step, inputs):
     metrics, out = trainer_lib.decode_step(jax_model, mdl_vars, prng_key,
                                            global_step, inputs,
                                            model_p.fprop_dtype)
-    # TODO(http://b/214589358): Decode output can be big. Make this more
-    # efficient by not replicating over all tpu cores.
-    out = jax.lax.all_gather(out, axis_name=pmap_axis_name, tiled=True)
-    mean_metrics = type(metrics)()
-    for key in metrics:
-      value, weight = metrics[key]
-      sum_value = jax.lax.psum(value * weight, axis_name=pmap_axis_name)
-      sum_weight = jax.lax.psum(weight, axis_name=pmap_axis_name)
-      mean_metrics[key] = (sum_value / (sum_weight + 1e-8), sum_weight)
+    mean_metrics = aggregate_metrics(metrics)
     return mean_metrics, out
 
   # As an example, suppose the output leaf from trainer_lib.decoder_step()
@@ -539,8 +547,10 @@ def _decode_once_pmap_model(
   #   z = jax.pmap(
   #       lambda y: jax.lax.all_gather(y+1, axis_name='i', tiled=True),
   #       axis_name='i', out_axes=None)(x)
+  #
+  # We only aggregate metrics, not `out`, hence the tuple for out_axes.
   pmap_decode_step = jax.pmap(
-      decode_step, axis_name=pmap_axis_name, out_axes=None)
+      decode_step, axis_name=pmap_axis_name, out_axes=(None, 0))
   decode_step_func = functools.partial(pmap_decode_step,
                                        replicated_model_states.mdl_vars,
                                        prng_seed, replicated_model_states.step)
@@ -561,17 +571,29 @@ def _decode_once_pmap_model(
         break
       batch = tf.nest.map_structure(py_utils.reshard, batch)
       batch_metrics, out = decode_step_func(batch)
+      out = tf.nest.map_structure(py_utils.unshard, out)
+      process_metrics, processed = jax_model.process_decode_out(
+          inputs[split], out)
+      decodes[split].extend(processed)
 
+      # Reshard the metrics for pmap.
+      reshard_process_metrics = type(process_metrics)()
+      for k, v in process_metrics.items():
+        value, weight = v
+        new_value = jnp.ones(
+            shape=(jax.local_device_count(),), dtype=value.dtype) * value
+        new_weight = jnp.ones(
+            shape=(jax.local_device_count(),),
+            dtype=weight.dtype) * weight / jax.local_device_count()
+        reshard_process_metrics[k] = (new_value, new_weight)
+      process_metrics = pmap_aggregate_metrics(reshard_process_metrics)
+      batch_metrics.update(process_metrics)
       batch_metrics = py_utils.maybe_unreplicate_gda(batch_metrics)
       for k in batch_metrics:
         if k in metrics:
           metrics[k] += [batch_metrics[k]]
         else:
           metrics[k] = [batch_metrics[k]]
-
-      if jax.process_index() == 0:
-        processed = jax_model.process_decode_out(inputs[split], out)
-        decodes[split].extend(processed)
 
     for k in metrics:
       metric_values = np.stack([metric[0] for metric in metrics[k]])
@@ -725,7 +747,7 @@ def decode_once_spmd_model(
         # device 0 only.
         out = py_utils.maybe_unreplicate_gda(out)
         if jax.process_index() == 0:
-          processed = jax_model.process_decode_out(inputs[split], out)
+          _, processed = jax_model.process_decode_out(inputs[split], out)
           decodes[split].extend(processed)
 
   basedir = os.path.join(job_log_dir, 'decoder_out')
