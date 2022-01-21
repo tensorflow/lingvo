@@ -105,9 +105,13 @@ class Saver:
     self._logdir = logdir
     self._state_file = "{}/checkpoint".format(self._logdir)
     self._vars = variables
+    var_graphs = set([v.graph for v in self._vars])
+    assert len(var_graphs) == 1  # All vars should be in the same graph.
+    self._var_graph = list(var_graphs)[0]
+
     self._async_save = async_save
     self._copied_vars = None
-    self._copying_ops = []
+    self._copying_op = []
     self._async_save_thread = None
     self._async_exception = None
     assert not sanity_checks or all(
@@ -128,7 +132,7 @@ class Saver:
 
   def _AddShardedSaveOps(self, variables, checkpoint_prefix, var_key_fn):
     """Adds per-device save ops to save `variables` to `checkpoint_prefix`."""
-    with variables[0].graph.as_default():
+    with self._var_graph.as_default():
       per_device = collections.defaultdict(lambda: [])
       for var in variables:
         per_device[var.device].append(var)
@@ -139,7 +143,7 @@ class Saver:
       sharded_prefixes = []
 
       for shard, (device, var_list) in enumerate(per_device.items()):
-        with tf.device(device):
+        with self._var_graph.device(device):
           sharded_filename = gen_io_ops.sharded_filename(
               tmp_save_prefix, shard, num_shards)
           sharded_prefixes.append(sharded_filename)
@@ -166,20 +170,21 @@ class Saver:
 
   def _BuildRestore(self):
     """Builds restore ops."""
-    per_device = collections.defaultdict(lambda: [])
-    for var in self._vars:
-      per_device[var.device].append(var)
-
     assign_ops = []
-    for device, var_list in per_device.items():
-      with tf.device(device):
-        for var in var_list:
-          val, = io_ops.restore_v2(
-              prefix=self._restore_prefix_ph,
-              tensor_names=[_VarKey(var)],
-              shape_and_slices=[""],
-              dtypes=[var.dtype])
-          assign_ops.append(var.assign(val))
+    with self._var_graph.as_default():
+      per_device = collections.defaultdict(lambda: [])
+      for var in self._vars:
+        per_device[var.device].append(var)
+
+      for device, var_list in per_device.items():
+        with self._var_graph.device(device):
+          for var in var_list:
+            val, = io_ops.restore_v2(
+                prefix=self._restore_prefix_ph,
+                tensor_names=[_VarKey(var)],
+                shape_and_slices=[""],
+                dtypes=[var.dtype])
+            assign_ops.append(var.assign(val))
 
     self._restore_op = tf.group(*assign_ops)
 
@@ -270,10 +275,25 @@ class Saver:
     if self._copied_vars is None:
       # Creating the first copy of the vars. Doing it here and not in the
       # constructor due to initialization sequence of TF.
-      self._copied_vars = [tf.Variable(v, trainable=False) for v in self._vars]
-      for c, v in zip(self._copied_vars, self._vars):
-        self._copying_ops.append(c.assign(v))
-    _ = sess.run(self._copying_ops)
+      self._copied_vars = []
+
+      # Note: the variables below will be created in self._var_graph regardless
+      # which graph is set as default, so we need to apply the device context in
+      # self._var_graph.
+      copying_ops = []
+      with self._var_graph.as_default():
+        for v in self._vars:
+          with self._var_graph.device(v.device):
+            copied_v = tf.Variable(v, trainable=False)
+            assert copied_v.graph is v.graph
+            assert copied_v.device == v.device
+            self._copied_vars.append(copied_v)
+            copying_ops.append(copied_v.assign(v))
+      # Group the ops to avoid running them directly, which will generate
+      # expensive send/recv operations.
+      self._copying_op = tf.group(*copying_ops)
+
+    sess.run(self._copying_op)
 
     global_step, prefix = sess.run(
         fetches=[self._save_global_step, self._save_prefix],
