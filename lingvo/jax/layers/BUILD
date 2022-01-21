@@ -161,12 +161,14 @@ pytype_strict_library(
 
 pytype_strict_library(
     name = "objectives",
-    srcs = ["quantizer_objectives.py"],
+    srcs = [
+        "ctc_objectives.py",
+        "quantizer_objectives.py",
+    ],
     srcs_version = "PY3",
     deps = [
         # Implicit jax dependency.
-        "//lingvo/jax:base_layer",
-        "//lingvo/jax:py_utils",
+        "//lingvo/jax:asserts",
         "//lingvo/jax:pytypes",
     ],
 )
@@ -419,6 +421,22 @@ py_strict_test(
         "//lingvo/jax:base_layer",
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
+    ],
+)
+
+py_strict_test(
+    name = "ctc_objectives_test",
+    srcs = ["ctc_objectives_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":objectives",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit jax dependency.
+        "//third_party/py/jax/experimental/jax2tf",
+        "//lingvo/jax:pytypes",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
