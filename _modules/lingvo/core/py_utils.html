@@ -728,9 +728,16 @@
 <span class="c1"># If you get an error &quot;tf.enable_eager_execution must be called at program</span>
 <span class="c1"># startup.&quot; but you are calling this function at the start, check if your change</span>
 <span class="c1"># adds type hints for &quot;tf.data&quot; and wrap those type hints in quotes.</span>
-<div class="viewcode-block" id="SetEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetEagerMode">[docs]</a><span class="k">def</span> <span class="nf">SetEagerMode</span><span class="p">(</span><span class="n">eager_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="SetEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetEagerMode">[docs]</a><span class="k">def</span> <span class="nf">SetEagerMode</span><span class="p">(</span><span class="n">eager_mode</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">test_mode</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Switch between Eager and Graph mode. Use this instead of TF APIs.&quot;&quot;&quot;</span>
   <span class="k">global</span> <span class="n">_IS_EAGER_MODE</span>
   <span class="n">_IS_EAGER_MODE</span> <span class="o">=</span> <span class="n">eager_mode</span>
+  <span class="c1"># Only change the global flag.</span>
+  <span class="c1"># Used in tests. In those scenarios we might want to use Graph mode along with</span>
+  <span class="c1"># Eager mode. All we need is changing the flag `_IS_EAGER_MODE` without</span>
+  <span class="c1"># calling `enable_eager_execution`/`disable_eager_execution`.</span>
+  <span class="k">if</span> <span class="n">test_mode</span><span class="p">:</span>
+    <span class="k">return</span>
   <span class="k">if</span> <span class="n">eager_mode</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">enable_eager_execution</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">set_soft_device_placement</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
