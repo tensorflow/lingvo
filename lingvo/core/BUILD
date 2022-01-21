@@ -2376,7 +2376,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":base_model",
-        ":checkpointer_lib",
         ":cluster_factory",
         ":hyperparams",
         ":metrics",

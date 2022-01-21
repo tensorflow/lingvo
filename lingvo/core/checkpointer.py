@@ -15,6 +15,7 @@
 # ==============================================================================
 """Checkpointing utilities for save/restore."""
 
+import copy
 import os
 import time
 
@@ -182,40 +183,7 @@ class Checkpointer:
       self._uninitialized_vars = tf.report_uninitialized_variables(
           tf.global_variables())
 
-    # TODO(b/160786085): Move this logic into Overriding vars logic itself,
-    # which requires refactoring things out of py_utils to avoid circular deps.
-    def _ResolveCkptPath(ckpt_rules):
-      res_rules = {}
-      for k, v in ckpt_rules.items():
-        new_k = GetSpecificCheckpoint(k)
-        if not new_k:
-          tf.logging.warning(
-              f'Empty checkpoint path init rules are ignored, key={k}')
-        else:
-          res_rules.update({new_k: v})
-      return res_rules
-
-    self._restore_fns = []
-    all_vars = list(_GetSaveableVariablesDict(self._models).values())
-
-    # Add graph nodes to restore specific variables based on
-    # init_from_checkpoint_rules.
-    # TODO(b/159267006): Move this back to Restore().
-    if not self._save_only:
-      for model in self._models:
-        for task in model.tasks:
-          tp = task.params.train
-          if tp.init_from_checkpoint_rules:
-            rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-            fn = py_utils.OverrideVarsFromCheckpoints(all_vars, rules)
-            self._restore_fns.append(
-                (f'OverrideVarsFromCheckpoints {rules}', fn))
-
-        tp = model.params.train
-        if tp.init_from_checkpoint_rules:
-          rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
-          fn = py_utils.OverrideVarsFromCheckpoints(all_vars, rules)
-          self._restore_fns.append((f'OverrideVarsFromCheckpoints {rules}', fn))
+    self._BuildInitFromCheckpointRules()
 
   @property
   def checkpoint_dir(self):
@@ -243,6 +211,60 @@ class Checkpointer:
   def async_checkpointing(self):
     return self._train_params.async_checkpointing
 
+  def _BuildInitFromCheckpointRules(self):
+    """Build restore fns for init_from_checkpoint_rules."""
+    self._restore_fns = []
+    all_vars = list(_GetSaveableVariablesDict(self._models).values())
+
+    # TODO(b/160786085): Move this logic into Overriding vars logic itself,
+    # which requires refactoring things out of py_utils to avoid circular deps.
+    def _ResolveCkptPath(ckpt_rules):
+      res_rules = {}
+      for k, v in ckpt_rules.items():
+        new_k = GetSpecificCheckpoint(k)
+        if not new_k:
+          tf.logging.warning(
+              f'Empty checkpoint path init rules are ignored, key={k}')
+        else:
+          res_rules.update({new_k: v})
+      return res_rules
+
+    def _MergeLoadingRules(a, b):
+      res = copy.deepcopy(a)
+      for k, (load_rules, ignore_rules) in b.items():
+        if k in res:
+          res_load, res_ignore = res[k]
+          for load in load_rules:
+            if load not in res_load:
+              res_load.append(load)
+          for ignore in ignore_rules:
+            if ignore not in res_ignore:
+              res_ignore.append(ignore)
+        else:
+          res[k] = (load_rules, ignore_rules)
+      return res
+
+    # Restore specific variables based on init_from_checkpoint_rules.
+    rules = {}
+    for model in self._models:
+      for task in model.tasks:
+        tp = task.params.train
+        if tp.init_from_checkpoint_rules:
+          rules = _MergeLoadingRules(
+              rules, _ResolveCkptPath(tp.init_from_checkpoint_rules))
+
+    if self._train_params.init_from_checkpoint_rules:
+      rules = _MergeLoadingRules(
+          rules,
+          _ResolveCkptPath(self._train_params.init_from_checkpoint_rules))
+
+    # Add graph nodes to restore specific variables based on
+    # init_from_checkpoint_rules.
+    # TODO(b/159267006): Move this back to Restore().
+    self._restore_fns.append(
+        (f'OverrideVarsFromCheckpoints {rules}',
+         py_utils.OverrideVarsFromCheckpoints(all_vars, rules)))
+
   def RestoreFromPath(self, sess=None, checkpoint_path=None):
     """Load the checkpoint from specified path."""
     assert not self._save_only
@@ -252,6 +274,7 @@ class Checkpointer:
     # Successfully restored from checkpoint.
     uninitialized_var_names = self._GetUninitializedVarNames(sess)
     assert not uninitialized_var_names, uninitialized_var_names
+    return checkpoint_path
 
   def ShouldSave(self, gsteps):
     """Returns True if a checkpoint should be saved."""
@@ -549,6 +572,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     load_status.assert_existing_objects_matched()
     tf.logging.info('Load checkpoint done.')
     self._MaybeOverwriteModelVariablesWithEMA()
+    return checkpoint_path
 
   def Save(self, sess=None, gsteps=None):
     """`sess` is unused in Eager context."""
@@ -602,7 +626,16 @@ class EagerCheckpointerV2(_EagerCheckpointer):
   def Restore(self, sess=None, force_reinitialize=None):
     """`sess` and `force_reinitialize` are unused in Eager context."""
     assert sess is None
-    return self._RestoreFromLatestCheckpoint(sess)
+    path = self._RestoreFromLatestCheckpoint(sess)
+    if path:
+      tf.logging.info('Eager checkpoint is restored with path: %s', path)
+      return path
+    # No checkpoint is loaded, we need to initialize the variables,
+    # and apply the init_from_checkpoint_rules if applicable.
+    for msg, fn in self._restore_fns:
+      tf.logging.info(msg)
+      fn(sess)
+    return path
 
   def RestoreGlobalStepIfNeeded(self, sess=None):
     """`sess` is unused in Eager context."""
@@ -639,6 +672,7 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     tf.logging.info('Load checkpoint done.')
     load_status.assert_existing_objects_matched()
     self._MaybeOverwriteModelVariablesWithEMA()
+    return checkpoint_path
 
   def Save(self, sess=None, gsteps=None):
     """`sess` is unused in Eager context."""

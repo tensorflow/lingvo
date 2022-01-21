@@ -2489,8 +2489,11 @@ def CreateLocalTheta(theta, device_list=None, label=None):
   return copy
 
 
-def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
-                   ckpt_path):
+def _GetVarsToLoad(all_vars,
+                   variable_loading_rules,
+                   var_ignore_rules,
+                   ckpt_path,
+                   suppress_logging=False):
   """Determines variables to load and their names in checkpoint."""
   # This list contains mappings from var names as they appear in the checkpoint
   # to the vars in our model they correspond to.
@@ -2504,27 +2507,31 @@ def _GetVarsToLoad(all_vars, variable_loading_rules, var_ignore_rules,
       match = re.match(regexp, model_var.name)
       # Skip if var doesn't match the loading rules, or if it should be ignored.
       if not match:
-        tf.logging.debug('Loading rules do not match %s.', model_var.name)
+        if not suppress_logging:
+          tf.logging.debug('Loading rules do not match %s.', model_var.name)
         continue
       elif any(re.match(r, model_var.name) for r in var_ignore_rules):
-        tf.logging.debug('Ignoring %s from loading.', model_var.name)
+        if not suppress_logging:
+          tf.logging.debug('Ignoring %s from loading.', model_var.name)
         continue
       checkpoint_var_name = name_format % match.groups()
       if checkpoint_var_name.endswith(':0'):
         checkpoint_var_name = checkpoint_var_name[:-2]
-      tf.logging.info('Loading %s from %s with regexp: %s', model_var.name,
-                      checkpoint_var_name, regexp)
+      if not suppress_logging:
+        tf.logging.info('Loading %s from %s with regexp: %s', model_var.name,
+                        checkpoint_var_name, regexp)
       vars_to_load.append((checkpoint_var_name, model_var))
       unused_rules.pop(regexp, None)
       loaded = True
       break
-    if not loaded:
+    if not loaded and not suppress_logging:
       tf.logging.info(
           'Not loading model variable %s from %s as it does not match any rules'
           ' or matches ignored', model_var.name, ckpt_path)
-  for regexp, name_format in unused_rules.items():
-    tf.logging.warning(f'User provided rule matched no variables: ({regexp}, '
-                       f'{name_format})')
+  if not suppress_logging:
+    for regexp, name_format in unused_rules.items():
+      tf.logging.warning(f'User provided rule matched no variables: ({regexp}, '
+                         f'{name_format})')
   return vars_to_load
 
 
@@ -2620,9 +2627,13 @@ def OverrideVarsFromCheckpoints(all_vars, ckpts_loading_rules):
                        ckpt_path)
 
     # Filter the model variables to be overridden.
-    to_load_vars = _GetVarsToLoad(all_vars, loading_rules[0], loading_rules[1],
-                                  ckpt_path)
-    var_refs_to_override = [var[1].experimental_ref() for var in to_load_vars]
+    to_load_vars = _GetVarsToLoad(
+        all_vars,
+        loading_rules[0],
+        loading_rules[1],
+        ckpt_path,
+        suppress_logging=True)
+    var_refs_to_override = [var[1].ref() for var in to_load_vars]
     var_names_to_override = [var[1].name for var in to_load_vars]
 
     overlap_refs = set.intersection(var_refs_overridden, var_refs_to_override)
@@ -2634,11 +2645,11 @@ def OverrideVarsFromCheckpoints(all_vars, ckpts_loading_rules):
                                    loading_rules[1]))
     var_refs_overridden.update(var_refs_to_override)
     var_names_overridden.update(var_names_to_override)
-  tf.logging.info('Model variables overridden: %s', var_refs_overridden)
 
   def _Restore(sess):
     for fn in restore_fns:
       fn(sess)
+    tf.logging.info('Model variables overridden: %s', var_names_overridden)
     return var_names_overridden
 
   return _Restore

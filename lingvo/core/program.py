@@ -24,7 +24,6 @@ import time
 from lingvo import base_trial
 import lingvo.compat as tf
 from lingvo.core import base_model
-from lingvo.core import checkpointer
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import metrics
@@ -90,11 +89,6 @@ class BaseProgram:
              'Whether to write input data stats during training.')
     p.Define('max_metrics', 256, 'Overrides TpuEvalMetrics.max_metrics')
     p.Define('ml_perf', None, 'MLPerf config')
-    p.Define(
-        'checkpoint_to_load', None,
-        'If set, the program will initially load from this checkpoint, '
-        'ignoring train_dir. Typically used for oneoff decode.'
-        'Eager mode is currently not supported!')
     return p
 
   def __init__(self,
@@ -115,9 +109,6 @@ class BaseProgram:
     self._write_train_input_stats = p.write_train_input_stats
     self._trial = trial
     self._ema = ema
-    if p.checkpoint_to_load and py_utils.IsEagerMode():
-      raise NotImplementedError(
-          'p.checkpoint_to_load is not supported for eager mode!')
 
     # Program dirs are where the summaries are written to.
     if p.task_name:
@@ -349,32 +340,18 @@ class BaseProgram:
     """Runs any necessary cleanup (potentially blocking)."""
     pass
 
-  def CreateCheckpointer(self, init_op=None):
-    """Creates a checkpointer, whose version depends on the mode and config.
-
-    Args:
-      init_op: The initialize variables op. If unset, it will call
-        tf.global_variables_initializer().
-
-    Raises:
-      TypeError: When the function is called in Eager mode.
-    """
-    if py_utils.IsEagerMode():
-      raise TypeError('Not supported in Eager mode.')
-    else:
-      self._checkpointer = checkpointer.Checkpointer(
-          self._checkpoint_dir, self._model, init_op=init_op)
-
-  def RestoreIfNeeded(self, sess=None):
-    if py_utils.IsEagerMode():
-      raise TypeError('Not supported in Eager mode.')
-    elif self.params.checkpoint_to_load:
-      self._checkpointer.RestoreFromPath(sess, self.params.checkpoint_to_load)
-    else:
-      self._checkpointer.RestoreIfNeeded(sess)
-
   def SaveProgramState(self, sess=None, global_step=None):
     """Saves program state information that need to be loaded during restore."""
+    pass
+
+  def LoadProgramState(self, restored_checkpoint_path=None, sess=None):
+    """Restore additional state before training starts.
+
+    Args:
+      restored_checkpoint_path: The path to the latest checkpoint that was
+        restored. If None, this is a new run.
+      sess: Optional session.
+    """
     pass
 
   def _InstantiateTaskModel(self, task_params):
@@ -454,8 +431,6 @@ class TrainProgram(BaseProgram):
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
     p = self.params
-    assert not p.checkpoint_to_load, (
-        'TrainProgram does not support checkpoint_to_load!')
     if (p.ml_perf is not None and p.ml_perf.benchmark_name is not None and
         p.ml_perf.steps_per_epoch is not None):
       self._ml_perf = p.ml_perf
@@ -1486,6 +1461,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     self._train_task = self._train_model.GetTask()
     self._train_task.input.TpuSetup()
     self._model = self._train_model
+    self._task = self._model.GetTask()
 
     def TpuTrainStep():
       """Train a shard of a batch on a single TPU core.
@@ -1669,6 +1645,10 @@ class SimpleProgramSchedule:
     p.Define('dataset_names', [], 'List of all dataset names.')
     p.Define('async_postprocess', True,
              'whether to CPU postprocess asynchronously with TPU train')
+    p.Define(
+        'checkpoint_to_load', None,
+        'If set, the program will initially load from this checkpoint, '
+        'ignoring train_dir. Typically used for oneoff decode.')
 
     # TODO(blee): Clean these up.
     p.Define('ml_perf', hyperparams.Params(), 'MlPerf configuration.')
@@ -1965,7 +1945,7 @@ def UpdateProgramSchedule(ps_params,
       decode_until_out_of_range=True. Currently list not supported.
     decode_summary_emails: List of emails to send Decode summary to.
     oneoff_checkpoint_to_load: Optional[str], if not None, it will override
-      eval/decode program checkpoint_to_load.
+      checkpoint_to_load.
 
   Returns:
     ps_params after overriden.
@@ -2040,10 +2020,7 @@ def UpdateProgramSchedule(ps_params,
       tf.logging.warning(
           'Training with decoding does not suggest to set `checkpoint_to_load` '
           'for DecodeProgram!')
-    for eval_program in ps_params.eval_programs:
-      if issubclass(eval_program.cls, DecodeProgram) or issubclass(
-          eval_program.cls, EvalProgram):
-        eval_program.checkpoint_to_load = oneoff_checkpoint_to_load
+    ps_params.checkpoint_to_load = oneoff_checkpoint_to_load
 
   if decode_summary_emails:
     for eval_program in ps_params.eval_programs:
