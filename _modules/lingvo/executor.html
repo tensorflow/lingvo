@@ -345,6 +345,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_to_load</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">:</span>
       <span class="c1"># Create the ExponentialMovingAverage singleton shared by all programs, if</span>
       <span class="c1"># applicable.</span>
@@ -366,6 +367,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span>
+        <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;checkpoint_to_load&#39;</span> <span class="ow">in</span> <span class="n">program_schedule_params</span> <span class="ow">and</span>
+            <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">checkpoint_to_load</span><span class="p">):</span>
+          <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_to_load</span> <span class="ow">and</span>
+              <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_to_load</span> <span class="o">!=</span>
+               <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">checkpoint_to_load</span><span class="p">)):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Multiple values found for checkpoint_to_load: &#39;</span>
+                             <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_to_load</span><span class="si">}</span><span class="s1">, &#39;</span>
+                             <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">program_schedule_params</span><span class="o">.</span><span class="n">checkpoint_to_load</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_to_load</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">checkpoint_to_load</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_programs: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">))</span>
 
@@ -393,39 +403,33 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
 
+      <span class="n">checkpointer_models</span> <span class="o">=</span> <span class="p">[</span><span class="n">program</span><span class="o">.</span><span class="n">GetModel</span><span class="p">()</span> <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">]</span>
+
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_v2_checkpoints_in_eager</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_eager_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV2</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV2</span><span class="p">(</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-              <span class="n">models</span><span class="o">=</span><span class="p">[</span><span class="n">program</span><span class="o">.</span><span class="n">GetModel</span><span class="p">()</span> <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">],</span>
+              <span class="n">models</span><span class="o">=</span><span class="n">checkpointer_models</span><span class="p">,</span>
               <span class="n">init_op</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_eager_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV1</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV1</span><span class="p">(</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-              <span class="n">models</span><span class="o">=</span><span class="p">[</span><span class="n">program</span><span class="o">.</span><span class="n">GetModel</span><span class="p">()</span> <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">],</span>
+              <span class="n">models</span><span class="o">=</span><span class="n">checkpointer_models</span><span class="p">,</span>
               <span class="n">init_op</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
+            <span class="n">models</span><span class="o">=</span><span class="n">checkpointer_models</span><span class="p">,</span>
+            <span class="n">init_op</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span><span class="p">,</span>
+            <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
+            <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
       <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
         <span class="n">program</span><span class="o">.</span><span class="n">SetStatusMessageFn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-          <span class="c1"># A single checkpinter `_eager_checkpointer` is used</span>
-          <span class="k">pass</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">program</span><span class="o">.</span><span class="n">CreateCheckpointer</span><span class="p">(</span><span class="n">init_op</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_save_only_checkpointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eager_checkpointer</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_save_only_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
-            <span class="n">models</span><span class="o">=</span><span class="p">[</span><span class="n">program</span><span class="o">.</span><span class="n">GetModel</span><span class="p">()</span> <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">],</span>
-            <span class="n">init_op</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span><span class="p">,</span>
-            <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
-            <span class="n">save_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="n">tpu_embedding_collection</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">())</span>
@@ -495,23 +499,25 @@
       <span class="c1"># Initialize the variables first, if needed.</span>
       <span class="c1"># Need to call create global step again because this is run in a thread.</span>
       <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
-      <span class="n">compile_fns</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-          <span class="n">program</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-        <span class="n">compile_fns</span> <span class="o">+=</span> <span class="p">[</span><span class="n">program</span><span class="o">.</span><span class="n">Compile</span><span class="p">]</span>
 
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_eager_checkpointer</span><span class="o">.</span><span class="n">Restore</span><span class="p">()</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_to_load</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreFromPath</span><span class="p">(</span>
+            <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_to_load</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
       <span class="c1"># Run the compiles in parallel.</span>
+      <span class="n">compile_fns</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
+        <span class="n">program</span><span class="o">.</span><span class="n">LoadProgramState</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
+        <span class="n">compile_fns</span> <span class="o">+=</span> <span class="p">[</span><span class="n">program</span><span class="o">.</span><span class="n">Compile</span><span class="p">]</span>
       <span class="n">threadpool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">dummy</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">compile_fns</span><span class="p">))</span>
       <span class="n">futures</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Compiling </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">compile_fns</span><span class="p">)</span><span class="si">}</span><span class="s1"> programs in parallel.&#39;</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="n">compile_fns</span><span class="p">:</span>
         <span class="n">futures</span> <span class="o">+=</span> <span class="p">[</span><span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))]</span>
       <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">:</span>
-        <span class="n">future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 
       <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
@@ -544,10 +550,9 @@
           <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
             <span class="n">program</span><span class="o">.</span><span class="n">SaveProgramState</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
           <span class="c1"># Save the checkpoints.</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span>
-            <span class="n">global_step</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span><span class="n">global_step</span><span class="p">):</span>
           <span class="n">RunSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
         <span class="c1"># If a task is explicitly selected, only run the programs associated</span>

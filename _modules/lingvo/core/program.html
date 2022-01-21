@@ -89,7 +89,6 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_trial</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">checkpointer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span>
@@ -155,11 +154,6 @@
              <span class="s1">&#39;Whether to write input data stats during training.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_metrics&#39;</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="s1">&#39;Overrides TpuEvalMetrics.max_metrics&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ml_perf&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;MLPerf config&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;checkpoint_to_load&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;If set, the program will initially load from this checkpoint, &#39;</span>
-        <span class="s1">&#39;ignoring train_dir. Typically used for oneoff decode.&#39;</span>
-        <span class="s1">&#39;Eager mode is currently not supported!&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -180,9 +174,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">write_train_input_stats</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="n">trial</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="n">ema</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">checkpoint_to_load</span> <span class="ow">and</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-          <span class="s1">&#39;p.checkpoint_to_load is not supported for eager mode!&#39;</span><span class="p">)</span>
 
     <span class="c1"># Program dirs are where the summaries are written to.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
@@ -414,32 +405,18 @@
     <span class="sd">&quot;&quot;&quot;Runs any necessary cleanup (potentially blocking).&quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
-<div class="viewcode-block" id="BaseProgram.CreateCheckpointer"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.CreateCheckpointer">[docs]</a>  <span class="k">def</span> <span class="nf">CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_op</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Creates a checkpointer, whose version depends on the mode and config.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      init_op: The initialize variables op. If unset, it will call</span>
-<span class="sd">        tf.global_variables_initializer().</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      TypeError: When the function is called in Eager mode.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Not supported in Eager mode.&#39;</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">,</span> <span class="n">init_op</span><span class="o">=</span><span class="n">init_op</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="BaseProgram.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Not supported in Eager mode.&#39;</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">checkpoint_to_load</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreFromPath</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">checkpoint_to_load</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
-
 <div class="viewcode-block" id="BaseProgram.SaveProgramState"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.SaveProgramState">[docs]</a>  <span class="k">def</span> <span class="nf">SaveProgramState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Saves program state information that need to be loaded during restore.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BaseProgram.LoadProgramState"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.LoadProgramState">[docs]</a>  <span class="k">def</span> <span class="nf">LoadProgramState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">restored_checkpoint_path</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Restore additional state before training starts.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      restored_checkpoint_path: The path to the latest checkpoint that was</span>
+<span class="sd">        restored. If None, this is a new run.</span>
+<span class="sd">      sess: Optional session.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="BaseProgram._InstantiateTaskModel"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._InstantiateTaskModel">[docs]</a>  <span class="k">def</span> <span class="nf">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_params</span><span class="p">):</span>
@@ -519,8 +496,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">StepRateTracker</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;TrainProgram&#39;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">checkpoint_to_load</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s1">&#39;TrainProgram does not support checkpoint_to_load!&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
         <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">steps_per_epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span>
@@ -1551,6 +1526,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
@@ -1734,6 +1710,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dataset_names&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of all dataset names.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;async_postprocess&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;whether to CPU postprocess asynchronously with TPU train&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;checkpoint_to_load&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If set, the program will initially load from this checkpoint, &#39;</span>
+        <span class="s1">&#39;ignoring train_dir. Typically used for oneoff decode.&#39;</span><span class="p">)</span>
 
     <span class="c1"># TODO(blee): Clean these up.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ml_perf&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;MlPerf configuration.&#39;</span><span class="p">)</span>
@@ -2030,7 +2010,7 @@
 <span class="sd">      decode_until_out_of_range=True. Currently list not supported.</span>
 <span class="sd">    decode_summary_emails: List of emails to send Decode summary to.</span>
 <span class="sd">    oneoff_checkpoint_to_load: Optional[str], if not None, it will override</span>
-<span class="sd">      eval/decode program checkpoint_to_load.</span>
+<span class="sd">      checkpoint_to_load.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    ps_params after overriden.</span>
@@ -2105,10 +2085,7 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
           <span class="s1">&#39;Training with decoding does not suggest to set `checkpoint_to_load` &#39;</span>
           <span class="s1">&#39;for DecodeProgram!&#39;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="n">ps_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
-      <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">eval_program</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">DecodeProgram</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">issubclass</span><span class="p">(</span>
-          <span class="n">eval_program</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">EvalProgram</span><span class="p">):</span>
-        <span class="n">eval_program</span><span class="o">.</span><span class="n">checkpoint_to_load</span> <span class="o">=</span> <span class="n">oneoff_checkpoint_to_load</span>
+    <span class="n">ps_params</span><span class="o">.</span><span class="n">checkpoint_to_load</span> <span class="o">=</span> <span class="n">oneoff_checkpoint_to_load</span>
 
   <span class="k">if</span> <span class="n">decode_summary_emails</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="n">ps_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>

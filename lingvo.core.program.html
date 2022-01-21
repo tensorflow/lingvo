@@ -233,29 +233,24 @@ available to be executed on demand without significant delay.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram.CreateCheckpointer">
-<span class="sig-name descname"><span class="pre">CreateCheckpointer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">init_op</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.CreateCheckpointer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.CreateCheckpointer" title="Permalink to this definition"></a></dt>
-<dd><p>Creates a checkpointer, whose version depends on the mode and config.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>init_op</strong> – The initialize variables op. If unset, it will call
-tf.global_variables_initializer().</p>
-</dd>
-<dt class="field-even">Raises</dt>
-<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#TypeError" title="(in Python v3.7)"><strong>TypeError</strong></a> – When the function is called in Eager mode.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram.RestoreIfNeeded">
-<span class="sig-name descname"><span class="pre">RestoreIfNeeded</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.RestoreIfNeeded"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.RestoreIfNeeded" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.BaseProgram.SaveProgramState">
 <span class="sig-name descname"><span class="pre">SaveProgramState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.SaveProgramState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.SaveProgramState" title="Permalink to this definition"></a></dt>
 <dd><p>Saves program state information that need to be loaded during restore.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram.LoadProgramState">
+<span class="sig-name descname"><span class="pre">LoadProgramState</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">restored_checkpoint_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.LoadProgramState"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.LoadProgramState" title="Permalink to this definition"></a></dt>
+<dd><p>Restore additional state before training starts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>restored_checkpoint_path</strong> – The path to the latest checkpoint that was
+restored. If None, this is a new run.</p></li>
+<li><p><strong>sess</strong> – Optional session.</p></li>
+</ul>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">
@@ -814,7 +809,7 @@ decode programs steps_per_loop. If set to -1, it will set
 decode_until_out_of_range=True. Currently list not supported.</p></li>
 <li><p><strong>decode_summary_emails</strong> – List of emails to send Decode summary to.</p></li>
 <li><p><strong>oneoff_checkpoint_to_load</strong> – Optional[str], if not None, it will override
-eval/decode program checkpoint_to_load.</p></li>
+checkpoint_to_load.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
