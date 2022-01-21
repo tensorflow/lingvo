@@ -221,7 +221,7 @@ class LanguageModelTest(test_util.JaxTestCase):
         [
             [0, 0, 0, 1, 0],
             [0, 0, 0, 0, 1],
-            [0, 0, 1, 1, 0],  # argmax=[3, 4, 2]
+            [0, 0, 1, 0, 0],  # argmax=[3, 4, 2]
         ],
         [
             [0, 0, 0, 1, 0],
@@ -252,6 +252,60 @@ class LanguageModelTest(test_util.JaxTestCase):
                  dtype=np.int32))
     self.assertArraysEqual(results.decode_lengths,
                            np.array([5, 4, 3], dtype=np.int32))
+
+  def test_max_decode_steps(self):
+    p = model.LanguageModel.Params().decoder
+    p.seqlen = 5
+    p.min_prefix_len = 0
+    p.eos_id = 2
+    p.max_decode_steps = 2
+    logits = [
+        [
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 1, 0],
+            [0, 0, 0, 1, 0],  # argmax=[4, 3, 3]
+        ],
+        [
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 0, 1],  # argmax=[2, 4, 4]
+        ],
+        [
+            [0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 1],
+            [0, 0, 0, 1, 0],  # argmax=[3, 4, 3]
+        ],
+    ]
+    input_batch = NestedMap(
+        ids=jnp.array([[11, 13, 15], [12, 14, 16], [20, 30, 40]],
+                      dtype=jnp.int32),
+        paddings=jnp.zeros(shape=(3, 3), dtype=jnp.float32),
+    )
+    results = self._run_decode(p, logits, input_batch)
+    # This is fixed by the prng seed provided.
+    self.assertArraysEqual(results.prefix_lengths,
+                           np.array([2, 1, 0], dtype=np.int32))
+    # Row 0 has prefix length 2, and hit EOS after decode for one step, so it
+    # stops. Row 1 has prefix length 1, and hit max decode steps of 2, so it
+    # stops at 3 decoded ids. Row 2 has prefix length 0, and stops after
+    # hitting the max decode step of 2, ending with 2 decoded ids.
+    # Note that logically prefix length 1 and 0 are equivalent, because
+    # decoding always starts with the fixed first ids (BOS in practice), the
+    # only difference is how they affect the counting of max_decode_steps.
+    self.assertArraysEqual(
+        results.output_ids,
+        np.array([[11, 13, 2, 0, 0], [12, 3, 4, 0, 0], [20, 3, 0, 0, 0]],
+                 dtype=np.int32))
+    self.assertArraysEqual(results.decode_lengths,
+                           np.array([3, 3, 2], dtype=np.int32))
+    # softmax on logits of [0, 0, 0, 0, 1] reproduces:
+    # [-1.904833   -1.904833   -1.904833   -1.904833   -0.90483296]
+    self.assertAllClose(
+        results.logprobs,
+        np.array(
+            [[1., -0.904832, -0.904832, 1., 1.],
+             [1., -0.904832, -0.904832, 1., 1.], [1., -0.904832, 1., 1., 1.]],
+            dtype=np.float32))
 
 
 if __name__ == '__main__':
