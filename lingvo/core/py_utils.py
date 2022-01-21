@@ -663,9 +663,16 @@ _IS_EAGER_MODE = False
 # If you get an error "tf.enable_eager_execution must be called at program
 # startup." but you are calling this function at the start, check if your change
 # adds type hints for "tf.data" and wrap those type hints in quotes.
-def SetEagerMode(eager_mode=True):
+def SetEagerMode(eager_mode=True, test_mode=False):
+  """Switch between Eager and Graph mode. Use this instead of TF APIs."""
   global _IS_EAGER_MODE
   _IS_EAGER_MODE = eager_mode
+  # Only change the global flag.
+  # Used in tests. In those scenarios we might want to use Graph mode along with
+  # Eager mode. All we need is changing the flag `_IS_EAGER_MODE` without
+  # calling `enable_eager_execution`/`disable_eager_execution`.
+  if test_mode:
+    return
   if eager_mode:
     tf.enable_eager_execution()
     tf.config.set_soft_device_placement(True)
