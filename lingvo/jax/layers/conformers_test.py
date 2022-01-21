@@ -31,9 +31,10 @@ import numpy as np
 import tensorflow as tf
 
 to_np = test_utils.to_np
+NestedMap = py_utils.NestedMap
 
 
-class JaxLayersTest(test_util.JaxTestCase):
+class ConformerTest(test_util.JaxTestCase):
 
   @parameterized.parameters(
       (2, 10, 3, 8, 8, 4, 0.0),
@@ -97,6 +98,50 @@ class JaxLayersTest(test_util.JaxTestCase):
     np_output = to_np(output)
     tf_np_output = to_np(tf_output.features)
     self.assertAllClose(tf_np_output, np_output, atol=1e-5)
+
+
+class StackedConformerTest(test_util.JaxTestCase):
+
+  @parameterized.parameters(
+      (2, 1, 10, 3, 8, 8, 4, 0.0),
+      (3, 2, 12, 5, 16, 16, 2, 0.1),
+      (5, 3, 7, 2, 8, 8, 8, 0.25),
+      (7, 4, 8, 4, 16, 16, 4, 0.5),
+  )
+  def test_stacked_conformer_layer(self, batch_size, seq_len, num_layers,
+                                   kernel_size, input_dims, model_dims,
+                                   atten_num_heads, dropout_prob):
+    p = conformers.StackedConformer.Params().Set(
+        name='conformer',
+        input_dims=input_dims,
+        model_dims=model_dims,
+        num_layers=2,
+        dropout_prob=dropout_prob)
+    p.conformer_tpl.atten_num_heads = atten_num_heads
+    p.conformer_tpl.kernel_size = kernel_size
+
+    stacked_conformer = p.Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = stacked_conformer.instantiate_variables(prng_key)
+    npy_inputs = np.random.normal(
+        1.0, 0.5, [batch_size, seq_len, input_dims]).astype('float32')
+    inputs = jnp.asarray(npy_inputs)
+    npy_paddings = np.random.randint(0, 2,
+                                     [batch_size, seq_len]).astype('float32')
+    paddings = jnp.asarray(npy_paddings)
+
+    context_p = base_layer.JaxContext.Params().Set(do_eval=True)
+
+    @jax.jit
+    def Comp(theta, inputs, paddings):
+      with cluster_factory.SetEval(True):
+        with base_layer.JaxContext.new_context(
+            params=context_p, prng_key=prng_key, global_step=jnp.asarray(0)):
+          output = stacked_conformer.fprop(theta, inputs, paddings)
+      return output
+
+    output = Comp(initial_vars, inputs, paddings)
+    self.assertEqual(output.shape, (batch_size, seq_len, model_dims))
 
 
 if __name__ == '__main__':

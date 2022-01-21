@@ -285,3 +285,64 @@ class Conformer(base_layer.BaseLayer):
 
     inputs = self.final_ln.fprop(theta.final_ln, inputs)
     return inputs
+
+
+class StackedConformer(base_layer.BaseLayer):
+  """Stacked Conformer layers."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super(StackedConformer, cls).Params()
+
+    p.Define('conformer_tpl', Conformer.Params(),
+             'Template parameters for each layer')
+    p.Define('input_dims', None, 'Input feature dimensions')
+    p.Define('model_dims', None, 'Conformer model dimensions')
+    p.Define('num_layers', None, 'Number of layers')
+    p.Define('dropout_prob', 0.0, 'Dropout probability')
+    return p
+
+  @property
+  def model_dims(self):
+    return self.params.model_dims
+
+  def __init__(self, params):
+    super(StackedConformer, self).__init__(params)
+    p = self.params
+
+    # seed default for all layers
+    layers_p = []
+    for _ in range(p.num_layers):
+      conformer_p = p.conformer_tpl.Copy().Set(
+          input_dims=p.model_dims,
+          model_dims=p.model_dims,
+          dropout_prob=p.dropout_prob)
+      layers_p.append(conformer_p)
+
+    # adjust input layer
+    layers_p[0].input_dims = p.input_dims
+    self.create_children('layers', layers_p)
+
+  def fprop(self, theta: NestedMap, inputs: JTensor,
+            paddings: JTensor) -> JTensor:
+    """Forward prop through a stack of conformer layers.
+
+    Args:
+      theta: layer variables
+      inputs: input features of shape [b, t, d], where d == params.input_dims.
+      paddings: associated paddings of shape [b, t], with 1's where the input is
+        not valid
+
+    Returns:
+      output of final encoder layer of shape [b, t, model_dims]
+
+    Note future versions can stack / repeat the layers and scan over layers
+    to improve compile time efficiency larger models.
+    """
+    p = self.params
+
+    x = inputs
+    for i in range(0, p.num_layers):
+      x = self.layers[i].fprop(theta.layers[i], x, paddings)
+
+    return x
