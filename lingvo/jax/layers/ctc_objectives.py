@@ -134,3 +134,75 @@ def ctc_loss(logits: JTensor,
       'logprobs_phi': logprobs_phi,
       'logprobs_emit': logprobs_emit,
   }
+
+
+def sequence_mask(lengths: jnp.ndarray, maxlen):
+  batch_size = lengths.shape[0]
+  a = jnp.ones([batch_size, maxlen])
+  b = jnp.cumsum(a, axis=-1)
+  c = jnp.less_equal(b, lengths[:, jnp.newaxis]).astype(lengths.dtype)
+  return c
+
+
+def collapse_and_remove_blanks(labels: jnp.ndarray,
+                               seq_length: jnp.ndarray,
+                               blank_id: int = 0):
+  """Merge repeated labels into single labels and remove the designated blank symbol.
+
+  Args:
+    labels: Array of shape (batch, seq_length)
+    seq_length: Arrray of shape (batch), sequence length of each batch element.
+    blank_id: Optional id of the blank symbol
+
+  Returns:
+    tuple of tf.SparseTensor of shape (batch, seq_length) with repeated labels
+    collapsed, eg: [[A, A, B, B, A],
+                    [A, B, C, D, E]] => [[A, B, A],
+                                         [A, B, C, D, E]]
+    and int tensor of shape [batch] with new sequence lengths.
+  """
+  b, t = labels.shape
+  # Zap out blank
+  blank_mask = 1 - jnp.equal(labels, blank_id)
+  labels = (labels * blank_mask).astype(labels.dtype)
+
+  # Mask labels that don't equal previous label.
+  label_mask = jnp.concatenate([
+      jnp.ones_like(labels[:, :1], dtype=jnp.int32),
+      jnp.not_equal(labels[:, 1:], labels[:, :-1])
+  ],
+                               axis=1)
+
+  # Filter labels that aren't in the original sequence.
+  maxlen = labels.shape[1]
+  seq_mask = sequence_mask(seq_length, maxlen=maxlen)
+  label_mask = label_mask * seq_mask
+
+  # remove repetitions from the labels
+  ulabels = label_mask * labels
+
+  # Count masks for new sequence lengths.
+  label_mask = jnp.not_equal(ulabels, 0).astype(labels.dtype)
+  new_seq_len = jnp.sum(label_mask, axis=1)
+
+  # Mask indexes based on sequence length mask.
+  new_maxlen = maxlen
+  idx_mask = sequence_mask(new_seq_len, maxlen=new_maxlen)
+
+  # Flatten everything and mask out labels to keep and sparse indices.
+  flat_labels = jnp.reshape(ulabels, [-1])
+  flat_idx_mask = jnp.reshape(idx_mask, [-1])
+
+  indices = jnp.nonzero(flat_idx_mask, size=b * t)[0]
+  values = jnp.nonzero(flat_labels, size=b * t)[0]
+  updates = jnp.take_along_axis(flat_labels, values, axis=-1)
+
+  # Scatter to flat shape.
+  flat = jnp.zeros(flat_idx_mask.shape).astype(labels.dtype)
+  flat = flat.at[indices].set(updates)
+
+  # Reshape back to square batch.
+  batch_size = labels.shape[0]
+  new_shape = [batch_size, new_maxlen]
+  return (jnp.reshape(flat, new_shape).astype(labels.dtype),
+          new_seq_len.astype(seq_length.dtype))
