@@ -16,7 +16,6 @@
 """Tests for py_utils."""
 
 import collections
-import contextlib
 import copy
 import itertools
 import math
@@ -49,12 +48,6 @@ FLAGS = tf.flags.FLAGS
 
 
 class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
-
-  def setUp(self):
-    super().setUp()
-    with contextlib.ExitStack() as stack:
-      self._store = stack.enter_context(py_utils.VariableStore())
-      self.addCleanup(stack.pop_all().close)
 
   def testEnableAssertFlagOverrideFromCluster(self):
     cluster_params = cluster_factory.Current().params.Copy()
@@ -2811,12 +2804,6 @@ class StepSeedTest(test_utils.TestCase, parameterized.TestCase):
 
 class WeightParamsTest(test_utils.TestCase):
 
-  def setUp(self):
-    super().setUp()
-    with contextlib.ExitStack() as stack:
-      self._store = stack.enter_context(py_utils.VariableStore())
-      self.addCleanup(stack.pop_all().close)
-
   def testShapeModification(self):
     """Tests that WeightParams.shape can be modified."""
     pc = py_utils.WeightParams([20, 30],
@@ -2828,12 +2815,6 @@ class WeightParamsTest(test_utils.TestCase):
 
 
 class WeightInitTest(test_utils.TestCase):
-
-  def setUp(self):
-    super().setUp()
-    with contextlib.ExitStack() as stack:
-      self._store = stack.enter_context(py_utils.VariableStore())
-      self.addCleanup(stack.pop_all().close)
 
   def testModification(self):
     """Tests that WeightInit cannot be modified."""
