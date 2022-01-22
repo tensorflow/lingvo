@@ -973,7 +973,7 @@ class TransformerXEnDecTest(test_utils.TestCase):
         vals += [
             self.evaluate(
                 (dec_metrics['clean_loss'][0], dec_metrics['other_loss'][0],
-                 dec_metrics['mix_loss_0'][0], dec_metrics['loss'][0]))
+                 dec_metrics['mix_loss'][0], dec_metrics['loss'][0]))
         ]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))

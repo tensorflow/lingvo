@@ -413,7 +413,6 @@ class TransformerXEnDecModel(TransformerModel):
     p.Define('loss_mix_weight', 1.0, 'Weight for mix loss')
     p.Define('loss_clean_weight', 1.0, 'Weight for clean loss')
     p.Define('loss_mono_weight', 1.0, 'Weight for mono loss')
-    p.Define('use_atten_drop', False, 'use attention dropout')
     p.Define('use_prob_cl', False, 'use prob cl')
     p.Define('use_prob_drop', False, 'prob drop out')
     p.Define('atten_drop', 0.0, 'attention drop')
@@ -456,10 +455,7 @@ class TransformerXEnDecModel(TransformerModel):
     lambdas_1 = (lambdas_1 + smooth) * (1.0 - target_paddings_pair[1])
     label_lambdas_0 = lambdas_0 / (lambdas_0 + lambdas_1 + 1e-9)
 
-    label_lambdas = [
-        label_lambdas_0 * (1. - target_paddings_pair[0]),
-        (1.0 - label_lambdas_0) * (1. - target_paddings_pair[1])
-    ]
+    label_lambdas = [label_lambdas_0, (1.0 - label_lambdas_0)]
     input_lambdas_0 = tf.pad(
         label_lambdas_0, [[0, 0], [1, 0]], constant_values=1.)[:, :-1]
     input_lambdas = [
@@ -566,19 +562,17 @@ class TransformerXEnDecModel(TransformerModel):
         other_probs = other_result[1]['reshape_probs']
         other_probs_hard = other_result[1]['target_hard_probs']
 
-    if p.use_atten_drop:
-      atten_probs = tf.nn.dropout(atten_probs, p.atten_drop)
-      if other_atten_probs is not None:
-        other_atten_probs = tf.nn.dropout(other_atten_probs, p.atten_drop)
-
     # Computes the xendec loss.
-    mix_results = []
     if p.loss_mix_weight > 0:
+      if p.atten_drop > 0:
+        atten_probs = tf.nn.dropout(atten_probs, p.atten_drop)
+        if other_atten_probs is not None:
+          other_atten_probs = tf.nn.dropout(other_atten_probs, p.atten_drop)
       if other_atten_probs is not None:
         if p.use_prob_cl:
           cur_step = py_utils.GetGlobalStep()
           cur_ratio = tf.minimum(
-              tf.cast(cur_step, py_utils.FPropDtype(p)) / 40000, 0.8)
+              tf.cast(cur_step, py_utils.FPropDtype(p)) / 20000, 1.0)
           probs_hard = tf.cast(probs_hard, py_utils.FPropDtype(p))
           other_probs_hard = tf.cast(other_probs_hard, py_utils.FPropDtype(p))
           prob_ratio = tf.expand_dims(input_batch.tgt.weights, -1) * cur_ratio
@@ -608,7 +602,7 @@ class TransformerXEnDecModel(TransformerModel):
           source_lambdas,
           source_paddings_pair,
           target_paddings_pair,
-          smooth=0.001)
+          smooth=0.)
 
       mix_tgt = input_batch.tgt
       target_weights = input_batch.tgt.weights + other_batch.tgt.weights
@@ -623,12 +617,9 @@ class TransformerXEnDecModel(TransformerModel):
       mix_predictions = self.ComputePredictions(theta, input_batch, other_batch,
                                                 source_lambdas, input_lambdas)
 
-      target_probs_0 = probs
-      target_probs_1 = other_probs
-
-      target_probs = target_probs_0 * tf.expand_dims(
-          label_lambdas[0], -1) + target_probs_1 * tf.expand_dims(
-              label_lambdas[1], -1)
+      target_probs = probs * tf.expand_dims(label_lambdas[0],
+                                            -1) + other_probs * tf.expand_dims(
+                                                label_lambdas[1], -1)
 
       target_probs = target_probs + 1e-9
       target_probs = target_probs / tf.reduce_sum(
@@ -637,7 +628,6 @@ class TransformerXEnDecModel(TransformerModel):
       with self._DecoderDevice():
         mix_result = self.dec.ComputeLoss(theta.dec, mix_predictions, mix_tgt,
                                           target_probs)
-      mix_results.append(mix_result)
 
     losses = []
     loss_names = []
@@ -655,44 +645,18 @@ class TransformerXEnDecModel(TransformerModel):
       loss_names.append('other_loss')
 
     if p.loss_mix_weight > 0.0:
-      for idx, mix_result in enumerate(mix_results):
-        losses.append(mix_result)
-        loss_weights.append(p.loss_mix_weight)
-        loss_names.append('mix_loss_' + str(idx))
+      losses.append(mix_result)
+      loss_weights.append(p.loss_mix_weight)
+      loss_names.append('mix_loss')
 
-    loss_length = len(loss_names)
-    assert loss_length > 0
-
+    combined_loss = 0
+    num_predictions = 1.
     # Combines three losses.
     for i in range(len(loss_names)):
+      combined_loss += losses[i][0]['loss'][0] * loss_weights[i]
+      if loss_names[i] == 'clean_loss':
+        num_predictions = losses[i][0]['loss'][1]
       new_metrics[loss_names[i]] = (losses[i][0]['loss'][0] * loss_weights[i],
                                     losses[i][0]['loss'][1])
+    new_metrics['loss'] = (combined_loss, num_predictions)
     return new_metrics, losses[0][1]
-
-  def _FPropResult(self, dec_metrics, per_example):
-    # Adds stats about the input batch.
-    p = self.params
-    if p.input is not None:
-      dec_metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
-          self.input_generator.GlobalBatchSize()), tf.constant(1.0))
-    # Generates summaries.
-    for name, (value, weight) in dec_metrics.items():
-      self.AddEvalMetric(name, value, weight)
-    per_example = self.FilterPerExampleTensors(per_example)
-    for name, value in per_example.items():
-      self.AddPerExampleTensor(name, value)
-    # Loss.
-    if self.do_eval:
-      self._loss, self._num_predictions = dec_metrics['loss']
-    else:
-      self._loss = 0
-      for key, value in dec_metrics.items():
-        if 'loss' in key:
-          self._loss = self._loss + value[0]
-          self._num_predictions = value[1]
-      if 'clean_loss' in dec_metrics:
-        self._num_predictions = dec_metrics['clean_loss'][1]
-      dec_metrics['loss'] = (self._loss, self._num_predictions)
-      self.AddEvalMetric('loss', self._loss, self._num_predictions)
-    self._loss = py_utils.CheckNumerics(self._loss)
-    self._metrics = dec_metrics

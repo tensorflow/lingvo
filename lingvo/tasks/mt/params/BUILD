@@ -9,8 +9,8 @@ py_library(
     srcs = [
         "params.py",
         "wmt14_en_de.py",
-        "wmt14_en_de_xendec.py",
         "wmtm16_en_de.py",
+        "xendec/wmt14_en_de.py",
     ],
     srcs_version = "PY3",
     tags = ["keep_dep"],

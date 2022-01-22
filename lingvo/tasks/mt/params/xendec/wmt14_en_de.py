@@ -31,15 +31,14 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
   """Params for WMT'14 En->De experiments in https://arxiv.org/abs/2106.04060."""
 
   DATADIR = '/tmp/wmt14ende/'
-  DATATRAIN = 'tmp-*'
-  DATADEV = 'tmp-000-010'
-  DATATEST = 'tmp-000-010'
-  VOCAB = 'wordpiece-mixed.vocab'
-  PACKED_INPUT = True
+  DATATRAIN = 'train.xendec.tfrecord-?????-of-?????'
+  DATADEV = 'newstest2013.xendec.tfrecord-00000-of-00001'
+  DATATEST = 'newstest2014.xendec.tfrecord-00000-of-00001'
+  VOCAB = 'wpm32k.vocab'
+  # PACKED_INPUT is useful when running this job on TPU
+  PACKED_INPUT = False
   vocab_size = 32000
 
-  add_unnormalized_residuals = True
-  pre_layer_norm = True
   residual_dropout_prob = 0.1
   input_dropout_prob = 0.1
   atten_dropout_prob = 0.
@@ -48,11 +47,11 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
   model_dim = 512
   hidden_dim = 2048
 
-  source_mask_ratio = 0.
+  source_mask_ratio = -1
   source_mask_ratio_beta = '2,6'
-  mask_word_id = 3
-  pad_id = 4
-  mask_words_ratio = 0.25
+  mask_word_id = 5
+  pad_id = 6
+  mask_words_ratio = 0.5
   permutation_distance = 3
   loss_mix_weight = 1.0
   loss_clean_weight = 1.0
@@ -60,9 +59,10 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
 
   batch_size_ratio = 1
   learning_rate = 1.0
+  warmup_steps = 4000
   num_samples = 4506303
   use_prob_cl = True
-  use_atten_drop = True
+  atten_drop = 0.2
   use_atten_cl = True
   use_prob_drop = False
 
@@ -88,6 +88,7 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
 
     p.file_pattern = 'tfrecord:' + os.path.join(self.DATADIR, self.DATATRAIN)
     p.tokenizer.token_vocab_filepath = os.path.join(self.DATADIR, self.VOCAB)
+    p.tokenizer.vocab_size = self.vocab_size
     p.natural_order_model = True
     p.num_samples = self.num_samples
 
@@ -108,7 +109,7 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
     p.file_random_seed = 27182818
     p.file_parallelism = 1
     p.file_buffer_size = 1
-    p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 137, 200]
+    p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 137, 300]
     p.bucket_batch_limit = [16] * 8 + [4] * 2
     return p
 
@@ -145,13 +146,13 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
         atten_dropout_prob=self.atten_dropout_prob,
         relu_dropout_prob=self.relu_dropout_prob,
         learning_rate=self.learning_rate,
-        warmup_steps=4000)
+        warmup_steps=self.warmup_steps)
 
     p.loss_mix_weight = self.loss_mix_weight
     p.loss_clean_weight = self.loss_clean_weight
     p.loss_mono_weight = self.loss_mono_weight
     p.use_prob_cl = self.use_prob_cl
-    p.use_atten_drop = self.use_atten_drop
+    p.atten_drop = self.atten_drop
     p.decoder.use_atten_cl = self.use_atten_cl
     p.use_prob_drop = self.use_prob_drop
 
@@ -165,3 +166,11 @@ class WmtEnDeXEnDec(base_model_params.SingleTaskModelParams):
     p.decoder.beam_search.length_normalization = 0.6
     p.decoder.beam_search.beam_size = 4
     return p
+
+
+@model_registry.RegisterSingleTaskModel
+class WmtDeEnXEnDec(WmtEnDeXEnDec):
+  """Params for WMT'14 De->En experiments in https://arxiv.org/abs/2106.04060."""
+
+  DATADIR = '/tmp/wmt14deen'
+

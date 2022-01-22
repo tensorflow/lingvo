@@ -1350,8 +1350,7 @@ class NmtDoubleInput(NmtInput):
                                          source_mask_ratio_beta[1])
       ratio = beta_dist.sample(tf.shape(source_paddings)[0])
       ratio = tf.minimum(ratio, 1.0 - ratio)
-    now_paddings = source_paddings
-    source_mask = self._SelectMaskPositions(now_paddings, ratio)
+    source_mask = self._SelectMaskPositions(source_paddings, ratio)
     return source_mask
 
   def _ProcessBatch(self, batch):

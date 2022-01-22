@@ -42,7 +42,7 @@ class Unsegmenter:
   """
 
   _BPE_SEPARATOR = _ToUnicode('@@ ')
-  _WPM_SEPARATOR = _ToUnicode('\xe2\x96\x81')  # Same for SPM.
+  _WPM_SEPARATOR = _ToUnicode(b'\xe2\x96\x81')  # Same for SPM.
 
   def __init__(self, separator_type=None):
     self._separator_type = separator_type

@@ -18,7 +18,7 @@
 # Import ModelParams to ensure that they are added to the global registry.
 # pylint: disable=unused-import
 import lingvo.tasks.mt.params.wmt14_en_de
-import lingvo.tasks.mt.params.wmt14_en_de_xendec
 import lingvo.tasks.mt.params.wmtm16_en_de
+import lingvo.tasks.mt.params.xendec.wmt14_en_de
 
 # pylint: enable=unused-import

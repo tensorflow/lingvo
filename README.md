@@ -321,8 +321,6 @@ To run the StarNet model using CloudTPUs on GCP, please refer to
 
 ### Language Modelling
 
-*   [mt.wmt14_en_de_xendec.WmtEnDeXEnDec](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de_xendec.py)<sup>8</sup>
-
 *   [Exploring the Limits of Language Modeling](https://arxiv.org/pdf/1602.02410.pdf).<br/>
     Rafal Jozefowicz, Oriol Vinyals, Mike Schuster, Noam Shazeer, and Yonghui
     Wu. arXiv, 2016.
@@ -353,7 +351,7 @@ To run the StarNet model using CloudTPUs on GCP, please refer to
     Machine Translation](https://arxiv.org/pdf/2106.04060.pdf).<br/>
     Yong Cheng, Wei Wang, Lu Jiang, and Wolfgang Macherey. ICML 2021.
 
-    *   [mt.wmt14_en_de_xendec.WmtEnDeXEnDec](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/wmt14_en_de_xendec.py)
+    *   [mt.xendec.wmt14_en_de.WmtEnDeXEnDec](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/params/xendec/wmt14_en_de.py)
 
 ## References
 
