@@ -755,9 +755,9 @@ class ClassificationTask(BaseTask):
   @classmethod
   def Params(cls) -> InstantiableParams:
     p = super().Params()
-    p.Define('classifier_params', layers.ResNet.Params(),
+    p.Define('network', layers.ResNet.Params(),
              'The classifier network, which is ResNet-50 by default.')
-    p.Define('softmax_params', layers.SingleShardFullSoftmax.Params(),
+    p.Define('softmax', layers.SingleShardFullSoftmax.Params(),
              'The softmax layer used for the classification.')
     p.Define(
         'input_field', 'image',
@@ -768,12 +768,8 @@ class ClassificationTask(BaseTask):
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     p = self.params
-
-    # Construct the classifier model.
-    self.create_child('network', p.classifier_params)
-
-    # Construct the softmax layer.
-    self.create_child('softmax', p.softmax_params)
+    self.create_child('network', p.network)
+    self.create_child('softmax', p.softmax)
 
   def compute_predictions(self, theta: NestedMap,
                           input_batch: NestedMap) -> Predictions:

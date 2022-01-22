@@ -180,7 +180,8 @@ class ResNet(base_layer.BaseLayer):
     p.Define('entryflow_conv_stride', (2, 2),
              'A tuple of two integers as the stride of entryflow convolution.')
     p.Define(
-        'output_spatial_pooling_params', poolings.GlobalPooling.Params(),
+        'output_spatial_pooling_params',
+        poolings.GlobalPooling.Params().Set(pooling_dims=[1, 2]),
         'A layer params template specifying spatial pooling before output '
         'If None, spatial pooling is not added.')
     return p

@@ -145,20 +145,18 @@ class Conv2D(base_layer.BaseLayer):
 
 
 class ConvBNAct(Conv2D):
-  """A block of conv-bn-activation layers used for image encoders."""
+  """A block of conv-bn-activation layers used for image encoders.
+
+  By default, we use cross-replica sum on TPUs.
+  """
 
   @classmethod
   def Params(cls) -> InstantiableParams:
     p = super().Params()
-    # TODO(aurkor): Unify all BN-related params to a single BN layer params.
     p.Define('batch_norm', True, 'Whether or not to apply batch norm.')
     p.Define('bn_decay', 0.9, 'Decay in updating the mean and variance.')
     p.Define(
-        'bn_use_moving_avg_in_training', False,
-        'If True, uses moving avg (mean, variance) during both training '
-        'and inference.')
-    p.Define(
-        'bn_enable_cross_replica_sum_on_tpu', False,
+        'bn_cross_replica_sum_on_tpu', True,
         'If true, computes global mean and variance across all replicas.'
         'Only effective for tpu.')
     p.Define(
@@ -174,8 +172,8 @@ class ConvBNAct(Conv2D):
           name='bn',
           dim=p.filter_shape[3],
           decay=p.bn_decay,
-          use_moving_avg_in_training=p.bn_use_moving_avg_in_training,
-          enable_cross_replica_sum_on_tpu=p.bn_enable_cross_replica_sum_on_tpu,
+          use_moving_avg_in_training=False,
+          enable_cross_replica_sum_on_tpu=p.bn_cross_replica_sum_on_tpu,
       )
       self.create_child('bn', bn)
     act_p = activations.Activation.Params().Set(activation=p.activation)
