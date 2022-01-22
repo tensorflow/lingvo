@@ -560,6 +560,7 @@ def _decode_once_pmap_model(
   ]
   decodes = [list() for _ in input_p]
   for split, num_split_steps in enumerate(num_steps):
+    logging.info('Start decoding on input %s', input_p[split].name)
     step_num = 0
     metrics = {}
     while num_split_steps < 0 or step_num < num_split_steps:
@@ -571,10 +572,12 @@ def _decode_once_pmap_model(
         break
       batch = tf.nest.map_structure(py_utils.reshard, batch)
       batch_metrics, out = decode_step_func(batch)
+      logging.info('Finished decoding input batch %d', step_num)
       out = tf.nest.map_structure(py_utils.unshard, out)
       process_metrics, processed = jax_model.process_decode_out(
           inputs[split], out)
       decodes[split].extend(processed)
+      logging.info('Finished processing decoded input batch %d', step_num)
 
       # Reshard the metrics for pmap.
       reshard_process_metrics = type(process_metrics)()
@@ -654,13 +657,13 @@ def decode_once_spmd_model(
   prng_key = jax.random.PRNGKey(1234)
   prng_key, init_key = jax.random.split(prng_key)
 
-  if (restore_checkpoint_dir and
-      checkpoint_type == CheckpointType.CHECKPOINT_MULTI_HOST_FLAX):
+  if restore_checkpoint_dir:
     restore_checkpoint_parent_dir = restore_checkpoint_dir
-    # TODO(zhouwk): add sanity check on number of subdirs and number of
-    # processes and fail early if unequal.
-    restore_checkpoint_dir = os.path.join(restore_checkpoint_dir,
-                                          f'{jax.process_index():03d}')
+    if checkpoint_type == CheckpointType.CHECKPOINT_MULTI_HOST_FLAX:
+      # TODO(zhouwk): add sanity check on number of subdirs and number of
+      # processes and fail early if unequal.
+      restore_checkpoint_dir = os.path.join(restore_checkpoint_dir,
+                                            f'{jax.process_index():03d}')
 
   multi_host_checkpointing = bool(checkpoint_type in {
       CheckpointType.CHECKPOINT_MULTI_HOST_FLAX, CheckpointType.CHECKPOINT_GDA
@@ -693,10 +696,7 @@ def decode_once_spmd_model(
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
-  if jax.process_index() == 0:
-    # The instantiated model is only used for processing decode
-    # outputs, which only happens on process 0.
-    jax_model = model_p.Instantiate()
+  jax_model = model_p.Instantiate()
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     partitioned_train_state, partitioned_specs, decode_step_fn = (
@@ -733,7 +733,10 @@ def decode_once_spmd_model(
     ]
     inputs = [p.Instantiate() for p in input_p]
     decodes = [list() for _ in input_p]
+    process_id = jax.process_index()
+
     for split, num_split_steps in enumerate(num_steps):
+      logging.info('Start decoding on input %s', input_p[split].name)
       step_num = 0
       while num_split_steps < 0 or step_num < num_split_steps:
         step_num += 1
@@ -742,13 +745,33 @@ def decode_once_spmd_model(
         except (tf.errors.OutOfRangeError, StopIteration):
           break
         _, out = spmd_decode_step_fn(batch)
-        # TODO(zhangqiaorjc): Handle sharded output of _decode_step. It is fully
-        # replicated for now, so it's ok to unreplicate it by retrieving from
-        # device 0 only.
+        # Output is fully replicated now, so it's ok to unreplicate it by
+        # retrieving from device 0 only.
         out = py_utils.maybe_unreplicate_gda(out)
-        if jax.process_index() == 0:
-          _, processed = jax_model.process_decode_out(inputs[split], out)
-          decodes[split].extend(processed)
+        logging.info('Finished decoding input batch %d', step_num)
+        # Manually shard the output per each jax process.
+        # We require that all fields in the output is batch major.
+        global_batch_size = next(iter(out.values())).shape[0]
+        if global_batch_size % jax.process_count() != 0:
+          raise ValueError(f'Global batch size {global_batch_size} must divide '
+                           f'jax process count {jax.process_count()}')
+        for k, v in out.items():
+          if v.shape[0] != global_batch_size:
+            raise ValueError('We require that all fields in the decode output '
+                             'to have batch size as the first dim, got shape='
+                             f'{v.shape} with key={k}, expect batch size = '
+                             f'{global_batch_size}')
+        per_process_batch_size = global_batch_size // jax.process_count()
+
+        def shard(x, per_process_batch_size=per_process_batch_size):
+          return x[(process_id *
+                    per_process_batch_size):((process_id + 1) *
+                                             per_process_batch_size)]
+
+        out = jax.tree_map(shard, out)
+        _, processed = jax_model.process_decode_out(inputs[split], out)
+        decodes[split].extend(processed)
+        logging.info('Finished processing decoded input batch %d', step_num)
 
   basedir = os.path.join(job_log_dir, 'decoder_out')
   dirnames = _get_dir_names(input_p)
@@ -758,8 +781,7 @@ def decode_once_spmd_model(
     if not tf.io.gfile.exists(dir_path):
       tf.io.gfile.makedirs(dir_path)
   filenames = [os.path.join(basedir, s, filename) for s in dirnames]
-  if jax.process_index() == 0:
-    for split, output_file in enumerate(filenames):
-      logging.info('Writing decoder output to %s with %d entries', output_file,
-                   len(decodes[split]))
-      io_utils.WriteKeyValuePairs(output_file, decodes[split])
+  for split, output_file in enumerate(filenames):
+    logging.info('Writing decoder output to %s with %d entries', output_file,
+                 len(decodes[split]))
+    io_utils.WriteKeyValuePairs(output_file, decodes[split])

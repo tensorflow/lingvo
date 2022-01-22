@@ -592,7 +592,10 @@ class LanguageModel(BaseTask):
           'prefix': prefix_strs[idx],
           'decoded': decoded_str,
           'original': original_strs[idx],
-          'logprobs': decode_out.logprobs.at[idx, :].get(),
+          'ids': decode_out.output_ids[idx],
+          'logprobs': decode_out.logprobs[idx],
+          'prefix_length': decode_out.prefix_lengths[idx],
+          'decode_length': decode_out.decode_lengths[idx],
       }))
     decoded_lengths = jnp.average(decode_out.decode_lengths).astype(jnp.float32)
     metrics = NestedMap(
