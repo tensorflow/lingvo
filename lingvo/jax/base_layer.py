@@ -21,10 +21,11 @@ import enum
 import hashlib
 import itertools
 import math
-from typing import Any, List, Mapping, Optional, Sequence, Tuple, Type, TypeVar, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple, Type, TypeVar, Union
 
 from absl import flags
 from absl import logging
+from flax import core as flax_core
 import jax
 from jax import numpy as jnp
 from jax import random as jrandom
@@ -35,7 +36,7 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 
 FLAGS = flags.FLAGS
-
+Scope = flax_core.Scope
 
 NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
@@ -478,6 +479,16 @@ class _SummaryDict:
     self.dict = {}
 
 
+# Some popular variable collections.
+# Q(yonghui): Shall we define an enum for them?
+# TODO(yonghui): Currently, all variables belong to the SCOPE_VARS collection.
+# Introduce more collections for commonly used types.
+SCOPE_VARS = 'vars'
+SCOPE_AUX_LOSS = 'aux_loss'
+
+DEFAULT_PRNGKEY = 'default'
+
+
 class JaxContext:
   """Global context under which jax computations are carried out."""
 
@@ -502,6 +513,11 @@ class JaxContext:
     self._prng_key = _PrngKey()
     self._summary_dict = _SummaryDict()
     self._namespace_stack = []
+    # a Flax scope to manage side-effect operations.
+    # TODO(yonghui): possibly extend to a list of scopes.
+    self._root_scope: Optional[Scope] = None
+    self._root_layer = None
+    self._layer_to_scope_map: Dict[str, Scope] = {}
 
   @property
   def prng_key(self) -> _PrngKey:
@@ -531,6 +547,65 @@ class JaxContext:
     assert _JaxContextStack.stack
     assert _JaxContextStack.stack[-1] is self
     _JaxContextStack.stack.pop()
+
+  def bind(self,
+           root_layer: BaseLayerT,
+           root_layer_vars: Optional[NestedMap],
+           mutables: Optional[List[str]] = None):
+    """Binds a root layer to this JaxContext.
+
+    It is expected that all computations carried out under this Context involves
+    only this root_layer or its sub-layers. A JaxContext can only be bound to
+    one root_layer. If one ever needs to bind a JaxContext to a new layer, one
+    needs to push a new JaxContext to the stack.
+
+    NOTE(yonghui): currently, we don't actually bind root_layer_vars. It is
+    being ignored. In the future, we will also dispatch variables (theta)
+    through the flax_core.Scope mechanism.
+    TODO(bf-jax): finish me.
+
+    Args:
+      root_layer: The root layer to bind variables to.
+      root_layer_vars: Variables to be dispatched to root layer and its
+        sub-layers.
+      mutables: A CollectionFilter.
+    """
+    assert self._root_layer is None, 'JaxContext is already bound.'
+    # TODO(bf-jax): Also dispatch variables to individual layers through scope.
+    del root_layer_vars
+    prng_key_dict = {DEFAULT_PRNGKEY: self.prng_key.next_key()}
+    if mutables is None:
+      mutables = [SCOPE_VARS, SCOPE_AUX_LOSS]
+    self._scope = flax_core.bind({}, prng_key_dict, mutables)
+    self._layer_to_scope_map[root_layer.path] = self._scope
+    self._root_layer = root_layer
+
+  def scope(self, layer: BaseLayerT) -> flax_core.Scope:
+    """Find the scope corresponding to layer 'layer'.
+
+    Args:
+      layer: a sub-layer of self._root_layer
+
+    Returns:
+      flax_core.Scope associated with the sub-layer.
+    """
+    assert self._root_layer is not None, 'Root layer not set.'
+    assert isinstance(layer, BaseLayer)
+    if layer.path in self._layer_to_scope_map:
+      return self._layer_to_scope_map[layer.path]
+    else:
+      # recursively find the scope of the parent
+      if layer.parent is None:
+        # this layer is the root, no more parent can be found. Most likely layer
+        # is not a sub-layer of self._root_layer
+        raise ValueError('Layer %s is not a sub-layer of the root layer %s' %
+                         (layer.path, self._root_layer.path))
+      else:
+        parent_scope = self.scope(layer.parent)
+        layer_scope = parent_scope.push(
+            name=layer.params.name, prefix='', reuse=False)
+        self._layer_to_scope_map[layer.path] = layer_scope
+        return layer_scope
 
   @staticmethod
   def top() -> Optional['JaxContext']:
@@ -756,7 +831,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
 
   Optionally, if a sub-class would like to update some params in the forward
   pass (e.g.  update batch norm moving avg and variance), one can do so by
-  calling forward_update_var() to record the variable being updated and the new
+  calling update_var() to record the variable being updated and the new
   param value. User of this layer (e.g. the trainer loop) is responsible for
   fetching those updated vars. A sub-class can also record summaries via
   add_summary() method.
@@ -782,15 +857,14 @@ class BaseLayer(metaclass=BaseLayerMeta):
 
   # The main compute loop. This is a pure function without side effect.
   def compute(theta, prng_key, global_step, inputs):
-    with jax_base_layer.JaxContext.new_context():
+    with jax_base_layer.JaxContext.new_context() as j_context:
+      j_context.bind(layer, initial_variables)
       # Mix in global seed so that rng_seed are different for different steps.
       per_step_prng_key = jrandom.fold_in(prng_key, global_step)
       jax_base_layer.reset_prng_key(per_step_prng_key, global_step)
-      # Prepare the layer and all its sub-layers for the fprop call.
-      layer.prepare_fprop()
       output = layer.fprop(theta, inputs)
       # fetch params that possibly being updated during forward pass.
-      forward_updated_theta = layer.forward_updated_vars
+      forward_updated_theta = layer.updated_vars
 
       def get_new_param(old, new):
         if new is not None:
@@ -814,6 +888,14 @@ class BaseLayer(metaclass=BaseLayerMeta):
       initial_variables, fprop_key, global_step, inputs)
 
   Note, the above code-snippet doesn't include a backward pass.
+
+  One design principle in bf-jax is that once a layer is constructed and the
+  variable configs are instantiated, it is immutable. A layer doesn't own any
+  mutable states. Mutable states are owned by the JaxContext under which a
+  layer functionality is carried out. A layer is merely a collection of
+  functions for carrying out math operations. A layer knows how to locate states
+  in a JaxContext through a Scope. A layer can be used in different context
+  without being cloned.
   """
 
   @classmethod
@@ -940,10 +1022,9 @@ class BaseLayer(metaclass=BaseLayerMeta):
     # have self._private_children equals to self._children_list. I.e.,
     # all child layers are created using create_child/create_children.
     self._children_list = []
-    # Keep track of vars/params that are being updated during the forward pass.
-    # This is a temporary storage that gets cleared and updated for each fprop()
-    # call.
-    self._forward_updated_vars = py_utils.ThreadLocalDict()
+
+    # A string path from root to self.
+    self._path = None
 
     # Variable status.
     self._create_variables_status = CreateLayerVariableStatus.NOT_ENABLED
@@ -956,24 +1037,27 @@ class BaseLayer(metaclass=BaseLayerMeta):
     assert isinstance(self._params.activation_split_dims_mapping,
                       py_utils.Params)
 
-  def prepare_fprop(self) -> None:
-    """Prepares this layer for fprop()."""
+  @property
+  def scope(self):
+    jax_context = self.jax_context
+    if jax_context is None:
+      return None
+    else:
+      return jax_context.scope(self)
+
+  def update_var(self, name: str, new_val: JTensor) -> None:
+    """Update var 'name' in the forward pass."""
     assert (
         self._create_variables_status == CreateLayerVariableStatus.COMPLETED)
-    tf.nest.map_structure(lambda x: x.prepare_fprop(), self._private_children)
-    forward_updated_vars = tf.nest.map_structure(lambda v: None,
-                                                 self._private_vars)
-    self._forward_updated_vars.dict = forward_updated_vars
-
-  def forward_update_var(self, name: str, new_val: JTensor) -> None:
-    """Update var 'name' in the forward pass."""
+    scope = self.scope
+    if scope is None:
+      raise RuntimeError('The JaxContext in which this layer [%s] is executed'
+                         ' is not bound.' % self.path)
     assert name in self._private_vars
-    # TODO(yonghui): Maybe lift the constraint below.
-    # A param can only be updated once.
-    assert self._forward_updated_vars.dict[name] is None
     # Only non-trainable variables can be updated in the forward pass.
     assert var_not_trainable(self.vars[name])
-    self._forward_updated_vars.dict[name] = new_val
+    assert not scope.has_variable(SCOPE_VARS, name)
+    scope.put_variable(SCOPE_VARS, name, new_val)
 
   def fprop(self, theta: NestedMap, *args: Any, **kwargs: Any) -> Any:
     """Forward propagation.
@@ -982,7 +1066,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
     - prng_keys, global_step: they are fetched from a global thread-local
     context.
     - forward updated vars: they are temporarily stored in the layer local and
-      thread-local forward_updated_vars dict.
+      thread-local updated_vars dict.
     - summaries: they are stored in a global thread local dict.
 
     The central interface that subclasses should implement. The caller
@@ -1013,6 +1097,10 @@ class BaseLayer(metaclass=BaseLayerMeta):
       *args: List args.
       **kwargs: Keyward args.
     """
+    # TODO(yonghui): Get rid of the theta argument. Instead, fetch theta for
+    # this layer from self.scope.
+    #
+    # theta = self.scope.variables()[SCOPE_VARS]
     del theta
     del args
     del kwargs
@@ -1022,6 +1110,10 @@ class BaseLayer(metaclass=BaseLayerMeta):
   def params(self) -> BaseLayerParamsT:
     """Returns the params upon which this layer is built."""
     return self._params
+
+  @property
+  def name(self) -> str:
+    return self._params.name
 
   @property
   def jax_context(self) -> JaxContext:
@@ -1039,10 +1131,13 @@ class BaseLayer(metaclass=BaseLayerMeta):
   @property
   def path(self) -> str:
     """Returns a '.'-separated string with all layer names from the root."""
-    if self.parent:
-      return self.parent.path + '.' + self.params.name
-    else:
-      return self.params.name
+    if self._path is None:
+      # Compute and cache the path.
+      if self.parent:
+        self._path = self.parent.path + '.' + self.params.name
+      else:
+        self._path = self.params.name
+    return self._path
 
   @property
   def fprop_dtype(self) -> Any:
@@ -1072,29 +1167,6 @@ class BaseLayer(metaclass=BaseLayerMeta):
     else:
       raise AttributeError('%s is not a sub-layer of %s.' % (name, self))
 
-  def get_descendant(self, path: str) -> BaseLayerT:
-    """Returns a descendant layer given the path.
-
-    NOTE(yonghui): This get_descendant is not complete. It is not able to
-    descent into list/tuple substructures.
-
-    Args:
-      path: a comma separated string denoting a descendant of this layer.
-
-    Returns:
-      The descendant layer.
-
-    Raises:
-      KeyError: if the descendant is not found.
-    """
-    sub = self
-    if path:
-      for k in path.split('.'):
-        if k not in sub.children:
-          raise KeyError('%s not found in %s' % (k, list(sub.children.keys())))
-        sub = sub.children[k]
-    return sub
-
   @property
   def vars(self) -> NestedMap:
     """Returns variables of this layer and its children in a `.NestedMap`."""
@@ -1122,11 +1194,19 @@ class BaseLayer(metaclass=BaseLayerMeta):
     return count
 
   @property
-  def forward_updated_vars(self) -> NestedMap:
-    """Returns variables updated during the last forward pass."""
-    ret = self._private_children.Transform(lambda x: x.forward_updated_vars)
-    for k in self._forward_updated_vars.dict.keys():
-      ret[k] = self._forward_updated_vars.dict[k]
+  def updated_vars(self) -> NestedMap:
+    """Returns variables being updated during the forward pass."""
+    ret = self._private_children.Transform(lambda x: x.updated_vars)
+    scope = self.scope
+    assert scope is not None
+    for k in self._private_vars:
+      if var_not_trainable(self._private_vars[k]):
+        if scope.has_variable(SCOPE_VARS, k):
+          ret[k] = scope.get_variable(SCOPE_VARS, k)
+        else:
+          ret[k] = None
+      else:
+        ret[k] = None
     return ret
 
   def _check_name(self, name: str) -> None:
@@ -1296,8 +1376,9 @@ class BaseLayer(metaclass=BaseLayerMeta):
       raise ValueError('Attempting to call create_child outside of __init__.')
     self._check_name(name)
     p = self.copy_base_params(self.params, params.Copy())
-    if not p.name:
-      p.name = name
+    # TODO(yonghui): always reset p.name to be the same as name.
+    # Q(yonghui): Does this break checkpoint compatibility?
+    p.name = name
     child = p.Instantiate()
     self._private_children[name] = child
 
@@ -1332,8 +1413,8 @@ class BaseLayer(metaclass=BaseLayerMeta):
 
     def instantiate(p: InstantiableParams) -> BaseLayerT:
       p = self.copy_base_params(self.params, p.Copy())
-      if not p.name:
-        p.name = '%s_%d' % (name, next(uid))
+      p.name = '%s_%d' % (name, next(uid))
+      self._check_name(p.name)
       return p.Instantiate()
 
     self._private_children[name] = NestedMap(

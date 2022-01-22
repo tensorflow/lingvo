@@ -91,10 +91,10 @@ class NgrammerTest(test_util.JaxTestCase):
     @jax.jit
     def compute_vq(theta, prng_key, global_step, inputs):
       with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step):
+          prng_key=prng_key, global_step=global_step) as j_context:
+        j_context.bind(vq_layer, {}, [base_layer.SCOPE_VARS])
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        vq_layer.prepare_fprop()
         output = vq_layer.fprop(theta, inputs)
         return output
 
@@ -151,10 +151,10 @@ class NgrammerTest(test_util.JaxTestCase):
     @jax.jit
     def compute_ngrams(theta, prng_key, global_step, inputs, input_embs):
       with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step):
+          prng_key=prng_key, global_step=global_step) as j_context:
+        j_context.bind(ngrammer_layer, {}, [base_layer.SCOPE_VARS])
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        ngrammer_layer.prepare_fprop()
         output = ngrammer_layer.fprop(theta, inputs, input_embs, paddings)
         return output
 
@@ -228,7 +228,6 @@ class NgrammerTest(test_util.JaxTestCase):
           prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        ngrammer_layer.prepare_fprop()
         output = ngrammer_layer.fprop(theta, inputs, input_embs, paddings)
         return output
 
@@ -301,7 +300,6 @@ class NgrammerTest(test_util.JaxTestCase):
           params=context_params, prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        vq_ngrammer_layer.prepare_fprop()
         output = vq_ngrammer_layer.fprop(theta, None, input_embs, paddings)
         distances, _ = vq_ngrammer_layer.vq_layer.fprop(theta.vq_layer,
                                                         input_embs)

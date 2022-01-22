@@ -88,13 +88,14 @@ class NormalizationsTest(test_util.JaxTestCase):
     # comp function is fully functional.
     @jax.jit
     def Comp(theta, prng_key, global_step, inputs, paddings):
-      with base_layer.JaxContext.new_context():
+      with base_layer.JaxContext.new_context(
+          global_step=global_step, prng_key=prng_key) as jax_context:
+        jax_context.bind(layer, {}, [base_layer.SCOPE_VARS])
         # Mix in global steps so that prng seed depends on a global step.
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        layer.prepare_fprop()
         output = layer.fprop(theta, inputs, paddings)
-        forward_updated_theta = layer.forward_updated_vars
+        forward_updated_theta = layer.updated_vars
 
         def UpdateParam(old, new):
           if new is not None:
@@ -157,12 +158,13 @@ class NormalizationsTest(test_util.JaxTestCase):
 
     # comp function is fully functional.
     def Comp(theta, prng_key, global_step, inputs, paddings):
-      with base_layer.JaxContext.new_context():
+      with base_layer.JaxContext.new_context(
+          global_step=global_step, prng_key=prng_key) as jax_context:
+        jax_context.bind(layer, {}, [base_layer.SCOPE_VARS])
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        layer.prepare_fprop()
         output = layer.fprop(theta, inputs, paddings)
-        forward_updated_theta = layer.forward_updated_vars
+        forward_updated_theta = layer.updated_vars
 
         def UpdateParam(old, new):
           if new is not None:

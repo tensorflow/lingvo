@@ -132,6 +132,8 @@ def recurrent_func(theta: NestedMap, states_0: NestedMap, inputs: NestedMap,
     inputs_t = fn_in.inputs_t
     with base_layer.JaxContext.new_context(
         prng_key=jax.random.fold_in(prng_key, t), global_step=global_step):
+      # NO side-effect ops are allowed as the enclosing JaxContext is not bound
+      # to any layer.
       states_1 = cell_fn(theta, states_0, inputs_t)
 
       tf.nest.assert_same_structure(states_0, states_1)
@@ -324,6 +326,9 @@ def recurrent_static(theta: NestedMap,
     prng_key_t = jax.random.fold_in(prng_key, states_0.time_step)
     with base_layer.JaxContext.new_context(
         prng_key=prng_key_t, global_step=global_step):
+      # NO side-effect ops are allowed as the enclosing JaxContext is not bound
+      # to any layer.
+      #
       # Whether or not we should skip this time step.
       if 'padding' in inputs_t:
         # We skip if all are padded steps.
@@ -440,13 +445,16 @@ def scan(carry_init: NestedMap,
   def fn_wrap(carry, xs_t):
     # carry is augmented with time_step, prng_key, global_step three additional
     # tensors to make fn_wrap fully functional.
-    if root_layer is not None:
-      forward_updated_vars_before = tf.nest.map_structure(
-          lambda x: x, root_layer.forward_updated_vars)
     # Start a new prng_key branch that also depends on the time step.
     prng_key_t = jax.random.fold_in(carry.prng_key, carry.time_step)
     with base_layer.JaxContext.new_context(
-        prng_key=prng_key_t, global_step=carry.global_step):
+        prng_key=prng_key_t, global_step=carry.global_step) as jax_context:
+      # TODO(yonghui): Fix me. 1) we will always require a root layer for
+      # recurrent.scan to work.
+      if root_layer is not None:
+        # For now, we don't allow update variables in the recurrent.scan loop.
+        # TODO(yonghui/bf-jax): lift the constraint.
+        jax_context.bind(root_layer, None, [base_layer.SCOPE_AUX_LOSS])
 
       carry_new, ys_t = fn(carry, xs_t)
       carry_new.time_step = carry.time_step + 1
@@ -456,18 +464,6 @@ def scan(carry_init: NestedMap,
 
       tf.nest.assert_same_structure(carry_new, carry)
       summaries = base_layer.all_summaries()
-
-      if root_layer is not None:
-        forward_updated_vars_after = tf.nest.map_structure(
-            lambda x: x, root_layer.forward_updated_vars)
-
-        def assert_no_change(x, y):
-          assert (x is None and y is None) or (x is not None and y is not None)
-
-        # Make sure fn doesn't have side-effect, in particular it doesn't
-        # update any forward-vars.
-        tf.nest.map_structure(assert_no_change, forward_updated_vars_before,
-                              forward_updated_vars_after)
 
     return carry_new, (ys_t, summaries)
 

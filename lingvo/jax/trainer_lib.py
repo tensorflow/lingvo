@@ -145,10 +145,10 @@ def train_step_single_learner(
       assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
 
     with base_layer.JaxContext.new_context(
-        params=context_p, prng_key=subkey, global_step=states.step):
-      # Prepares mdl for fprop. This clears all forward-updated vars that kept
-      # locally in mdl.
-      mdl.prepare_fprop()
+        params=context_p, prng_key=subkey,
+        global_step=states.step) as jax_context:
+      jax_context.bind(mdl, mdl_vars,
+                       [base_layer.SCOPE_VARS, base_layer.SCOPE_AUX_LOSS])
 
       metrics, per_example_output = mdl.fprop(mdl_vars, inputs)
       loss_name = learner.loss_name
@@ -169,7 +169,7 @@ def train_step_single_learner(
       weighted_loss = loss * loss_weight
       # Fetch forward-updated vars, which often include batch norm vars, other
       # misc stats, etc.
-      forward_updated_vars = mdl.forward_updated_vars
+      forward_updated_vars = mdl.updated_vars
       # Finally, fetch all the summary tensors.
       summary_tensors = base_layer.all_summaries()
       if in_pmap:
@@ -234,7 +234,10 @@ def train_step_single_learner(
   # Carry out backward computation under a JaxContext.
   prng_key, subkey = jax.random.split(prng_key)
   with base_layer.JaxContext.new_context(
-      params=context_p, prng_key=subkey, global_step=states.step):
+      params=context_p, prng_key=subkey,
+      global_step=states.step) as jax_context:
+    # Nothing is allowed to change, except for summaries.
+    jax_context.bind(mdl, states.mdl_vars, [base_layer.SCOPE_AUX_LOSS])
 
     # Add a summary for learning rate
     learning_rate = learner.optimizer.get_learning_rate(states.step)
@@ -352,10 +355,11 @@ def eval_step_single_learner(
     assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
 
   with base_layer.JaxContext.new_context(
-      params=context_p, prng_key=prng_key, global_step=global_step):
+      params=context_p, prng_key=prng_key,
+      global_step=global_step) as jax_context:
     # Prepares mdl for fprop. This clears all forward-updated vars that kept
     # locally in mdl.
-    mdl.prepare_fprop()
+    jax_context.bind(mdl, mdl_vars, [base_layer.SCOPE_AUX_LOSS])
 
     # Support multiple learners.
     assert len(mdl.learners) == 1
@@ -442,10 +446,10 @@ def decode_step(
     assert NotImplementedError(f'fprop_dtype {fprop_dtype} not supported.')
 
   with base_layer.JaxContext.new_context(
-      params=context_p, prng_key=prng_key, global_step=global_step):
-    # Prepares mdl for fprop. This clears all forward-updated vars that kept
-    # locally in mdl.
-    mdl.prepare_fprop()
+      params=context_p, prng_key=prng_key,
+      global_step=global_step) as jax_context:
+    jax_context.bind(mdl, mdl_vars, [base_layer.SCOPE_AUX_LOSS])
+
     return mdl.decode(mdl_vars, inputs)
 
 

@@ -206,10 +206,10 @@ class BatchNorm(base_layer.BaseLayer):
           keepdims=True)
 
       new_moving_mean = theta.moving_mean * p.decay + mean * (1.0 - p.decay)
-      self.forward_update_var('moving_mean', new_moving_mean)
+      self.update_var('moving_mean', new_moving_mean)
       new_moving_variance = (
           theta.moving_variance * p.decay + variance * (1.0 - p.decay))
-      self.forward_update_var('moving_variance', new_moving_variance)
+      self.update_var('moving_variance', new_moving_variance)
 
       # Add some summaries for visualization.
       base_layer.add_summary('mean', mean)

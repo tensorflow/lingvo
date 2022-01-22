@@ -206,7 +206,7 @@ class VectorQuantization(base_layer.BaseLayer):
           p.epsilon + jnp.expand_dims(per_cluster_count, axis=-1))
       updated_means = (1.0 - p.decay) * new_means + p.decay * theta.means
       updated_means = jnp.array(updated_means, self.vars.means.dtype)
-      self.forward_update_var('means', updated_means)
+      self.update_var('means', updated_means)
     return dists, nearest_centroid
 
 

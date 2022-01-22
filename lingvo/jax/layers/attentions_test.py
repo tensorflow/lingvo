@@ -87,7 +87,6 @@ class AttentionsTest(test_util.JaxTestCase):
           prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        layer.prepare_fprop()
         output = layer.fprop(theta, inputs)
         return output
 
@@ -129,7 +128,6 @@ class AttentionsTest(test_util.JaxTestCase):
           prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        layer.prepare_fprop()
         output = layer.fprop(theta, inputs)
         return output
 
@@ -182,7 +180,6 @@ class AttentionsTest(test_util.JaxTestCase):
           prng_key=prng_key, global_step=global_step):
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        layer.prepare_fprop()
         output = layer.fprop(theta, inputs)
         return output
 

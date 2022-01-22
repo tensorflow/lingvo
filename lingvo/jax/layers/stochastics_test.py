@@ -86,7 +86,6 @@ class StochaticsTest(test_util.JaxTestCase):
       with base_layer.JaxContext.new_context():
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        layer.prepare_fprop()
         output1 = layer.fprop(theta, inputs)
         return output1
 

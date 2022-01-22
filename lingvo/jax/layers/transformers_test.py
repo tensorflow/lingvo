@@ -1003,7 +1003,6 @@ class TransformersTest(test_util.JaxTestCase):
         params=context_params,
         prng_key=prng_key,
         global_step=jnp.array(0, dtype=jnp.uint32)):
-      transformer_lm.prepare_fprop()
       fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
                                            jnp.zeros_like(inputs))
       logits = fprop_outputs.logits
@@ -1061,7 +1060,6 @@ class TransformersTest(test_util.JaxTestCase):
         params=context_params,
         prng_key=prng_key,
         global_step=jnp.array(0, dtype=jnp.uint32)):
-      transformer_lm.prepare_fprop()
       fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
                                            jnp.zeros_like(inputs))
       logits = fprop_outputs.logits
@@ -1134,7 +1132,6 @@ class TransformersTest(test_util.JaxTestCase):
         params=context_params,
         prng_key=prng_key,
         global_step=jnp.array(0, dtype=jnp.uint32)):
-      transformer_lm.prepare_fprop()
       fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
                                            jnp.zeros_like(inputs))
       logits = fprop_outputs.logits
@@ -1296,7 +1293,6 @@ class TransformersTest(test_util.JaxTestCase):
         params=context_params,
         prng_key=prng_key,
         global_step=jnp.array(0, dtype=jnp.uint32)):
-      transformer_enc_dec.prepare_fprop()
       initial_states = transformer_enc_dec.init_states(initial_vars, inputs,
                                                        input_paddings,
                                                        batch_size, seq_len)
@@ -1404,8 +1400,8 @@ class TransformersTest(test_util.JaxTestCase):
     np_outputs = test_utils.to_np(outputs)
     logging.info('np_outputs: %s', np_outputs)
     if use_relative_bias:
-      self.assertAlmostEqual(np_outputs[0, 0, 1], 0.0386058092, places=5)
-      self.assertAlmostEqual(np_outputs[0, 1, 0], 0.227001220, places=5)
+      self.assertAlmostEqual(np_outputs[0, 0, 1], 0.79015386, places=5)
+      self.assertAlmostEqual(np_outputs[0, 1, 0], 0.48336178, places=5)
     # Plumbing test.
     self.assertAllClose(np_outputs, np_outputs, atol=1e-5)
 

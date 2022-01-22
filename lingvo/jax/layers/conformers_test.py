@@ -68,7 +68,6 @@ class ConformerTest(test_util.JaxTestCase):
       with cluster_factory.SetEval(True):
         with base_layer.JaxContext.new_context(
             params=context_p, prng_key=prng_key, global_step=jnp.asarray(0)):
-          conformer.prepare_fprop()
           output = conformer.fprop(theta, inputs, paddings)
           return output
 
