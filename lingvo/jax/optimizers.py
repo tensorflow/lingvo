@@ -948,9 +948,31 @@ class ShardedDistributedShampoo(DistributedShampoo):
     # TODO(rohananil): Refactor after PartitionSpec layering is finalized in
     # the JAX ecosystem.
     fns = result.init(None)
+
+    def _wrapped_update_fn(grads, state, params):
+      new_params, new_state = result.update(grads, state, params)
+      local_stats = new_state.stats.local_stats
+      var_keys, _ = jax.tree_flatten(
+          py_utils.extract_prefixed_keys_from_nested_map(local_stats))
+      var_keys = [x for x in var_keys if 'inverse_pth_root_errors' in x]
+      is_stats = lambda l: isinstance(l, (LocalShardedParameterStats))
+      local_stats_flattened, _ = jax.tree_flatten(local_stats, is_stats)
+
+      def add_summary(key, local_stat):
+        num_statistics = len(local_stat.sizes)
+        for i in range(num_statistics):
+          value = local_stat.training_metrics.inverse_pth_root_errors[i]
+          base_layer.add_summary(f'inverse_pth_root_errors/{key}_{i}', value)
+
+      with base_layer.JaxContext.new_context():
+        assert len(var_keys) == len(local_stats_flattened)
+        for key, local_stat in zip(var_keys, local_stats_flattened):
+          add_summary(key, local_stat)
+      return new_params, new_state
+
     return ShardedGradientTransformation(
         init=fns.init_fn,
-        update=result.update,
+        update=_wrapped_update_fn,
         init_partition_spec=functools.partial(self.init_partition_spec_fn,
                                               fns.pspec_fn,
                                               fns.shape_and_dtype_fn,
