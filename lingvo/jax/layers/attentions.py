@@ -689,6 +689,7 @@ class DotProductAttention(base_layer.BaseLayer):
     dim_per_head = p.dim_per_head
     if dim_per_head is None:
       dim_per_head = p.hidden_dim // p.num_heads
+      p.dim_per_head = dim_per_head
       assert dim_per_head * p.num_heads == p.hidden_dim, (
           f'{dim_per_head} * {p.num_heads} != {p.hidden_dim}')
 
@@ -1128,8 +1129,7 @@ class DotProductAttention(base_layer.BaseLayer):
     """
     p = self.params
     num_heads = p.num_heads
-    atten_dim = p.hidden_dim
-    dim_per_head = atten_dim // num_heads
+    dim_per_head = p.dim_per_head
     # empty() is not supported for bfloat16 on CPU.
     dtype = self.fprop_dtype
     key = jnp.zeros(

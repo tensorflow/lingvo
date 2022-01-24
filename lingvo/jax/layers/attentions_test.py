@@ -252,6 +252,7 @@ class AttentionsTest(test_util.JaxTestCase):
         input_dim=mdl_dim,
         hidden_dim=hidden_dim,
         num_heads=num_heads,
+        dim_per_head=16 if use_rotary_position_emb else None,
         atten_logit_cap=20.0,
         combine_qkv=combine_qkv,
         dconv_qkv=dconv_qkv,
