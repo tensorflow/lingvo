@@ -1766,6 +1766,137 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
     self._TestRightContextStackingLayersHelper(**kwargs)
 
 
+class ChunkwiseSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
+  """Test Chunkwise Self Attention."""
+
+  def _ChunkwisePadding(self, b, t, w, l, r):
+    s = t
+    padding = np.ones((b, s, t), dtype=np.float32)
+    u = (t + w - 1) // w
+    for u_ in range(u):
+      q_st = u_ * w
+      q_en = min((u_ + 1) * w, t)
+      k_st = max(q_st - (l - 1), 0)
+      k_en = min((u_ + 1) * w + r, t)
+      padding[:, q_st:q_en, k_st:k_en] = 0.0
+
+    return tf.constant(padding, dtype=tf.float32)
+
+  def _CompareEncoded(self, encode1, encode2, paddings):
+    self.assertAllEqual(encode1.shape, encode2.shape)
+    b = encode1.shape[0]
+
+    for num_seq in range(b):
+      length = int(np.sum(1 - paddings[num_seq, :]))
+      self.assertAllClose(encode1[num_seq, :length], encode2[num_seq, :length])
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_w2_l1_r0',
+          'chunk_size': 2,
+          'left_context': 1,
+          'right_context': 0,
+      },
+      {
+          'testcase_name': '_w2_l2_r1',
+          'chunk_size': 2,
+          'left_context': 2,
+          'right_context': 1,
+      },
+      {
+          'testcase_name': '_w2_l1_r0_rel',
+          'chunk_size': 2,
+          'left_context': 1,
+          'right_context': 0,
+          'pos_emb_dim': 2,
+      },
+      {
+          'testcase_name': '_w2_l2_r1_rel',
+          'chunk_size': 2,
+          'left_context': 2,
+          'right_context': 1,
+          'pos_emb_dim': 2,
+      },
+      {
+          'testcase_name': '_w2_l2_r1_rel_lite',
+          'chunk_size': 2,
+          'left_context': 2,
+          'right_context': 1,
+          'pos_emb_dim': 2,
+          'skip_term_b': True,
+      },
+  )
+  def testFPropAgainstReference(self,
+                                chunk_size,
+                                left_context,
+                                right_context,
+                                pos_emb_dim=0,
+                                num_heads=2,
+                                input_dim=4,
+                                hidden_dim=4,
+                                skip_term_b=False):
+    tf.reset_default_graph()
+    with self.session(use_gpu=False) as sess:
+      query, _, paddings, _, _, _, _, _ = _AttentionInputs(input_dim)
+      b, t, _ = py_utils.GetShape(query)
+
+      if pos_emb_dim == 0:
+        p_cls = attention.ChunkwiseSelfAttention
+        expected_p_cls = attention.MultiHeadedAttention
+      else:
+        p_cls = attention.ChunkwiseSelfAttentionXL
+        expected_p_cls = attention.MultiHeadedAttentionXL
+
+      common_params = {
+          'num_heads': num_heads,
+          'input_dim': input_dim,
+          'hidden_dim': hidden_dim
+      }
+      chunk_wise_params = {
+          'chunk_size': chunk_size,
+          'left_context': left_context,
+          'right_context': right_context
+      }
+
+      p = p_cls.Params().Set(
+          name='self_attn', **chunk_wise_params, **common_params)
+      expected_p = expected_p_cls.Params().Set(
+          name='expected_self_attn', **common_params)
+      if pos_emb_dim != 0:
+        expected_p.skip_term_b = skip_term_b
+        p.skip_term_b = skip_term_b
+
+      if pos_emb_dim > 0:
+        p.rel_pos_emb_dim = pos_emb_dim
+        expected_p.rel_pos_emb_dim = pos_emb_dim
+
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      expected_p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
+      l = p.Instantiate()
+      expected_l = expected_p.Instantiate()
+      tf.global_variables_initializer().run()
+
+      out_emb, _ = l.FProp(
+          l.theta,
+          query,
+          query,
+          query,
+          paddings,
+          segment_mask=None,
+          per_step_padding=None)
+      (out_emb_np,) = sess.run([out_emb])
+
+      per_step_padding = self._ChunkwisePadding(b, t, chunk_size, left_context,
+                                                right_context)
+      expected_out_emb, _ = expected_l.FProp(expected_l.theta, query, query,
+                                             query, paddings, None,
+                                             per_step_padding)
+      expected_out_emb_np, paddings_np = sess.run([expected_out_emb, paddings])
+
+      self._CompareEncoded(expected_out_emb_np, out_emb_np, paddings_np)
+
+
 class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
   """Tests for RoutingAttention."""
 

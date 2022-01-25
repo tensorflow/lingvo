@@ -1765,6 +1765,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     p = self.params
     assert p.left_context >= 1, 'Left context should be at least one.'
     assert not p.packed_input, 'Packed input not implemented yet.'
+
     if p.block_size is None:
       block_size = max(1, p.left_context - 1)
       p.block_size = block_size + (-block_size % p.query_stride)
@@ -1776,8 +1777,6 @@ class LocalSelfAttention(MultiHeadedAttention):
     assert not p.right_context or p.right_context % p.query_stride == 0, (
         f'right_context({p.right_context}) must be a multiple of '
         f'query_stride({p.query_stride}).')
-
-    assert not p.packed_input, 'Packed input not implemented yet.'
 
   def _AttenLogits(self, theta, query, key):
     return tf.einsum('BUTNH,BUSNH->BNUTS', query, key)
@@ -2818,6 +2817,378 @@ class LocalSelfAttentionXL(LocalSelfAttention):
           'inference_step_max_length must be same to the seq length of query.')
     return super().StreamStep(theta, query_vec, query_paddings, key_vec,
                               key_paddings, state0)
+
+
+class ChunkwiseSelfAttention(MultiHeadedAttention):
+  """Dot-product self attention using a chunk (with optional context).
+
+  Different from LocalSelfAttention, where each query have exactly the same
+  attention span (except those on the bounary), chunkwise self-attention first
+  segments the input into equal-sized chunks and perform full attention within
+  the chunk, therefore the encoder will output the embedding in a chunkwise
+  manner. If left-context/right-context is both 0, then this is essentially
+  segmenting the input sequence into chunks, and perform attention independently
+  in each chunk. Setting left-context or right-context > 0, allows information
+  flows across the chunk boundary.
+
+  Note about the attention span: if the chunking is performed without context,
+  then the total attention span is fixed regardless of the number of layers.
+  Once we have the left/right context, this context will leak through layers.
+  To prevent context leaking, see sec 2.2.4 in
+  https://arxiv.org/pdf/2010.10759.pdf; or do the chunking at input stage (see
+  https://arxiv.org/pdf/2005.08042.pdf). The point here is that to avoid context
+  leaking, those context frames must be recomputed using the same receiption
+  field as the current chunk.
+  """
+
+  # Implementation note: similar to local self attention, we use the following
+  # symbols to denote certain tensor shapes:
+  # B = batch size
+  # T = length of the query and S = T in this class
+  # W = chunk size
+  # L = left context size. Note to be compatible with LocalSelfAttention, the
+  # actual left context is L - 1.
+  # R = right context size.
+  # C = W + (L-1) + R
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('chunk_size', 1, 'Size of a processing chunk, must be at least 1')
+    p.Define(
+        'left_context', 1,
+        'Number of left context frames. Note that to be compatible with '
+        'LocalSelfAttention, the actual left context frames is '
+        'left_context - 1, so left_context must >= 1')
+    p.Define(
+        'right_context', 0,
+        'Number of right context frames. Right_context must be greater or '
+        'equal to 0')
+    return p
+
+  def _ParamCheck(self, p):
+    chunk_size = p.chunk_size
+    if chunk_size <= 0:
+      msg = f'chunk_size ({chunk_size}) must be >= 1'
+      raise ValueError(msg)
+    left_context = p.left_context
+    if left_context < 1:
+      msg = f'left_context ({left_context}) must be >= 1'
+      raise ValueError(msg)
+    right_context = p.right_context
+    if right_context < 0:
+      msg = f'right_context ({right_context}) must be >= 0'
+      raise ValueError(msg)
+    if p.packed_input:
+      msg = 'packed_input is not supported for {}'.format(self.__class__)
+      raise ValueError(msg)
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    self._ParamCheck(p)
+
+  def _AttenLogits(self, theta, query, key):
+    return tf.einsum('BUTNH,BUSNH->BNUTS', query, key)
+
+  def AttenProbs(self,
+                 theta,
+                 query,
+                 key,
+                 paddings,
+                 segment_mask,
+                 per_step_padding=None):
+    """Compute attention probability.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query:    [B, T, N, H].
+      key:      [B, S, N, H].
+      paddings: [B, S].
+      segment_mask: [B, 1, T, S] not used right now.
+      per_step_padding: Not used.
+
+    Returns:
+      probs: [B, N, U, W, C]
+      probs_sum: [B, N, U, W, 1].
+    """
+    del per_step_padding
+    p = self.params
+    key = py_utils.HasRank(key, 4)
+    b, t, n, h = py_utils.GetShape(key, 4)
+    paddings = py_utils.HasShape(paddings, [b, t])
+    query = py_utils.HasShape(query, [b, -1, n, h])
+
+    # key is [B, T, N, H], reshape it to [B, T, N*H]
+    key = tf.reshape(key, [b, t, n * h])
+
+    # [B, T, N*H] -> [B, U, C, N*H] -> [B, U, C, N, H]
+    # [B, T] -> [B, U, C]
+    key_block_context, paddings_block = attention_util.ExtractBlockContextV2(
+        key,
+        block_size=p.chunk_size,
+        left_context=p.left_context,
+        right_context=p.right_context,
+        padding_val=0.0,
+        paddings=paddings)
+    _, u, c, _ = py_utils.GetShape(key_block_context)
+    key_block_context = tf.reshape(key_block_context, [b, u, c, n, h])
+
+    # [B, T, N, H] -> [B, U, W, N, H]
+    w = p.chunk_size
+    query_blocks = attention_util.ConvertToBlocks(query, block_size=w)
+
+    # mask: [B, U, C] --> [B, N, U, W, C]
+    mask_block = 1.0 - paddings_block
+    mask_block = tf.tile(
+        tf.reshape(mask_block, [b, 1, u, 1, c]), [1, n, 1, w, 1])
+
+    paddings_block = 1.0 - mask_block
+
+    # einsum('BUWNH,BUCNH->BNUWC)
+    with tf.name_scope('atten_logits'):
+      logits = self._AttenLogits(theta, query_blocks, key_block_context)
+      padded_logits = py_utils.ApplyPadding(paddings_block, logits,
+                                            GetDtypeMin(logits.dtype))
+
+    if p.enable_scaling_code_motion:
+      # Split the softmax into two parts. Do the 1st part here; the 2nd part
+      # (scaling) is moved after _AttenContext for better performance.
+      probs = padded_logits - tf.stop_gradient(
+          tf.reduce_max(padded_logits, -1, True))
+      probs = tf.cast(tf.exp(probs), key.dtype)
+      probs_sum = tf.reduce_sum(probs, -1, True)
+    else:
+      probs = tf.cast(
+          py_utils.Softmax(padded_logits, extra_logit=p.atten_extra_logit),
+          key.dtype)
+      probs_sum = None
+
+    return probs, probs_sum
+
+  def _AttenContext(self, theta, probs, value):
+    """Computes the attention context vector.
+
+    Args:
+     theta: Layer theta: NestedMap.
+     probs: Local-self-MultiHeaded Attention probabilities: [B, N, U, W, C].
+     value: Input value vector: [B, S=T, N, H].
+
+    Returns:
+     encoded: Attention context vector: [B, T, N, H].
+    """
+    p = self.params
+    w = p.chunk_size
+    t = py_utils.GetShape(value)[1]
+    b, _, n, h = py_utils.GetShape(value, 4)
+    # [B, T, N, H] -> [B, T, N*H] -> [B, U, C, N*H] -> [B, U, C, N, H]
+    value_block_context, _ = attention_util.ExtractBlockContextV2(
+        tf.reshape(value, [b, t, n * h]),
+        block_size=p.chunk_size,
+        left_context=p.left_context,
+        right_context=p.right_context)
+    _, u, c, _ = py_utils.GetShape(value_block_context)
+    value_block_context = tf.reshape(value_block_context, [b, u, c, n, h])
+
+    # Compute the attention context vector.
+    # [B, N, U, W, C],[B, U, C, N, H]-> [B, U, W, N, H]
+    encoded = tf.einsum('BNUWC,BUCNH->BUWNH', probs, value_block_context)
+    b, u, w, n, h = py_utils.GetShape(encoded)
+    encoded = tf.reshape(encoded, [b, u * w, n, h])
+    encoded = encoded[:, :t, :, :]
+    return encoded
+
+  def FProp(self,
+            theta,
+            query_vec,
+            key_vec,
+            value_vec,
+            paddings,
+            segment_mask=None,
+            per_step_padding=None):
+    """Computes the value vector given the current query output.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec: [B, T, D].
+      key_vec:   [B, S, D] with S == T (self-attention).
+      value_vec: [B, S, D] with S == T (self-attention).
+      paddings:  [B, S] with S == T (self-attention).
+      segment_mask: [B, 1, T, S]. A mask only applied if packed_input=True.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, T, T] if
+        not None.
+
+    Returns:
+      encoded: [B, T, D].
+      probs: [B, N, U, W, C].
+    """
+    b, s, d = py_utils.GetShape(key_vec, 3)
+    t = py_utils.GetShape(query_vec, 2)[1]
+    query_vec = py_utils.HasShape(query_vec, [b, t, d])
+    value_vec = py_utils.HasShape(value_vec, [b, s, d])
+    paddings = py_utils.HasShape(paddings, [b, s])
+    encoded, probs = super().FProp(
+        theta,
+        query_vec,
+        key_vec,
+        value_vec,
+        paddings,
+        segment_mask=segment_mask,
+        per_step_padding=per_step_padding)
+    return encoded, probs
+
+  def ExtendStep(self,
+                 theta,
+                 query_vec,
+                 cached_states,
+                 paddings,
+                 segment_mask=None,
+                 per_step_padding=None,
+                 time_step=None,
+                 use_short_seq_opt=False):
+    msg = 'Not implemented yet'
+    raise NotImplementedError(msg)
+
+
+class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
+  """Chunkwise Self Attention with relative position embedding."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('rel_pos_emb_dim', None,
+             'Dimension of relative position embedding')
+    p.Define('skip_term_b', False,
+             'If true, skip term b in the XL paper in secion 3.3')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    params = self.params
+    if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
+      raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
+
+    emb_params = layers.PositionalEmbeddingLayer.Params().Set(
+        embedding_dim=params.rel_pos_emb_dim)
+    self.CreateChild('pos_emb', emb_params)
+
+    dim_per_head = params.hidden_dim // params.num_heads
+    pos_proj_param = params.proj_tpl.Copy().Set(
+        input_dim=params.rel_pos_emb_dim,
+        num_heads=params.num_heads,
+        dim_per_head=dim_per_head,
+        use_bias=False)
+    self.CreateChild('pos_proj', pos_proj_param)
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    params = self.params
+
+    dim_per_head = params.hidden_dim // params.num_heads
+    u_pc = py_utils.WeightParams(
+        shape=[params.num_heads, dim_per_head],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    v_pc = py_utils.WeightParams(
+        shape=[params.num_heads, dim_per_head],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+
+    self.CreateVariable('u', u_pc)
+    self.CreateVariable('v', v_pc)
+
+  def _AttenLogits(self, theta, query, key):
+    """Given the q,k,v, calculate the attention logits with relative pos.
+
+    Args:
+      theta: a `.NestedMap` object.
+      query: [b, u, w, n, h] tensor
+      key: [b, u, c, n, h] tensor
+
+    Returns:
+      attention_logits: [b, n, u, w, c] tensor
+    """
+    # Note:
+    #
+    # The b, n, u axis are shared between query and key, so they are just
+    # batching dimension. Ignore them in the following math for simplication.
+    # Therefore,
+    # q is a [w, h] matrix and k is a [c, h] matrix.
+    #
+    # The general math equation is:
+    # a_ij = (q_i + u)^T k_j + (q_i + v)^T (W_pos x R_{i-j})
+    # or
+    # a_ij = (q_i + u)^T k_j +  v^T (W_pos x R_{i-j}) if skip_termb
+    #
+    # where q_i is the i-th row of query and k_j is the j-th row of key.
+    #
+    # The range of index j is [-(L-1), W-1+R]; the range of index i is [0, W-1].
+    # Therefore the minimum we can get for i-j = -(W+R-1); and the maximum we
+    # can get for i-j = W + L - 2.
+    #
+    # We first generate W_pos x [R_min, R_max] (shape: [H, M)) and rearrange
+    # it to the shape [H, W, C] using gather, where:
+    # min = -(W + R - 1)
+    # max = W + (L - 2)
+    # M = max - min + 1 = 2W + L + R - 2
+    #
+    # The gather indices looks like
+    #
+    # [
+    #  L-1 , ...,  0, ..., -(W-1),... -(W+R)   # for query's position 0
+    #  L, ....     1, ..., -(W-2) ... -(W+R-1) # for query's position 1
+    #  ...
+    #  L+W-2, ...  W-1,.., 0,     ... -R       # for query's position W-1
+    # ]
+    p = self.params
+    b, u, w, n, h = py_utils.GetShape(query)
+    _, _, c, _, _ = py_utils.GetShape(key)
+
+    l = p.left_context
+    r = p.right_context
+    assert c == w + l + r - 1, f'unexpected c {c}'
+
+    # 1. create a cxc matrix, whose i,j-th element is (i-j)
+    #   - kindx is a matrix like
+    #        [0, 1, ... , c-1]
+    #        [0, 1, ...,  c-1]
+    #        [...............]
+    #        [0, 1, ...,  c-1]
+    #   - qindx is a matrix like
+    #        [0, ...,    0]
+    #        [1, ...,    1]
+    #        [........... ]
+    #        [c-1,..., c-1]
+    qindx = tf.tile(tf.expand_dims(tf.range(0, c), axis=1), (1, c))
+    kindx = tf.transpose(qindx, (1, 0))
+    relative_dist = qindx - kindx
+    # 2. slice the cxc matrix to (w,c)
+    relative_dist = relative_dist[l - 1:l - 1 + w, :]
+
+    # 3. reshape relative_dist to a (1, w*c)
+    relative_dist = tf.reshape(relative_dist, (1, w * c))
+    # 4. convert to sin_emb ([1, w*c, pos_emb_dim] tensor)
+    sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, relative_dist)
+    # 5. apply pos projection ([1, w*c, N, H] tensor)
+    pos_emb = self.pos_proj.FProp(theta.pos_proj, sin_emb)
+    # 6. reshape sin_emb to a [W, C, N, H] tensor
+    pos_emb = tf.reshape(pos_emb, [w, c, n, h])
+
+    if not p.skip_term_b:
+      # theta.v is a [N, H] tensor, query is a [B, U, W, N, H]
+      term_bd = tf.einsum('BUWNH,WCNH->BNUWC', query + theta.v, pos_emb)
+    else:
+      term_d = tf.einsum('NH,WCNH->NWC', theta.u, pos_emb)
+      term_bd = tf.reshape(term_d, (1, n, 1, w, c))
+      term_bd = tf.tile(term_bd, (b, 1, u, 1, 1))
+
+    term_ac = tf.einsum('BUWNH,BUCNH->BNUWC', query + theta.u, key)
+    return term_ac + term_bd
 
 
 class RoutingAttention(MultiHeadedAttention):
