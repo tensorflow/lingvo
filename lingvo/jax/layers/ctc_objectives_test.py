@@ -175,6 +175,16 @@ class CtcTest(jax.test_util.JaxTestCase):
     tf_per_seq = tf_ctc_loss(*inputs)
     self.assertAllClose(jax_per_seq.squeeze(), tf_per_seq.squeeze())
 
+    average_tf_ctc_loss = lambda *args: jnp.average(tf_ctc_loss(*args))
+    jax_dloss = jax.grad(average_ctc_loss)
+    tf_dloss = jax.grad(average_tf_ctc_loss)
+
+    jax_dlogits = jax_dloss(*inputs)
+    tf_dlogits = tf_dloss(*inputs)
+    # Relative error check is disabled as numerical errors explodes when a
+    # probability computed from the input logits is close to zero.
+    self.assertAllClose(jax_dlogits, tf_dlogits, rtol=0.0, atol=1e-4)
+
   def test_against_tf_ctc_loss_with_paddings(self):
     batchsize = 8
     timesteps = 150
