@@ -25,7 +25,6 @@ from typing import Optional, Sequence
 
 from absl import logging
 import jax
-from jax.experimental import global_device_array as gda_lib
 from jax.experimental import maps
 from jax.experimental import mesh_utils
 from lingvo.jax import base_input
@@ -224,8 +223,6 @@ def train_and_evaluate_pmap(
   model_states = checkpoints.restore_checkpoint(
       model_states,
       restore_checkpoint_dir,
-      global_mesh=None,
-      mesh_axes=None,
       step=restore_checkpoint_step)
   total_num_params = jax_model.total_num_vars
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
@@ -409,11 +406,6 @@ def train_and_evaluate_pmap(
       logging.debug('step=`%d`: End', step_i - 1)
 
 
-def _create_gda(global_mesh, global_shape, pspec, device_buffers):
-  return gda_lib.GlobalDeviceArray(global_shape.shape, global_mesh, pspec,
-                                   device_buffers)
-
-
 def train_and_evaluate_spmd_model(
     model_p: InstantiableParams, train_input_p: InstantiableParams,
     job_log_dir: Optional[str],
@@ -440,21 +432,13 @@ def train_and_evaluate_spmd_model(
   logging.info('Using SPMD sharding for model parallelism.')
   train_input_pipeline = train_input_p.Instantiate()
 
-  def get_shape_dtype(x):
-    # We assume all the hosts infeed the same data.
-    process_count = jax.process_count()
-    assert len(x.shape) >= 1
-    x_shape = (x.shape[0] * process_count,) + x.shape[1:]
-    y = jax.ShapeDtypeStruct(x_shape, x.dtype)
-    return y
-
   if eval_input_p is not None:
     eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
     # Do not mutate eval_input_pipelines itself. Instantiate a new one
     # to get sample input.
     sample_eval_model_inputs = eval_input_p[0].Instantiate().get_next()
-    eval_test_inputs_shape = tf.nest.map_structure(get_shape_dtype,
-                                                   sample_eval_model_inputs)
+    eval_test_inputs_shape = tf.nest.map_structure(
+        py_utils.get_global_input_shape_dtype, sample_eval_model_inputs)
     eval_test_inputs_pspecs = trainer_lib.get_input_partition_specs(
         model_p.mesh_axis_names, eval_test_inputs_shape)
 
@@ -487,7 +471,8 @@ def train_and_evaluate_spmd_model(
 
   logging.info('Retrieving model inputs for shape info.')
   model_inputs_for_shape = train_input_pipeline.get_next()
-  inputs_shape = tf.nest.map_structure(get_shape_dtype, model_inputs_for_shape)
+  inputs_shape = tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
+                                       model_inputs_for_shape)
 
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
@@ -503,7 +488,6 @@ def train_and_evaluate_spmd_model(
         partitioned_train_state,
         restore_checkpoint_task_dir,
         global_mesh=global_mesh,
-        mesh_axes=train_state_pspecs,
         checkpoint_type=checkpoint_type,
         state_specs=train_state_pspecs,
         step=restore_checkpoint_step)
@@ -609,12 +593,13 @@ def train_and_evaluate_spmd_model(
         model_inputs = train_input_pipeline.get_next()
 
         if jax.config.jax_parallel_functions_output_gda:
-          model_inputs_device_buffers = jax.tree_map(
-              py_utils.put_arrays_on_device, model_inputs)
           start = time.time()
-          model_inputs = jax.tree_map(
-              functools.partial(_create_gda, global_mesh), inputs_shape,
-              inputs_pspecs, model_inputs_device_buffers)
+          py_utils.assert_same_shape_and_dtype(
+              inputs_shape,
+              tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
+                                    model_inputs))
+          model_inputs = py_utils.create_gda(model_inputs, inputs_shape,
+                                             global_mesh, inputs_pspecs)
           logging.info('GDA train batch input creation time %s',
                        time.time() - start)
 
@@ -658,11 +643,8 @@ def train_and_evaluate_spmd_model(
           eval_inputs = train_input_pipeline.get_next()
 
           if jax.config.jax_parallel_functions_output_gda:
-            eval_inputs_device_buffers = jax.tree_map(
-                py_utils.put_arrays_on_device, eval_inputs)
-            eval_inputs = jax.tree_map(
-                functools.partial(_create_gda, global_mesh), inputs_shape,
-                inputs_pspecs, eval_inputs_device_buffers)
+            eval_inputs = py_utils.create_gda(eval_inputs, inputs_shape,
+                                              global_mesh, inputs_pspecs)
 
           logging.debug('  Retrieved eval model_inputs.')
           logging.debug('  Performing eval_step() runs on training split.')

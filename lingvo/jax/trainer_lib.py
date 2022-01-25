@@ -594,7 +594,8 @@ def partition_spmd_model(
     (partitioned_train_state, train_state_partition_specs,
     inputs_partition_spec, train_step_fn, eval_step_fn, total_num_params):
     The partitioned TrainState, the corresponding partitioned TrainState specs,
-    the train step function, eval step function and total number of parameters.
+    the partition spec for the inputs, the train step function, eval step
+    function and total number of parameters.
   """
   mesh_names = mdl_params.mesh_axis_names
   mdl = mdl_params.Instantiate()

@@ -15,11 +15,9 @@
 # ==============================================================================
 """Utils for training and evaluation of lingvo Jax models."""
 
-import functools
 from typing import Any, Callable, List, Optional, Union
 from absl import logging
 import jax
-from jax.experimental import global_device_array as gda_lib
 from lingvo.jax import base_input
 from lingvo.jax import base_model_params
 from lingvo.jax import model
@@ -71,11 +69,6 @@ def run_eval_one_step(eval_inputs: NestedJTensor,
   return loss, mean_metrics, summary_tensors
 
 
-def _create_gda(global_mesh, global_shape, pspec, device_buffers):
-  return gda_lib.GlobalDeviceArray(global_shape.shape, global_mesh, pspec,
-                                   device_buffers)
-
-
 def run_eval_loop_over_test_splits(
     num_steps: List[int],
     eval_step: Callable[[NestedJTensor], Any],
@@ -120,13 +113,13 @@ def run_eval_loop_over_test_splits(
       step_num += 1
       try:
         eval_inputs = model_inputs[split].get_next()
-        if (jax.config.jax_parallel_functions_output_gda and
-            eval_inputs_pspecs is not None):
-          eval_inputs_device_buffers = jax.tree_map(
-              py_utils.put_arrays_on_device, eval_inputs)
-          eval_inputs = jax.tree_map(
-              functools.partial(_create_gda, global_mesh), eval_inputs_shape,
-              eval_inputs_pspecs, eval_inputs_device_buffers)
+        if jax.config.jax_parallel_functions_output_gda:
+          py_utils.assert_same_shape_and_dtype(
+              eval_inputs_shape,
+              tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
+                                    eval_inputs))
+          eval_inputs = py_utils.create_gda(eval_inputs, eval_inputs_shape,
+                                            global_mesh, eval_inputs_pspecs)
         eval_loss, eval_metrics, eval_summary_tensors = run_eval_one_step(
             eval_inputs, eval_step, reshard_inputs=reshard_inputs)
         eval_loss = py_utils.maybe_unreplicate_gda(eval_loss)

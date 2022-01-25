@@ -106,8 +106,7 @@ def evaluate_pmap_model(
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
   model_states = trainer_lib.initialize_model_state(jax_model, init_key)
   # Pmap does not use GDA, and so global_mesh and mesh_axes are None.
-  model_states = checkpoints.restore_checkpoint(
-      model_states, checkpoint_dir, global_mesh=None, mesh_axes=None)
+  model_states = checkpoints.restore_checkpoint(model_states, checkpoint_dir)
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
   logging.info('replicated_model_states: %s',
                jax.tree_map(lambda x: x.shape, replicated_model_states))
@@ -181,8 +180,8 @@ def evaluate_pmap_model(
         new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
       # There must be a new checkpoint here.
       logging.info('Found new checkpoint: %s', new_checkpoint)
-      model_states = checkpoints.restore_checkpoint(
-          model_states, checkpoint_dir, global_mesh=None, mesh_axes=None)
+      model_states = checkpoints.restore_checkpoint(model_states,
+                                                    checkpoint_dir)
       replicated_model_states = trainer_lib.replicate_model_state(model_states)
       last_checkpoint = new_checkpoint
 
@@ -239,7 +238,6 @@ def evaluate_spmd_model(
         partitioned_train_state,
         checkpoint_task_dir,
         global_mesh=global_mesh,
-        mesh_axes=partitioned_specs,
         checkpoint_type=checkpoint_type,
         state_specs=partitioned_specs)
     logging.info('partitioned_train_state: %s',
@@ -302,7 +300,6 @@ def evaluate_spmd_model(
             partitioned_train_state,
             checkpoint_task_dir,
             global_mesh=global_mesh,
-            mesh_axes=partitioned_specs,
             checkpoint_type=checkpoint_type,
             state_specs=partitioned_specs)
         if multi_host_checkpointing:
@@ -448,11 +445,7 @@ def decode_pmap_model(
     jax_model = model_p.Instantiate()
     model_states = trainer_lib.initialize_model_state(jax_model, init_key)
     model_states = checkpoints.restore_checkpoint(
-        model_states,
-        restore_checkpoint_dir,
-        global_mesh=None,
-        mesh_axes=None,
-        step=restore_checkpoint_step)
+        model_states, restore_checkpoint_dir, step=restore_checkpoint_step)
     replicated_model_states = trainer_lib.replicate_model_state(model_states)
     logging.info('replicated_model_states: %s',
                  jax.tree_map(lambda x: x.shape, replicated_model_states))
@@ -476,11 +469,8 @@ def decode_pmap_model(
         time.sleep(60)
         new_checkpoint = checkpoints.latest_checkpoint(restore_checkpoint_dir)
       logging.info('Found new checkpoint: %s', new_checkpoint)
-      model_states = checkpoints.restore_checkpoint(
-          model_states,
-          restore_checkpoint_dir,
-          global_mesh=None,
-          mesh_axes=None)
+      model_states = checkpoints.restore_checkpoint(model_states,
+                                                    restore_checkpoint_dir)
       replicated_model_states = trainer_lib.replicate_model_state(model_states)
       last_checkpoint = new_checkpoint
 
@@ -669,17 +659,9 @@ def decode_once_spmd_model(
       CheckpointType.CHECKPOINT_MULTI_HOST_FLAX, CheckpointType.CHECKPOINT_GDA
   })
 
-  def get_shape_dtype(x):
-    # The sample input batch we are getting shape from is only from
-    # the current process. Manually scale this to the global batch size
-    # by assuming all the hosts infeed the same data.
-    assert len(x.shape) >= 1
-    x_shape = (x.shape[0] * jax.process_count(),) + x.shape[1:]
-    y = jax.ShapeDtypeStruct(x_shape, x.dtype)
-    return y
-
   sample_inputs = input_p[0].Instantiate().get_next()
-  inputs_shape = tf.nest.map_structure(get_shape_dtype, sample_inputs)
+  inputs_shape = tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
+                                       sample_inputs)
 
   # TODO(b/198356509): This is a hack for now as we need to change some
   # annotations for mode='decode'. A future cl will move this logic
@@ -707,7 +689,6 @@ def decode_once_spmd_model(
           partitioned_train_state,
           restore_checkpoint_dir,
           global_mesh=global_mesh,
-          mesh_axes=partitioned_specs,
           checkpoint_type=checkpoint_type,
           state_specs=partitioned_specs,
           step=restore_checkpoint_step)

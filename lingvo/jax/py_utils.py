@@ -17,13 +17,14 @@
 
 import dataclasses
 import functools
-from typing import Any, Sequence
+from typing import Any
 import zlib
 
 from absl import logging
 import flax
 import jax
 from jax.experimental import global_device_array as gda_lib
+from jax.experimental import maps
 import jax.numpy as jnp
 from lingvo.core import cluster
 from lingvo.core import hyperparams
@@ -182,19 +183,46 @@ def sync_global_devices(name: str) -> None:
                name, global_device_count)
 
 
-def put_arrays_on_device(x: np.ndarray) -> Sequence[jnp.ndarray]:
-  """Evenly device_put x to jax.local_devices().
+def create_gda(host_arrays: np.ndarray, global_shapes: jax.ShapeDtypeStruct,
+               global_mesh: maps.Mesh,
+               pspecs: Any) -> gda_lib.GlobalDeviceArray:
+  """Create GDA from host array.
 
   Evenly partitioning x along axis 0 and device_put shards to local devices.
 
   Args:
-    x: np.array to be device_put.
+    host_arrays: host-local arrays.
+    global_shapes: global shapes of the resultant GDA.
+    global_mesh: global mesh of the resultant GDA.
+    pspecs: partition specs of the resultant GDA.
 
   Returns:
-    A list of jnp.ndarray, one for each jax.local_devices().
+    A GDA with x as the host-local data.
   """
+
   local_devices = jax.local_devices()
-  per_device_arrays = np.split(x, len(local_devices), axis=0)
-  return [
-      jax.device_put(a, d) for a, d in zip(per_device_arrays, local_devices)
-  ]
+  local_device_count = jax.local_device_count()
+
+  def _put_to_devices(x):
+    per_device_arrays = np.split(x, local_device_count, axis=0)
+    device_buffers = [
+        jax.device_put(arr, d)
+        for arr, d in zip(per_device_arrays, local_devices)
+    ]
+    return device_buffers
+
+  device_buffers = jax.tree_map(_put_to_devices, host_arrays)
+
+  def _gda(global_shape, pspec, dbs):
+    return gda_lib.GlobalDeviceArray(global_shape.shape, global_mesh, pspec,
+                                     dbs)
+
+  return jax.tree_map(_gda, global_shapes, pspecs, device_buffers)
+
+
+def get_global_input_shape_dtype(x: jnp.ndarray) -> jax.ShapeDtypeStruct:
+  """Get global input shape/dtype assuming fully sharded batch dim."""
+  assert len(x.shape) >= 1
+  # Assume fully sharded batch dim.
+  x_shape = (x.shape[0] * jax.process_count(),) + x.shape[1:]
+  return jax.ShapeDtypeStruct(x_shape, x.dtype)
