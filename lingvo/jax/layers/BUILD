@@ -30,6 +30,7 @@ pytype_strict_library(
         ":recurrent",
         ":repeats",
         ":resnets",
+        ":spectrum_augmenter",
         ":stochastics",
         ":transformers",
         ":vanillanets",
@@ -280,6 +281,34 @@ pytype_strict_library(
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
+    ],
+)
+
+pytype_strict_library(
+    name = "spectrum_augmenter",
+    srcs = ["spectrum_augmenter.py"],
+    srcs_version = "PY3",
+    deps = [
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+    ],
+)
+
+py_strict_test(
+    name = "spectrum_augmenter_test",
+    srcs = ["spectrum_augmenter_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        # Implicit absl.testing.absltest dependency.
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:test_utils",
+        "//lingvo/jax/layers:spectrum_augmenter",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
