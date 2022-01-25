@@ -1830,6 +1830,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Left context should be at least one.&#39;</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="s1">&#39;Packed input not implemented yet.&#39;</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">block_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">block_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
       <span class="n">p</span><span class="o">.</span><span class="n">block_size</span> <span class="o">=</span> <span class="n">block_size</span> <span class="o">+</span> <span class="p">(</span><span class="o">-</span><span class="n">block_size</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="p">)</span>
@@ -1841,8 +1842,6 @@
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">query_stride</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
         <span class="sa">f</span><span class="s1">&#39;right_context(</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="si">}</span><span class="s1">) must be a multiple of &#39;</span>
         <span class="sa">f</span><span class="s1">&#39;query_stride(</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">query_stride</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
-
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="s1">&#39;Packed input not implemented yet.&#39;</span>
 
 <div class="viewcode-block" id="LocalSelfAttention._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BUTNH,BUSNH-&gt;BNUTS&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
@@ -2883,6 +2882,378 @@
           <span class="s1">&#39;inference_step_max_length must be same to the seq length of query.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span>
                               <span class="n">key_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention">[docs]</a><span class="k">class</span> <span class="nc">ChunkwiseSelfAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Dot-product self attention using a chunk (with optional context).</span>
+
+<span class="sd">  Different from LocalSelfAttention, where each query have exactly the same</span>
+<span class="sd">  attention span (except those on the bounary), chunkwise self-attention first</span>
+<span class="sd">  segments the input into equal-sized chunks and perform full attention within</span>
+<span class="sd">  the chunk, therefore the encoder will output the embedding in a chunkwise</span>
+<span class="sd">  manner. If left-context/right-context is both 0, then this is essentially</span>
+<span class="sd">  segmenting the input sequence into chunks, and perform attention independently</span>
+<span class="sd">  in each chunk. Setting left-context or right-context &gt; 0, allows information</span>
+<span class="sd">  flows across the chunk boundary.</span>
+
+<span class="sd">  Note about the attention span: if the chunking is performed without context,</span>
+<span class="sd">  then the total attention span is fixed regardless of the number of layers.</span>
+<span class="sd">  Once we have the left/right context, this context will leak through layers.</span>
+<span class="sd">  To prevent context leaking, see sec 2.2.4 in</span>
+<span class="sd">  https://arxiv.org/pdf/2010.10759.pdf; or do the chunking at input stage (see</span>
+<span class="sd">  https://arxiv.org/pdf/2005.08042.pdf). The point here is that to avoid context</span>
+<span class="sd">  leaking, those context frames must be recomputed using the same receiption</span>
+<span class="sd">  field as the current chunk.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="c1"># Implementation note: similar to local self attention, we use the following</span>
+  <span class="c1"># symbols to denote certain tensor shapes:</span>
+  <span class="c1"># B = batch size</span>
+  <span class="c1"># T = length of the query and S = T in this class</span>
+  <span class="c1"># W = chunk size</span>
+  <span class="c1"># L = left context size. Note to be compatible with LocalSelfAttention, the</span>
+  <span class="c1"># actual left context is L - 1.</span>
+  <span class="c1"># R = right context size.</span>
+  <span class="c1"># C = W + (L-1) + R</span>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;chunk_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Size of a processing chunk, must be at least 1&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;Number of left context frames. Note that to be compatible with &#39;</span>
+        <span class="s1">&#39;LocalSelfAttention, the actual left context frames is &#39;</span>
+        <span class="s1">&#39;left_context - 1, so left_context must &gt;= 1&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;right_context&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+        <span class="s1">&#39;Number of right context frames. Right_context must be greater or &#39;</span>
+        <span class="s1">&#39;equal to 0&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention._ParamCheck"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention._ParamCheck">[docs]</a>  <span class="k">def</span> <span class="nf">_ParamCheck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="n">chunk_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span>
+    <span class="k">if</span> <span class="n">chunk_size</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;chunk_size (</span><span class="si">{</span><span class="n">chunk_size</span><span class="si">}</span><span class="s1">) must be &gt;= 1&#39;</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">left_context</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span>
+    <span class="k">if</span> <span class="n">left_context</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;left_context (</span><span class="si">{</span><span class="n">left_context</span><span class="si">}</span><span class="s1">) must be &gt;= 1&#39;</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="n">right_context</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
+    <span class="k">if</span> <span class="n">right_context</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">msg</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;right_context (</span><span class="si">{</span><span class="n">right_context</span><span class="si">}</span><span class="s1">) must be &gt;= 0&#39;</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+      <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;packed_input is not supported for </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ParamCheck</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BUTNH,BUSNH-&gt;BNUTS&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention.AttenProbs"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention.AttenProbs">[docs]</a>  <span class="k">def</span> <span class="nf">AttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">query</span><span class="p">,</span>
+                 <span class="n">key</span><span class="p">,</span>
+                 <span class="n">paddings</span><span class="p">,</span>
+                 <span class="n">segment_mask</span><span class="p">,</span>
+                 <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute attention probability.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query:    [B, T, N, H].</span>
+<span class="sd">      key:      [B, S, N, H].</span>
+<span class="sd">      paddings: [B, S].</span>
+<span class="sd">      segment_mask: [B, 1, T, S] not used right now.</span>
+<span class="sd">      per_step_padding: Not used.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      probs: [B, N, U, W, C]</span>
+<span class="sd">      probs_sum: [B, N, U, W, 1].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">per_step_padding</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">])</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+
+    <span class="c1"># key is [B, T, N, H], reshape it to [B, T, N*H]</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">h</span><span class="p">])</span>
+
+    <span class="c1"># [B, T, N*H] -&gt; [B, U, C, N*H] -&gt; [B, U, C, N, H]</span>
+    <span class="c1"># [B, T] -&gt; [B, U, C]</span>
+    <span class="n">key_block_context</span><span class="p">,</span> <span class="n">paddings_block</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ExtractBlockContextV2</span><span class="p">(</span>
+        <span class="n">key</span><span class="p">,</span>
+        <span class="n">block_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span><span class="p">,</span>
+        <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span>
+        <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">,</span>
+        <span class="n">padding_val</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+        <span class="n">paddings</span><span class="o">=</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key_block_context</span><span class="p">)</span>
+    <span class="n">key_block_context</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">key_block_context</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+
+    <span class="c1"># [B, T, N, H] -&gt; [B, U, W, N, H]</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span>
+    <span class="n">query_blocks</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ConvertToBlocks</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">block_size</span><span class="o">=</span><span class="n">w</span><span class="p">)</span>
+
+    <span class="c1"># mask: [B, U, C] --&gt; [B, N, U, W, C]</span>
+    <span class="n">mask_block</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings_block</span>
+    <span class="n">mask_block</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">mask_block</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="n">paddings_block</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">mask_block</span>
+
+    <span class="c1"># einsum(&#39;BUWNH,BUCNH-&gt;BNUWC)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;atten_logits&#39;</span><span class="p">):</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenLogits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_blocks</span><span class="p">,</span> <span class="n">key_block_context</span><span class="p">)</span>
+      <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings_block</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span>
+                                            <span class="n">GetDtypeMin</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_scaling_code_motion</span><span class="p">:</span>
+      <span class="c1"># Split the softmax into two parts. Do the 1st part here; the 2nd part</span>
+      <span class="c1"># (scaling) is moved after _AttenContext for better performance.</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">padded_logits</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">probs</span><span class="p">),</span> <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">probs_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">Softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="n">extra_logit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_extra_logit</span><span class="p">),</span>
+          <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">probs_sum</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">return</span> <span class="n">probs</span><span class="p">,</span> <span class="n">probs_sum</span></div>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention._AttenContext"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention._AttenContext">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the attention context vector.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">     theta: Layer theta: NestedMap.</span>
+<span class="sd">     probs: Local-self-MultiHeaded Attention probabilities: [B, N, U, W, C].</span>
+<span class="sd">     value: Input value vector: [B, S=T, N, H].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">     encoded: Attention context vector: [B, T, N, H].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">value</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="c1"># [B, T, N, H] -&gt; [B, T, N*H] -&gt; [B, U, C, N*H] -&gt; [B, U, C, N, H]</span>
+    <span class="n">value_block_context</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ExtractBlockContextV2</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span> <span class="o">*</span> <span class="n">h</span><span class="p">]),</span>
+        <span class="n">block_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span><span class="p">,</span>
+        <span class="n">left_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span>
+        <span class="n">right_context</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">value_block_context</span><span class="p">)</span>
+    <span class="n">value_block_context</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">value_block_context</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+
+    <span class="c1"># Compute the attention context vector.</span>
+    <span class="c1"># [B, N, U, W, C],[B, U, C, N, H]-&gt; [B, U, W, N, H]</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNUWC,BUCNH-&gt;BUWNH&#39;</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value_block_context</span><span class="p">)</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">encoded</span><span class="p">)</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">u</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">encoded</span><span class="p">[:,</span> <span class="p">:</span><span class="n">t</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="k">return</span> <span class="n">encoded</span></div>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">query_vec</span><span class="p">,</span>
+            <span class="n">key_vec</span><span class="p">,</span>
+            <span class="n">value_vec</span><span class="p">,</span>
+            <span class="n">paddings</span><span class="p">,</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the value vector given the current query output.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query_vec: [B, T, D].</span>
+<span class="sd">      key_vec:   [B, S, D] with S == T (self-attention).</span>
+<span class="sd">      value_vec: [B, S, D] with S == T (self-attention).</span>
+<span class="sd">      paddings:  [B, S] with S == T (self-attention).</span>
+<span class="sd">      segment_mask: [B, 1, T, S]. A mask only applied if packed_input=True.</span>
+<span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
+<span class="sd">        information flow from future (causal padding). It has shape [B, T, T] if</span>
+<span class="sd">        not None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoded: [B, T, D].</span>
+<span class="sd">      probs: [B, N, U, W, C].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">d</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
+    <span class="n">value_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">value_vec</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">d</span><span class="p">])</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">])</span>
+    <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="p">,</span>
+        <span class="n">query_vec</span><span class="p">,</span>
+        <span class="n">key_vec</span><span class="p">,</span>
+        <span class="n">value_vec</span><span class="p">,</span>
+        <span class="n">paddings</span><span class="p">,</span>
+        <span class="n">segment_mask</span><span class="o">=</span><span class="n">segment_mask</span><span class="p">,</span>
+        <span class="n">per_step_padding</span><span class="o">=</span><span class="n">per_step_padding</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">query_vec</span><span class="p">,</span>
+                 <span class="n">cached_states</span><span class="p">,</span>
+                 <span class="n">paddings</span><span class="p">,</span>
+                 <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">time_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;Not implemented yet&#39;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="ChunkwiseSelfAttentionXL"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttentionXL">[docs]</a><span class="k">class</span> <span class="nc">ChunkwiseSelfAttentionXL</span><span class="p">(</span><span class="n">ChunkwiseSelfAttention</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Chunkwise Self Attention with relative position embedding.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttentionXL.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttentionXL.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rel_pos_emb_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Dimension of relative position embedding&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_term_b&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;If true, skip term b in the XL paper in secion 3.3&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid rel_pos_emb_dim: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">)</span>
+
+    <span class="n">emb_params</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">embedding_dim</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pos_emb&#39;</span><span class="p">,</span> <span class="n">emb_params</span><span class="p">)</span>
+
+    <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="n">pos_proj_param</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">dim_per_head</span><span class="o">=</span><span class="n">dim_per_head</span><span class="p">,</span>
+        <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pos_proj&#39;</span><span class="p">,</span> <span class="n">pos_proj_param</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttentionXL._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttentionXL._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="n">u_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">params</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">dim_per_head</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="n">v_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">params</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">dim_per_head</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="n">u_pc</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="n">v_pc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttentionXL._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttentionXL._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Given the q,k,v, calculate the attention logits with relative pos.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: a `.NestedMap` object.</span>
+<span class="sd">      query: [b, u, w, n, h] tensor</span>
+<span class="sd">      key: [b, u, c, n, h] tensor</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      attention_logits: [b, n, u, w, c] tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Note:</span>
+    <span class="c1">#</span>
+    <span class="c1"># The b, n, u axis are shared between query and key, so they are just</span>
+    <span class="c1"># batching dimension. Ignore them in the following math for simplication.</span>
+    <span class="c1"># Therefore,</span>
+    <span class="c1"># q is a [w, h] matrix and k is a [c, h] matrix.</span>
+    <span class="c1">#</span>
+    <span class="c1"># The general math equation is:</span>
+    <span class="c1"># a_ij = (q_i + u)^T k_j + (q_i + v)^T (W_pos x R_{i-j})</span>
+    <span class="c1"># or</span>
+    <span class="c1"># a_ij = (q_i + u)^T k_j +  v^T (W_pos x R_{i-j}) if skip_termb</span>
+    <span class="c1">#</span>
+    <span class="c1"># where q_i is the i-th row of query and k_j is the j-th row of key.</span>
+    <span class="c1">#</span>
+    <span class="c1"># The range of index j is [-(L-1), W-1+R]; the range of index i is [0, W-1].</span>
+    <span class="c1"># Therefore the minimum we can get for i-j = -(W+R-1); and the maximum we</span>
+    <span class="c1"># can get for i-j = W + L - 2.</span>
+    <span class="c1">#</span>
+    <span class="c1"># We first generate W_pos x [R_min, R_max] (shape: [H, M)) and rearrange</span>
+    <span class="c1"># it to the shape [H, W, C] using gather, where:</span>
+    <span class="c1"># min = -(W + R - 1)</span>
+    <span class="c1"># max = W + (L - 2)</span>
+    <span class="c1"># M = max - min + 1 = 2W + L + R - 2</span>
+    <span class="c1">#</span>
+    <span class="c1"># The gather indices looks like</span>
+    <span class="c1">#</span>
+    <span class="c1"># [</span>
+    <span class="c1">#  L-1 , ...,  0, ..., -(W-1),... -(W+R)   # for query&#39;s position 0</span>
+    <span class="c1">#  L, ....     1, ..., -(W-2) ... -(W+R-1) # for query&#39;s position 1</span>
+    <span class="c1">#  ...</span>
+    <span class="c1">#  L+W-2, ...  W-1,.., 0,     ... -R       # for query&#39;s position W-1</span>
+    <span class="c1"># ]</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+
+    <span class="n">l</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span>
+    <span class="k">assert</span> <span class="n">c</span> <span class="o">==</span> <span class="n">w</span> <span class="o">+</span> <span class="n">l</span> <span class="o">+</span> <span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;unexpected c </span><span class="si">{</span><span class="n">c</span><span class="si">}</span><span class="s1">&#39;</span>
+
+    <span class="c1"># 1. create a cxc matrix, whose i,j-th element is (i-j)</span>
+    <span class="c1">#   - kindx is a matrix like</span>
+    <span class="c1">#        [0, 1, ... , c-1]</span>
+    <span class="c1">#        [0, 1, ...,  c-1]</span>
+    <span class="c1">#        [...............]</span>
+    <span class="c1">#        [0, 1, ...,  c-1]</span>
+    <span class="c1">#   - qindx is a matrix like</span>
+    <span class="c1">#        [0, ...,    0]</span>
+    <span class="c1">#        [1, ...,    1]</span>
+    <span class="c1">#        [........... ]</span>
+    <span class="c1">#        [c-1,..., c-1]</span>
+    <span class="n">qindx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">c</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+    <span class="n">kindx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">qindx</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+    <span class="n">relative_dist</span> <span class="o">=</span> <span class="n">qindx</span> <span class="o">-</span> <span class="n">kindx</span>
+    <span class="c1"># 2. slice the cxc matrix to (w,c)</span>
+    <span class="n">relative_dist</span> <span class="o">=</span> <span class="n">relative_dist</span><span class="p">[</span><span class="n">l</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span><span class="n">l</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">w</span><span class="p">,</span> <span class="p">:]</span>
+
+    <span class="c1"># 3. reshape relative_dist to a (1, w*c)</span>
+    <span class="n">relative_dist</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">relative_dist</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">w</span> <span class="o">*</span> <span class="n">c</span><span class="p">))</span>
+    <span class="c1"># 4. convert to sin_emb ([1, w*c, pos_emb_dim] tensor)</span>
+    <span class="n">sin_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_emb</span><span class="o">.</span><span class="n">FPropWithPosition</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pos_emb</span><span class="p">,</span> <span class="n">relative_dist</span><span class="p">)</span>
+    <span class="c1"># 5. apply pos projection ([1, w*c, N, H] tensor)</span>
+    <span class="n">pos_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pos_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pos_proj</span><span class="p">,</span> <span class="n">sin_emb</span><span class="p">)</span>
+    <span class="c1"># 6. reshape sin_emb to a [W, C, N, H] tensor</span>
+    <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">pos_emb</span><span class="p">,</span> <span class="p">[</span><span class="n">w</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">skip_term_b</span><span class="p">:</span>
+      <span class="c1"># theta.v is a [N, H] tensor, query is a [B, U, W, N, H]</span>
+      <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BUWNH,WCNH-&gt;BNUWC&#39;</span><span class="p">,</span> <span class="n">query</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;NH,WCNH-&gt;NWC&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">u</span><span class="p">,</span> <span class="n">pos_emb</span><span class="p">)</span>
+      <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+      <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+
+    <span class="n">term_ac</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BUWNH,BUCNH-&gt;BNUWC&#39;</span><span class="p">,</span> <span class="n">query</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">u</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">term_ac</span> <span class="o">+</span> <span class="n">term_bd</span></div></div>
 
 
 <div class="viewcode-block" id="RoutingAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention">[docs]</a><span class="k">class</span> <span class="nc">RoutingAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
