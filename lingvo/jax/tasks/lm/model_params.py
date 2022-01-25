@@ -386,6 +386,7 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
     dropout_prob = self.DROPOUT_PROB
 
     model_p = model.LanguageModel.Params().Set(name='xformer_lm')
+    model_p.lm.model_dims = self.MODEL_DIMS
     model_p.lm.packed_input = True
     model_p.lm.vocab_size = self.VOCAB_SIZE
     model_p.lm.softmax_tpl.scale_sqrt_depth = True
