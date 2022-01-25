@@ -692,7 +692,7 @@ def partition_spmd_model_decode(
     mdl_params: InstantiableParams,
     init_key: PRNGKey,
     inputs_shape: NestedShapeDtypeStruct,
-) -> Tuple[TrainState, TrainState, DecodeFn]:
+) -> Tuple[TrainState, TrainState, TrainState, DecodeFn]:
   """Setup the SPMD model and return sharded decode step function.
 
   For partitioning inputs, it is assumed the `mdl_params` has a field
@@ -705,8 +705,10 @@ def partition_spmd_model_decode(
     inputs_shape: Shape of the inputs for use in pjit sharding.
 
   Returns:
-    (partitioned_train_state, train_state_partition_specs, decode_step_fn):
-    The partitioned TrainState, the corresponding partitioned TrainState
+    (partitioned_train_state, inputs_partition_spec,
+    train_state_partition_specs, decode_step_fn):
+    The partitioned TrainState, input partition spec, the corresponding
+    partitioned TrainState
     specs, the decode step function.
   """
   mesh_names = mdl_params.mesh_axis_names
@@ -757,4 +759,5 @@ def partition_spmd_model_decode(
       in_axis_resources=eval_fn_in_partition_specs,
       out_axis_resources=decode_fn_out_partition_specs)
 
-  return (partitioned_train_state, train_state_partition_specs, decode_step_fn)
+  return (partitioned_train_state, inputs_partition_spec,
+          train_state_partition_specs, decode_step_fn)

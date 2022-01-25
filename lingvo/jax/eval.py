@@ -617,11 +617,10 @@ def _decode_once_pmap_model(
     if not tf.io.gfile.exists(dir_path):
       tf.io.gfile.makedirs(dir_path)
   filenames = [os.path.join(basedir, s, filename) for s in dirnames]
-  if jax.process_index() == 0:
-    for split, output_file in enumerate(filenames):
-      logging.info('Writing decoder output to %s with %d entries', output_file,
-                   len(decodes[split]))
-      io_utils.WriteKeyValuePairs(output_file, decodes[split])
+  for split, output_file in enumerate(filenames):
+    logging.info('Writing decoder output to %s with %d entries', output_file,
+                 len(decodes[split]))
+    io_utils.WriteKeyValuePairs(output_file, decodes[split])
 
 
 def decode_once_spmd_model(
@@ -681,9 +680,9 @@ def decode_once_spmd_model(
   jax_model = model_p.Instantiate()
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
-    partitioned_train_state, partitioned_specs, decode_step_fn = (
-        trainer_lib.partition_spmd_model_decode(model_p, init_key,
-                                                inputs_shape))
+    (partitioned_train_state, inputs_partition_spec, partitioned_specs,
+     decode_step_fn) = trainer_lib.partition_spmd_model_decode(
+         model_p, init_key, inputs_shape)
     if restore_checkpoint_dir:
       partitioned_train_state = checkpoints.restore_checkpoint(
           partitioned_train_state,
@@ -725,6 +724,9 @@ def decode_once_spmd_model(
           batch = inputs[split].get_next()
         except (tf.errors.OutOfRangeError, StopIteration):
           break
+        if jax.config.jax_parallel_functions_output_gda:
+          batch = py_utils.create_gda(batch, inputs_shape, global_mesh,
+                                      inputs_partition_spec)
         _, out = spmd_decode_step_fn(batch)
         # Output is fully replicated now, so it's ok to unreplicate it by
         # retrieving from device 0 only.
@@ -756,7 +758,8 @@ def decode_once_spmd_model(
 
   basedir = os.path.join(job_log_dir, 'decoder_out')
   dirnames = _get_dir_names(input_p)
-  filename = _get_filename(partitioned_train_state.step)
+  filename = _get_filename(
+      py_utils.maybe_unreplicate_gda(partitioned_train_state.step))
   for s in dirnames:
     dir_path = os.path.join(basedir, s)
     if not tf.io.gfile.exists(dir_path):
