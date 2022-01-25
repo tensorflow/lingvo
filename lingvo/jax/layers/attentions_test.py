@@ -524,6 +524,41 @@ class AttentionsTest(test_util.JaxTestCase):
 
     self.assertEqual(atten_output.shape, (target_batch_size, mdl_dim))
 
+  @parameterized.parameters(
+      (5, 15, None, 0),
+      (4, 10, None, 3),
+      (8, 8, 3, None),
+      (9, 6, 3, 3),
+  )
+  def test_limited_context_mask_from_padding(self, batch_size, max_length,
+                                             left_context, right_context):
+
+    def get_padding_from_length(length):
+      idx = np.tile(np.arange(max_length), [batch_size, 1])
+      return (idx >= np.expand_dims(length, -1)).astype('float32')
+
+    length = np.random.randint(max_length // 2, max_length, [
+        batch_size,
+    ])
+    padding = jnp.asarray(get_padding_from_length(length))
+
+    result = attentions.limited_context_mask_from_padding(
+        padding, left_context, right_context)
+    expect = np.zeros((batch_size, 1, max_length, max_length))
+    for b in range(batch_size):
+      for t1 in range(max_length):
+        if t1 >= length[b]:
+          continue
+        start_p, end_p = 0, length[b]
+        if left_context is not None:
+          start_p = max(0, t1 - left_context + 1)
+        if right_context is not None:
+          end_p = min(length[b], t1 + right_context + 1)
+        expect[b, 0, t1, start_p:end_p] = 1.0
+    self.assertAllClose(
+        test_utils.to_np(result),
+        (1.0 - expect) * attentions._get_large_negative_number(jnp.float32))
+
 
 if __name__ == '__main__':
   absltest.main()

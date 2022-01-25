@@ -47,6 +47,43 @@ def _get_large_negative_number(dtype):
   return jnp.asarray(-0.7 * dtype_max, dtype=dtype)
 
 
+def limited_context_mask_from_padding(
+    paddings: JTensor,
+    left_context: int,
+    right_context: int,
+    dtype: jnp.dtype = jnp.float32) -> JTensor:
+  """Generates a logit mask from padding and window configuration.
+
+  left_context includes the current timestep and left
+  ones while right_context includes only future timesteps. None represents
+  infinity.
+
+  Args:
+    paddings: binary JTensor of shape [B, T], with 1 denoting padding token.
+    left_context: integer or None.
+    right_context: integer or None
+    dtype: data type of the output.
+
+  Returns:
+    A JTensor of shape [B, 1, T, T] ready to add to attention logits.
+  """
+  padding_mask = convert_paddings_to_mask(paddings)
+  rev_padding_mask = jnp.transpose(padding_mask, (0, 1, 3, 2))
+  large_negative_number = _get_large_negative_number(dtype)
+  t = paddings.shape[1]
+
+  if right_context is None:
+    right_context = t
+  if left_context is None:
+    left_context = t
+  col_idx = jnp.tile(jnp.arange(t)[jnp.newaxis, :], [t, 1])
+  row_idx = jnp.tile(jnp.arange(t)[:, jnp.newaxis], [1, t])
+  mask = (
+      (col_idx + left_context <= row_idx) |
+      (row_idx < col_idx - right_context)).astype(dtype) * large_negative_number
+  return jnp.minimum(jnp.minimum(mask, padding_mask), rev_padding_mask)
+
+
 def causal_mask(input_t: JTensor) -> JTensor:
   """Computes and returns causal mask.
 

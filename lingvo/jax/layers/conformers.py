@@ -63,6 +63,16 @@ class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
         'residual_dropout_tpl', stochastics.Dropout.Params(),
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
+    p.Define(
+        'left_context', None, 'Number of left positions to attend '
+        '(including current position).'
+        'If set, use a limited attention context from the left.'
+        'Otherwise if it is None, use all the frames in the left.')
+    p.Define(
+        'right_context', None, 'Number of right positions to attend.'
+        'If set, use a limited attention context from the right.'
+        'Otherwise if it is None, use all the frames in the right.'
+        'For causal, set it to 0.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -92,7 +102,11 @@ class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
     if p.pre_layer_norm:
       inputs = self.normalize(theta, inputs, paddings)
 
-    atten_mask = attentions.convert_paddings_to_mask(paddings, inputs.dtype)
+    if p.left_context is not None or p.right_context is not None:
+      atten_mask = attentions.limited_context_mask_from_padding(
+          paddings, p.left_context, p.right_context)
+    else:
+      atten_mask = attentions.convert_paddings_to_mask(paddings, inputs.dtype)
     result = self.self_atten.fprop(
         theta.self_atten,
         query_vec=inputs,
