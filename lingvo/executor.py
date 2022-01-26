@@ -97,7 +97,9 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
           tf.logging.fatal(
               'Could not find %s in ps_cfg.program_schedule_dict: %s', k,
               ps_cfg)
-        program_schedule_params = ps_cfg.program_schedule_dict[k]
+        # Add Copy in case a user is sharing the same ProgramSchedule params
+        # instance across different tasks.
+        program_schedule_params = ps_cfg.program_schedule_dict[k].Copy()
 
         program_schedule_params.task_dict = {'Train': train_task_params}
 
