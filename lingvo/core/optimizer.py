@@ -608,7 +608,11 @@ class DistributedShampoo(Base):
 
     Returns:
       The variable update op.
+
+    Raises:
+      RuntimeError: When `lr` is not a callable in Eager mode.
     """
+
     # In Graph mode, always re-create the optimizer to remain consistent with
     # the old logic for the Graph trainer.
     # TODO(jiaweix): Recreating optimizers in Graph mode seems unnecessary.
@@ -1157,7 +1161,7 @@ class GradientAggregationOptimizer(tf.train.Optimizer):
     self._apply_crs_to_grad = apply_crs_to_grad
 
   def _create_slots(self, var_list):
-    if not self._counter:
+    if self._counter is None:
       self._counter = tf.get_variable(
           shape=[], initializer=tf.zeros_initializer, name='update_count')
 
