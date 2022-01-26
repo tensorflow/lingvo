@@ -183,8 +183,7 @@ def latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
 def restore_checkpoint(
     train_state: train_states.TrainState,
     checkpoint_dir: str,
-    global_mesh: Optional[maps.Mesh],
-    mesh_axes: Optional[train_states.TrainState],
+    global_mesh: Optional[maps.Mesh] = None,
     checkpoint_type: CheckpointType = CheckpointType.CHECKPOINT_FLAX,
     state_specs: Optional[train_states.TrainState] = None,
     step: Optional[int] = None) -> train_states.TrainState:
@@ -196,11 +195,11 @@ def restore_checkpoint(
     train_state: The TrainState instance to restore.
     checkpoint_dir: The base directory from where to retrieve checkpoints.
     global_mesh: The global mesh representing devices across multiple processes.
-    mesh_axes: The PartitionSpec fo train_state.
     checkpoint_type: The checkpoint type (implementation) to restore. Either
       `CHECKPOINT_FLAX`, `CHECKPOINT_MULTI_HOST_FLAX`, `CHECKPOINT_GDA` or
       `CHECKPOINT_PERSISTENCE`.
-    state_specs: Currently unused.
+    state_specs: If using a GDA-based checkpoint, the partition specs
+      corresponding to this TrainState instance to restore.
     step: Step number to load a checkpoint from or None to load the latest.
 
   Returns:
@@ -210,12 +209,10 @@ def restore_checkpoint(
     ValueError: When a mismatch between the current checkpoint structure and
     the saved checkpoint one is detected.
   """
-  del state_specs  # Unused.
-
   if jax.config.jax_parallel_functions_output_gda:
     asserts.eq(checkpoint_type, CheckpointType.CHECKPOINT_GDA)
     return _restore_checkpoint_gda(train_state, checkpoint_dir, global_mesh,
-                                   mesh_axes, step)
+                                   state_specs, step)
 
   if train_state.step.ndim != 0:
     raise ValueError('Expecting an unreplicated scalar global step (got '
@@ -444,7 +441,7 @@ def _restore_checkpoint_gda(
     train_state: train_states.TrainState,
     checkpoint_dir: str,
     global_mesh: Optional[maps.Mesh],
-    mesh_axes: Optional[train_states.TrainState],
+    state_specs: Optional[train_states.TrainState],
     step: Optional[int] = None) -> train_states.TrainState:
   """Restores a checkpoint using JAX GDA deserialization mechanism."""
   if not tf.io.gfile.exists(checkpoint_dir) or not tf.io.gfile.listdir(
@@ -480,7 +477,7 @@ def _restore_checkpoint_gda(
 
   logging.info('GDA checkpoint restore started...')
   leaves, treedef = jax.tree_util.tree_flatten(train_state)
-  partition_spec_leaves, _ = jax.tree_util.tree_flatten(mesh_axes)
+  partition_spec_leaves, _ = jax.tree_util.tree_flatten(state_specs)
 
   nested_names = _extract_nested_prefix_names(train_state)
   flattened_nested_names, _ = jax.tree_util.tree_flatten(nested_names)
