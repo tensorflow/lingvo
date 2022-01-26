@@ -162,7 +162,9 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
               <span class="s1">&#39;Could not find </span><span class="si">%s</span><span class="s1"> in ps_cfg.program_schedule_dict: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span>
               <span class="n">ps_cfg</span><span class="p">)</span>
-        <span class="n">program_schedule_params</span> <span class="o">=</span> <span class="n">ps_cfg</span><span class="o">.</span><span class="n">program_schedule_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+        <span class="c1"># Add Copy in case a user is sharing the same ProgramSchedule params</span>
+        <span class="c1"># instance across different tasks.</span>
+        <span class="n">program_schedule_params</span> <span class="o">=</span> <span class="n">ps_cfg</span><span class="o">.</span><span class="n">program_schedule_dict</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
         <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">task_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Train&#39;</span><span class="p">:</span> <span class="n">train_task_params</span><span class="p">}</span>
 
