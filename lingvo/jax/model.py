@@ -70,8 +70,15 @@ def compute_xent_loss_helper(
       training example, where the first dimension of each tensor is the batch
       index. The base class just returns an empty dict.
   """
-  labels = input_batch.labels
-  weights = input_batch.weights
+  if 'tgt' in input_batch:
+    labels = input_batch.tgt.labels
+    if 'paddings' in input_batch.tgt:
+      weights = 1.0 - input_batch.tgt.paddings
+    else:
+      weights = jnp.not_equal(input_batch.tgt.segment_ids, 0)
+  else:
+    labels = input_batch.labels
+    weights = input_batch.weights
   predicted_labels = predictions.per_example_argmax.astype(labels.dtype)
   num_preds = predictions.total_weight
   mean_acc = jnp.sum(
@@ -479,10 +486,20 @@ class LanguageModel(BaseTask):
                           input_batch: NestedMap) -> Predictions:
     """Computes predictions for `input_batch`."""
     p = self.params
+    if 'tgt' in input_batch:
+      input_batch = input_batch.tgt
+
+    if 'paddings' in input_batch:
+      paddings = input_batch.paddings
+    else:
+      paddings = jnp.equal(input_batch.segment_ids, 0)
+
+    if 'weights' in input_batch:
+      weights = input_batch.weights
+    else:
+      weights = 1.0 - paddings
     inputs = input_batch.ids
-    paddings = input_batch.paddings
-    labels = NestedMap(
-        class_ids=input_batch.labels, class_weights=input_batch.weights)
+    labels = NestedMap(class_ids=input_batch.labels, class_weights=weights)
     if p.lm.packed_input:
       packed_input_kwargs = {
           'segment_ids': input_batch.segment_ids,

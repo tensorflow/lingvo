@@ -1196,7 +1196,7 @@ class StackedTransformer(base_layer.BaseLayer):
 
     p = cls.Params()
     p.name = name
-    p.enable_while_loop = True
+    p.enable_while_loop = False
     p.packed_input = True
     p.num_layers_per_block = 2 if moe else 1
     p.num_blocks = 1
@@ -1218,6 +1218,8 @@ class StackedTransformer(base_layer.BaseLayer):
     tr_atten_tpl.use_bias = False
     tr_atten_tpl.internal_gshard_gaussian_init = True
     tr_atten_tpl.internal_enable_per_dim_scale = False
+    assert tr_atten_tpl.proj_tpl.cls == attentions.AttentionProjection
+    tr_atten_tpl.proj_tpl.attention_combine_dims = True
     tr_atten_tpl.relative_bias_tpl = attentions.RelativeBias.Params().Set(
         relative_attention_num_buckets=relative_attention_num_buckets,
         relative_attention_max_distance=relative_attention_max_distance)
@@ -1344,7 +1346,7 @@ class StackedTransformer(base_layer.BaseLayer):
       p_i.residual_dropout_prob = p.dropout_prob
       p_i.relu_dropout_prob = p.dropout_prob
       p_i.hidden_dims = p.hidden_dims
-      if i in p.moe_layers:
+      if p.moe_layers and i in p.moe_layers:
         assert p.num_experts > 0
         moe_p = p.moe_layer_tpl.Copy()
         moe_p.num_experts = p.num_experts

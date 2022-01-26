@@ -409,6 +409,10 @@ class AttentionProjection(base_layer.BaseLayer):
         '"...NH,DNH->...D" for output projection.')
     p.Define('use_bias', True, 'If to add bias in projection.')
     p.Define(
+        'attention_combine_dims', False,
+        'The heads and key/value dimensions are combined in the variables '
+        'and the computation.')
+    p.Define(
         'use_nhd_shape', False,
         'If to use NHD shape for the variable, useful for dot attention output '
         'layer.')
@@ -420,15 +424,27 @@ class AttentionProjection(base_layer.BaseLayer):
     wp = p.weight_split_dims_mapping
     if p.device_mesh is not None:
       assert wp.wt is not None, self.path
-    pc_shape = [p.input_dim, p.num_heads, p.dim_per_head]
+    if p.attention_combine_dims:
+      assert not p.use_bias
+      hd_shape = [p.num_heads * p.dim_per_head]
+    else:
+      hd_shape = [p.num_heads, p.dim_per_head]
+
+    if (p.attention_combine_dims and isinstance(wp.wt, list) and
+        len(wp.wt) == 3):
+      wt = [axis for axis in wp.wt if axis is not None]
+      assert len(wt) == 2
+    else:
+      wt = wp.wt
+    pc_shape = [p.input_dim] + hd_shape
     if p.is_output_projection and p.use_nhd_shape:
-      pc_shape = [p.num_heads, p.dim_per_head, p.input_dim]
+      pc_shape = hd_shape + [p.input_dim]
     pc = weight_params(
         shape=pc_shape,
         init=p.params_init,
         dtype=p.dtype,
         device_mesh=p.device_mesh,
-        tensor_split_dims_mapping=wp.wt)
+        tensor_split_dims_mapping=wt)
     self.create_variable('w', pc)
     if p.use_bias:
       if p.is_output_projection:
@@ -481,6 +497,13 @@ class AttentionProjection(base_layer.BaseLayer):
     rank = len(shape)
 
     inputs = self._cast_to_fprop_dtype(inputs)
+    if p.attention_combine_dims:
+      pc_shape = [p.input_dim, p.num_heads, p.dim_per_head]
+      if p.is_output_projection and p.use_nhd_shape:
+        pc_shape = [p.num_heads, p.dim_per_head, p.input_dim]
+      w = jnp.reshape(theta.w, pc_shape)
+    else:
+      w = theta.w
 
     if p.is_output_projection:
       assert shape[-2:] == (p.num_heads, p.dim_per_head)
@@ -494,7 +517,7 @@ class AttentionProjection(base_layer.BaseLayer):
           f'Expecting shape[-1] == p.input_dim, {shape[-1]} != {p.input_dim}')
       batch_eqn = eqn_sym[:(rank - 1)] if rank else '...'
       eqn = f'{batch_eqn}D,DNH->{batch_eqn}NH'
-    ret = jnp.einsum(eqn, inputs, theta.w)
+    ret = jnp.einsum(eqn, inputs, w)
     if p.use_bias:
       ret += theta.b
     return ret

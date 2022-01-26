@@ -1443,6 +1443,7 @@ class TransformersTest(test_util.JaxTestCase):
         model_dim=d_model,
         attention_key_value_dim=d_model // num_heads,
         attention_num_heads=num_heads,
+        attention_combine_dims=True,
         c_dim=c_dim,
         capacity_factor=None,
         attention_extra_logit=0.0,
