@@ -258,16 +258,20 @@ class _ModelRegistryHelper:
     cfg = model_params_obj.Model()
     if dataset_name:
       cfg.input = model_params_obj.GetDatasetParams(dataset_name)
-      # Overwrite dataset specific Task parameters for SingleTaskModel.
-      if isinstance(model_params_obj, base_model_params.SingleTaskModelParams):
-        try:
-          dataset_task_params = model_params_obj.GetDatasetParams('Task_' +
-                                                                  dataset_name)
-          # Overwrite task params with dataset specific ones.
+      # Overwrite dataset specific Task parameters.
+      try:
+        dataset_task_params = model_params_obj.GetDatasetParams('Task_' +
+                                                                dataset_name)
+        # Overwrite task params with dataset specific ones.
+        if isinstance(model_params_obj,
+                      base_model_params.SingleTaskModelParams):
           cfg.task = dataset_task_params
-        except base_model_params.DatasetError:
-          tf.logging.info('No dataset specific task parameters for %s',
-                          dataset_name)
+        elif isinstance(model_params_obj,
+                        base_model_params.MultiTaskModelParams):
+          cfg.task_params = dataset_task_params
+      except base_model_params.DatasetError:
+        tf.logging.info('No dataset specific task parameters for %s',
+                        dataset_name)
 
     cls.MaybeUpdateParamsFromFlags(cfg)
     return cfg
