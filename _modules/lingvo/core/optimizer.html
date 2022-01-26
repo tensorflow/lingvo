@@ -673,7 +673,11 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The variable update op.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      RuntimeError: When `lr` is not a callable in Eager mode.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+
     <span class="c1"># In Graph mode, always re-create the optimizer to remain consistent with</span>
     <span class="c1"># the old logic for the Graph trainer.</span>
     <span class="c1"># TODO(jiaweix): Recreating optimizers in Graph mode seems unnecessary.</span>
@@ -1222,7 +1226,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_apply_crs_to_grad</span> <span class="o">=</span> <span class="n">apply_crs_to_grad</span>
 
 <div class="viewcode-block" id="GradientAggregationOptimizer._create_slots"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer._create_slots">[docs]</a>  <span class="k">def</span> <span class="nf">_create_slots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_counter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">initializer</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_initializer</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;update_count&#39;</span><span class="p">)</span>
 
