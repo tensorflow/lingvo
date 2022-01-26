@@ -323,16 +323,20 @@
     <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_params_obj</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">dataset_name</span><span class="p">:</span>
       <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params_obj</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
-      <span class="c1"># Overwrite dataset specific Task parameters for SingleTaskModel.</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_params_obj</span><span class="p">,</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
-        <span class="k">try</span><span class="p">:</span>
-          <span class="n">dataset_task_params</span> <span class="o">=</span> <span class="n">model_params_obj</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="s1">&#39;Task_&#39;</span> <span class="o">+</span>
-                                                                  <span class="n">dataset_name</span><span class="p">)</span>
-          <span class="c1"># Overwrite task params with dataset specific ones.</span>
+      <span class="c1"># Overwrite dataset specific Task parameters.</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="n">dataset_task_params</span> <span class="o">=</span> <span class="n">model_params_obj</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="s1">&#39;Task_&#39;</span> <span class="o">+</span>
+                                                                <span class="n">dataset_name</span><span class="p">)</span>
+        <span class="c1"># Overwrite task params with dataset specific ones.</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_params_obj</span><span class="p">,</span>
+                      <span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
           <span class="n">cfg</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">dataset_task_params</span>
-        <span class="k">except</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">DatasetError</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No dataset specific task parameters for </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                          <span class="n">dataset_name</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">model_params_obj</span><span class="p">,</span>
+                        <span class="n">base_model_params</span><span class="o">.</span><span class="n">MultiTaskModelParams</span><span class="p">):</span>
+          <span class="n">cfg</span><span class="o">.</span><span class="n">task_params</span> <span class="o">=</span> <span class="n">dataset_task_params</span>
+      <span class="k">except</span> <span class="n">base_model_params</span><span class="o">.</span><span class="n">DatasetError</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;No dataset specific task parameters for </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                        <span class="n">dataset_name</span><span class="p">)</span>
 
     <span class="bp">cls</span><span class="o">.</span><span class="n">MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
