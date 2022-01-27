@@ -325,8 +325,8 @@ class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
 
   def compute_z_loss(self, logits):
     """Returns a z_loss regularization which stablize logits."""
-    logits = jax.lax.stop_gradient(logits)
-    max_logit = jnp.max(logits, axis=-1, keepdims=True)
+    # Applies stop_gradient to max_logit instead of logits.
+    max_logit = jax.lax.stop_gradient(jnp.max(logits, axis=-1, keepdims=True))
     exp_x = jnp.exp(logits - max_logit)
     sum_exp_x = jnp.sum(exp_x, axis=-1, keepdims=True)
     log_z = jnp.log(sum_exp_x) + max_logit

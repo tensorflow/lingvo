@@ -948,8 +948,8 @@ class DotProductAttention(base_layer.BaseLayer):
     Returns:
       Log softmax with extra logit value.
     """
-    logits = jax.lax.stop_gradient(logits)
-    max_logit = jnp.max(logits, axis=-1, keepdims=True)
+    # Applies stop_gradient to max_logit instead of logits.
+    max_logit = jnp.max(jax.lax.stop_gradient(logits), axis=-1, keepdims=True)
     extra_logit = self.params.attention_extra_logit
     if extra_logit is not None:
       extra_logit = jnp.asarray(extra_logit, dtype=max_logit.dtype)
