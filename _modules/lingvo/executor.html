@@ -346,6 +346,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_programs</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_to_load</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">:</span>
@@ -367,6 +368,10 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;program_schedule_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
                         <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">ps</span><span class="o">.</span><span class="n">train_program</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ps</span><span class="o">.</span><span class="n">train_program</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span>
         <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;checkpoint_to_load&#39;</span> <span class="ow">in</span> <span class="n">program_schedule_params</span> <span class="ow">and</span>
@@ -405,7 +410,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
 
-      <span class="n">checkpointer_models</span> <span class="o">=</span> <span class="p">[</span><span class="n">program</span><span class="o">.</span><span class="n">GetModel</span><span class="p">()</span> <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">]</span>
+      <span class="n">checkpointer_models</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">program</span><span class="o">.</span><span class="n">GetModel</span><span class="p">()</span> <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_programs</span>
+      <span class="p">]</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_v2_checkpoints_in_eager</span><span class="p">:</span>
