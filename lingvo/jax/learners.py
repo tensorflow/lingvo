@@ -27,6 +27,7 @@ from lingvo.jax import pytypes
 import optax
 import tensorflow.compat.v2 as tf
 
+JTensor = jnp.ndarray
 NestedMap = py_utils.NestedMap
 NestedJTensor = base_layer.NestedJTensor
 NestedBool = base_layer.NestedBool
@@ -62,6 +63,10 @@ class Learner(base_layer.BaseLayer):
         'Whether to vectorize optimizers on the repeat_prefix dims of the '
         'variables. This allows stacking variables of different layers while '
         'not affecting the behavior of optimizers like Adafactor.')
+    p.Define(
+        'skip_step_gradient_norm_value', 0.0,
+        'If non-zero, we skip a step entirely if gradient_norm exceeds '
+        'this value.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -87,7 +92,7 @@ class Learner(base_layer.BaseLayer):
     return opt_vec.get_transformations_with_vectorized_repeat_prefix(
         self._grad_tx, var_weight_params)
 
-  def scale_gradients(self, raw_grads: NestedMap) -> NestedMap:
+  def scale_gradients(self, raw_grads: NestedMap) -> Tuple[NestedMap, JTensor]:
     """Scales the gradient.
 
     Args:
@@ -95,6 +100,9 @@ class Learner(base_layer.BaseLayer):
 
     Returns:
      A nested structure with the rescaled gradient values.
+     A predicate tensor indicating whether the step is valid, i.e., it does not
+       have anomaly detected (e.g. Nan or Inf, or excessively big gradient norm)
+       and should not be skipped.
     """
     p = self.params
     learner_name = self.params.name
@@ -116,7 +124,7 @@ class Learner(base_layer.BaseLayer):
     base_layer.add_summary(f'{learner_name}/grad_norm', raw_grad_norm)
 
     def keep_step(grad_norm):
-      keep_threshold = p.optimizer.skip_step_gradient_norm_value
+      keep_threshold = p.skip_step_gradient_norm_value
       if keep_threshold:
         return jnp.logical_and(
             jnp.all(jnp.isfinite(grad_norm)),
@@ -150,22 +158,13 @@ class Learner(base_layer.BaseLayer):
         grad_scale = jnp.array(1.0)
       return grads, grad_scale
 
-    def zero_grads(grads, grad_norm):
-      del grad_norm
-      return jax.tree_map(jnp.zeros_like, grads), jnp.array(0.0)
-
-    # jax.lax.cond zeros out gradient if any gradient anomaly is detected (e.g.
-    # Nan or Inf, or excessively big gradient norm).
-    #
-    # TODO(yonghui): Move grad scaling as an optax transformation so that we can
-    # keep track of how many steps being skipped.
-    grads, grad_scale = jax.lax.cond(
-        keep_step(raw_grad_norm), clip_grads, zero_grads, raw_grads,
-        raw_grad_norm)
-
+    # Mark the step as invalid if any gradient anomaly is detected (e.g. Nan or
+    # Inf, or excessively big gradient norm).
+    valid_step = keep_step(raw_grad_norm)
+    grads, grad_scale = clip_grads(raw_grads, raw_grad_norm)
     base_layer.add_summary('grad_scale', grad_scale)
 
-    return grads
+    return grads, valid_step
 
   def update_states(
       self, grads: NestedMap, states: optax.OptState, old_vars: NestedJTensor,
@@ -181,8 +180,16 @@ class Learner(base_layer.BaseLayer):
     Returns:
       transformed_grad, new_states pair.
     """
-    grads = self.scale_gradients(grads)
-    return self.get_grad_tx(var_weight_params).update(grads, states, old_vars)
+    grads, valid_step = self.scale_gradients(grads)
+    transformed_grad, new_states = self.get_grad_tx(var_weight_params).update(
+        grads, states, old_vars)
+    # Set grads to 0 if the step is invalid.
+    transformed_grad = jax.tree_map(
+        lambda x: jnp.where(valid_step, x, jnp.zeros_like(x)), transformed_grad)
+    # Keep the old state if the step is invalid.
+    new_states = jax.tree_map(lambda x, y: jnp.where(valid_step, x, y),
+                              new_states, states)
+    return transformed_grad, new_states
 
   def apply_gradient(
       self,
@@ -346,6 +353,13 @@ class MultiOptimizerLearner(Learner):
     Returns:
       transformed_grad, new_states pair.
     """
-    grads = self.scale_gradients(grads)
+    grads, valid_step = self.scale_gradients(grads)
     grad_tx = self.get_grad_tx(var_weight_params)
-    return grad_tx.update(grads, states, old_vars)
+    transformed_grad, new_states = grad_tx.update(grads, states, old_vars)
+    # Set grads to 0 if the step is invalid.
+    transformed_grad = jax.tree_map(
+        lambda x: jnp.where(valid_step, x, jnp.zeros_like(x)), transformed_grad)
+    # Keep the old state if the step is invalid.
+    new_states = jax.tree_map(lambda x, y: jnp.where(valid_step, x, y),
+                              new_states, states)
+    return transformed_grad, new_states

@@ -60,7 +60,7 @@ class LearnersTest(test_util.JaxTestCase):
         grad2=jnp.array([g2], dtype=jnp.float32))
 
     with base_layer.JaxContext.new_context():
-      transformed_grads = learner_instance.scale_gradients(grads)
+      transformed_grads, _ = learner_instance.scale_gradients(grads)
 
     global_norm = np.linalg.norm([g1a, g1b, g2])
     local_norm1 = np.linalg.norm([g1a, g1b])
