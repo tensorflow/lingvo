@@ -15,7 +15,6 @@
 # ==============================================================================
 """Checkpointing-related utilities to handle TrainState instances."""
 
-import asyncio
 from concurrent import futures
 import datetime
 import os
@@ -417,11 +416,7 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
   tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
   leaves, _ = jax.tree_util.tree_flatten(train_state)
 
-  async def run_serializer():
-    future_writer = jax.tree_map(gda_serialization.async_serialize, ckpt_paths,
-                                 leaves, tspecs)
-    return await asyncio.gather(*future_writer)
-  asyncio.run(run_serializer())
+  gda_serialization.run_serialization(ckpt_paths, leaves, tspecs)
 
   # Note we must barrier across all processes before the directory rename.
   py_utils.sync_global_devices('Wait for checkpoint chunk writes to '
@@ -486,16 +481,11 @@ def _restore_checkpoint_gda(
       os.path.join(checkpoint_step_dir, x).rstrip('/')
       for x in flattened_nested_names
   ]
+  tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
 
-  async def run_deserializer():
-    tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec,
-                          ckpt_paths)
-    future_gdas = jax.tree_map(gda_serialization.async_deserialize, ckpt_paths,
-                               [global_mesh] * len(leaves),
-                               partition_spec_leaves, tspecs)
-    return await asyncio.gather(*future_gdas)
+  train_state_gda = gda_serialization.run_deserialization(
+      ckpt_paths, [global_mesh] * len(leaves), partition_spec_leaves, tspecs)
 
-  train_state_gda = asyncio.run(run_deserializer())
   restored_train_state = jax.tree_util.tree_unflatten(treedef, train_state_gda)
   # Barrier across all processes to ensure all restore finish.
   py_utils.sync_global_devices('Wait for checkpoint restore from '
