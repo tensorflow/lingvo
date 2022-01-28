@@ -183,6 +183,38 @@
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.metrics.UniqueAverageMetric">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">UniqueAverageMetric</span></span><a class="reference internal" href="_modules/lingvo/core/metrics.html#UniqueAverageMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.UniqueAverageMetric" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.AverageMetric" title="lingvo.core.metrics.AverageMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.AverageMetric</span></code></a></p>
+<p>Computes average metric on keyed results to ensure unique counts.</p>
+<p>This implementation’s Update field takes in a <code class="xref py py-obj docutils literal notranslate"><span class="pre">key</span></code> argument that allows
+tracking of per-key values.  If a previously seen key is provided, this
+implementation checks that the previous value is the same as the current
+value for that key to help flag issues with non-determinism, and ensures
+that the final value reflects an average over unique keys only.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.metrics.UniqueAverageMetric.Update">
+<span class="sig-name descname"><span class="pre">Update</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#UniqueAverageMetric.Update"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.UniqueAverageMetric.Update" title="Permalink to this definition"></a></dt>
+<dd><p>Updates this metric (e.g. accumulates statistics) from the arguments.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.metrics.UniqueAverageMetric.Summary">
+<span class="sig-name descname"><span class="pre">Summary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#UniqueAverageMetric.Summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.UniqueAverageMetric.Summary" title="Permalink to this definition"></a></dt>
+<dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – A string to use as the summary value tag.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code> proto.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.F1Metric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">F1Metric</span></span><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
