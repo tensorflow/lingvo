@@ -400,6 +400,25 @@ p.num_hyps_per_beam.</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder._PostprocessSample">
+<span class="sig-name descname"><span class="pre">_PostprocessSample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sample</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_tpu</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder._PostprocessSample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder._PostprocessSample" title="Permalink to this definition"></a></dt>
+<dd><p>Add topk_hyps, topk_ids, topk_lens, topk_scores tensors to <code class="xref py py-obj docutils literal notranslate"><span class="pre">sample</span></code>.</p>
+<p>These features are required by <a class="reference internal" href="lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sample</strong> – a NestedMap with <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#id" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">id</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">paddings</span></code>, and <code class="xref py py-obj docutils literal notranslate"><span class="pre">logits</span></code> fields.</p></li>
+<li><p><strong>is_tpu</strong> – whether inference is being run on TPU.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>sample with additional feature that matches <a class="reference internal" href="lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchDecodeOutput" title="lingvo.core.beam_search_helper.BeamSearchDecodeOutput"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BeamSearchDecodeOutput</span></code></a>
+requirements. <code class="xref py py-obj docutils literal notranslate"><span class="pre">topk_hyps</span></code> is empty.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_decoder.BaseBeamSearchDecoder.SampleTargetSequences">
 <span class="sig-name descname"><span class="pre">SampleTargetSequences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.SampleTargetSequences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.SampleTargetSequences" title="Permalink to this definition"></a></dt>
 <dd><p>Performs target sequence sampling.</p>
