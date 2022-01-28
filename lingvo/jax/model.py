@@ -76,6 +76,7 @@ def compute_xent_loss_helper(
       weights = 1.0 - input_batch.tgt.paddings
     else:
       weights = jnp.not_equal(input_batch.tgt.segment_ids, 0)
+    weights = weights.astype(labels.dtype)
   else:
     labels = input_batch.labels
     weights = input_batch.weights
@@ -492,12 +493,14 @@ class LanguageModel(BaseTask):
     if 'paddings' in input_batch:
       paddings = input_batch.paddings
     else:
-      paddings = jnp.equal(input_batch.segment_ids, 0)
+      paddings = jnp.equal(input_batch.segment_ids, 0).astype(self.fprop_dtype)
 
     if 'weights' in input_batch:
       weights = input_batch.weights
     else:
       weights = 1.0 - paddings
+      weights = weights.astype(self.fprop_dtype)
+
     inputs = input_batch.ids
     labels = NestedMap(class_ids=input_batch.labels, class_weights=weights)
     if p.lm.packed_input:
