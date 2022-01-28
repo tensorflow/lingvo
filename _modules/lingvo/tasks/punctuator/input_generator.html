@@ -136,9 +136,6 @@
 <span class="sd">  - tgt.paddings: float32 paddings of shape [batch, p.target_max_length].</span>
 <span class="sd">  - tgt.weights: float32 weights of shape [batch, p.target_max_length]. Weights</span>
 <span class="sd">    are generally 1.0 - paddings and are used for loss computation.</span>
-<span class="sd">  - source_id: int32 id of the current datasource. This is used when mixing</span>
-<span class="sd">    multiple datasources such as with TFDatasetMixer to indicate which</span>
-<span class="sd">    datasource each example originates from for debugging purposes.</span>
 <span class="sd">  - bucket_keys: int32 value used for bucketing. This is set automatically by</span>
 <span class="sd">    TFDatasetBatchBySequenceLength, and is for debugging purposes.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -280,7 +277,7 @@
 <span class="sd">      key: The NestedMap key to return shape for.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;source_id&#39;</span><span class="p">,</span> <span class="s1">&#39;bucket_keys&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="o">==</span> <span class="s1">&#39;bucket_keys&#39;</span><span class="p">:</span>
       <span class="k">return</span> <span class="p">()</span>
     <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;src.&#39;</span><span class="p">):</span>
       <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">]</span>
