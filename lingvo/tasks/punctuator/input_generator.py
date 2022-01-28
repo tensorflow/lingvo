@@ -71,9 +71,6 @@ class PunctuatorInput(base_input_generator.BaseInputGenerator):
   - tgt.paddings: float32 paddings of shape [batch, p.target_max_length].
   - tgt.weights: float32 weights of shape [batch, p.target_max_length]. Weights
     are generally 1.0 - paddings and are used for loss computation.
-  - source_id: int32 id of the current datasource. This is used when mixing
-    multiple datasources such as with TFDatasetMixer to indicate which
-    datasource each example originates from for debugging purposes.
   - bucket_keys: int32 value used for bucketing. This is set automatically by
     TFDatasetBatchBySequenceLength, and is for debugging purposes.
   """
@@ -215,7 +212,7 @@ class PunctuatorInput(base_input_generator.BaseInputGenerator):
       key: The NestedMap key to return shape for.
     """
     p = self.params
-    if key in ('source_id', 'bucket_keys'):
+    if key == 'bucket_keys':
       return ()
     if key.startswith('src.'):
       return [p.source_max_length]
