@@ -1582,6 +1582,8 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase,
     self.assertAllEqual(expected_values['topk_lens'], actual_decode.topk_lens)
     self.assertAllClose(expected_values['topk_scores'],
                         actual_decode.topk_scores)
+    # Expect tf.string for CPU sampling output.
+    self.assertEqual(tf.string, actual_decode.topk_hyps.dtype)
 
   def testSampleSequenceDecode(self, dtype=tf.float32):
     expected_values = {}

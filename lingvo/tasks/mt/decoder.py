@@ -1875,38 +1875,7 @@ class TransformerDecoder(MTBaseDecoder):
     tf.logging.info('sample.logits=%r', sample.logits)
     tf.logging.info('sample.paddings=%r', sample.paddings)
 
-    bs = tf.shape(sample.ids)[0]
-    num_hyps_per_beam = p.target_sequence_sampler.num_hyps_per_beam
-    sample.topk_hyps = tf.zeros([bs], dtype=tf.string if non_tpu else tf.int32)
-    sample.topk_hyps = tf.reshape(sample.topk_hyps, [-1, num_hyps_per_beam])
-
-    sample.topk_ids = sample.ids
-    weights = 1 - sample.paddings
-    sample.topk_lens = tf.cast(tf.reduce_sum(weights, axis=1), dtype=tf.int32)
-    sample.topk_scores = tf.reduce_sum(
-        tf.math.log(tf.reduce_max(tf.nn.softmax(sample.logits), axis=2)) *
-        weights,
-        axis=1)
-
-    # At this point batch dimension is (batch_size*num_hyps_per_beam),
-    # interleaved as [num_hyps_per_beam, batch_size].
-    # This does not match the order expected by beam search post-processing.
-    # Must transpose to [batch_size, num_hyps_per_beam] and flatten back.
-    max_len = tf.shape(sample.topk_ids)[1]
-    sample.topk_ids = tf.reshape(sample.topk_ids,
-                                 [num_hyps_per_beam, -1, max_len])
-    sample.topk_ids = tf.transpose(sample.topk_ids, perm=[1, 0, 2])
-    sample.topk_ids = tf.reshape(sample.topk_ids, [bs, max_len])
-
-    # The same for topk_lens and topk_scores
-    sample.topk_lens = tf.reshape(sample.topk_lens, [num_hyps_per_beam, -1])
-    sample.topk_lens = tf.transpose(sample.topk_lens, [1, 0])
-    sample.topk_lens = tf.reshape(sample.topk_lens, [-1])
-
-    sample.topk_scores = tf.reshape(sample.topk_scores, [num_hyps_per_beam, -1])
-    sample.topk_scores = tf.transpose(sample.topk_scores, [1, 0])
-    sample.topk_scores = tf.reshape(sample.topk_scores, [-1])
-
+    sample = self._PostprocessSample(sample, not non_tpu)
     return sample
 
   def _InitBeamSearchStateCallback(self, theta, encoder_outputs,
