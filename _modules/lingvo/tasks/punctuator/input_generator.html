@@ -83,20 +83,109 @@
 <span class="kn">import</span> <span class="nn">string</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">generic_input</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tokenizers</span>
 
 
-<div class="viewcode-block" id="PunctuatorInput"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput">[docs]</a><span class="k">class</span> <span class="nc">PunctuatorInput</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseSequenceInputGenerator</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Reads text line by line and processes them for the punctuator task.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="TextLines"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.TextLines">[docs]</a><span class="k">class</span> <span class="nc">TextLines</span><span class="p">(</span><span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetSource</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a tf.data.Dataset containing lines from a text file.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TextLines.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.TextLines.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;file_pattern&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A file pattern string.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shuffle_buffer_size&#39;</span><span class="p">,</span> <span class="mi">10000</span><span class="p">,</span>
+             <span class="s1">&#39;Number of records buffered for random shuffling.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TextLines.GetDataset"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.TextLines.GetDataset">[docs]</a>  <span class="k">def</span> <span class="nf">GetDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;A file pattern must be provided.&#39;</span><span class="p">)</span>
+    <span class="n">file_pattern_glob</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ShardedFilePatternToGlob</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">list_files</span><span class="p">(</span>
+        <span class="n">file_pattern_glob</span><span class="p">,</span>
+        <span class="n">shuffle</span><span class="o">=</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">require_sequential_input_order</span><span class="p">)</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TextLineDataset</span><span class="p">(</span>
+        <span class="n">dataset</span><span class="p">,</span>
+        <span class="n">num_parallel_reads</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">in_unit_test</span> <span class="k">else</span>
+                            <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">require_sequential_input_order</span><span class="p">:</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">shuffle_buffer_size</span><span class="p">,</span> <span class="n">reshuffle_each_iteration</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">repeat</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">dataset</span></div></div>
+
+
+<div class="viewcode-block" id="PunctuatorInput"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput">[docs]</a><span class="k">class</span> <span class="nc">PunctuatorInput</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reads text line by line and processes them for the punctuator task.</span>
+
+<span class="sd">  Input batches are NestedMaps containing:</span>
+
+<span class="sd">  - src.ids: int32 source word-piece ids of shape [batch, p.source_max_length].</span>
+<span class="sd">  - src.paddings: float32 paddings of shape [batch, p.source_max_length] where</span>
+<span class="sd">    paddings == 0.0 if the position is part of the input and 1.0 if the position</span>
+<span class="sd">    is padding.</span>
+<span class="sd">  - tgt.ids: int32 target word-piece ids of shape [batch, p.target_max_length].</span>
+<span class="sd">  - tgt.labels = int32 target label word-piece ids of shape</span>
+<span class="sd">    [batch, p.target_max_length]. The difference between labels and ids is that</span>
+<span class="sd">    ids include the sos (start of sequence) token in the front and labels</span>
+<span class="sd">    include the eos (end of sequence) token in the end.</span>
+<span class="sd">  - tgt.paddings: float32 paddings of shape [batch, p.target_max_length].</span>
+<span class="sd">  - tgt.weights: float32 weights of shape [batch, p.target_max_length]. Weights</span>
+<span class="sd">    are generally 1.0 - paddings and are used for loss computation.</span>
+<span class="sd">  - source_id: int32 id of the current datasource. This is used when mixing</span>
+<span class="sd">    multiple datasources such as with TFDatasetMixer to indicate which</span>
+<span class="sd">    datasource each example originates from for debugging purposes.</span>
+<span class="sd">  - bucket_keys: int32 value used for bucketing. This is set automatically by</span>
+<span class="sd">    TFDatasetBatchBySequenceLength, and is for debugging purposes.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="PunctuatorInput.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params for PunctuatorInput.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span> <span class="o">=</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">WpmTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">TextLines</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tokenizer&#39;</span><span class="p">,</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">WpmTokenizer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Tokenizer params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_max_length&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;The maximum length of the source sequence.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_max_length&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;The maximum length of the target sequence.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bucket_upper_bound&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Bucketing scheme. Required to be&#39;</span>
+        <span class="s1">&#39;a sorted list of integers. Examples that are longer than all bucket&#39;</span>
+        <span class="s1">&#39;upper bounds are skipped.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Desired per-split batch size per bucket. &#39;</span>
+        <span class="s1">&#39;Must be the same length as bucket_upper_bound.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;tokenizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tokenizer</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PunctuatorInput.CreateDatasource"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput.CreateDatasource">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDatasource</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CustomTFDatasetTransform</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="s1">&#39;_Process&#39;</span><span class="p">)</span>
+    <span class="c1"># See documentation for TFDatasetBatchBySequenceLength for the specifics of</span>
+    <span class="c1"># how the bucketing process works.</span>
+    <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">TFDatasetBatchBySequenceLength</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">sub</span><span class="o">=</span><span class="n">ds</span><span class="p">,</span>
+        <span class="n">seqlen_fn</span><span class="o">=</span><span class="s1">&#39;_GetSequenceLength&#39;</span><span class="p">,</span>
+        <span class="n">input_shape_fn</span><span class="o">=</span><span class="s1">&#39;_InputShape&#39;</span><span class="p">,</span>
+        <span class="n">input_padding_fn</span><span class="o">=</span><span class="s1">&#39;_InputPaddingValue&#39;</span><span class="p">,</span>
+        <span class="n">bucket_upper_bound</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">,</span>
+        <span class="n">bucket_batch_limit</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="o">=</span> <span class="n">ds</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">CreateDatasource</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PunctuatorInput._Process"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput._Process">[docs]</a>  <span class="k">def</span> <span class="nf">_Process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Processes the dataset containing individual lines.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ProcessLine</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_map_args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PunctuatorInput._ProcessLine"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput._ProcessLine">[docs]</a>  <span class="k">def</span> <span class="nf">_ProcessLine</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">line</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A single-text-line processor.</span>
@@ -110,14 +199,22 @@
 <span class="sd">      line: a 1D string tensor.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A list of tensors, in the expected order by __init__.</span>
+<span class="sd">      A NestedMap containing the processed example.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Tokenize the input into integer ids.</span>
     <span class="c1"># tgt_ids has the start-of-sentence token prepended, and tgt_labels has the</span>
     <span class="c1"># end-of-sentence token appended.</span>
-    <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">([</span><span class="n">line</span><span class="p">]))</span>
+    <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">([</span><span class="n">line</span><span class="p">]),</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">)</span>
+    <span class="c1"># Because StringsToIds requires a vector but _ProcessLine is called for</span>
+    <span class="c1"># individual lines, we need to manually remove the batch dimension.</span>
+    <span class="n">tgt_ids</span> <span class="o">=</span> <span class="n">tgt_ids</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">tgt_labels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="n">tgt_paddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
+    <span class="c1"># This normalization function produces the &quot;source&quot; text from which the</span>
+    <span class="c1"># Punctuator task is trained to reproduce the original &quot;target&quot; text.</span>
     <span class="k">def</span> <span class="nf">Normalize</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
       <span class="c1"># Lowercase and remove punctuation.</span>
       <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span><span class="o">.</span><span class="n">translate</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">string</span><span class="o">.</span><span class="n">punctuation</span><span class="o">.</span><span class="n">encode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">))</span>
@@ -126,46 +223,17 @@
       <span class="k">return</span> <span class="n">line</span>
 
     <span class="n">normalized_line</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">py_func</span><span class="p">(</span><span class="n">Normalize</span><span class="p">,</span> <span class="p">[</span><span class="n">line</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">stateful</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">src_labels</span><span class="p">,</span> <span class="n">src_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">([</span><span class="n">normalized_line</span><span class="p">]),</span> <span class="n">is_source</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">src_labels</span><span class="p">,</span> <span class="n">src_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">([</span><span class="n">normalized_line</span><span class="p">]),</span> <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">)</span>
+    <span class="c1"># Because StringsToIds requires a vector but _ProcessLine is called for</span>
+    <span class="c1"># individual lines, we need to manually remove the batch dimension.</span>
+    <span class="n">src_labels</span> <span class="o">=</span> <span class="n">src_labels</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">src_paddings</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="c1"># The model expects the source without a start-of-sentence token.</span>
     <span class="n">src_ids</span> <span class="o">=</span> <span class="n">src_labels</span>
-
-    <span class="c1"># Compute the length for bucketing.</span>
-    <span class="n">bucket_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">src_paddings</span><span class="p">),</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt_paddings</span><span class="p">))),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">tgt_weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt_paddings</span>
 
-    <span class="c1"># Return tensors in an order consistent with __init__.</span>
-    <span class="n">out_tensors</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">src_ids</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_weights</span>
-    <span class="p">]</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">out_tensors</span><span class="p">],</span> <span class="n">bucket_key</span></div>
-
-<div class="viewcode-block" id="PunctuatorInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create the input processing op.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      file_pattern: The file pattern to use as input.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      an operation that when executed, calls `_ProcessLine` on a line read</span>
-<span class="sd">    from `file_pattern`.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-
-    <span class="p">(</span><span class="n">src_ids</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span>
-     <span class="n">tgt_weights</span><span class="p">),</span> <span class="n">ret</span><span class="o">.</span><span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
-         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
-         <span class="n">processor</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ProcessLine</span><span class="p">,</span>
-         <span class="c1"># Pad dimension 0 to the same length.</span>
-         <span class="n">dynamic_padding_dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span>
-         <span class="c1"># The constant values to use for padding each of the outputs.</span>
-         <span class="n">dynamic_padding_constants</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-         <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span>
 
     <span class="n">ret</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">src_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -176,8 +244,64 @@
     <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_labels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">tgt_weights</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tgt_paddings</span>
+    <span class="k">return</span> <span class="n">ret</span></div>
 
-    <span class="k">return</span> <span class="n">ret</span></div></div>
+<div class="viewcode-block" id="PunctuatorInput._GetSequenceLength"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput._GetSequenceLength">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSequenceLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">example</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns sequence length for the example NestedMap from the dataset.</span>
+
+<span class="sd">    This function is used by the TFDatasetBatchBySequenceLength DataSource to</span>
+<span class="sd">    obtain the key used for bucketing. Bucketing separates examples into</span>
+<span class="sd">    groups before batching, such that each batch contains only examples within a</span>
+<span class="sd">    certain length.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      example: A NestedMap containing an input example. Tensors in the example</span>
+<span class="sd">        do not have a leading batch dimension.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An integer sequence length for the example.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">example</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">example</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">))),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PunctuatorInput._InputShape"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput._InputShape">[docs]</a>  <span class="k">def</span> <span class="nf">_InputShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the final shape of the tensor corresponding to key as a tuple.</span>
+
+<span class="sd">    The shape should not include a leading batch dimension.</span>
+
+<span class="sd">    This function is used by the TFDatasetBatchBySequenceLength DataSource to</span>
+<span class="sd">    specify the shape for each key in an example. Because sequence examples are</span>
+<span class="sd">    of different lengths, they need to be padded to a common shape for batching.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      key: The NestedMap key to return shape for.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;source_id&#39;</span><span class="p">,</span> <span class="s1">&#39;bucket_keys&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="p">()</span>
+    <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;src.&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;tgt.&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">]</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unexpected key </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PunctuatorInput._InputPaddingValue"><a class="viewcode-back" href="../../../../lingvo.tasks.punctuator.input_generator.html#lingvo.tasks.punctuator.input_generator.PunctuatorInput._InputPaddingValue">[docs]</a>  <span class="k">def</span> <span class="nf">_InputPaddingValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">tensorspec</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a scalar value to pad the tensor corresponding to key with.</span>
+
+<span class="sd">    This function is used by the TFDatasetBatchBySequenceLength DataSource to</span>
+<span class="sd">    specify the value used for padding.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      key: The NestedMap key to return padding value for.</span>
+<span class="sd">      tensorspec: a tf.TensorSpec describing the tensor to be padded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;_paddings&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensorspec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tensorspec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

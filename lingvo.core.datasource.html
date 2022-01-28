@@ -443,6 +443,12 @@ generator (could be TF data based) that creates/owns this datasource.</p>
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.datasource.</span></span><span class="sig-name descname"><span class="pre">TFDatasetBatchBySequenceLength</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetBatchBySequenceLength"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetBatchBySequenceLength" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.datasource.TFDatasetTransform" title="lingvo.core.datasource.TFDatasetTransform"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.datasource.TFDatasetTransform</span></code></a></p>
 <p>Batches examples without a leading batch dimension by length buckets.</p>
+<p>Examples in the dataset are assumed to be NestedMaps.</p>
+<p>This will create an element ‘bucket_keys’ in each example containing the
+result of running p.seqlen_fn on the example.</p>
+<p>On TPU, the final partial batch will be dropped. Note that this only applies
+to finite datasets. During training, where dataset.repeat() is usually called,
+there will be no such thing as a final partial batch.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.datasource.TFDatasetBatchBySequenceLength.Params">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/datasource.html#TFDatasetBatchBySequenceLength.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.datasource.TFDatasetBatchBySequenceLength.Params" title="Permalink to this definition"></a></dt>
