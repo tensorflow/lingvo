@@ -113,6 +113,58 @@ class AverageMetric(BaseMetric):
             self._total_weight if self._total_weight > 0 else 0)
 
 
+class UniqueAverageMetric(AverageMetric):
+  """Computes average metric on keyed results to ensure unique counts.
+
+  This implementation's Update field takes in a `key` argument that allows
+  tracking of per-key values.  If a previously seen key is provided, this
+  implementation checks that the previous value is the same as the current
+  value for that key to help flag issues with non-determinism, and ensures
+  that the final value reflects an average over unique keys only.
+  """
+
+  def __init__(self):
+    super().__init__()
+    self._stored_values = {}
+
+  def Update(self, key, value, weight=1.0):
+    prev_value = self._stored_values.get(key, None)
+
+    if prev_value is not None:
+      # Check that value is equal to curr_value, and raise
+      # an error if not equal.
+      #
+      # We may want to make the tolerances configurable via ConfigurableMetric.
+      if not np.isclose(prev_value, value):
+        raise ValueError(f'Previously stored value `{prev_value}` for {key} '
+                         f'differs from current value `{value}`')
+      # Values match, ignore current update.
+      return
+
+    self._stored_values[key] = value
+    return super().Update(value, weight)
+
+  def Summary(self, name):
+    """Converts the current state of this metric to a `tf.Summary`.
+
+    Args:
+      name: A string to use as the summary value tag.
+
+    Returns:
+      A `tf.Summary` proto.
+    """
+    summary = tf.Summary(value=[
+        tf.Summary.Value(tag=name, simple_value=self.value),
+        tf.Summary.Value(
+            tag=name + '/total_count', simple_value=len(self._stored_values)),
+        tf.Summary.Value(
+            tag=name + '/total_value', simple_value=self._total_value),
+        tf.Summary.Value(
+            tag=name + '/total_weight', simple_value=self._total_weight),
+    ])
+    return summary
+
+
 class F1Metric(BaseMetric):
   """Class to compute F1 metrics."""
 

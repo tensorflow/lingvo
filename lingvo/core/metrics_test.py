@@ -29,19 +29,45 @@ class MetricsTest(test_utils.TestCase):
     m.Update(1.0)
     m.Update(2.0, 10.0)
 
-    self.assertEqual(1.0 + 2.0*10.0, m.total_value)
-    expected_average = (1.0 + 2.0*10.0) / (1.0 + 10.0)
+    self.assertEqual(1.0 + 2.0 * 10.0, m.total_value)
+    expected_average = (1.0 + 2.0 * 10.0) / (1.0 + 10.0)
     self.assertEqual(expected_average, m.value)
 
     name = 'metric_name'
     self.assertEqual(
-        tf.Summary(value=[tf.Summary.Value(tag=name,
-                                           simple_value=expected_average)]),
+        tf.Summary(
+            value=[tf.Summary.Value(tag=name, simple_value=expected_average)]),
         m.Summary(name))
 
     # Calling m.Summary() does not reset statistics.
     m.Update(1.0)
-    self.assertEqual(1.0 + 2.0*10.0 + 1.0, m.total_value)
+    self.assertEqual(1.0 + 2.0 * 10.0 + 1.0, m.total_value)
+
+  def testUniqueAverageMetric(self):
+    m = metrics.UniqueAverageMetric()
+    m.Update('a', 1.0)
+    m.Update('b', 2.0, 10.0)
+
+    with self.assertRaises(ValueError):
+      # Different value for 'a' than the previous one.
+      m.Update('a', 2.0)
+
+    # Duplicate update is ignored.
+    m.Update('a', 1.0)
+
+    self.assertEqual(1.0 + 2.0 * 10.0, m.total_value)
+
+    expected_average = (1.0 + 2.0 * 10.0) / (1.0 + 10.0)
+    self.assertEqual(expected_average, m.value)
+
+    name = 'metric_name'
+    self.assertEqual(
+        tf.Summary(value=[
+            tf.Summary.Value(tag=name, simple_value=expected_average),
+            tf.Summary.Value(tag=name + '/total_count', simple_value=2),
+            tf.Summary.Value(tag=name + '/total_value', simple_value=21.),
+            tf.Summary.Value(tag=name + '/total_weight', simple_value=11.),
+        ]), m.Summary(name))
 
   def testF1Metric(self):
     m = metrics.F1Metric()
@@ -56,8 +82,8 @@ class MetricsTest(test_utils.TestCase):
 
     name = 'my_f1_metric'
     self.assertEqual(
-        tf.Summary(value=[tf.Summary.Value(tag=name,
-                                           simple_value=expected_f1)]),
+        tf.Summary(
+            value=[tf.Summary.Value(tag=name, simple_value=expected_f1)]),
         m.Summary(name))
 
   def testMCCMetric(self):
