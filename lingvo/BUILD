@@ -272,6 +272,7 @@ py_test(
         "nomsan",
         "notsan",
         "optonly",
+        "requires-net:external",
     ],
     deps = [
         ":base_trial",
