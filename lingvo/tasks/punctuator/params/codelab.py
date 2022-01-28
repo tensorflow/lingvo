@@ -40,9 +40,7 @@ class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
 
   def Train(self):
     p = input_generator.PunctuatorInput.Params()
-    p.file_pattern = 'text:' + os.path.join(self._DATADIR, 'train.txt')
-    p.file_random_seed = 0  # Do not use a fixed seed.
-    p.file_parallelism = 1  # We only have a single input file.
+    p.file_datasource.file_pattern = os.path.join(self._DATADIR, 'train.txt')
 
     # The bucket upper bound specifies how to split the input into buckets. We
     # train on sequences up to maximum bucket size and discard longer examples.
@@ -71,14 +69,7 @@ class BrownCorpusWPM(base_model_params.SingleTaskModelParams):
   # There is also a Dev method for dev set params, but we don't have a dev set.
   def Test(self):
     p = input_generator.PunctuatorInput.Params()
-    p.file_pattern = 'text:' + os.path.join(self._DATADIR, 'test.txt')
-    p.file_random_seed = 27182818  # Fix random seed for testing.
-    # The following two parameters are important if there's more than one input
-    # file. For this codelab it doesn't actually matter.
-    p.file_parallelism = 1  # Avoid randomness in testing.
-    # In order to make exactly one pass over the dev/test sets, we set buffer
-    # size to 1. Greater numbers may cause inaccurate dev/test scores.
-    p.file_buffer_size = 1
+    p.file_datasource.file_pattern = os.path.join(self._DATADIR, 'test.txt')
 
     p.bucket_upper_bound = [10, 20, 30, 60, 120, 200]
     p.bucket_batch_limit = [16] * 4 + [4] * 2

@@ -37,8 +37,8 @@ class RNMTModel(mt_model.RNMTModel):
   def _InferenceSubgraph_Default(self):
     with tf.name_scope('inference'):
       src_strings = tf.placeholder(tf.string, shape=[None])
-      _, src_ids, src_paddings = self.input_generator.StringsToIds(
-          src_strings, is_source=True)
+      _, src_ids, src_paddings = self.input_generator.tokenizer.StringsToIds(
+          src_strings, self.input_generator.params.source_max_length)
 
       src_input_map = py_utils.NestedMap(ids=src_ids, paddings=src_paddings)
       encoder_outputs = self.enc.FPropDefaultTheta(src_input_map)
@@ -49,7 +49,8 @@ class RNMTModel(mt_model.RNMTModel):
       topk_lens = decoder_outs.topk_lens
 
       # topk_lens - 1 to remove the EOS id.
-      topk_decoded = self.input_generator.IdsToStrings(topk_ids, topk_lens - 1)
+      topk_decoded = self.input_generator.tokenizer.IdsToStrings(
+          topk_ids, topk_lens - 1)
       topk_decoded = tf.reshape(topk_decoded, tf.shape(topk_hyps))
 
       feeds = py_utils.NestedMap({'src_strings': src_strings})

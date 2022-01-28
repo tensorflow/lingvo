@@ -12,7 +12,7 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
-        "//lingvo/core:generic_input",
+        "//lingvo/core:datasource",
         "//lingvo/core:py_utils",
         "//lingvo/core:tokenizers",
     ],
@@ -31,7 +31,6 @@ py_test(
     deps = [
         ":input_generator",
         "//lingvo:compat",
-        "//lingvo/core:base_input_generator",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",

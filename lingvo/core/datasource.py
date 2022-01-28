@@ -628,7 +628,17 @@ class TFDSInput(TFDatasetSource):
 
 
 class TFDatasetBatchBySequenceLength(TFDatasetTransform):
-  """Batches examples without a leading batch dimension by length buckets."""
+  """Batches examples without a leading batch dimension by length buckets.
+
+  Examples in the dataset are assumed to be NestedMaps.
+
+  This will create an element 'bucket_keys' in each example containing the
+  result of running p.seqlen_fn on the example.
+
+  On TPU, the final partial batch will be dropped. Note that this only applies
+  to finite datasets. During training, where dataset.repeat() is usually called,
+  there will be no such thing as a final partial batch.
+  """
 
   @classmethod
   def Params(cls):
@@ -645,8 +655,10 @@ class TFDatasetBatchBySequenceLength(TFDatasetTransform):
         'input_padding_fn', '_InputPaddingValue',
         'Name of input_generator function that takes a tensor name and '
         'tensorspec and returns the value to pad with.')
-    p.Define('bucket_upper_bound', [], 'Bucketing scheme. Required to be'
-             'a sorted list of integers.')
+    p.Define(
+        'bucket_upper_bound', [], 'Bucketing scheme. Required to be a '
+        'sorted list of integers. Examples that exceed bucket_upper_bound[-1] '
+        'will be filtered out.')
     p.Define(
         'bucket_batch_limit', [], 'Desired per-split batch size per bucket. '
         'Must be the same length as bucket_upper_bound.')

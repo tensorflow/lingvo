@@ -17,7 +17,6 @@
 
 import string
 import lingvo.compat as tf
-from lingvo.core import base_input_generator
 from lingvo.core import py_utils
 from lingvo.core import test_helper
 from lingvo.core import test_utils
@@ -28,14 +27,11 @@ class InputGeneratorTest(test_utils.TestCase):
 
   def _CreatePunctuatorInputParams(self):
     p = input_generator.PunctuatorInput.Params()
-    input_file = 'text:' + test_helper.test_src_dir_path(
-        'tasks/lm/testdata/lm1b_100.txt')
+    input_file = test_helper.test_src_dir_path('tasks/lm/testdata/lm1b_100.txt')
     p.tokenizer.vocab_filepath = test_helper.test_src_dir_path(
         'tasks/punctuator/params/brown_corpus_wpm.16000.vocab')
     p.tokenizer.vocab_size = 16000
-    p.file_pattern = input_file
-    p.file_random_seed = 314
-    p.file_parallelism = 1
+    p.file_datasource.file_pattern = input_file
     p.source_max_length = 200
     p.target_max_length = 200
     p.bucket_upper_bound = [20, 40]
@@ -55,7 +51,6 @@ class InputGeneratorTest(test_utils.TestCase):
     p = self._CreatePunctuatorInputParams()
     with self.session(use_gpu=False):
       inp = input_generator.PunctuatorInput(p)
-      tokenizer = inp.tokenizer_dict[base_input_generator.DEFAULT_TOKENIZER_KEY]
 
       fetched = py_utils.NestedMap(
           self.evaluate(inp.GetPreprocessedInputBatch()))
@@ -72,10 +67,10 @@ class InputGeneratorTest(test_utils.TestCase):
           None, string.punctuation.encode('utf-8'))
       normalized_ref = b' '.join(normalized_ref.split())
       _, expected_src_ids, _ = self.evaluate(
-          tokenizer.StringsToIds(
+          inp.tokenizer.StringsToIds(
               tf.convert_to_tensor([normalized_ref]), max_length=max_length))
       expected_tgt_ids, expected_tgt_labels, _ = self.evaluate(
-          tokenizer.StringsToIds(
+          inp.tokenizer.StringsToIds(
               tf.convert_to_tensor([expected_ref]), max_length=max_length))
 
       self.assertAllEqual(expected_src_ids[0], source_ids[0, :max_length])

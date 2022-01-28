@@ -36,9 +36,7 @@ class PunctuatorModelTest(test_utils.TestCase):
     p.tokenizer.vocab_filepath = test_helper.test_src_dir_path(
         'tasks/punctuator/params/brown_corpus_wpm.16000.vocab')
     p.tokenizer.vocab_size = 16000
-    p.file_pattern = 'text:' + input_file
-    p.file_random_seed = 31415
-    p.file_parallelism = 1
+    p.file_datasource.file_pattern = input_file
     p.bucket_upper_bound = [40]
     p.bucket_batch_limit = [4]
     p.source_max_length = 40
