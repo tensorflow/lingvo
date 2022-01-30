@@ -67,8 +67,12 @@ def _make_checkpoint_step_dir(
   return os.path.join(checkpoint_dir, f'{CHECKPOINT_PREFIX}{step:08d}')
 
 
-def _make_tmp_checkpoint_dir(checkpoint_dir: str, step: int) -> str:
+def _make_tmp_checkpoint_dir(checkpoint_dir: str,
+                             step: int,
+                             sync_timestamp: bool = False) -> str:
   timestamp = _to_timestamp(datetime.datetime.utcnow())
+  if sync_timestamp:
+    timestamp = py_utils.broadcast_scalar_global_devices(timestamp)
   tmp_prefix = f'{TMP_PREFIX}{timestamp}'
   return os.path.join(checkpoint_dir,
                       f'{tmp_prefix}.{CHECKPOINT_PREFIX}{step:08d}')
@@ -396,7 +400,8 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
         return
 
   checkpoint_step_dir = _make_checkpoint_step_dir(checkpoint_dir, step)
-  checkpoint_step_tmp_dir = _make_tmp_checkpoint_dir(checkpoint_dir, step)
+  checkpoint_step_tmp_dir = _make_tmp_checkpoint_dir(
+      checkpoint_dir, step, sync_timestamp=True)
   logging.info('Saving to a tmp checkpoint dir %s', checkpoint_step_tmp_dir)
 
   nested_names = _extract_nested_prefix_names(train_state)

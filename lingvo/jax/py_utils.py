@@ -183,6 +183,23 @@ def sync_global_devices(name: str) -> None:
                name, global_device_count)
 
 
+def _broadcast_scalar_global_devices_f(x: jnp.ndarray) -> jnp.ndarray:
+  return jax.lax.psum(x, 'i')
+
+
+def broadcast_scalar_global_devices(value: Any, dtype=jnp.int32) -> Any:
+  """Broadcasts a scalar from host 0 to all other devices."""
+  if jax.process_index() == 0:
+    inputs = jnp.array(
+        [value] + [0] * (jax.local_device_count() - 1), dtype=dtype)
+  else:
+    inputs = jnp.zeros(shape=[jax.local_device_count()], dtype=dtype)
+  array = jax.device_get(
+      jax.pmap(_broadcast_scalar_global_devices_f, 'i')(inputs))
+  # The elements of `array` are all identical. Retrieve the first one.
+  return array.item(0)
+
+
 def create_gda(host_arrays: np.ndarray, global_shapes: jax.ShapeDtypeStruct,
                global_mesh: maps.Mesh,
                pspecs: Any) -> gda_lib.GlobalDeviceArray:
