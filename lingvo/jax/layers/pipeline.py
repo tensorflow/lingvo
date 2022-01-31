@@ -15,8 +15,7 @@
 # ==============================================================================
 """GSPMD pipeline parallelism implementations."""
 
-from typing import Any
-
+from absl import logging
 import jax
 from jax import numpy as jnp
 from lingvo.jax import base_layer
@@ -78,6 +77,18 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
         'single_stage_body', None,
         'Single Stage body. A leading num_stages dimension will be added '
         'automatically by the pipeline layer.')
+    # Set either num_microbatches or microbatch_size for input microbatching.
+    p.Define(
+        'num_microbatches', None,
+        'If not None, the input is not yet microbatched, and will be reshaped '
+        'to [num_microbatches, microbatch_size] here.')
+    p.Define(
+        'microbatch_size', None,
+        'If not None, the input is not yet microbatched, and will be reshaped '
+        'to [num_microbatches, microbatch_size] here.')
+    p.Define(
+        'unpack_summaries', False,
+        'If true, unpack summaries to the individual values from each stage.')
     wp = p.weight_split_dims_mapping
     wp.Define('stages', [-1], 'How the num_stages dimension should be sharded.')
     return p
@@ -99,8 +110,23 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
         repeat_prefix_split_dims_mapping=repeat_prefix_split_dims_mapping)
     self.create_child('body', body_params)
 
-  def body_fprop(self, theta: NestedMap,
-                 per_stage_inputs: NestedJTensor) -> NestedJTensor:
+  def _forward_summary(self, summaries):
+    """Forwards summary from the inner JaxContext to the outer context."""
+    p = self.params
+    for summary_key, summary_value in summaries.items():
+      logging.info((summary_key, summary_value))
+      summary_type = base_layer.get_summary_type_from_key(summary_key)
+      assert summary_value.shape[0] == p.num_stages
+      if p.unpack_summaries:
+        # unstack summary_value
+        unstacked_values = jnp.split(summary_value, p.num_stages)
+        for i, v in enumerate(unstacked_values):
+          base_layer.add_summary(f'{summary_key}/{i}', v, summary_type)
+      else:
+        base_layer.add_summary('{summary_key}', summary_value, summary_type)
+
+  def body_fprop(self, theta: NestedMap, per_stage_inputs: JTensor,
+                 *per_stage_args, **per_stage_kwargs) -> NestedJTensor:
     """Runs the fprop function of the stages."""
     p = self.params
     if p.mesh_axis_names is not None:
@@ -113,25 +139,82 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
                                       unconstrained_dims)
 
       per_stage_inputs = jax.tree_map(annotate, per_stage_inputs)
-    return jax.vmap(self.body.fprop)(theta.body, per_stage_inputs)
+      per_stage_args = jax.tree_map(annotate, per_stage_args)
+      per_stage_kwargs = jax.tree_map(annotate, per_stage_kwargs)
 
-  def fprop(self, theta: NestedMap, inputs: NestedJTensor) -> Any:
+    prng_key = base_layer.next_prng_key()
+    global_step = base_layer.cur_global_step()
+
+    # vmap self.body.fprop to get a leading stage dimension to handle per_stage
+    # inputs and args.
+    def _wrapped_fn(theta, per_stage_inputs, *per_stage_args,
+                    **per_stage_kwargs):
+      with base_layer.JaxContext.new_context(
+          prng_key=prng_key, global_step=global_step):
+        res = self.body.fprop(theta, per_stage_inputs, *per_stage_args,
+                              **per_stage_kwargs)
+        summaries = base_layer.all_summaries()
+        return res, summaries
+
+    res, summaries = jax.vmap(_wrapped_fn)(theta.body, per_stage_inputs,
+                                           *per_stage_args, **per_stage_kwargs)
+
+    self._forward_summary(summaries)
+    return res
+
+  def fprop(self, theta: NestedMap, inputs: NestedJTensor, *broadcast_inputs,
+            **broadcast_kwargs) -> NestedJTensor:
     """FProp inputs through the pipeline body.
 
     self.body.fprop is expected to be of the following signature:
-    outputs = self.body.fprop(theta, inputs)
+    outputs = self.body.fprop(theta, inputs,
+                              *broadcast_inputs, **broadcast_kwargs)
 
     outputs are expected to be of the same structure as inputs.
 
     Args:
       theta: The combined layer params for all pipeline stages.
-      inputs: A NestedMap of inputs that goes through the pipeline body.
+      inputs: Inputs to body_fprop, same structure as outputs.
+      *broadcast_inputs: Broadcasted args to body_fprop.
+      **broadcast_kwargs: Broadcasted kwargs to body_fprop
 
     Returns:
       Output from the last pipeline stage.
     """
     p = self.params
     L = p.num_stages  # pylint: disable=invalid-name
+
+    # Handle microbatching.
+    needs_microbatching = False
+    if p.num_microbatches is None:
+      num_microbatches = inputs.shape[0]
+      if p.microbatch_size is not None:
+        batch_size = num_microbatches
+        assert batch_size % p.microbatch_size == 0
+        num_microbatches = batch_size // p.microbatch_size
+        needs_microbatching = True
+    else:
+      num_microbatches = p.num_microbatches
+      needs_microbatching = True
+
+    if needs_microbatching:
+
+      def _to_microbatches(x):
+        batch = x.shape[0]
+        assert batch % num_microbatches == 0
+        # We first put num_microbatches in the inner dimension then transpose
+        # it. This allows the sharding on the batch (if any) to be propagated
+        # to the microbatch dimension because otherwise XLA SPMD propagates
+        # sharding to the major dimension (num_microbatches) when we split
+        # batch to num_microbatches and microbatch_sizes. We cannot shard the
+        # num_microbatches dimension since it's indexed by the loop iteration.
+        reshaped = x.reshape([batch // num_microbatches, num_microbatches] +
+                             list(x.shape[1:]))
+        return reshaped.transpose([1, 0] + list(range(2, len(reshaped.shape))))
+
+      inputs = jax.tree_map(_to_microbatches, inputs)
+      broadcast_inputs = jax.tree_map(_to_microbatches, broadcast_inputs)
+      broadcast_kwargs = jax.tree_map(_to_microbatches, broadcast_kwargs)
 
     # Pad the leading num_microbatches dimension by num_stages - 1 to match
     # loop iteration count, which corresponds to the bubbles between forward
@@ -147,8 +230,8 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     state0 = jax.tree_map(
         lambda x: jnp.zeros((L,) + x.shape[1:], dtype=x.dtype), padded_inputs)
 
-    def _scan_fn(carry, inputs):
-      in_state, inp = carry.data, inputs.data
+    def _scan_fn(carry, xs):
+      in_state, loop_iter, inp = carry.data, carry.loop_iter, xs.inputs
 
       # Bring in the next microbatch.
       def _select_state_or_input(x, s):
@@ -157,8 +240,17 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
 
       stages_in = jax.tree_map(_select_state_or_input, inp, in_state)
 
+      # Different stages need args from different microbatches.
+      microbatch_ids = (loop_iter - jnp.arange(L) +
+                        num_microbatches) % num_microbatches
+      per_stage_args = jax.tree_map(lambda x: x[microbatch_ids],
+                                    broadcast_inputs)
+      per_stage_kwargs = jax.tree_map(lambda x: x[microbatch_ids],
+                                      broadcast_kwargs)
+
       # Run through pipeline body.
-      out_state = self.body_fprop(theta, stages_in)
+      out_state = self.body_fprop(theta, stages_in, *per_stage_args,
+                                  **per_stage_kwargs)
       py_utils.assert_same_shape_and_dtype(stages_in, out_state)
 
       # Shift state to the right by 1.
@@ -168,13 +260,15 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
 
       shifted_out_state = jax.tree_map(_shift_right, out_state)
       # Accumulator saves out_state for final output retrieval.
-      return NestedMap(data=shifted_out_state), NestedMap(data=out_state)
+      return NestedMap(
+          data=shifted_out_state,
+          loop_iter=loop_iter + 1), NestedMap(data=out_state)
 
     # Loop over num_microbatches + (num_stages - 1), where input to each iter
     # has the same shape as the loop state.
     _, accum, summaries = recurrent.scan(
-        NestedMap(data=state0),
-        NestedMap(data=padded_inputs),
+        NestedMap(data=state0, loop_iter=0),
+        NestedMap(inputs=padded_inputs),
         _scan_fn,
         root_layer=self)
     # TODO(xxx): deal with summaries.
@@ -182,4 +276,14 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
 
     # Extract output from the last stage after num_stages-1 bubbles.
     output = jax.tree_map(lambda x: x[L - 1:, -1, ...], accum.data)
+
+    if needs_microbatching:
+
+      def _to_batches(x):
+        transposed = x.transpose([1, 0] + list(range(2, len(x.shape))))
+        return transposed.reshape([num_microbatches * x.shape[1]] +
+                                  list(x.shape[2:]))
+
+      output = jax.tree_map(_to_batches, output)
+
     return output

@@ -208,6 +208,7 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         ":recurrent",
+        # Implicit absl.logging dependency.
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
@@ -402,6 +403,7 @@ pytype_strict_library(
         ":embedding_softmax",
         ":linears",
         ":normalizations",
+        ":pipeline",
         ":recurrent",
         ":repeats",
         ":stats",

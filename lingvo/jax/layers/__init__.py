@@ -66,6 +66,7 @@ from lingvo.jax.layers.stochastics import Dropout
 from lingvo.jax.layers.stochastics import StochasticResidual
 from lingvo.jax.layers.transformers import compute_attention_masks_for_extend_step
 from lingvo.jax.layers.transformers import compute_attention_masks_for_fprop
+from lingvo.jax.layers.transformers import PipelinedTransformer
 from lingvo.jax.layers.transformers import StackedTransformer
 from lingvo.jax.layers.transformers import StackedTransformerRepeated
 from lingvo.jax.layers.transformers import Transformer

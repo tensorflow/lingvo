@@ -30,6 +30,7 @@ from lingvo.jax.layers import attentions
 from lingvo.jax.layers import embedding_softmax
 from lingvo.jax.layers import linears
 from lingvo.jax.layers import normalizations
+from lingvo.jax.layers import pipeline
 from lingvo.jax.layers import recurrent
 from lingvo.jax.layers import repeats
 from lingvo.jax.layers import stats
@@ -1779,6 +1780,94 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
         cross_inputs=cross_inputs,
         cross_paddings=cross_paddings,
         cross_segment_mask=cross_segment_mask)
+
+
+class PipelinedTransformer(base_layer.BaseLayer):
+  """A pipelined Transformer."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define('pipeline_stage', StackedTransformerRepeated.Params(),
+             'The layer params of each stage.')
+    p.Define('num_pipeline_stages', None, 'Number of pipeline stages.')
+    p.Define('num_pipeline_microbatches', None,
+             'Number of pipeline microbatches.')
+    p.Define('pipeline_microbatch_size', None,
+             'Size of each pipeline microbatch.')
+    wp = p.weight_split_dims_mapping
+    wp.Define('stages', [-1], 'How the num_stages dimension should be sharded.')
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    p = self.params
+    assert p.num_pipeline_stages > 0
+
+    stage_params = p.pipeline_stage.Copy()
+    # Must use deterministic dropout in pipelined layers.
+    pipeline_params = pipeline.LayerwiseShardablePipelined.Params().Set(
+        name=p.name,
+        num_stages=p.num_pipeline_stages,
+        single_stage_body=stage_params,
+        num_microbatches=p.num_pipeline_microbatches,
+        microbatch_size=p.pipeline_microbatch_size,
+        unpack_summaries=True)
+    pipeline_params.weight_split_dims_mapping.stages = (
+        p.weight_split_dims_mapping.stages)
+    self.create_child('pipeline', pipeline_params)
+
+  def fprop(self,
+            theta: NestedMap,
+            inputs: JTensor,
+            paddings: JTensor,
+            segment_mask: Optional[JTensor] = None,
+            cross_inputs: Optional[JTensor] = None,
+            cross_paddings: Optional[JTensor] = None,
+            cross_segment_mask: Optional[JTensor] = None) -> JTensor:
+    """Pipelined Transformer layer.
+
+    Args:
+      theta: A `NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: Input sequence of shape [B, T, H].
+      paddings: Input paddings of shape [B, T].
+      segment_mask: Segment mask for packed input of shape [B, 1, T, T] ready to
+        add to logits.
+      cross_inputs: Output of the encoder, to be used for cross attention, of
+        shape [B, S, H].
+      cross_paddings: Paddings for cross atention of shape [B, S].
+      cross_segment_mask: Segment mask for encoder-decoder in packed input case
+        of shape [B, 1, T, S].
+
+    Returns:
+      Output vector with shape [B, T, D].
+    """
+    return self.pipeline.fprop(
+        theta.pipeline,
+        inputs,
+        paddings,
+        segment_mask=segment_mask,
+        cross_inputs=cross_inputs,
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
+
+  def init_states(self, theta, *args, **kwargs) -> NestedMap:
+    raise NotImplementedError(type(self))
+
+  def extend_step(
+      self,
+      theta: NestedMap,
+      cached_states: NestedMap,
+      inputs: JTensor,
+      *,
+      time_step: JTensor,
+      segment_mask: Optional[JTensor] = None,
+      cross_inputs: Optional[JTensor] = None,
+      cross_paddings: Optional[JTensor] = None,
+      cross_segment_mask: Optional[JTensor] = None
+  ) -> Tuple[JTensor, NestedMap]:
+    raise NotImplementedError(type(self))
 
 
 class TransformerLm(base_layer.BaseLayer):
