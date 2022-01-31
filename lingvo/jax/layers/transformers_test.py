@@ -37,6 +37,7 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class TransformersTest(test_util.JaxTestCase):
 
   def setUp(self):

@@ -30,6 +30,7 @@ import tensorflow as tf
 to_np = test_utils.to_np
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class NgrammerTest(test_util.JaxTestCase):
 
   def setUp(self):

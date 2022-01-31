@@ -41,6 +41,7 @@ def _JaxToTfDtype(jax_dtype):
     return tf.dtypes.as_dtype(jax_dtype)
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class NormalizationsTest(test_util.JaxTestCase):
 
   def setUp(self):

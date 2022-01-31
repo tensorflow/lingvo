@@ -24,6 +24,7 @@ from lingvo.jax.layers import quantizer
 import numpy as np
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class SeqVectorQuantizerTest(test_util.JaxTestCase):
 
   w = np.array([[0.116230249, 0.0104732513, -0.409445882, -0.153374314],

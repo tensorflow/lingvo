@@ -34,6 +34,7 @@ to_np = test_utils.to_np
 NestedMap = py_utils.NestedMap
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class ConformerTest(test_util.JaxTestCase):
 
   @parameterized.parameters(
@@ -99,6 +100,7 @@ class ConformerTest(test_util.JaxTestCase):
     self.assertAllClose(tf_np_output, np_output, atol=1e-5)
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class StackedConformerTest(test_util.JaxTestCase):
 
   @parameterized.parameters(

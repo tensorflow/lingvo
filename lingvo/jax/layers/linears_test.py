@@ -32,6 +32,7 @@ to_np = test_utils.to_np
 to_tf_nmap = test_utils.to_tf_nmap
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class LinearsTest(test_util.JaxTestCase):
 
   def setUp(self):
@@ -109,6 +110,7 @@ class LinearsTest(test_util.JaxTestCase):
     self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-6)
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
 
   def setUp(self):

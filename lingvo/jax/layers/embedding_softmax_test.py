@@ -30,6 +30,7 @@ import tensorflow.compat.v2 as tf
 to_np = test_utils.to_np
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class EmbeddingSoftmaxTest(test_util.JaxTestCase):
 
   def setUp(self):

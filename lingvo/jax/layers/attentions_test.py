@@ -53,6 +53,7 @@ def assert_var_stats_close(map01, map02, test_case):
     have_similar_stats(x[1], y[1])
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class AttentionsTest(test_util.JaxTestCase):
 
   def setUp(self):

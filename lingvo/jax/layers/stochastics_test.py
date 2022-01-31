@@ -24,6 +24,7 @@ from lingvo.jax import base_layer
 from lingvo.jax.layers import stochastics
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class StochaticsTest(test_util.JaxTestCase):
 
   def test_dropout_layer01(self):
