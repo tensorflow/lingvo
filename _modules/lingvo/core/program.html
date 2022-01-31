@@ -1209,7 +1209,7 @@
     <span class="k">if</span> <span class="n">futures</span><span class="p">:</span>
       <span class="c1"># Wait for all async postprocessing jobs to finish.</span>
       <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">:</span>
-        <span class="n">future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+        <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
     <span class="n">num_examples_metric</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
     <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="n">summaries</span><span class="p">[</span><span class="s1">&#39;cumulative_num_examples&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="p">[</span>
@@ -1325,6 +1325,10 @@
       <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">threadpool</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">_HandleError</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="n">e</span>
+
       <span class="c1"># Async. TPU+host processing is done and can move on to Train.</span>
       <span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeDecode</span><span class="p">,</span>
@@ -1334,7 +1338,8 @@
               <span class="n">global_step</span><span class="p">,</span>
               <span class="n">buffered_decode_out</span><span class="p">,</span>
               <span class="n">postprocess_futures</span><span class="p">,</span>
-          <span class="p">))</span>
+          <span class="p">),</span>
+          <span class="n">error_callback</span><span class="o">=</span><span class="n">_HandleError</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeDecode</span><span class="p">(</span><span class="n">dec_metrics</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
                            <span class="n">buffered_decode_out</span><span class="p">)</span></div></div>
