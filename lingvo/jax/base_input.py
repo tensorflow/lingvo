@@ -155,6 +155,7 @@ class LingvoInputAdaptor(BaseInput):
   Lingvo input either already uses InfeedContextScope for proper sharding, or
   alternatively do not use the same random seed on all hosts. In other words,
   one must avoid the failure case where each host emits identical training data.
+  See also p.allow_fixed_file_random_seed below.
   """
 
   @classmethod
@@ -166,6 +167,12 @@ class LingvoInputAdaptor(BaseInput):
         'If specified and positive, raises tf.errors.OutOfRange after this many'
         ' batches have been produced. This forces a raise after get_next() is '
         'called this many times, to support p.reset_for_eval=True.')
+    p.Define(
+        'allow_fixed_file_random_seed', False,
+        'If not set, disallows a fixed, non-zero p.input.file_random_seed. '
+        'We disallow by default to avoid having identical input batches across '
+        'different infeed hosts. If set, random seeds are adjusted by '
+        'p.infeed_host_index to ensure different random seeds.')
     return p
 
   def __init__(self, p):
@@ -176,6 +183,17 @@ class LingvoInputAdaptor(BaseInput):
   def _initialize(self) -> None:
     """Initializes the relevant fields of this adaptor input."""
     p = self.params
+    if hasattr(p.input, 'file_random_seed') and p.input.file_random_seed:
+      if not p.allow_fixed_file_random_seed:
+        raise ValueError(
+            'Training data using fixed non-zero file_random_seed: '
+            f'p.input.file_random_seed={p.input.file_random_seed}. '
+            'This means each host *might* infeed identical batches. You can set '
+            'p.input.file_random_seed = 0, or if certain this is intended, '
+            'suppress this error by setting p.allow_fixed_file_random_seed = '
+            'True.')
+      # Make sure each host uses a different random seed.
+      p.input.file_random_seed += p.infeed_host_index
     # We make self.input public so that users can access its methods like
     # IdsToStrings if needed.
     with py_utils.infeed_context_scope(

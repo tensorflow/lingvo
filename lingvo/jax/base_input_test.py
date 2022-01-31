@@ -99,6 +99,7 @@ class InputTest(test_util.JaxTestCase):
     p = base_input.LingvoInputAdaptor.Params()
     p.input = LingvoInput.Params()
     p.input.file_pattern = 'tfrecord:' + tmp
+    p.input.file_random_seed = 0
     p.reset_for_eval = True
     inp = p.Instantiate()
     for i in range(num_batches):
