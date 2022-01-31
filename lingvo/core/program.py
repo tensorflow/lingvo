@@ -1144,7 +1144,7 @@ class DecodeProgram(BaseProgram):
     if futures:
       # Wait for all async postprocessing jobs to finish.
       for future in futures:
-        future.wait()
+        future.get()
     num_examples_metric = dec_metrics['num_samples_in_batch']
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
     summaries['cumulative_num_examples'] = tf.Summary(value=[
@@ -1260,6 +1260,10 @@ class DecodeProgram(BaseProgram):
       infeed_future.wait()
 
     if threadpool:
+
+      def _HandleError(e):
+        raise e
+
       # Async. TPU+host processing is done and can move on to Train.
       threadpool.apply_async(
           self._FinalizeDecode,
@@ -1269,7 +1273,8 @@ class DecodeProgram(BaseProgram):
               global_step,
               buffered_decode_out,
               postprocess_futures,
-          ))
+          ),
+          error_callback=_HandleError)
     else:
       self._FinalizeDecode(dec_metrics, start_time, global_step,
                            buffered_decode_out)
