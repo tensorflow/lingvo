@@ -228,26 +228,22 @@ class Saver:
     if not self._sanity_checks:
       return
     reader = tf.train.NewCheckpointReader(prefix)
-    content = {}
+    checks = collections.defaultdict(lambda: [])
     for variables, rule in self._sanity_checks:
-      args = []
       for v in variables:
         key = _VarKey(v)
-        if key in content:
-          args.append(content[key])
-        else:
-          value = reader.get_tensor(key)
-          content[key] = value
-          args.append(value)
-      if not rule.Check(*args):
-        # TODO(zhifengc): Maybe should return an explicit signal
-        # so that the caller (the controller loop) can Restore()
-        # the latest checkpoint before raise the error.
-        msg = "Checkpoint sanity check failed: {} {} {}\n".format(
-            prefix, ",".join([_VarKey(v) for v in variables]), rule)
-        # Also saves the error message into a file.
-        file_io.write_string_to_file("{}.failed".format(prefix), msg)
-        raise tf.errors.AbortedError(None, None, msg)
+        checks[key].append(rule)
+    for key, rules in checks.items():
+      value = reader.get_tensor(key)
+      for rule in rules:
+        if not rule.Check(value):
+          # TODO(zhifengc): Maybe should return an explicit signal
+          # so that the caller (the controller loop) can Restore()
+          # the latest checkpoint before raise the error.
+          msg = f"Checkpoint sanity check failed: {prefix} {key} {rule}\n"
+          # Also saves the error message into a file.
+          file_io.write_string_to_file("{}.failed".format(prefix), msg)
+          raise tf.errors.AbortedError(None, None, msg)
 
   def _SaveAsync(self, sess):
     """Saves the graph asynchronously.

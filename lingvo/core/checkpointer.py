@@ -38,7 +38,6 @@ class SaverWrapper:
                logdir,
                train_params,
                variables_to_restore_dict=None,
-               finite_check=True,
                async_save=False):
     """Create a tf.train.Saver or a custom_saver.Saver.
 
@@ -48,7 +47,6 @@ class SaverWrapper:
       variables_to_restore_dict: A dictionary mapping names to Saveables.
         Typically, used in evaluation for substituting exponential moving
         average weights.  If this is set, then tf.train.Saver is used.
-      finite_check: Whether to santiy check variables to be finite.
       async_save: Save asynchronously. Only works with custom saver.
     """
     self._logdir = logdir
@@ -87,7 +85,7 @@ class SaverWrapper:
       else:
         sanity_checks = []
 
-      if finite_check:
+      if train_params.checkpoint_finite_check:
         for var in self._var_list:
           sanity_checks.append(([var], custom_saver.IsFinite()))
 

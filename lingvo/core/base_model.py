@@ -214,6 +214,10 @@ class BaseTask(base_layer.BaseLayer):
     tp.Define('async_checkpointing', False,
               'Checkpointing asynchronously. Currently only support executor.')
     tp.Define(
+        'checkpoint_finite_check', False,
+        'Whether to santiy check variables to be finite when saving '
+        'checkpoints. Currently only support custom saver.')
+    tp.Define(
         'keep_per_example_loss', False,
         'If True, checks if per-example metrics contain a key named \'loss\', '
         'and if so copies it to the main metrics dictionary under key '
@@ -1086,6 +1090,10 @@ class BaseModel(base_layer.BaseLayer):
               'Generates a checkpoint roughly once every this many steps.')
     tp.Define('async_checkpointing', False,
               'Checkpointing asynchronously. Currently only support executor.')
+    tp.Define(
+        'checkpoint_finite_check', False,
+        'Whether to santiy check variables to be finite when saving '
+        'checkpoints. Currently only support custom saver.')
     return p
 
   def __init__(self, params, executor_ema=None):
@@ -1271,6 +1279,7 @@ class SingleTaskModel(SingleTaskBase):
         p.task.train.save_keep_checkpoint_every_n_hours)
     tp.summary_interval_steps = p.task.train.summary_interval_steps
     tp.async_checkpointing = p.task.train.async_checkpointing
+    tp.checkpoint_finite_check = p.task.train.checkpoint_finite_check
     tp.ema_decay = p.task.train.ema_decay
     tp.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
 
