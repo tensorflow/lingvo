@@ -421,7 +421,7 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
   tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
   leaves, _ = jax.tree_util.tree_flatten(train_state)
 
-  gda_serialization.run_serialization(ckpt_paths, leaves, tspecs)
+  gda_serialization.run_serialization(leaves, tspecs)
 
   # Note we must barrier across all processes before the directory rename.
   py_utils.sync_global_devices('Wait for checkpoint chunk writes to '
@@ -489,7 +489,7 @@ def _restore_checkpoint_gda(
   tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
 
   train_state_gda = gda_serialization.run_deserialization(
-      ckpt_paths, [global_mesh] * len(leaves), partition_spec_leaves, tspecs)
+      [global_mesh] * len(leaves), partition_spec_leaves, tspecs)
 
   restored_train_state = jax.tree_util.tree_unflatten(treedef, train_state_gda)
   # Barrier across all processes to ensure all restore finish.
