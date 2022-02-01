@@ -160,6 +160,22 @@ class Conformer(base_layer.BaseLayer):
         'Only mhsa, conv, mhsa_before_conv or conv_before_mhsa are '
         'supported.')
     p.Define('dropout_prob', None, 'Dropout prob of inner components.')
+    p.Define(
+        'conv_residual_dropout', None, 'Conv block residual dropout.'
+        'Will be overwrited by p.dropout if it is not None.')
+    p.Define(
+        'atten_residual_dropout', None, 'Attention block residual dropout.'
+        'Will be overwrited by p.dropout if it is not None.')
+    p.Define(
+        'ffn_residual_dropout', None, 'Feed forward block residual dropout.'
+        'Will be overwrited by p.dropout if it is not None.')
+    p.Define(
+        'atten_dropout', None, 'Dropout in Attention layer.'
+        'Will be overwrited by p.dropout if it is not None.')
+    p.Define(
+        'ffn_relu_dropout', None,
+        'Post activation dropout in Feed-forward layer.'
+        'Will be overwrited by p.dropout if it is not None.')
 
     # fflayer tpl
     p.Define(
@@ -192,6 +208,20 @@ class Conformer(base_layer.BaseLayer):
     asserts.in_set(p.layer_order,
                    ['mhsa', 'conv', 'mhsa_before_conv', 'conv_before_mhsa'])
 
+    if p.dropout_prob is not None:
+      all_dropouts = [
+          p.atten_dropout, p.atten_residual_dropout, p.conv_residual_dropout,
+          p.ffn_residual_dropout, p.ffn_relu_dropout
+      ]
+      for prob in all_dropouts:
+        assert prob is None or prob == p.dropout_prob
+
+      p.atten_dropout = p.dropout_prob
+      p.atten_residual_dropout = p.dropout_prob
+      p.conv_residual_dropout = p.dropout_prob
+      p.ffn_residual_dropout = p.dropout_prob
+      p.ffn_relu_dropout = p.dropout_prob
+
     if p.fflayer_start_tpl:
       if p.input_dims == p.model_dims:
         fflayer_start_p = p.fflayer_start_tpl.Copy().Set(
@@ -200,6 +230,8 @@ class Conformer(base_layer.BaseLayer):
             input_dims=p.input_dims,
             hidden_dims=p.model_dims * p.ffn_dim_multiplier,
             residual_weight=p.ff_residual_weight,
+            residual_dropout_prob=p.ffn_residual_dropout,
+            relu_dropout_prob=p.ffn_relu_dropout,
         )
       else:
         # Need to add another projection layer in fflayer
@@ -210,6 +242,8 @@ class Conformer(base_layer.BaseLayer):
             output_dims=p.model_dims,
             hidden_dims=p.model_dims * p.ffn_dim_multiplier,
             residual_weight=p.ff_residual_weight,
+            residual_dropout_prob=p.ffn_residual_dropout,
+            relu_dropout_prob=p.ffn_relu_dropout,
         )
       self.create_child(fflayer_start_p.name, fflayer_start_p)
 
@@ -220,6 +254,8 @@ class Conformer(base_layer.BaseLayer):
           input_dims=p.model_dims,
           hidden_dims=p.model_dims * p.ffn_dim_multiplier,
           residual_weight=p.ff_residual_weight,
+          residual_dropout_prob=p.ffn_residual_dropout,
+          relu_dropout_prob=p.ffn_relu_dropout,
       )
       if not p.fflayer_weight_sharing:
         self.create_child(fflayer_end_p.name, fflayer_end_p)
@@ -228,11 +264,11 @@ class Conformer(base_layer.BaseLayer):
 
     if 'mhsa' in p.layer_order:
       trans_atten_p = p.trans_atten_tpl.Copy().Set(
-          residual_dropout_prob=p.dropout_prob,
+          residual_dropout_prob=p.atten_residual_dropout,
           self_atten_tpl=p.trans_atten_tpl.self_atten_tpl.Copy().Set(
               input_dim=p.model_dims,
               hidden_dim=p.model_dims,
-              atten_dropout_prob=p.dropout_prob,
+              atten_dropout_prob=p.atten_dropout,
               num_heads=p.atten_num_heads))
       if p.trans_atten_tpl.norm_tpl.cls == normalizations.LayerNorm:
         trans_atten_p.norm_tpl = trans_atten_p.norm_tpl.Copy().Set(
@@ -244,7 +280,9 @@ class Conformer(base_layer.BaseLayer):
 
     if 'conv' in p.layer_order:
       lconv_p = p.lconv_tpl.Copy().Set(
-          input_dims=p.model_dims, kernel_size=p.kernel_size)
+          input_dims=p.model_dims,
+          kernel_size=p.kernel_size,
+          dropout_prob=p.conv_residual_dropout)
       self.create_child('lconv', lconv_p)
 
     ln_p = p.final_ln_tpl.Copy().Set(name='final_ln', input_dims=p.model_dims)

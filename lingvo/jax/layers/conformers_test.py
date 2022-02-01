@@ -45,10 +45,15 @@ class ConformerTest(test_util.JaxTestCase):
   )
   def test_conformer_layer(self, batch_size, seq_len, kernel_size, input_dims,
                            model_dims, atten_num_heads, dropout_prob):
+    # Lingvo TF layers only use dropout on FF and Attention layers
     p = conformers.Conformer.Params().Set(
         name='jax_conformer_layer',
         input_dims=input_dims,
-        dropout_prob=dropout_prob,
+        conv_residual_dropout=0.0,
+        atten_residual_dropout=dropout_prob,
+        ffn_residual_dropout=dropout_prob,
+        atten_dropout=dropout_prob,
+        ffn_relu_dropout=dropout_prob,
         kernel_size=kernel_size,
         model_dims=model_dims,
         atten_num_heads=atten_num_heads)
@@ -58,8 +63,13 @@ class ConformerTest(test_util.JaxTestCase):
     npy_inputs = np.random.normal(
         1.0, 0.5, [batch_size, seq_len, input_dims]).astype('float32')
     inputs = jnp.asarray(npy_inputs)
-    npy_paddings = np.random.randint(0, 2,
-                                     [batch_size, seq_len]).astype('float32')
+
+    def GetPaddingfromLength(length):
+      idx = np.tile(np.arange(seq_len), [batch_size, 1])
+      return (idx >= np.expand_dims(length, -1)).astype('float32')
+
+    length = np.random.randint(seq_len // 2, seq_len, (batch_size,))
+    npy_paddings = GetPaddingfromLength(length).astype('float32')
     paddings = jnp.asarray(npy_paddings)
 
     context_p = base_layer.JaxContext.Params().Set(do_eval=True)
