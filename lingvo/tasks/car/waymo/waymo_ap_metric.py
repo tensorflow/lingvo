@@ -390,7 +390,7 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
           s['ap_ha_weighted_%s' % breakdown_str] for s in scalars
       ]
       self._precision_recall[breakdown_str] = np.array(
-          [c['pr_%s' % breakdown_str] for c in curves])
+          [c['pr_%s' % breakdown_str][..., :2] for c in curves])
       self._precision_recall_headings[breakdown_str] = np.array(
           [c['pr_ha_weighted_%s' % breakdown_str] for c in curves])
     tf.logging.info('Calculating waymo AP breakdowns: finished')
