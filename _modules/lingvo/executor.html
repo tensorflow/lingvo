@@ -561,8 +561,11 @@
           <span class="c1"># Save the checkpoints.</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
 
+        <span class="n">checkpoint_write_secs</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span><span class="n">global_step</span><span class="p">):</span>
+          <span class="n">checkpoint_write_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
           <span class="n">RunSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="n">checkpoint_write_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">checkpoint_write_start</span>
 
         <span class="c1"># If a task is explicitly selected, only run the programs associated</span>
         <span class="c1"># with that task.</span>
@@ -582,7 +585,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span>
             <span class="n">executor_cycle_secs</span><span class="o">=</span><span class="n">executor_cycle_in_secs</span><span class="p">,</span>
             <span class="n">executor_train_time_secs</span><span class="o">=</span><span class="n">train_time_in_secs</span><span class="p">,</span>
-            <span class="n">executor_eval_time_secs</span><span class="o">=</span><span class="n">eval_time_in_secs</span><span class="p">)</span>
+            <span class="n">executor_eval_time_secs</span><span class="o">=</span><span class="n">eval_time_in_secs</span><span class="p">,</span>
+            <span class="n">checkpoint_write_secs</span><span class="o">=</span><span class="n">checkpoint_write_secs</span><span class="p">,</span>
+        <span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">_ShutDown</span><span class="p">():</span>
           <span class="n">program_threadpool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
