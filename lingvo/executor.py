@@ -496,8 +496,11 @@ class ExecutorTpu(base_runner.BaseRunner):
           # Save the checkpoints.
           self._checkpointer.Save(sess, global_step)
 
+        checkpoint_write_secs = 0.0
         if not self._ml_perf_log and self._checkpointer.ShouldSave(global_step):
+          checkpoint_write_start = time.time()
           RunSave(sess, global_step)
+          checkpoint_write_secs = time.time() - checkpoint_write_start
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.
@@ -517,7 +520,9 @@ class ExecutorTpu(base_runner.BaseRunner):
         self._ExportMetrics(
             executor_cycle_secs=executor_cycle_in_secs,
             executor_train_time_secs=train_time_in_secs,
-            executor_eval_time_secs=eval_time_in_secs)
+            executor_eval_time_secs=eval_time_in_secs,
+            checkpoint_write_secs=checkpoint_write_secs,
+        )
 
         def _ShutDown():
           program_threadpool.close()
