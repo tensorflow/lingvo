@@ -67,6 +67,8 @@ class Learner(base_layer.BaseLayer):
         'skip_step_gradient_norm_value', 0.0,
         'If non-zero, we skip a step entirely if gradient_norm exceeds '
         'this value.')
+    p.Define('enable_skip_step_on_gradient_anomalies', True,
+             'Skips the step if gradient anomaly (NaN/Inf) is detected.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -183,12 +185,15 @@ class Learner(base_layer.BaseLayer):
     grads, valid_step = self.scale_gradients(grads)
     transformed_grad, new_states = self.get_grad_tx(var_weight_params).update(
         grads, states, old_vars)
-    # Set grads to 0 if the step is invalid.
-    transformed_grad = jax.tree_map(
-        lambda x: jnp.where(valid_step, x, jnp.zeros_like(x)), transformed_grad)
-    # Keep the old state if the step is invalid.
-    new_states = jax.tree_map(lambda x, y: jnp.where(valid_step, x, y),
-                              new_states, states)
+
+    if self.params.enable_skip_step_on_gradient_anomalies:
+      # Set grads to 0 if the step is invalid.
+      transformed_grad = jax.tree_map(
+          lambda x: jnp.where(valid_step, x, jnp.zeros_like(x)),
+          transformed_grad)
+      # Keep the old state if the step is invalid.
+      new_states = jax.tree_map(lambda x, y: jnp.where(valid_step, x, y),
+                                new_states, states)
     return transformed_grad, new_states
 
   def apply_gradient(
@@ -356,10 +361,12 @@ class MultiOptimizerLearner(Learner):
     grads, valid_step = self.scale_gradients(grads)
     grad_tx = self.get_grad_tx(var_weight_params)
     transformed_grad, new_states = grad_tx.update(grads, states, old_vars)
-    # Set grads to 0 if the step is invalid.
-    transformed_grad = jax.tree_map(
-        lambda x: jnp.where(valid_step, x, jnp.zeros_like(x)), transformed_grad)
-    # Keep the old state if the step is invalid.
-    new_states = jax.tree_map(lambda x, y: jnp.where(valid_step, x, y),
-                              new_states, states)
+    if self.params.enable_skip_step_on_gradient_anomalies:
+      # Set grads to 0 if the step is invalid.
+      transformed_grad = jax.tree_map(
+          lambda x: jnp.where(valid_step, x, jnp.zeros_like(x)),
+          transformed_grad)
+      # Keep the old state if the step is invalid.
+      new_states = jax.tree_map(lambda x, y: jnp.where(valid_step, x, y),
+                                new_states, states)
     return transformed_grad, new_states
