@@ -20,9 +20,10 @@ from typing import Sequence
 from jax import numpy as jnp
 from lingvo.jax import asserts
 from lingvo.jax import base_layer
+from lingvo.jax import base_model
 from lingvo.jax import base_model_params
+from lingvo.jax import base_task
 from lingvo.jax import layers
-from lingvo.jax import model
 from lingvo.jax import optimizers
 from lingvo.jax import py_utils
 from lingvo.jax import schedules
@@ -33,14 +34,15 @@ NestedMap = py_utils.NestedMap
 WeightInit = py_utils.WeightInit
 
 
-def set_sharding_annotations_v1(model_p: InstantiableParams,
+def set_sharding_annotations_v1(task_p: InstantiableParams,
                                 mesh_shape: Sequence[int]) -> None:
-  """Sets the sharding annotations in the model config for the given mesh.
+  """Sets the sharding annotations in the task config for the given mesh.
 
   Args:
-    model_p: The model parameters to update with sharding annotations.
+    task_p: The task parameters to update with sharding annotations.
     mesh_shape: a 3D sequence representing the mesh shape.
   """
+  model_p = task_p.model
   asserts.eq(len(mesh_shape), 3)
   device_count = np.prod(mesh_shape)
   device_ids_mesh = np.arange(device_count).reshape(mesh_shape)
@@ -49,7 +51,7 @@ def set_sharding_annotations_v1(model_p: InstantiableParams,
   data_axis = 'data'
   mdl_axis = 'mdl'
   mesh_axis_names = [replica_axis, data_axis, mdl_axis]
-  model_p.train.inputs_split_mapping = NestedMap(
+  task_p.train.inputs_split_mapping = NestedMap(
       map_1d=((replica_axis, data_axis),),
       map_2d=((replica_axis, data_axis), None))
   model_p.mesh_axis_names = mesh_axis_names
@@ -62,16 +64,16 @@ def set_sharding_annotations_v1(model_p: InstantiableParams,
       mesh_axis_names=mesh_axis_names)
 
 
-def set_default_adam(model_p: InstantiableParams, learning_rate: float,
+def set_default_adam(task_p: InstantiableParams, learning_rate: float,
                      weight_decay: float) -> None:
   """Sets the default Adam optimizer settings in the model config.
 
   Args:
-    model_p: The model parameters to update with optimizer specs.
+    task_p: The task parameters to update with optimizer specs.
     learning_rate: The learning rate to set.
     weight_decay: The weight_decay to set.
   """
-  lp = model_p.train.learner
+  lp = task_p.train.learner
   lp.loss_name = 'total_loss'
   lp.optimizer = optimizers.Adam.Params().Set(
       beta1=0.9,
@@ -88,16 +90,16 @@ def set_default_adam(model_p: InstantiableParams, learning_rate: float,
           max=1.0))
 
 
-def set_default_adafactor(model_p: InstantiableParams, learning_rate: float,
+def set_default_adafactor(task_p: InstantiableParams, learning_rate: float,
                           weight_decay: float) -> None:
-  """Sets the default AdaFactor optimizer settings in the model config.
+  """Sets the default AdaFactor optimizer settings in the task config.
 
   Args:
-    model_p: The model parameters to update with optimizer specs.
+    task_p: The task parameters to update with optimizer specs.
     learning_rate: The learning rate to set.
     weight_decay: The weight_decay to set.
   """
-  lp = model_p.train.learner
+  lp = task_p.train.learner
   lp.loss_name = 'total_loss'
   lp.optimizer = optimizers.ShardedAdafactor.Params().Set(
       decay_method='adam',
@@ -164,7 +166,9 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
 
   def task(self) -> InstantiableParams:
     """Returns the task parameters."""
-    model_p = model.BertModel.Params().Set(name='bert_lm')
+    task_p = base_task.SingleTask.Params().Set(name='bert_task')
+    task_p.model = base_model.BertModel.Params().Set(name='bert_lm')
+    model_p = task_p.model
     model_p.lm.masked_lm = True
     model_p.lm.packed_input = True
     model_p.lm.model_dims = self.MODEL_DIMS
@@ -201,16 +205,16 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
     softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(self.MODEL_DIMS))
     model_p.lm.softmax_tpl.params_init = softmax_init
 
-    model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
+    task_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
 
     if self.ENABLE_BFLOAT16:
       model_p.fprop_dtype = jnp.bfloat16
 
     maybe_setup_moe_params(model_p.lm.stacked_transformer_tpl)
 
-    set_default_adam(model_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
+    set_default_adam(task_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
 
-    return model_p
+    return task_p
 
 
 class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
@@ -241,7 +245,9 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
 
   def task(self) -> InstantiableParams:
     """Returns the task parameters."""
-    model_p = model.BertModel.Params().Set(name='bert_lm')
+    task_p = base_task.SingleTask.Params().Set(name='bert_task')
+    task_p.model = base_model.BertModel.Params().Set(name='bert_lm')
+    model_p = task_p.model
     model_p.mask_token_id = self.MASK_TOKEN_ID
     model_p.lm.masked_lm = True
     model_p.lm.packed_input = True
@@ -282,16 +288,16 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
     if self.ENABLE_BFLOAT16:
       model_p.fprop_dtype = jnp.bfloat16
 
-    model_p.train.save_max_to_keep = self.CHECKPOINT_SAVE_MAX_TO_KEEP
+    task_p.train.save_max_to_keep = self.CHECKPOINT_SAVE_MAX_TO_KEEP
 
-    set_default_adafactor(model_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
+    set_default_adafactor(task_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
 
-    model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
+    task_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
 
     maybe_setup_moe_params(model_p.lm.stacked_transformer_tpl)
-    set_sharding_annotations_v1(model_p, self.MESH_SHAPE)
+    set_sharding_annotations_v1(task_p, self.MESH_SHAPE)
 
-    return model_p
+    return task_p
 
 
 class TransformerLmPmapAdam(base_model_params.BaseModelParams):
@@ -314,7 +320,9 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
 
   def task(self) -> InstantiableParams:
     """Returns the task parameters."""
-    model_p = model.LanguageModel.Params().Set(name='xformer_lm')
+    task_p = base_task.SingleTask.Params().Set(name='xformer_task')
+    task_p.model = base_model.LanguageModel.Params().Set(name='xformer_lm')
+    model_p = task_p.model
     model_p.lm.packed_input = self.PACKED_INPUT
     model_p.lm.model_dims = self.MODEL_DIMS
     model_p.lm.vocab_size = self.VOCAB_SIZE
@@ -338,9 +346,9 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
     model_p.lm.softmax_tpl.params_init = softmax_init
 
     maybe_setup_moe_params(model_p.lm.stacked_transformer_tpl)
-    set_default_adam(model_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
+    set_default_adam(task_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
 
-    return model_p
+    return task_p
 
 
 class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
@@ -385,7 +393,9 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
 
     dropout_prob = self.DROPOUT_PROB
 
-    model_p = model.LanguageModel.Params().Set(name='xformer_lm')
+    task_p = base_task.SingleTask.Params().Set(name='xformer_task')
+    task_p.model = base_model.LanguageModel.Params().Set(name='xformer_lm')
+    model_p = task_p.model
     model_p.lm.model_dims = self.MODEL_DIMS
     model_p.lm.packed_input = True
     model_p.lm.vocab_size = self.VOCAB_SIZE
@@ -425,11 +435,11 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
     # Enable bf16.
     model_p.fprop_dtype = self.FPROP_DTYPE
 
-    set_default_adafactor(model_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
+    set_default_adafactor(task_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
 
-    model_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
+    task_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
 
-    set_sharding_annotations_v1(model_p, self.MESH_SHAPE)
+    set_sharding_annotations_v1(task_p, self.MESH_SHAPE)
     maybe_setup_moe_params(model_p.lm.stacked_transformer_tpl)
 
-    return model_p
+    return task_p

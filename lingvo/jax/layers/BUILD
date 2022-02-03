@@ -345,13 +345,12 @@ pytype_strict_library(
     srcs = ["test_layers.py"],
     srcs_version = "PY3",
     deps = [
-        ":conformers",
         ":linears",
         ":normalizations",
         ":transformers",
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
-        "//lingvo/jax:model",
+        "//lingvo/jax:base_model",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
     ],

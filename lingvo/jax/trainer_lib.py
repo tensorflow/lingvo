@@ -23,7 +23,8 @@ import jax
 from jax import numpy as jnp
 from jax.experimental import pjit
 from lingvo.jax import base_layer
-from lingvo.jax import model
+from lingvo.jax import base_model
+from lingvo.jax import base_task
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 from lingvo.jax import summary_utils
@@ -31,7 +32,6 @@ from lingvo.jax import train_states
 import tensorflow.compat.v2 as tf
 
 JTensor = pytypes.JTensor
-Model = model.BaseTask
 NestedJTensor = pytypes.NestedJTensor
 NestedMap = py_utils.NestedMap
 NestedShape = NestedMap
@@ -48,16 +48,17 @@ DecodeFn = Callable[[NestedJTensor, JTensor, JTensor, NestedJTensor],
                     NestedJTensor]
 
 
-def initialize_model_state(jax_model: model.BaseTask,
+def initialize_model_state(jax_task: base_task.SingleTask,
                            prng_key: PRNGKey) -> TrainState:
   """Initializes the model states."""
+  model = jax_task.model
   logging.info('init_var prng_seed: %s', prng_key)
-  initial_vars = jax_model.instantiate_variables(prng_key)
+  initial_vars = model.instantiate_variables(prng_key)
   logging.debug('initial_vars: %s', initial_vars)
   learnable_vars = tf.nest.map_structure(
-      lambda v: not base_layer.var_not_trainable(v), jax_model.vars)
+      lambda v: not base_layer.var_not_trainable(v), model.vars)
   tf.nest.assert_same_structure(initial_vars, learnable_vars)
-  return jax_model.create_train_state(initial_vars, jax_model.vars)
+  return jax_task.create_train_state(initial_vars, model.vars)
 
 
 def replicate_model_state(model_states: TrainState) -> TrainState:
@@ -65,10 +66,10 @@ def replicate_model_state(model_states: TrainState) -> TrainState:
   return jax.device_put_replicated(model_states, jax.local_devices())
 
 
-def initialize_replicate_model_state(jax_model: model.BaseTask,
+def initialize_replicate_model_state(jax_task: base_task.SingleTask,
                                      prng_key: PRNGKey) -> TrainState:
   """Initializes and replicates the model states."""
-  model_states = initialize_model_state(jax_model, prng_key)
+  model_states = initialize_model_state(jax_task, prng_key)
   return replicate_model_state(model_states)
 
 
@@ -80,7 +81,7 @@ def _maybe_to_bfloat16(x: JTensor) -> JTensor:
 
 
 def train_step_single_learner(
-    mdl: Model,
+    jax_task: base_task.SingleTask,
     states: TrainState,
     prng_key: JTensor,
     inputs: Union[JTensor, NestedMap],
@@ -99,7 +100,7 @@ def train_step_single_learner(
   This utility is specialized for the singler learner case.
 
   Args:
-    mdl: An instance of model.BaseTask.
+    jax_task: An instance of base_task.SingleTask.
     states: An instance of model.TrainState.
     prng_key: A PRNGKey, of shape [2], of type np.uint32.
     inputs: Inputs to the mdl.fprop() function.
@@ -117,8 +118,9 @@ def train_step_single_learner(
     summary_tensors - A dict or nested map of summary tensors computed in
       forward as well as backward.
   """
-  assert len(mdl.learners) == 1
-  learner = mdl.learners[0]
+  assert len(jax_task.learners) == 1
+  learner = jax_task.learners[0]
+  model = jax_task.model
 
   context_p = base_layer.JaxContext.Params().Set(do_eval=False)
   # Fold in global_step as part of the random seed key, so that random
@@ -147,10 +149,10 @@ def train_step_single_learner(
     with base_layer.JaxContext.new_context(
         params=context_p, prng_key=subkey,
         global_step=states.step) as jax_context:
-      jax_context.bind(mdl, mdl_vars,
+      jax_context.bind(model, mdl_vars,
                        [base_layer.SCOPE_VARS, base_layer.SCOPE_AUX_LOSS])
 
-      metrics, per_example_output = mdl.fprop(mdl_vars, inputs)
+      metrics, per_example_output = model.fprop(mdl_vars, inputs)
       loss_name = learner.loss_name
       assert loss_name in metrics
       loss, loss_weight = metrics[loss_name]
@@ -169,7 +171,7 @@ def train_step_single_learner(
       weighted_loss = loss * loss_weight
       # Fetch forward-updated vars, which often include batch norm vars, other
       # misc stats, etc.
-      forward_updated_vars = mdl.updated_vars
+      forward_updated_vars = model.updated_vars
       # Finally, fetch all the summary tensors.
       summary_tensors = base_layer.all_summaries()
       if in_pmap:
@@ -206,7 +208,7 @@ def train_step_single_learner(
     # No aggregation is needed.
     mean_metrics = metrics
 
-  var_weight_params = mdl.vars
+  var_weight_params = model.vars
   tf.nest.assert_same_structure(states.mdl_vars, var_weight_params)
   tf.nest.assert_same_structure(states.mdl_vars, grads)
   tf.nest.assert_same_structure(states.mdl_vars, fwd_updated_vars)
@@ -237,7 +239,7 @@ def train_step_single_learner(
       params=context_p, prng_key=subkey,
       global_step=states.step) as jax_context:
     # Nothing is allowed to change, except for summaries.
-    jax_context.bind(mdl, states.mdl_vars, [base_layer.SCOPE_AUX_LOSS])
+    jax_context.bind(model, states.mdl_vars, [base_layer.SCOPE_AUX_LOSS])
 
     # Add a summary for learning rate
     learning_rate = learner.optimizer.get_learning_rate(states.step)
@@ -290,7 +292,7 @@ def train_step_single_learner(
         raise ValueError('Non-trainable variables must have a cross-replica '
                          'synchronization method specified.')
 
-    var_weight_params = mdl.vars
+    var_weight_params = model.vars
     tf.nest.assert_same_structure(mdl_vars, var_weight_params)
     mdl_vars = tf.nest.map_structure(_update_non_learnable_var, mdl_vars,
                                      fwd_updated_vars, var_weight_params)
@@ -310,7 +312,7 @@ def train_step_single_learner(
 
 
 def eval_step_single_learner(
-    mdl: Model,
+    jax_task: base_task.SingleTask,
     mdl_vars: NestedJTensor,
     prng_key: JTensor,
     global_step: JTensor,
@@ -322,7 +324,7 @@ def eval_step_single_learner(
   This utility is specialized for the single learner case.
 
   Args:
-    mdl: An instance of model.BaseTask.
+    jax_task: An instance of base_task.SingleTask.
     mdl_vars: model variables to be used during eval.
     prng_key: A prng seed, of shape [2], of type np.uint32.
     global_step: A global step tensor indicating how many steps a model has been
@@ -345,6 +347,7 @@ def eval_step_single_learner(
   # Fold in global_step as part of the random seed key, so that random
   # numbers depends on global step.
   prng_key = jax.random.fold_in(prng_key, global_step)
+  model = jax_task.model
 
   if fprop_dtype == jnp.float32:
     pass
@@ -359,13 +362,13 @@ def eval_step_single_learner(
       global_step=global_step) as jax_context:
     # Prepares mdl for fprop. This clears all forward-updated vars that kept
     # locally in mdl.
-    jax_context.bind(mdl, mdl_vars, [base_layer.SCOPE_AUX_LOSS])
+    jax_context.bind(model, mdl_vars, [base_layer.SCOPE_AUX_LOSS])
 
     # Support multiple learners.
-    assert len(mdl.learners) == 1
-    learner = mdl.learners[0]
+    assert len(jax_task.learners) == 1
+    learner = jax_task.learners[0]
 
-    metrics, per_example_out = mdl.fprop(mdl_vars, inputs)
+    metrics, per_example_out = model.fprop(mdl_vars, inputs)
     loss_name = learner.loss_name
     assert loss_name in metrics
     loss, loss_weight = metrics[loss_name]
@@ -414,7 +417,7 @@ def eval_step_single_learner(
 
 
 def decode_step(
-    mdl: Model,
+    model: base_model.BaseModel,
     mdl_vars: NestedJTensor,
     prng_key: JTensor,
     global_step: JTensor,
@@ -423,12 +426,12 @@ def decode_step(
   """Decodes a model for a single step.
 
   Args:
-    mdl: An instance of model.BaseTask.
+    model: An instance of models.BaseModel.
     mdl_vars: model variables to be used during eval.
     prng_key: A prng seed, of shape [2], of type np.uint32.
     global_step: A global step tensor indicating how many steps a model has been
       trained.
-    inputs: A batch of inputs to mdl.decode().
+    inputs: A batch of inputs to model.decode().
     fprop_dtype: fprop datatype, can be either jnp.float32 or jnp.bfloat16.
 
   Returns:
@@ -448,13 +451,13 @@ def decode_step(
   with base_layer.JaxContext.new_context(
       params=context_p, prng_key=prng_key,
       global_step=global_step) as jax_context:
-    jax_context.bind(mdl, mdl_vars, [base_layer.SCOPE_AUX_LOSS])
+    jax_context.bind(model, mdl_vars, [base_layer.SCOPE_AUX_LOSS])
 
-    return mdl.decode(mdl_vars, inputs)
+    return model.decode(mdl_vars, inputs)
 
 
 def initialize_partitioned_model_states(
-    mdl: model.BaseTask,
+    jax_task: base_task.SingleTask,
     prng_key: PRNGKey,
 ) -> Tuple[TrainState, NestedShape, TrainState]:
   """Initializes model vars that are partitioned over TPU devices.
@@ -463,21 +466,22 @@ def initialize_partitioned_model_states(
   InitializesModelStates().
 
   Args:
-    mdl: The model which is an instance of model.BaseTask.
+    jax_task: The task which is an instance of base_task.SingleTask.
     prng_key: A PRNGKey.
 
   Returns:
     The partitioned specs, the shapes of the partitioned vars, and the
     partitioned vars themselves.
   """
-  mdl.instantiate_variable_configs()
+  model = jax_task.model
+  model.instantiate_variable_configs()
   # At this point, variable specs are already known.
-  var_specs = mdl.vars
-  train_state_partition_specs = mdl.create_train_state_partition_specs(
+  var_specs = model.vars
+  train_state_partition_specs = jax_task.create_train_state_partition_specs(
       var_specs)
   assert train_state_partition_specs is not None
 
-  init_model_from_seed = functools.partial(initialize_model_state, mdl)
+  init_model_from_seed = functools.partial(initialize_model_state, jax_task)
 
   in_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
   out_shape = jax.eval_shape(init_model_from_seed, in_shape)
@@ -575,18 +579,18 @@ def get_input_partition_specs(mesh_axis_names, inputs_shape):
 
 
 def partition_spmd_model(
-    mdl_params: InstantiableParams,
+    task_p: InstantiableParams,
     init_key: PRNGKey,
     inputs_shape: NestedShapeDtypeStruct,
 ) -> Tuple[TrainState, TrainState, TrainState, TrainStepFn, EvalStepFn, int]:
   """Setup the SPMD model and return sharded train and eval step function.
 
-  For partitioning inputs, it is assumed the `mdl_params` has a field
+  For partitioning inputs, it is assumed the `task_p.train` has a field
   `inputs_split_mapping` which further contains keys `map_1d`, `map_2d`, ...,
   etc., which specifies how to shard inputs of that corresponding dimension.
 
   Args:
-    mdl_params: Model parameters of type NestedMap.
+    task_p: Task parameters of type NestedMap.
     init_key: PRNGKey for initializing the model variables.
     inputs_shape: Shape of the inputs for use in pjit sharding.
 
@@ -597,19 +601,21 @@ def partition_spmd_model(
     the partition spec for the inputs, the train step function, eval step
     function and total number of parameters.
   """
-  mesh_names = mdl_params.mesh_axis_names
-  mdl = mdl_params.Instantiate()
+  model_p = task_p.model
+  mesh_names = model_p.mesh_axis_names
+  jax_task = task_p.Instantiate()
+  model = jax_task.model
 
   reshard_inputs_fn = functools.partial(reshard_input_based_on_rank_fn,
-                                        mdl_params.train.inputs_split_mapping,
-                                        mdl_params.mesh_axis_names)
-  inputs_partition_spec = get_input_partition_specs(mdl_params.mesh_axis_names,
+                                        task_p.train.inputs_split_mapping,
+                                        model_p.mesh_axis_names)
+  inputs_partition_spec = get_input_partition_specs(model_p.mesh_axis_names,
                                                     inputs_shape)
 
   # Initialize the partitioned vars.
   train_state_partition_specs, var_shapes, partitioned_train_state = (
-      initialize_partitioned_model_states(mdl, init_key))
-  total_num_params = mdl.total_num_vars
+      initialize_partitioned_model_states(jax_task, init_key))
+  total_num_params = model.total_num_vars
 
   prng_key_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
   # TODO(bf-jax): prng_key is replicated. Would this be a problem?
@@ -619,24 +625,24 @@ def partition_spmd_model(
     # Reshard inputs.
     inputs = jax.tree_map(reshard_inputs_fn, inputs)
     return train_step_single_learner(
-        mdl,
+        jax_task,
         state,
         prng_key,
         inputs,
         data_parallel_axis_name=None,
-        fprop_dtype=mdl_params.fprop_dtype)
+        fprop_dtype=model_p.fprop_dtype)
 
   def _eval_step(mdl_vars, prng_key, global_step, inputs):
     # Reshard inputs.
     inputs = jax.tree_map(reshard_inputs_fn, inputs)
     return eval_step_single_learner(
-        mdl,
+        jax_task,
         mdl_vars,
         prng_key,
         global_step,
         inputs,
         data_parallel_axis_name=None,
-        fprop_dtype=mdl_params.fprop_dtype)
+        fprop_dtype=model_p.fprop_dtype)
 
   train_out_shapes = jax.eval_shape(_train_step, var_shapes, prng_key_shape,
                                     inputs_shape)
@@ -689,18 +695,18 @@ def partition_spmd_model(
 
 
 def partition_spmd_model_decode(
-    mdl_params: InstantiableParams,
+    task_p: InstantiableParams,
     init_key: PRNGKey,
     inputs_shape: NestedShapeDtypeStruct,
 ) -> Tuple[TrainState, TrainState, TrainState, DecodeFn]:
   """Setup the SPMD model and return sharded decode step function.
 
-  For partitioning inputs, it is assumed the `mdl_params` has a field
+  For partitioning inputs, it is assumed the `task_p.train` has a field
   `inputs_split_mapping` which further contains keys `map_1d`, `map_2d`, ...,
   etc., which specifies how to shard inputs of that corresponding dimension.
 
   Args:
-    mdl_params: Model parameters of type NestedMap.
+    task_p: Task parameters of type NestedMap.
     init_key: PRNGKey for initializing the model variables.
     inputs_shape: Shape of the inputs for use in pjit sharding.
 
@@ -711,22 +717,24 @@ def partition_spmd_model_decode(
     partitioned TrainState
     specs, the decode step function.
   """
-  mesh_names = mdl_params.mesh_axis_names
-  mdl = mdl_params.Instantiate()
+  model_p = task_p.model
+  mesh_names = model_p.mesh_axis_names
+  jax_task = task_p.Instantiate()
+  model = jax_task.model
 
   # Compute inputs PartitionSpec from inputs_shape
   inputs_partition_spec_fn = functools.partial(
-      shard_on_batch_dim_partition_spec, mdl_params.mesh_axis_names)
+      shard_on_batch_dim_partition_spec, model_p.mesh_axis_names)
   reshard_inputs_fn = functools.partial(reshard_input_based_on_rank_fn,
-                                        mdl_params.train.inputs_split_mapping,
-                                        mdl_params.mesh_axis_names)
+                                        task_p.train.inputs_split_mapping,
+                                        model_p.mesh_axis_names)
 
   inputs_partition_spec = tf.nest.map_structure(inputs_partition_spec_fn,
                                                 inputs_shape)
 
   # Initialize the partitioned vars.
   train_state_partition_specs, var_shapes, partitioned_train_state = (
-      initialize_partitioned_model_states(mdl, init_key))
+      initialize_partitioned_model_states(jax_task, init_key))
 
   prng_key_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
   # TODO(b/198356509): Fix this so that prng_key is no longer replicated, as
@@ -741,12 +749,12 @@ def partition_spmd_model_decode(
   def _decode_step(mdl_vars, prng_key, global_step, inputs):
     inputs = jax.tree_map(reshard_inputs_fn, inputs)
     return decode_step(
-        mdl,
+        model,
         mdl_vars,
         prng_key,
         global_step,
         inputs,
-        fprop_dtype=mdl_params.fprop_dtype)
+        fprop_dtype=model_p.fprop_dtype)
 
   decode_out_shapes = jax.eval_shape(_decode_step, var_shapes.mdl_vars,
                                      prng_key_shape, var_shapes.step,

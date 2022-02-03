@@ -30,8 +30,8 @@ import jax.numpy as jnp
 from lingvo.jax import base_input
 from lingvo.jax import base_layer
 from lingvo.jax import base_model_params
+from lingvo.jax import base_task
 from lingvo.jax import checkpoint_pb2
-from lingvo.jax import model
 from lingvo.jax import model_utils
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -70,7 +70,8 @@ def evaluate(
       persistence-based checkpointing if suitable.
   """
   model_config = model_utils.get_model(model_name)()
-  model_p = model_config.task()
+  task_p = model_config.task()
+  model_p = task_p.model
   eval_input_p = [v for v in model_config.datasets() if not v.is_training]
   for inp in eval_input_p:
     inp.num_infeed_hosts = jax.process_count()
@@ -78,33 +79,33 @@ def evaluate(
 
   if model_p.device_mesh is not None:
     checkpoint_type = checkpoints.retrieve_checkpoint_type(
-        multi_host_checkpointing, maybe_use_persistence_checkpointing, model_p)
-    evaluate_spmd_model(model_p, eval_input_p, job_log_dir, checkpoint_type)
+        multi_host_checkpointing, maybe_use_persistence_checkpointing, task_p)
+    evaluate_spmd_model(task_p, eval_input_p, job_log_dir, checkpoint_type)
   else:
-    evaluate_pmap_model(model_p, eval_input_p, job_log_dir)
+    evaluate_pmap_model(task_p, eval_input_p, job_log_dir)
 
 
 def evaluate_pmap_model(
-    model_p: InstantiableParams,
+    task_p: InstantiableParams,
     eval_input_p: Sequence[InstantiableParams],
     job_log_dir: Optional[str],
 ) -> None:
   """Runs the evaluation loop on the entire test dataset for PMAP model.
 
   Args:
-    model_p: Params for the data parallel model.
+    task_p: Params for the task encapsulating the data parallel model.
     eval_input_p: List of params for the eval data input pipelines.
     job_log_dir: Directory for the job logs.
   """
   logging.info('Using pmap for data parallelism.')
-  jax_model = model_p.Instantiate()
+  jax_task = task_p.Instantiate()
   eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
   # TODO(shafey): Retrieve the seeds from the model definition instead.
   prng_key = jax.random.PRNGKey(1234)
   prng_key, init_key = jax.random.split(prng_key)
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
-  model_states = trainer_lib.initialize_model_state(jax_model, init_key)
+  model_states = trainer_lib.initialize_model_state(jax_task, init_key)
   # Pmap does not use GDA, and so global_mesh and mesh_axes are None.
   model_states = checkpoints.restore_checkpoint(model_states, checkpoint_dir)
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
@@ -119,7 +120,7 @@ def evaluate_pmap_model(
 
   def eval_step(mdl_vars, prng_key, global_step, inputs):
     return trainer_lib.eval_step_single_learner(
-        jax_model,
+        jax_task,
         mdl_vars,
         prng_key,
         global_step,
@@ -168,8 +169,8 @@ def evaluate_pmap_model(
       if last_checkpoint is not None:
         last_ckpt_step = checkpoints.get_step_from_checkpoint_asset(
             last_checkpoint)
-        exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
-        if exceeded_ckpt >= model_p.train.num_train_steps:
+        exceeded_ckpt = last_ckpt_step + task_p.train.save_interval_steps
+        if exceeded_ckpt >= task_p.train.num_train_steps:
           break
       # Release replicated_model_states.
       del replicated_model_states
@@ -187,7 +188,7 @@ def evaluate_pmap_model(
 
 
 def evaluate_spmd_model(
-    model_p: InstantiableParams,
+    task_p: InstantiableParams,
     eval_input_p: Sequence[InstantiableParams],
     job_log_dir: Optional[str],
     checkpoint_type: CheckpointType,
@@ -195,7 +196,7 @@ def evaluate_spmd_model(
   """Runs the evaluation loop on the entire test dataset for SPMD model.
 
   Args:
-    model_p: Params for the SPMD model.
+    task_p: Params of the task encapsulating an SPMD model.
     eval_input_p: List of Params for the eval data pipelines.
     job_log_dir: Directory for the job logs.
     checkpoint_type: Type of model checkpointing method to use.
@@ -227,13 +228,14 @@ def evaluate_spmd_model(
   sample_model_inputs = eval_input_p[0].Instantiate().get_next()
   inputs_shape = tf.nest.map_structure(get_shape_dtype, sample_model_inputs)
 
+  model_p = task_p.model
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     partitioned_train_state, partitioned_specs, eval_inputs_partition_specs, _, eval_step, _ = (
-        trainer_lib.partition_spmd_model(model_p, init_key, inputs_shape))
+        trainer_lib.partition_spmd_model(task_p, init_key, inputs_shape))
     partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
         checkpoint_task_dir,
@@ -286,8 +288,8 @@ def evaluate_spmd_model(
         if last_checkpoint is not None:
           last_ckpt_step = checkpoints.get_step_from_checkpoint_asset(
               last_checkpoint)
-          exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
-          if exceeded_ckpt >= model_p.train.num_train_steps:
+          exceeded_ckpt = last_ckpt_step + task_p.train.save_interval_steps
+          if exceeded_ckpt >= task_p.train.num_train_steps:
             break
         new_checkpoint = checkpoints.latest_checkpoint(checkpoint_dir)
         while new_checkpoint == last_checkpoint:
@@ -333,7 +335,8 @@ def decode(
   logging.info('running decode_once on model %s restored from %s', model_name,
                restore_checkpoint_dir)
   model_config = model_utils.get_model(model_name)()
-  model_p = model_config.task()
+  task_p = model_config.task()
+  model_p = task_p.model
   decoder_inputs = model_config.decoder_datasets()
   if not decoder_inputs:
     return
@@ -345,12 +348,11 @@ def decode(
     if continuous_decode:
       raise NotImplementedError('http://b/214589358: not supported')
     checkpoint_type = checkpoints.retrieve_checkpoint_type(
-        multi_host_checkpointing, maybe_use_persistence_checkpointing, model_p)
-    decode_once_spmd_model(model_p, decoder_inputs, job_log_dir,
-                           checkpoint_type, restore_checkpoint_dir,
-                           restore_checkpoint_step)
+        multi_host_checkpointing, maybe_use_persistence_checkpointing, task_p)
+    decode_once_spmd_model(task_p, decoder_inputs, job_log_dir, checkpoint_type,
+                           restore_checkpoint_dir, restore_checkpoint_step)
   else:
-    decode_pmap_model(model_p, decoder_inputs, job_log_dir,
+    decode_pmap_model(task_p, decoder_inputs, job_log_dir,
                       restore_checkpoint_dir, restore_checkpoint_step,
                       continuous_decode)
 
@@ -389,7 +391,7 @@ def _get_filename(step: base_layer.JTensorOrPartitionSpec) -> str:
 
 
 def decode_pmap_model(
-    model_p: InstantiableParams,
+    task_p: InstantiableParams,
     input_p: Sequence[InstantiableParams],
     job_log_dir: Optional[str],
     restore_checkpoint_dir: Optional[str],
@@ -399,7 +401,7 @@ def decode_pmap_model(
   """Runs the decoding on the entire decoder datasets for a PMAP model.
 
   Args:
-    model_p: Params for the data parallel model.
+    task_p: Params of the task encapsulating a the data parallel model.
     input_p: List of input params to be decoded.
     job_log_dir: Directory for the job logs.
     restore_checkpoint_dir: The directory from which to restore checkpoint. If
@@ -442,8 +444,8 @@ def decode_pmap_model(
         for d in summary_decode_dirs
     ]
 
-    jax_model = model_p.Instantiate()
-    model_states = trainer_lib.initialize_model_state(jax_model, init_key)
+    jax_task = task_p.Instantiate()
+    model_states = trainer_lib.initialize_model_state(jax_task, init_key)
     model_states = checkpoints.restore_checkpoint(
         model_states, restore_checkpoint_dir, step=restore_checkpoint_step)
     replicated_model_states = trainer_lib.replicate_model_state(model_states)
@@ -452,15 +454,15 @@ def decode_pmap_model(
     last_checkpoint = checkpoints.latest_checkpoint(restore_checkpoint_dir)
 
     while True:
-      _decode_once_pmap_model(jax_model, model_p, inputs, input_p, prng_seed,
+      _decode_once_pmap_model(jax_task, task_p, inputs, input_p, prng_seed,
                               job_log_dir, replicated_model_states,
                               summary_writers)
       if not continuous_decode:
         break
       if last_checkpoint is not None:
         last_ckpt_step = int(last_checkpoint.split('_')[-1])
-        exceeded_ckpt = last_ckpt_step + model_p.train.save_interval_steps
-        if exceeded_ckpt >= model_p.train.num_train_steps:
+        exceeded_ckpt = last_ckpt_step + task_p.train.save_interval_steps
+        if exceeded_ckpt >= task_p.train.num_train_steps:
           break
       # Release replicated_model_states.
       del replicated_model_states
@@ -487,8 +489,8 @@ def _aggregate_metrics(metrics_dict, pmap_axis_name):
 
 
 def _decode_once_pmap_model(
-    jax_model: model.BaseTask,
-    model_p: InstantiableParams,
+    jax_task: base_task.SingleTask,
+    task_p: InstantiableParams,
     inputs: List[base_input.BaseInput],
     input_p: Sequence[InstantiableParams],
     prng_seed: JTensor,
@@ -499,8 +501,8 @@ def _decode_once_pmap_model(
   """Runs the decoding on the entire decoder datasets for a PMAP model.
 
   Args:
-    jax_model: instantiated model from model_p.
-    model_p: Params for the data parallel model.
+    jax_task: instantiated model from task_p.
+    task_p: Params for the task encapsulating a data parallel model.
     inputs: instantiated inputs.
     input_p: List of input params to be decoded.
     prng_seed: The prng seed used for decoding.
@@ -508,6 +510,8 @@ def _decode_once_pmap_model(
     replicated_model_states: A TrainState object.
     summary_writers: The summary writer objects to log summaries.
   """
+  model = jax_task.model
+  model_p = task_p.model
   step_i = _get_step(replicated_model_states.step)
   pmap_axis_name = 'batch'
   aggregate_metrics = functools.partial(
@@ -516,7 +520,7 @@ def _decode_once_pmap_model(
       aggregate_metrics, axis_name=pmap_axis_name, out_axes=None)
 
   def decode_step(mdl_vars, prng_key, global_step, inputs):
-    metrics, out = trainer_lib.decode_step(jax_model, mdl_vars, prng_key,
+    metrics, out = trainer_lib.decode_step(model, mdl_vars, prng_key,
                                            global_step, inputs,
                                            model_p.fprop_dtype)
     mean_metrics = aggregate_metrics(metrics)
@@ -564,8 +568,7 @@ def _decode_once_pmap_model(
       batch_metrics, out = decode_step_func(batch)
       logging.info('Finished decoding input batch %d', step_num)
       out = tf.nest.map_structure(py_utils.unshard, out)
-      process_metrics, processed = jax_model.process_decode_out(
-          inputs[split], out)
+      process_metrics, processed = model.process_decode_out(inputs[split], out)
       decodes[split].extend(processed)
       logging.info('Finished processing decoded input batch %d', step_num)
 
@@ -624,7 +627,7 @@ def _decode_once_pmap_model(
 
 
 def decode_once_spmd_model(
-    model_p: InstantiableParams,
+    task_p: InstantiableParams,
     input_p: Sequence[InstantiableParams],
     job_log_dir: Optional[str],
     checkpoint_type: CheckpointType,
@@ -634,7 +637,7 @@ def decode_once_spmd_model(
   """Runs the decoding once on the entire decoder datasets for SPMD model.
 
   Args:
-    model_p: Params for the spmd model.
+    task_p: Params for the task that encapsulates an SPMD model.
     input_p: List of input params to be decoded.
     job_log_dir: Directory for the job logs.
     checkpoint_type: Type of model checkpointing method to use.
@@ -662,6 +665,7 @@ def decode_once_spmd_model(
   inputs_shape = tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
                                        sample_inputs)
 
+  model_p = task_p.model
   # TODO(b/198356509): This is a hack for now as we need to change some
   # annotations for mode='decode'. A future cl will move this logic
   # to a more generic model_p.update_sharding_params_v1(mode='decode').
@@ -677,12 +681,12 @@ def decode_once_spmd_model(
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
-  jax_model = model_p.Instantiate()
+  jax_task = task_p.Instantiate()
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     (partitioned_train_state, inputs_partition_spec, partitioned_specs,
      decode_step_fn) = trainer_lib.partition_spmd_model_decode(
-         model_p, init_key, inputs_shape)
+         task_p, init_key, inputs_shape)
     if restore_checkpoint_dir:
       partitioned_train_state = checkpoints.restore_checkpoint(
           partitioned_train_state,
@@ -752,7 +756,7 @@ def decode_once_spmd_model(
                                              per_process_batch_size)]
 
         out = jax.tree_map(shard, out)
-        _, processed = jax_model.process_decode_out(inputs[split], out)
+        _, processed = jax_task.model.process_decode_out(inputs[split], out)
         decodes[split].extend(processed)
         logging.info('Finished processing decoded input batch %d', step_num)
 

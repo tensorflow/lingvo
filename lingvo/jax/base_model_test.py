@@ -22,10 +22,8 @@ import jax
 from jax import numpy as jnp
 from jax import test_util
 from lingvo.jax import base_layer
-from lingvo.jax import model
-from lingvo.jax import optimizers
+from lingvo.jax import base_model
 from lingvo.jax import py_utils
-from lingvo.jax import schedules
 import numpy as np
 
 NestedMap = py_utils.NestedMap
@@ -67,14 +65,11 @@ class MockLM(base_layer.BaseLayer):
 class LanguageModelTest(test_util.JaxTestCase):
 
   def _run_decode(self, decoder_p, logits, input_batch):
-    p = model.LanguageModel.Params()
+    p = base_model.LanguageModel.Params()
     p.name = 'mock_lm'
     p.decoder = decoder_p.Copy()
     p.lm = MockLM.Params()
     p.lm.logits = logits
-    p.train.learner.loss_name = 'loss'
-    p.train.learner.optimizer = optimizers.Sgd.Params()
-    p.train.learner.optimizer.lr_schedule = schedules.Constant.Params()
     lang_model = p.Instantiate()
     theta = NestedMap(lm=NestedMap())
 
@@ -85,7 +80,7 @@ class LanguageModelTest(test_util.JaxTestCase):
     return results
 
   def test_base_case(self):
-    p = model.LanguageModel.Params().decoder
+    p = base_model.LanguageModel.Params().decoder
     p.seqlen = 3
     p.min_prefix_len = 0
     logits = [
@@ -113,7 +108,7 @@ class LanguageModelTest(test_util.JaxTestCase):
                                                             dtype=np.int32))
 
   def test_prefix(self):
-    p = model.LanguageModel.Params().decoder
+    p = base_model.LanguageModel.Params().decoder
     p.seqlen = 5
     p.min_prefix_len = 2
     logits = [
@@ -145,7 +140,7 @@ class LanguageModelTest(test_util.JaxTestCase):
                                                             dtype=np.int32))
 
   def test_eos_terminate(self):
-    p = model.LanguageModel.Params().decoder
+    p = base_model.LanguageModel.Params().decoder
     p.seqlen = 6
     p.min_prefix_len = 0
     p.eos_id = 2
@@ -174,7 +169,7 @@ class LanguageModelTest(test_util.JaxTestCase):
                                                             dtype=np.int32))
 
   def test_eos_independent(self):
-    p = model.LanguageModel.Params().decoder
+    p = base_model.LanguageModel.Params().decoder
     p.seqlen = 5
     p.min_prefix_len = 0
     p.eos_id = 2
@@ -208,7 +203,7 @@ class LanguageModelTest(test_util.JaxTestCase):
                            np.array([3, 4], dtype=np.int32))
 
   def test_prefix_and_eos(self):
-    p = model.LanguageModel.Params().decoder
+    p = base_model.LanguageModel.Params().decoder
     p.seqlen = 5
     p.min_prefix_len = 0
     p.eos_id = 2
@@ -254,7 +249,7 @@ class LanguageModelTest(test_util.JaxTestCase):
                            np.array([5, 4, 3], dtype=np.int32))
 
   def test_max_decode_steps(self):
-    p = model.LanguageModel.Params().decoder
+    p = base_model.LanguageModel.Params().decoder
     p.seqlen = 5
     p.min_prefix_len = 0
     p.eos_id = 2

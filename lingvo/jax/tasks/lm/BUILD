@@ -1,5 +1,5 @@
 # Description:
-#   Language modeling-specific libraries and model model configurations
+#   Language modeling-specific libraries and model configurations
 
 load("//lingvo:lingvo.bzl", "pytype_strict_library")
 load("//lingvo:lingvo.bzl", "py_strict_test")
@@ -32,8 +32,9 @@ pytype_strict_library(
         # Implicit jax dependency.
         "//lingvo/jax:asserts",
         "//lingvo/jax:base_layer",
+        "//lingvo/jax:base_model",
         "//lingvo/jax:base_model_params",
-        "//lingvo/jax:model",
+        "//lingvo/jax:base_task",
         "//lingvo/jax:optimizers",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:schedules",

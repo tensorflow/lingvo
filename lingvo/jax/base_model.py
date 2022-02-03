@@ -13,42 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Base class for all Jax models."""
+"""Base class for all models.
+
+The model solely consists of the network, while the task combines one or several
+models with one or several learners/optimizers.
+"""
+
 from typing import Any, Callable, Dict, Optional, Sequence, Tuple, Union
 
 import jax
 from jax import numpy as jnp
-from jax.experimental import pjit
 from lingvo.jax import base_input
 from lingvo.jax import base_layer
 from lingvo.jax import layers
-from lingvo.jax import learners as learners_lib
 from lingvo.jax import metric_utils
-from lingvo.jax import optimizers
 from lingvo.jax import py_utils
-from lingvo.jax import pytypes
 from lingvo.jax import train_states
-import tensorflow.compat.v2 as tf
 
 NestedMap = py_utils.NestedMap
 JTensor = base_layer.JTensor
-NestedJTensor = base_layer.NestedJTensor
-JTensorOrPartitionSpec = base_layer.JTensorOrPartitionSpec
-JTensorOrPartitionSpecOrNone = Optional[base_layer.JTensorOrPartitionSpec]
-NestedJTensorOrPartitionSpec = base_layer.NestedJTensorOrPartitionSpec
 InstantiableParams = py_utils.InstantiableParams
 Predictions = Union[JTensor, NestedMap, Dict[str, Any]]
 Metrics = Dict[str, Tuple[JTensor, JTensor]]
-PartitionSpec = pjit.PartitionSpec
-PyTreeDef = pytypes.PyTreeDef
 TrainState = train_states.TrainState
 
-_UNPARTITIONED_BASENAME = 'unpartitioned.msgpack'
-_PARTITIONED_SUBDIR = 'partitioned'
-_CHECKPOINT_PREFIX = 'ckpt'
 
-
-def compute_xent_loss_helper(
+def _compute_xent_loss_helper(
     predictions: NestedMap, input_batch: NestedMap,
     return_predictions: bool) -> Tuple[Metrics, Dict[str, Any]]:
   """Helper for computing the xent loss for Language model and Sequence model.
@@ -100,15 +90,15 @@ def compute_xent_loss_helper(
   return metrics, per_example_output
 
 
-def greedy_decode(extend_step_fn: Callable[[NestedMap, JTensor],
-                                           Tuple[NestedMap, JTensor]],
-                  decoder_state: NestedMap,
-                  target_ids: JTensor,
-                  target_paddings: JTensor,
-                  seq_len: int,
-                  max_decode_steps: Optional[int] = None,
-                  prefix_lengths: Optional[JTensor] = None,
-                  eos_id: Optional[int] = None) -> NestedMap:
+def _greedy_decode(extend_step_fn: Callable[[NestedMap, JTensor],
+                                            Tuple[NestedMap, JTensor]],
+                   decoder_state: NestedMap,
+                   target_ids: JTensor,
+                   target_paddings: JTensor,
+                   seq_len: int,
+                   max_decode_steps: Optional[int] = None,
+                   prefix_lengths: Optional[JTensor] = None,
+                   eos_id: Optional[int] = None) -> NestedMap:
   """Greedy decode the input batch.
 
   Args:
@@ -224,70 +214,14 @@ def greedy_decode(extend_step_fn: Callable[[NestedMap, JTensor],
   return result
 
 
-class BaseTask(base_layer.BaseLayer):
-  """A jax task."""
+class BaseModel(base_layer.BaseLayer):
+  """An API that every model should be derived from."""
 
-  @classmethod
-  def Params(cls) -> InstantiableParams:
-    p = super().Params()
-    p.Define('train', py_utils.Params(),
-             'Params to control how this task should be trained.')
-    tp = p.train
-    tp.Define('learner', learners_lib.Learner.Params(),
-              'One or a list of learners.')
-    tp.Define('num_train_steps', 1e7,
-              'Maximum number of training steps to run.')
-    # TODO(bf-jax): Add an option to perform this wrt. a time duration.
-    tp.Define(
-        'save_interval_steps', 5000,
-        'How frequently to save a model checkpoint in terms of the number of '
-        'training steps.')
-    tp.Define(
-        'save_keep_interval_duration', '12h',
-        'How frequently to keep a saved model checkpoint as a duration string '
-        'such as `1h` for one hour or `90m` for 90 minutes. This is performed '
-        'in addition to keeping the most recent `max_to_keep` checkpoint '
-        'files.')
-    tp.Define('save_max_to_keep', 10,
-              'The maximum number of recent checkpoints to keep.')
-    tp.Define(
-        'summary_interval_steps', 100,
-        'How frequently to generate summaries in terms of the number of '
-        'training steps.')
-    tp.Define(
-        'norm_summary_interval_steps', 500,
-        'How frequently to generate expensive summaries computing the norms '
-        'of variables in terms of the number of training steps.')
-    tp.Define(
-        'eval_interval_steps', 100,
-        'How frequently to evaluate the model on the evaluation splits in '
-        'terms of the number of training steps.')
-    tp.Define(
-        'inputs_split_mapping', None, 'The PartitionSpec for inputs'
-        'such as inputs, labels, targets, paddings, num words etc. This is only'
-        'relevant for SPMD sharded models. By default it is None, which means'
-        'all the inputs are replicated. For sharding inputs, this is a '
-        '`NestedMap` with keys `map_1d`, `map_2d`, ..., etc.,'
-        'which specifies how to shard the inputs of that dimension.')
-    return p
-
-  def __init__(self, params: InstantiableParams) -> None:
-    super().__init__(params)
-    p = self._params
-    assert p.train.learner is not None
-    # TODO(yonghui): implement multiple learners.
-    assert not isinstance(p.train.learner, (tuple, list))
-    learner_params = [p.train.learner]
-    self.create_children('learner', learner_params)
-
-  @property
-  def learners(self):
-    return self.learner
-
-  def compute_predictions(
-      self, theta: NestedMap,
-      input_batch: NestedMap) -> Union[JTensor, NestedMap, Dict[str, Any]]:
+  def compute_predictions(self, theta: NestedMap,
+                          input_batch: NestedMap) -> Predictions:
     """Computes predictions for `input_batch`.
+
+    This method must be defined in a concrete derived class.
 
     The output can be in the form of probablistic distributions, e.g., softmax
     logits for discrete outputs, mixture of logistics for continuous values, or
@@ -311,6 +245,8 @@ class BaseTask(base_layer.BaseLayer):
                                                               NestedMap],
                    input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Computes the loss and other metrics for the given predictions.
+
+    This method must be defined in a concrete derived class.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
@@ -380,75 +316,8 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def create_train_state_partition_specs(
-      self, var_weight_params) -> Optional[TrainState]:
-    """Creates partition specs for all variables used in training.
 
-    Args:
-      var_weight_params: a nested map of variable params for all the forward
-        variables.
-
-    Returns:
-      A TrainState contains PartitionSpecs for all the forward and backward
-        variables, or None.
-    """
-    p = self.params
-    device_mesh = p.device_mesh
-    if device_mesh is None:
-      return None
-    else:
-      learners = self.learners
-      grad_txs = [x.get_grad_tx(var_weight_params) for x in learners]
-      for grad_tx in grad_txs:
-        assert isinstance(grad_tx, optimizers.ShardedGradientTransformation)
-      opt_var_weight_params = [
-          x.init_partition_spec(var_weight_params) for x in grad_txs
-      ]
-      var_partition_specs = base_layer.var_partition_specs(
-          var_weight_params,
-          device_mesh=device_mesh,
-          device_axis_names=p.mesh_axis_names)
-      opt_var_partition_specs = base_layer.var_partition_specs(
-          opt_var_weight_params,
-          device_mesh=device_mesh,
-          device_axis_names=p.mesh_axis_names)
-      step_partition_spec = PartitionSpec()
-      return TrainState(
-          step=step_partition_spec,
-          mdl_vars=var_partition_specs,
-          opt_states=opt_var_partition_specs)
-
-  def create_train_state(self, mdl_vars: NestedJTensor,
-                         var_weight_params: NestedJTensor) -> TrainState:
-    """Creates train states that holds all the forward/backward variables.
-
-    Args:
-      mdl_vars: A nested structure of model vars to create TrainState for.
-        'mdl_vars' can be a sub-set of self.vars.
-      var_weight_params: WeightParams for each of the variable in mdl_vars.
-        var_weight_params must be of the same structure as mdl_vars. Each model
-        weight variable is associated with some WeightParams which contains all
-        the meta information about the weight variable.
-
-    Returns:
-      a TrainState.
-    """
-    # Make a private copy of mdl_vars and var_weight_params structures that are
-    # not shared with the caller.
-    mdl_vars = tf.nest.map_structure(lambda x: x, mdl_vars)
-    var_weight_params = tf.nest.map_structure(lambda x: x, var_weight_params)
-    learners = self.learners
-    grad_txs = [x.get_grad_tx(var_weight_params) for x in learners]
-    tf.nest.assert_same_structure(mdl_vars, var_weight_params)
-    opt_states = [x.init(mdl_vars) for x in grad_txs]
-    return TrainState(
-        # The global step for the model.
-        step=jnp.array(0, dtype=jnp.uint32),
-        mdl_vars=mdl_vars,
-        opt_states=opt_states)
-
-
-class LanguageModel(BaseTask):
+class LanguageModel(BaseModel):
   """Language Model base task."""
 
   @classmethod
@@ -533,8 +402,8 @@ class LanguageModel(BaseTask):
         training example, where the first dimension of each tensor is the batch
         index.
     """
-    return compute_xent_loss_helper(predictions, input_batch,
-                                    self.params.return_predictions)
+    return _compute_xent_loss_helper(predictions, input_batch,
+                                     self.params.return_predictions)
 
   def decode(self, theta: NestedMap,
              input_batch: NestedMap) -> Tuple[NestedMap, NestedMap]:
@@ -569,7 +438,7 @@ class LanguageModel(BaseTask):
       new_states, xent = self.lm.extend_step(theta.lm, states, ids)
       return new_states, xent.logits
 
-    result = greedy_decode(
+    result = _greedy_decode(
         extend_step_fn,
         decoder_state,
         input_batch.ids,
@@ -623,7 +492,7 @@ class LanguageModel(BaseTask):
     return metrics, ret
 
 
-class SequenceModel(BaseTask):
+class SequenceModel(BaseModel):
   """Sequence Model base task."""
 
   @classmethod
@@ -689,8 +558,8 @@ class SequenceModel(BaseTask):
         training example, where the first dimension of each tensor is the batch
         index.
     """
-    return compute_xent_loss_helper(predictions, input_batch.tgt,
-                                    self.params.return_predictions)
+    return _compute_xent_loss_helper(predictions, input_batch.tgt,
+                                     self.params.return_predictions)
 
   def decode(self, theta: NestedMap,
              input_batch: NestedMap) -> Tuple[NestedMap, NestedMap]:
@@ -722,7 +591,7 @@ class SequenceModel(BaseTask):
       new_states, xent = self.model.extend_step(theta.model, states, ids)
       return new_states, xent.logits
 
-    result = greedy_decode(
+    result = _greedy_decode(
         extend_step_fn,
         decoder_state,
         input_batch.tgt.ids,
@@ -769,7 +638,7 @@ class SequenceModel(BaseTask):
     return ret
 
 
-class ClassificationTask(BaseTask):
+class ClassificationModel(BaseModel):
   """Classification task for images and video."""
 
   @classmethod
@@ -868,7 +737,7 @@ class ClassificationTask(BaseTask):
     return metrics, {}
 
 
-class BertModel(BaseTask):
+class BertModel(BaseModel):
   """Bert Model base task."""
 
   @classmethod

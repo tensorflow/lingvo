@@ -19,7 +19,7 @@ from typing import Tuple
 
 from jax import numpy as jnp
 from lingvo.jax import base_layer
-from lingvo.jax import model
+from lingvo.jax import base_model
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 from lingvo.jax.layers import linears
@@ -129,7 +129,7 @@ class VarUnusedLayer(base_layer.BaseLayer):
     return loss
 
 
-class TestModel01(model.BaseTask):
+class TestModel01(base_model.BaseModel):
   """Simple model for testing."""
 
   @classmethod
@@ -180,7 +180,7 @@ class TestModel01(model.BaseTask):
         loss02=(loss02, jnp.array(1.0, loss02.dtype))), per_example_out
 
 
-class TestLinearRegressionModel(model.BaseTask):
+class TestLinearRegressionModel(base_model.BaseModel):
   """Linear regression model."""
 
   @classmethod
@@ -213,7 +213,7 @@ class TestLinearRegressionModel(model.BaseTask):
         loss=(loss, jnp.array(1.0, loss.dtype))), per_example_out
 
 
-class TestBatchNormalizationModel(model.BaseTask):
+class TestBatchNormalizationModel(base_model.BaseModel):
   """Test batch normalization correctness using a regression task."""
 
   @classmethod
@@ -243,7 +243,7 @@ class TestBatchNormalizationModel(model.BaseTask):
         loss=(loss, jnp.array(1.0, loss.dtype))), per_example_out
 
 
-class TestSpmdModel(model.BaseTask):
+class TestSpmdModel(base_model.BaseModel):
   """A simple spmd model for testing purposes."""
 
   @classmethod

@@ -87,12 +87,12 @@ def get_step_from_checkpoint_asset(checkpoint_dir: str) -> int:
 
 def retrieve_checkpoint_type(multi_host_checkpointing: bool,
                              maybe_use_persistence_checkpointing,
-                             model_p: InstantiableParams) -> CheckpointType:
+                             task_p: InstantiableParams) -> CheckpointType:
   """Retrieves the CheckpointType given the input arguments."""
   if jax.config.jax_parallel_functions_output_gda:
     asserts.eq(multi_host_checkpointing, True)
     checkpoint_type = CheckpointType.CHECKPOINT_GDA
-  elif maybe_use_persistence_checkpointing and model_p.device_mesh is not None:
+  elif maybe_use_persistence_checkpointing and task_p.model.device_mesh is not None:
     asserts.eq(multi_host_checkpointing, False)
     checkpoint_type = CheckpointType.CHECKPOINT_PERSISTENCE
   else:  # Flax-based checkpointing

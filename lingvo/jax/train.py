@@ -102,13 +102,13 @@ def _parse_duration(
 
 def _create_checkpoint_manager(
     model_name: str,
-    model_p: InstantiableParams,
+    task_p: InstantiableParams,
     job_log_dir: str,
     checkpoint_type: CheckpointType,
 ) -> checkpoint_managers.CheckpointManager:
   """Creates a checkpoint manager."""
   checkpoint_dir = _checkpoint_dir(job_log_dir)
-  train_p = model_p.train
+  train_p = task_p.train
   max_to_keep = train_p.save_max_to_keep
   save_interval_steps = train_p.save_interval_steps
   keep_interval_timedelta = _parse_duration(train_p.save_keep_interval_duration)
@@ -144,7 +144,7 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
   """
   model_config = model_utils.get_model(model_name)()
   _write_params_file(model_config, job_log_dir)
-  model_p = model_config.task()
+  task_p = model_config.task()
 
   for inp in model_config.datasets():
     if not isinstance(inp, base_input.BaseInputParams):
@@ -165,24 +165,24 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
                  train_input_p.bucket_batch_limit)
 
   checkpoint_type = checkpoints.retrieve_checkpoint_type(
-      multi_host_checkpointing, maybe_use_persistence_checkpointing, model_p)
+      multi_host_checkpointing, maybe_use_persistence_checkpointing, task_p)
 
-  checkpoint_manager = _create_checkpoint_manager(model_name, model_p,
+  checkpoint_manager = _create_checkpoint_manager(model_name, task_p,
                                                   job_log_dir, checkpoint_type)
 
-  if model_p.device_mesh is not None:
-    train_and_evaluate_spmd_model(model_p, train_input_p, job_log_dir,
+  if task_p.model.device_mesh is not None:
+    train_and_evaluate_spmd_model(task_p, train_input_p, job_log_dir,
                                   checkpoint_manager, checkpoint_type,
                                   restore_checkpoint_dir,
                                   restore_checkpoint_step, eval_input_p)
   else:
-    train_and_evaluate_pmap(model_p, train_input_p, job_log_dir,
+    train_and_evaluate_pmap(task_p, train_input_p, job_log_dir,
                             checkpoint_manager, restore_checkpoint_dir,
                             restore_checkpoint_step, eval_input_p)
 
 
 def train_and_evaluate_pmap(
-    model_p: InstantiableParams, train_input_p: InstantiableParams,
+    task_p: InstantiableParams, train_input_p: InstantiableParams,
     job_log_dir: Optional[str],
     checkpoint_manager: checkpoint_managers.CheckpointManager,
     restore_checkpoint_dir: Optional[str],
@@ -191,7 +191,7 @@ def train_and_evaluate_pmap(
   """Runs the training and evaluation loop.
 
   Args:
-    model_p: Params for the data parallel model.
+    task_p: Params for the task encapsulating the data parallel model.
     train_input_p: Params for the train data input pipeline.
     job_log_dir: Directory for the job logs.
     checkpoint_manager: A checkpoint manager controlling how often to save and
@@ -207,7 +207,7 @@ def train_and_evaluate_pmap(
   if jax.config.jax_parallel_functions_output_gda:
     raise NotImplementedError(
         'jax.pmap does not yet support GlobalDeviceArray.')
-  jax_model = model_p.Instantiate()
+  jax_task = task_p.Instantiate()
 
   train_input_pipeline = train_input_p.Instantiate()
   if eval_input_p is not None:
@@ -219,12 +219,12 @@ def train_and_evaluate_pmap(
 
   checkpoint_dir = _checkpoint_dir(job_log_dir)
   restore_checkpoint_dir = restore_checkpoint_dir or checkpoint_dir
-  model_states = trainer_lib.initialize_model_state(jax_model, init_key)
+  model_states = trainer_lib.initialize_model_state(jax_task, init_key)
   model_states = checkpoints.restore_checkpoint(
       model_states,
       restore_checkpoint_dir,
       step=restore_checkpoint_step)
-  total_num_params = jax_model.total_num_vars
+  total_num_params = jax_task.model.total_num_vars
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
   # Unreplicated model states are not needed anymore at that point.
   del model_states
@@ -238,11 +238,11 @@ def train_and_evaluate_pmap(
   prng_key = jax.random.fold_in(prng_key, jax.process_index())
   logging.info('root prng_key: %s', prng_key)
 
-  fprop_dtype = model_p.fprop_dtype
+  fprop_dtype = task_p.model.fprop_dtype
 
   def train_step(states, prng_key, inputs):
     return trainer_lib.train_step_single_learner(
-        jax_model,
+        jax_task,
         states,
         prng_key,
         inputs,
@@ -251,7 +251,7 @@ def train_and_evaluate_pmap(
 
   def eval_step(mdl_vars, prng_key, global_step, inputs):
     return trainer_lib.eval_step_single_learner(
-        jax_model,
+        jax_task,
         mdl_vars,
         prng_key,
         global_step,
@@ -269,7 +269,7 @@ def train_and_evaluate_pmap(
   p_train_step = jax.pmap(train_step, donate_argnums=(0,), axis_name='batch')
   p_eval_step = jax.pmap(eval_step, axis_name='batch')
 
-  train_p = model_p.train
+  train_p = task_p.train
 
   logging.info('Training loop starting...')
   summary_base_dir = os.path.join(job_log_dir, 'summaries')
@@ -407,7 +407,7 @@ def train_and_evaluate_pmap(
 
 
 def train_and_evaluate_spmd_model(
-    model_p: InstantiableParams, train_input_p: InstantiableParams,
+    task_p: InstantiableParams, train_input_p: InstantiableParams,
     job_log_dir: Optional[str],
     checkpoint_manager: checkpoint_managers.CheckpointManager,
     checkpoint_type: CheckpointType, restore_checkpoint_dir: Optional[str],
@@ -416,7 +416,7 @@ def train_and_evaluate_spmd_model(
   """Runs the training and evaluation loop.
 
   Args:
-    model_p: Params for the SPMD model.
+    task_p: Params for task encapsulating the SPMD model.
     train_input_p: Params for the train data pipeline.
     job_log_dir: Directory for the job logs.
     checkpoint_manager: A checkpoint manager controlling how often to save and
@@ -431,6 +431,7 @@ def train_and_evaluate_spmd_model(
   """
   logging.info('Using SPMD sharding for model parallelism.')
   train_input_pipeline = train_input_p.Instantiate()
+  model_p = task_p.model
 
   if eval_input_p is not None:
     eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
@@ -482,7 +483,7 @@ def train_and_evaluate_spmd_model(
   with maps.mesh(device_mesh, model_p.mesh_axis_names):
     (partitioned_train_state, train_state_pspecs, inputs_pspecs, train_step,
      eval_step, total_num_params) = trainer_lib.partition_spmd_model(
-         model_p, init_key, inputs_shape)
+         task_p, init_key, inputs_shape)
 
     partitioned_train_state = checkpoints.restore_checkpoint(
         partitioned_train_state,
@@ -506,7 +507,7 @@ def train_and_evaluate_spmd_model(
     logging.info('train prng_key: %s', train_key)
     logging.info('eval prng_key: %s', eval_key)
 
-    train_p = model_p.train
+    train_p = task_p.train
 
     logging.info('Training loop starting...')
     summary_base_dir = os.path.join(job_log_dir, 'summaries')

@@ -19,8 +19,8 @@ from typing import Any, Callable, List, Optional, Union
 from absl import logging
 import jax
 from lingvo.jax import base_input
+from lingvo.jax import base_model
 from lingvo.jax import base_model_params
-from lingvo.jax import model
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 from lingvo.jax import summary_utils
@@ -32,7 +32,7 @@ from lingvo.jax import model_registry
 
 BaseModelParamsT = base_model_params.BaseModelParamsT
 InstantiableParams = py_utils.InstantiableParams
-Metrics = model.Metrics
+Metrics = base_model.Metrics
 NestedMap = py_utils.NestedMap
 InputPipeline = Union[InstantiableParams, List[InstantiableParams]]
 JTensor = pytypes.JTensor
