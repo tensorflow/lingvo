@@ -27,11 +27,17 @@ from lingvo.core import py_utils
 import numpy as np
 from google.protobuf import text_format
 # pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.eager import monitoring
 from tensorflow.python.lib.io import file_io
 from tensorflow.python.ops import gen_io_ops
 from tensorflow.python.ops import io_ops
 from tensorflow.python.training.checkpoint_state_pb2 import CheckpointState
 # pylint: enable=g-direct-tensorflow-import
+
+_async_checkpoint_op_time_seconds = monitoring.Sampler(
+    "/lingvo_lib/core/saver/async_checkpoint_op_secs",
+    monitoring.ExponentialBuckets(0.5, 1.3, 40),
+    "Distribution of the duration in seconds for async checkpoint ops.")
 
 
 class SanityCheck:
@@ -298,6 +304,7 @@ class Saver:
     tf.logging.info("Saving asynchronously to %s", tf.compat.as_text(prefix))
 
     def _Async(prefix):
+      checkpoint_start_time = time.perf_counter()
       try:
         copied_var_map = {
             id(copied_var): var
@@ -312,6 +319,8 @@ class Saver:
         self._FinalizeSave(global_step, prefix)
       except Exception as e:  # pylint: disable=broad-except
         self._async_exception = e
+      _async_checkpoint_op_time_seconds.get_cell().add(time.perf_counter() -
+                                                       checkpoint_start_time)
 
     self._async_save_thread = threading.Thread(target=_Async, args=(prefix,))
     self._async_save_thread.start()
