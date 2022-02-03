@@ -1491,4 +1491,4 @@ class MultiTaskModel(BaseModel):
       if isinstance(input_batch, list):
         assert len(input_batch) == 1  # Non-TPU case.
         input_batch = input_batch[0]
-      return input_batch, self._task.Decode(input_batch)
+      return input_batch, task.Decode(input_batch)
