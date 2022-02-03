@@ -21,6 +21,7 @@ from absl.testing import absltest
 from jax import test_util
 from lingvo.core import base_input_generator
 from lingvo.core import generic_input
+from lingvo.core import py_utils as tf_py_utils
 from lingvo.jax import base_input
 from lingvo.jax import py_utils
 import numpy as np
@@ -70,6 +71,8 @@ class LingvoInput(base_input_generator.BaseInputGeneratorFromFiles):
     def _process(source_id, record):
       del source_id
       num = tf.strings.to_number(record, tf.int32)
+      if not tf_py_utils.use_tpu():
+        num = num * num
       return py_utils.NestedMap(num=num), 1
 
     inputs, _ = generic_input.GenericInput(
@@ -156,20 +159,49 @@ class InputTest(test_util.JaxTestCase):
     num_batches = 10
     input_p = TestDataset.Params()
     input_p.args.num = num_batches
-    p = base_input.LingvoInputAdaptor.Params().Set(input=input_p)
+    p = base_input.LingvoInputAdaptor.Params().Set(
+        input=input_p, is_training=True, cluster_do_eval=True)
     inp = p.Instantiate()
+    # When used for training data, cluster.do_eval is never set.
+    # The input repeats the data indefinitely.
     for i in range(int(num_batches * 2.5)):
       x = inp.get_next()
       self.assertEqual(x.data, i % num_batches)
+    # Resets the input to begin from the first element again.
     inp.reset()
     x = inp.get_next()
     self.assertEqual(x.data, 0)
+
+  def test_lingvo_tfdata_input_eval(self):
+    num_batches = 10
+    input_p = TestDataset.Params()
+    input_p.args.num = num_batches
+    # We have two versions of the input, with different values for
+    # cluster.do_eval.
+    p_eval = base_input.LingvoInputAdaptor.Params().Set(
+        input=input_p, is_training=False, cluster_do_eval=True)
+    p_noeval = base_input.LingvoInputAdaptor.Params().Set(
+        input=input_p, is_training=False, cluster_do_eval=False)
+    inp_eval = p_eval.Instantiate()
+    inp_noeval = p_noeval.Instantiate()
+    for i in range(num_batches):
+      self.assertEqual(inp_eval.get_next().data, i)
+      self.assertEqual(inp_noeval.get_next().data, i)
+    # When cluster.do_eval is set, the input exhausts one epoch and raises.
+    with self.assertRaisesRegex(tf.errors.OutOfRangeError, 'End of sequence'):
+      inp_eval.get_next()
+    # When cluster.do_eval is not set (the default), the input repeats.
+    self.assertEqual(inp_noeval.get_next().data, 0)
+    # Resets the input to begin from the first element again.
+    inp_eval.reset()
+    self.assertEqual(inp_eval.get_next().data, 0)
 
   def test_lingvo_tfdata_override(self):
     num_batches = 10
     input_p = TestDatasetOverride.Params()
     input_p.args.num = num_batches
-    p = base_input.LingvoInputAdaptor.Params().Set(input=input_p)
+    p = base_input.LingvoInputAdaptor.Params().Set(
+        input=input_p, is_training=True)
     inp = p.Instantiate()
     for i in range(int(num_batches * 2.5)):
       x = inp.get_next()

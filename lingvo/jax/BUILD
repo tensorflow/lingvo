@@ -55,6 +55,7 @@ pytype_strict_library(
     deps = [
         ":py_utils",
         ":pytypes",
+        "//lingvo/core:cluster_factory",
         "//lingvo/core:datasource",
         # Implicit tensorflow dependency.
     ],
@@ -73,6 +74,7 @@ py_strict_test(
         # Implicit jax dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
+        "//lingvo/core:py_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],

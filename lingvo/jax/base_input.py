@@ -15,8 +15,10 @@
 # ==============================================================================
 """Base classes for the lingvo Jax input layers."""
 
+import copy
 from typing import List, Optional
 
+from lingvo.core import cluster_factory
 from lingvo.core import datasource
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -173,11 +175,26 @@ class LingvoInputAdaptor(BaseInput):
         'We disallow by default to avoid having identical input batches across '
         'different infeed hosts. If set, random seeds are adjusted by '
         'p.infeed_host_index to ensure different random seeds.')
+    p.Define(
+        'cluster_do_eval', False,
+        'Whether to set cluster.do_eval to True for non-training data. '
+        'Note that if set to True, this will change '
+        'cluster.require_sequential_input_order to True as a result. '
+        'Ignored  when p.is_training is True.')
     return p
 
   def __init__(self, p):
     p.batch_size = -1  # unused
     super().__init__(p)
+    self._cluster = copy.deepcopy(cluster_factory.Current())
+    # For Lingvo's Cluster context that may impact the behavior of this input
+    # generator, we always set use_tpu to True, and optionally set do_eval
+    # for non-training data when configured to do so. All other Cluster params
+    # use the default value.
+    self._cluster.params.xla_device = 'tpu'
+    self._cluster.params.enable_asserts = False
+    # This indirectly sets cluster.require_sequential_input_order as well.
+    self._cluster.params.do_eval = (not p.is_training and p.cluster_do_eval)
     self._initialize()
 
   def _initialize(self) -> None:
@@ -198,7 +215,7 @@ class LingvoInputAdaptor(BaseInput):
     # IdsToStrings if needed.
     with py_utils.infeed_context_scope(
         infeed_host_index=p.infeed_host_index,
-        num_infeed_hosts=p.num_infeed_hosts):
+        num_infeed_hosts=p.num_infeed_hosts), self._cluster:
       self.input = p.input.Instantiate()
 
     if hasattr(self.input, 'datasource') and isinstance(
@@ -215,7 +232,7 @@ class LingvoInputAdaptor(BaseInput):
     p = self.params
     with py_utils.infeed_context_scope(
         infeed_host_index=p.infeed_host_index,
-        num_infeed_hosts=p.num_infeed_hosts):
+        num_infeed_hosts=p.num_infeed_hosts), self._cluster:
       ret = self.input.GetPreprocessedInputBatch()
     # Remove unsupported string (byte) array from input.
     return ret.Filter(lambda v: v.dtype != tf.string)
