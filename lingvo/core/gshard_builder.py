@@ -3311,6 +3311,8 @@ class UniTransformer(base_model.BaseTask):
 
   def _ComputeDecoderInput(self, theta, input_batch):
     p = self.params
+    if p.moe and p.builder.gating_func == 'hashing':
+      expert_id = tf.math.floormod(input_batch.tgt.ids, p.builder.e_dim)
     if p.has_embedding_layer:
       y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
       if self.params.positional_embedding:
@@ -3319,7 +3321,7 @@ class UniTransformer(base_model.BaseTask):
     else:
       y = tf.cast(input_batch.tgt.ids, py_utils.FPropDtype(self.params))
 
-    return py_utils.NestedMap(
+    decoded_input = py_utils.NestedMap(
         vec=y,
         segment_id=input_batch.tgt.segment_ids,
         segment_pos=input_batch.tgt.segment_pos,
@@ -3327,6 +3329,10 @@ class UniTransformer(base_model.BaseTask):
         encoder_segment_id=tf.zeros_like(input_batch.tgt.segment_ids),
         encoder_segment_pos=tf.zeros_like(input_batch.tgt.segment_pos),
         aux_loss=tf.convert_to_tensor(0.0, py_utils.FPropDtype(self.params)))
+
+    if p.moe and p.builder.gating_func == 'hashing':
+      decoded_input.expert_id = expert_id
+    return decoded_input
 
   def ComputePredictions(self, theta, input_batch):
     """Forward propagation through one tower of the model.

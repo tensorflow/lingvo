@@ -2203,6 +2203,135 @@ def Top2GatingOnLogits(inputs,
   return aux_loss, combine_tensor, dispatch_tensor
 
 
+def HashGatingOnLogits(inputs,
+                       expert_id,
+                       paddings,
+                       num_devices,
+                       experts_dim,
+                       expert_capacity_dim,
+                       fprop_dtype,
+                       use_xla_sharding=True,
+                       importance=None,
+                       mask_dtype=None):
+  """Hash based gating.
+
+  Dimensions cheat sheet::
+
+    G: group_dim
+    S: group_size_dim
+    E: number of experts
+    C: capacity per expert
+    M: model_dim (same as input_dim, same as output_dim)
+    B: original batch_dim
+    L: original sequence_length_dim
+
+  Note that for local_dispatch original batch BLM is reshaped into GSM, each
+  group `g = 0...G-1` is being dispatched independently.
+
+  Args:
+    inputs: G`SM Tensor.
+    expert_id: Expert ID from hashing function.
+    paddings: G`S Tensor.
+    num_devices: number of MoE devices for local dispatch
+    experts_dim: number of experts.
+    expert_capacity_dim: number of examples per minibatch(group) per expert.
+      Each example is typically a vector of size input_dim, representing
+      embedded token or an element of Transformer layer output.
+    fprop_dtype: activations datatype to use.
+    use_xla_sharding: bool, True if this function is used for the xla_sharding
+      case.
+    importance: input importance weights for routing (G`S Tensor or None).
+    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
+      tensors, mask_dtype is a special dtype for such tensors.
+  TODO(lepikhin): get rid of the legacy_mtf_behavior flag.
+
+  Returns:
+    A tuple (aux_loss, combine_tensor, dispatch_tensor).
+
+    - aux_loss: auxiliary loss, for equalizing the expert assignment ratios.
+    - combine_tensor: G`SEC Tensor for combining expert outputs.
+    - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
+      experts.
+  """
+  if mask_dtype is None:
+    mask_dtype = fprop_dtype
+  if use_xla_sharding:
+    tf.logging.warning('Sharding propagation should be sufficient and Splits '
+                       'within Top2GatingOnLogits are generally redundant.')
+  del inputs  # inputs is currently not used.
+
+  # top first and second gate value and expert index for each input
+  #
+  # GSK Tensors, K=2
+  def _MaybeSplit(x):
+    if use_xla_sharding:
+      return gshard_utils.Split(x, 0, num_devices)
+    else:
+      return x
+
+  index_1 = expert_id
+  index_1 = _MaybeSplit(index_1)
+  tpu_summary.tensor('index_1', index_1)
+
+  # GSE
+  mask_1 = tf.one_hot(index_1, experts_dim, dtype=mask_dtype)
+  mask_1 = _MaybeSplit(mask_1)
+
+  if importance is not None:
+    importance_is_one = tf.equal(importance, 1.0)
+    mask_1 *= tf.expand_dims(tf.cast(importance_is_one, mask_1.dtype), -1)
+  else:
+    if len(mask_1.shape) == 3:
+      importance = tf.ones_like(mask_1[:, :, 0])
+    else:
+      importance = tf.ones_like(mask_1[:, :, :, 0])
+    if paddings is not None:
+      nonpaddings = 1.0 - paddings
+      mask_1 *= tf.expand_dims(tf.cast(nonpaddings, mask_1.dtype), -1)
+      importance = nonpaddings
+
+  position_in_expert_1 = tf.cumsum(mask_1, exclusive=True, axis=-2)
+
+  # GS Tensor
+  capacity = tf.cast(expert_capacity_dim, dtype=position_in_expert_1.dtype)
+
+  assert importance.dtype == fprop_dtype
+  mask_1 *= tf.cast(tf.less(position_in_expert_1, capacity), dtype=mask_1.dtype)
+  position_in_expert_1 = tf.einsum('...GSE,...GSE->...GS', position_in_expert_1,
+                                   mask_1)
+
+  # How many examples in this sequence go to this expert
+  mask_1_count = tf.einsum('...GSE->...GE', mask_1)
+  # [batch, group] - mostly ones, but zeros where something didn't fit
+  mask_1_flat = tf.einsum('...GSE->...GS', mask_1)
+  assert mask_1_count.dtype == mask_dtype
+  assert mask_1_flat.dtype == mask_dtype
+
+  # GSC Tensor
+  assert position_in_expert_1.dtype == mask_dtype  # could be float32 in tests
+  b = tf.one_hot(
+      tf.cast(position_in_expert_1, dtype=tf.int32),
+      expert_capacity_dim,
+      dtype=fprop_dtype,
+      name='one_hot_b_0')
+  # GSE Tensor
+  a = tf.one_hot(index_1, experts_dim, dtype=fprop_dtype)
+  # GSEC Tensor
+  combine_tensor = tf.einsum(
+      '...GSE,...GSC->...GSEC', a, b, name='combine_tensor')
+
+  # GSEC Tensor
+  combine_tensor = _MaybeSplit(combine_tensor)
+
+  # GSEC Tensor
+  dispatch_tensor = tf.cast(
+      tf.cast(combine_tensor, tf.bool), fprop_dtype, name='dispatch_tensor')
+  dispatch_tensor = _MaybeSplit(dispatch_tensor)
+
+  # TODO(yonghui): compute and return per-group aux_loss.
+  return 0.0, combine_tensor, dispatch_tensor
+
+
 def TokenShufflingOnlogits(inputs,
                            logits,
                            experts_dim,
@@ -2287,7 +2416,8 @@ def ComputeGating(w,
                   capacity_factor=None,
                   model_dim_reshape_segments=None,
                   mask_dtype=None,
-                  gating_logits_dtype=None):
+                  gating_logits_dtype=None,
+                  expert_id=None):
   """Computes gating for Mixture-of-Experts.
 
   See Top2GatingOnLogits for more details.
@@ -2327,6 +2457,7 @@ def ComputeGating(w,
       tensors, mask_dtype is a special dtype for such tensors.
     gating_logits_dtype: using bfloat16 for fprop_dtype could be problematic for
       gating logits, gating_logits_dtype is a special dtype for such tensors.
+    expert_id: expert id for each token.
 
   Returns:
     A tuple (dispatch_tensor, combine_tensor, aux_loss).
@@ -2367,6 +2498,10 @@ def ComputeGating(w,
         fprop_dtype, use_xla_sharding, second_expert_policy,
         second_expert_threshold, legacy_mtf_behavior, capacity_factor, None,
         mask_dtype)
+  elif gating_func == 'hashing':
+    aux_loss, combine_tensor, dispatch_tensor = HashGatingOnLogits(
+        inputs, expert_id, paddings, num_devices, experts_dim,
+        expert_capacity_dim, fprop_dtype, use_xla_sharding, None, mask_dtype)
   else:
     raise ValueError('Gating function: %s not supported yet!' % gating_func)
 
@@ -2380,6 +2515,11 @@ def ComputeGating(w,
       combine_tensor=combine_tensor,
       dispatch_tensor=dispatch_tensor,
       aux_loss=aux_loss)
+
+
+def HashGating(*args, **kargs):
+  """Computes Hash gating for Mixture-of-Experts."""
+  return ComputeGating(*args, gating_func='hashing', **kargs)
 
 
 def Top2Gating(*args, **kargs):
