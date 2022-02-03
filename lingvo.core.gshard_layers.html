@@ -987,6 +987,57 @@ experts.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.HashGatingOnLogits">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">HashGatingOnLogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expert_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experts_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expert_capacity_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fprop_dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_xla_sharding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">importance</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#HashGatingOnLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.HashGatingOnLogits" title="Permalink to this definition"></a></dt>
+<dd><p>Hash based gating.</p>
+<p>Dimensions cheat sheet:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">G</span><span class="p">:</span> <span class="n">group_dim</span>
+<span class="n">S</span><span class="p">:</span> <span class="n">group_size_dim</span>
+<span class="n">E</span><span class="p">:</span> <span class="n">number</span> <span class="n">of</span> <span class="n">experts</span>
+<span class="n">C</span><span class="p">:</span> <span class="n">capacity</span> <span class="n">per</span> <span class="n">expert</span>
+<span class="n">M</span><span class="p">:</span> <span class="n">model_dim</span> <span class="p">(</span><span class="n">same</span> <span class="k">as</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">same</span> <span class="k">as</span> <span class="n">output_dim</span><span class="p">)</span>
+<span class="n">B</span><span class="p">:</span> <span class="n">original</span> <span class="n">batch_dim</span>
+<span class="n">L</span><span class="p">:</span> <span class="n">original</span> <span class="n">sequence_length_dim</span>
+</pre></div>
+</div>
+<p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
+group <code class="xref py py-obj docutils literal notranslate"><span class="pre">g</span> <span class="pre">=</span> <span class="pre">0...G-1</span></code> is being dispatched independently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – G`SM Tensor.</p></li>
+<li><p><strong>expert_id</strong> – Expert ID from hashing function.</p></li>
+<li><p><strong>paddings</strong> – G`S Tensor.</p></li>
+<li><p><strong>num_devices</strong> – number of MoE devices for local dispatch</p></li>
+<li><p><strong>experts_dim</strong> – number of experts.</p></li>
+<li><p><strong>expert_capacity_dim</strong> – number of examples per minibatch(group) per expert.
+Each example is typically a vector of size input_dim, representing
+embedded token or an element of Transformer layer output.</p></li>
+<li><p><strong>fprop_dtype</strong> – activations datatype to use.</p></li>
+<li><p><strong>use_xla_sharding</strong> – bool, True if this function is used for the xla_sharding
+case.</p></li>
+<li><p><strong>importance</strong> – input importance weights for routing (G`S Tensor or None).</p></li>
+<li><p><strong>mask_dtype</strong> – using bfloat16 for fprop_dtype could be problematic for mask
+tensors, mask_dtype is a special dtype for such tensors.</p></li>
+</ul>
+</dd>
+</dl>
+<p>TODO(lepikhin): get rid of the legacy_mtf_behavior flag.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p><p>A tuple (aux_loss, combine_tensor, dispatch_tensor).</p>
+<ul class="simple">
+<li><p>aux_loss: auxiliary loss, for equalizing the expert assignment ratios.</p></li>
+<li><p>combine_tensor: G`SEC Tensor for combining expert outputs.</p></li>
+<li><p>dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
+experts.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.TokenShufflingOnlogits">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">TokenShufflingOnlogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experts_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fprop_dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_xla_sharding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#TokenShufflingOnlogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.TokenShufflingOnlogits" title="Permalink to this definition"></a></dt>
 <dd><p>Compute gating with token shuffling.</p>
@@ -1030,7 +1081,7 @@ group <code class="xref py py-obj docutils literal notranslate"><span class="pre
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.ComputeGating">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">ComputeGating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experts_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expert_capacity_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_dispatch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fprop_dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gating_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top_2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_xla_sharding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_expert_policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_expert_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legacy_mtf_behavior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gating_logits_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ComputeGating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ComputeGating" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">ComputeGating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experts_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expert_capacity_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">local_dispatch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fprop_dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gating_func</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'top_2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_xla_sharding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_expert_policy</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'all'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">second_expert_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">legacy_mtf_behavior</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">capacity_factor</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_dim_reshape_segments</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gating_logits_dtype</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expert_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#ComputeGating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.ComputeGating" title="Permalink to this definition"></a></dt>
 <dd><p>Computes gating for Mixture-of-Experts.</p>
 <p>See Top2GatingOnLogits for more details.</p>
 <p>Note that for local_dispatch original batch BLM is reshaped into GSM, each
@@ -1069,6 +1120,7 @@ that + [-1]</p></li>
 tensors, mask_dtype is a special dtype for such tensors.</p></li>
 <li><p><strong>gating_logits_dtype</strong> – using bfloat16 for fprop_dtype could be problematic for
 gating logits, gating_logits_dtype is a special dtype for such tensors.</p></li>
+<li><p><strong>expert_id</strong> – expert id for each token.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1083,6 +1135,12 @@ combining expert outputs.</p></li>
 </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.HashGating">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">HashGating</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#HashGating"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.HashGating" title="Permalink to this definition"></a></dt>
+<dd><p>Computes Hash gating for Mixture-of-Experts.</p>
 </dd></dl>
 
 <dl class="py function">
