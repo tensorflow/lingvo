@@ -1428,6 +1428,7 @@ class TransformersTest(test_util.JaxTestCase):
         attention_num_heads=num_heads,
         attention_key_value_dim=d_model // num_heads,
         attention_extra_logit=0.0,
+        use_tgt_labels_size_as_loss_denominator=True,
         moe_load_balance_loss_weight=0.01,
         z_loss_weight=1e-4,
         c_dim=c_dim,
@@ -1460,7 +1461,7 @@ class TransformersTest(test_util.JaxTestCase):
         label_smoothing=0,
         aux_loss_coef=0.01,
         z_loss=1e-4,
-        use_tgt_labels_size_as_loss_denominator=False,
+        use_tgt_labels_size_as_loss_denominator=True,
         positional_embedding=False,
         gated_gelu=True,
         moe=True).Instantiate()
@@ -1588,9 +1589,6 @@ class TransformersTest(test_util.JaxTestCase):
 
       # Compute TF outputs
       tf_out, _ = tf_layer.FProp(tf_theta, tf_inputs)
-      self.assertAllClose(
-          test_utils.to_np(jax_outputs.avg_xent),
-          test_utils.to_np(tf_out['mean_xent'][0]))
       self.assertAllClose(
           test_utils.to_np(jax_outputs.total_loss),
           test_utils.to_np(tf_out['loss'][0]))

@@ -1928,6 +1928,7 @@ class TransformerLm(base_layer.BaseLayer):
                                c_dim=None,
                                capacity_factor=0.0,
                                e_dim=None,
+                               use_tgt_labels_size_as_loss_denominator=True,
                                moe_load_balance_loss_weight=0.01,
                                z_loss_weight=1e-4):
     """Common setup for GLaM Decoder-only Transformer Model.
@@ -1964,6 +1965,8 @@ class TransformerLm(base_layer.BaseLayer):
         over the average number of examples per expert assuming routing is
         completely uniform.
       e_dim: Number of experts.
+      use_tgt_labels_size_as_loss_denominator: False to use total number of
+        non-padding tokens instead of fixed tgt_labels tensor size.
       moe_load_balance_loss_weight: Weight of the aux loss for MoE layers.
       z_loss_weight: additional loss term to stablize the final softmax logit.
 
@@ -1986,7 +1989,8 @@ class TransformerLm(base_layer.BaseLayer):
             input_dims=model_dim,
             num_classes=vocab_size,
             z_loss_weight=z_loss_weight))
-
+    p.softmax_tpl.use_tgt_labels_size_as_loss_denominator = (
+        use_tgt_labels_size_as_loss_denominator)
     glam_p = StackedTransformer.GLaMParams(
         model_dim=model_dim,
         ff_dim=ff_dim,

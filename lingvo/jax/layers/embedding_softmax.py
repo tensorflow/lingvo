@@ -254,6 +254,10 @@ class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
     p = super().Params()
     p.Define('input_dims', 0, 'Dimension of the input.')
     p.Define('num_classes', 0, 'Total number of target classes.')
+    p.Define(
+        'use_tgt_labels_size_as_loss_denominator', True,
+        'False to use total number of non-padding tokens instead of '
+        'fixed tgt_labels tensor size.')
     # logits_abs_max = 20 for m4_hybrid model
     p.Define(
         'soft_cap_logits', 0.,
@@ -388,7 +392,10 @@ class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
     # Compute total softmax for the entire sequence
     total_xent = jnp.sum(
         jnp.expand_dims(per_example_xent, axis=-1) * class_weights)
-    total_weight = jnp.sum(class_weights)
+    if p.use_tgt_labels_size_as_loss_denominator:
+      total_weight = jnp.sum(jnp.ones_like(class_weights))
+    else:
+      total_weight = jnp.sum(class_weights)
 
     z_loss = jnp.sum(self.compute_z_loss(logits) * class_weights) / total_weight
     z_loss *= p.z_loss_weight
