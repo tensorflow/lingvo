@@ -204,9 +204,9 @@ class LingvoInputAdaptor(BaseInput):
     if hasattr(self.input, 'datasource') and isinstance(
         self.input.datasource, datasource.TFDatasetSource):
       # For the special case when the input is implemented by a tf.data.Dataset,
-      # use it directly. Otherwise roundtrip adaptions may result in returning
-      # duplciate batches.
-      self._get_next_fn = self.input.datasource.GetNext
+      # call eagerly. Using tf.function may result in returning duplicate
+      # batches.
+      self._get_next_fn = self._get_batch
     else:
       self._get_next_fn = tf.function(self._get_batch)
     self._num_batches_produced = 0

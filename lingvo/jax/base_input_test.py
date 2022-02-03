@@ -85,6 +85,27 @@ class LingvoInput(base_input_generator.BaseInputGeneratorFromFiles):
     return inputs
 
 
+def _get_test_dataset(num: int) -> tf.data.Dataset:
+
+  def to_map(i: int):
+    return {'data': i}
+
+  return tf.data.Dataset.range(num).map(to_map)
+
+
+TestDataset = base_input_generator.DefineTFDataInput('TestDataset',
+                                                     _get_test_dataset)
+
+
+class TestDatasetOverride(TestDataset):
+
+  def GetPreprocessedInputBatch(self) -> py_utils.NestedMap:
+    batch = super().GetPreprocessedInputBatch()
+    assert isinstance(batch, py_utils.NestedMap)
+    batch.data2 = batch.data * 2 + 1
+    return batch
+
+
 class InputTest(test_util.JaxTestCase):
 
   def test_lingvo_input(self):
@@ -133,16 +154,8 @@ class InputTest(test_util.JaxTestCase):
 
   def test_lingvo_tfdata_input(self):
     num_batches = 10
-
-    def testdata():
-
-      def to_map(i):
-        return py_utils.NestedMap(data=i)
-
-      return tf.data.Dataset.range(num_batches).map(to_map)
-
-    input_p = base_input_generator.DefineTFDataInput('TestData',
-                                                     testdata).Params()
+    input_p = TestDataset.Params()
+    input_p.args.num = num_batches
     p = base_input.LingvoInputAdaptor.Params().Set(input=input_p)
     inp = p.Instantiate()
     for i in range(int(num_batches * 2.5)):
@@ -151,6 +164,21 @@ class InputTest(test_util.JaxTestCase):
     inp.reset()
     x = inp.get_next()
     self.assertEqual(x.data, 0)
+
+  def test_lingvo_tfdata_override(self):
+    num_batches = 10
+    input_p = TestDatasetOverride.Params()
+    input_p.args.num = num_batches
+    p = base_input.LingvoInputAdaptor.Params().Set(input=input_p)
+    inp = p.Instantiate()
+    for i in range(int(num_batches * 2.5)):
+      x = inp.get_next()
+      self.assertEqual(x.data, i % num_batches)
+      self.assertEqual(x.data2, (i % num_batches) * 2 + 1)
+    inp.reset()
+    x = inp.get_next()
+    self.assertEqual(x.data, 0)
+    self.assertEqual(x.data2, 1)
 
   def test_tfdata_input(self):
     p = TestInput.Params()
