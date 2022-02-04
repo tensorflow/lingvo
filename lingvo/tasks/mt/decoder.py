@@ -681,6 +681,23 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     mask = tf.cast(mask, dtype=tf.float32)
     return token_embs * mask
 
+  def SampleSequenceDecode(self, encoder_outputs):
+    """Decode via sampling from softmax at each step.
+
+    Args:
+      encoder_outputs: the outputs of the encoder.
+
+    Returns:
+      BeamSearchDecodeOutput, same as what BeamSearchDecode returns.
+    """
+    p = self.params
+    random_seed = tf.random.uniform(
+        shape=[], maxval=(2**31 - 1), dtype=tf.int32, seed=p.random_seed)
+    sample = self.SampleTargetSequences(self.theta, encoder_outputs,
+                                        random_seed)
+    is_tpu = (p.beam_search.name == 'tpu_beam_search')
+    return self._PostprocessSample(sample, is_tpu)
+
   @py_utils.NameScopeDecorator('MTDecoderV1/ComputePredictions')
   def ComputePredictions(self, theta, encoder_outputs, targets):
     """Decodes `targets` given encoded source.
