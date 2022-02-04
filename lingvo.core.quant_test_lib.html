@@ -80,82 +80,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-lingvo.core.quant_test_lib">
-<span id="lingvo-core-quant-test-lib-module"></span><h1>lingvo.core.quant_test_lib module<a class="headerlink" href="#module-lingvo.core.quant_test_lib" title="Permalink to this headline"></a></h1>
-<p>Tests lib for quant_utils test.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_test_lib.</span></span><span class="sig-name descname"><span class="pre">SampleQuantizedProjectionLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_test_lib.html#SampleQuantizedProjectionLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
-<p>Simple projection layer to demonstrate quantization.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.Params">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_test_lib.html#SampleQuantizedProjectionLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.Params" title="Permalink to this definition"></a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer._CreateLayerVariables">
-<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_test_lib.html#SampleQuantizedProjectionLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer._CreateLayerVariables" title="Permalink to this definition"></a></dt>
-<dd><p>Create variables for this layer.</p>
-<p>This is a legacy method. Variables can be created directly in the layer
-__init__ method.</p>
-<p>Variables are created inside of self._SelfVariableScope() which is usually
-tf.variable_scope(self.params.name).</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.FProp">
-<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_test_lib.html#SampleQuantizedProjectionLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.FProp" title="Permalink to this definition"></a></dt>
-<dd><p>Forward propagation.</p>
-<p>The central interface that subclasses should implement. The caller
-calls <a class="reference internal" href="#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.FProp" title="lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The implementation of <a class="reference internal" href="#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.FProp" title="lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
-the theta and the inputs. E.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
-<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
-<span class="c1"># The same layer applied twice.</span>
-<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
-<span class="k">return</span> <span class="n">a2</span>
-</pre></div>
-</div>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</p></li>
-<li><p><strong>*args</strong> – List args.</p></li>
-<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
-</ul>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="lingvo.core.quant_test_lib.QuantUtilsBaseTest">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.quant_test_lib.</span></span><span class="sig-name descname"><span class="pre">QuantUtilsBaseTest</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">methodName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'runTest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_test_lib.html#QuantUtilsBaseTest"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_test_lib.QuantUtilsBaseTest" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase" title="lingvo.core.test_utils.TestCase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.test_utils.TestCase</span></code></a></p>
-<p>Base test class for testing quantizable layer.</p>
-<dl class="py attribute">
-<dt class="sig sig-object py" id="lingvo.core.quant_test_lib.QuantUtilsBaseTest.NO_QDOMAIN_EXPECTED">
-<span class="sig-name descname"><span class="pre">NO_QDOMAIN_EXPECTED</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">[[[0.00071405,</span> <span class="pre">-0.03868543,</span> <span class="pre">-0.01999986,</span> <span class="pre">-0.00994987],</span> <span class="pre">[0.08905827,</span> <span class="pre">0.13636404,</span> <span class="pre">-0.03180931,</span> <span class="pre">0.06056439],</span> <span class="pre">[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0],</span> <span class="pre">[-0.0208858,</span> <span class="pre">-0.17595209,</span> <span class="pre">-0.05192588,</span> <span class="pre">0.02618068]],</span> <span class="pre">[[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0],</span> <span class="pre">[0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0,</span> <span class="pre">0.0],</span> <span class="pre">[-0.02125708,</span> <span class="pre">-0.10454545,</span> <span class="pre">-0.01147466,</span> <span class="pre">0.06903321],</span> <span class="pre">[0.0276652,</span> <span class="pre">-0.14823943,</span> <span class="pre">-0.09726462,</span> <span class="pre">0.01415125]]]</span></em><a class="headerlink" href="#lingvo.core.quant_test_lib.QuantUtilsBaseTest.NO_QDOMAIN_EXPECTED" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.quant_test_lib.QuantUtilsBaseTest._testLayerHelper">
-<span class="sig-name descname"><span class="pre">_testLayerHelper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_case</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">not_expected</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_test_lib.html#QuantUtilsBaseTest._testLayerHelper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.quant_test_lib.QuantUtilsBaseTest._testLayerHelper" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
+  <section id="lingvo-core-quant-test-lib-module">
+<h1>lingvo.core.quant_test_lib module<a class="headerlink" href="#lingvo-core-quant-test-lib-module" title="Permalink to this headline"></a></h1>
 </section>
 
 

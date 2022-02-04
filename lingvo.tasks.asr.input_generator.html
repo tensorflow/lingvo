@@ -80,70 +80,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-lingvo.tasks.asr.input_generator">
-<span id="lingvo-tasks-asr-input-generator-module"></span><h1>lingvo.tasks.asr.input_generator module<a class="headerlink" href="#module-lingvo.tasks.asr.input_generator" title="Permalink to this headline"></a></h1>
-<p>Speech recognition input generator.</p>
-<dl class="py class">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.input_generator.AsrInput">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.input_generator.</span></span><span class="sig-name descname"><span class="pre">AsrInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/input_generator.html#AsrInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.input_generator.AsrInput" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator" title="lingvo.core.base_input_generator.BaseSequenceInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseSequenceInputGenerator</span></code></a></p>
-<p>Input generator for ASR.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.input_generator.AsrInput.Params">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/input_generator.html#AsrInput.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.input_generator.AsrInput.Params" title="Permalink to this definition"></a></dt>
-<dd><p>Defaults params for AsrInput.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.input_generator.AsrInput._DataSourceFromFilePattern">
-<span class="sig-name descname"><span class="pre">_DataSourceFromFilePattern</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_pattern</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/input_generator.html#AsrInput._DataSourceFromFilePattern"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.input_generator.AsrInput._DataSourceFromFilePattern" title="Permalink to this definition"></a></dt>
-<dd><p>Return a NestedMap containing an input batch from a string file_pattern.</p>
-<p>Subclasses should implement this function.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>file_pattern</strong> – A string file pattern.</p></li>
-<li><p><strong>input_source_weights</strong> – A list of float input source weights to control
-input example mix in the batch. The records will be sampled from inputs
-proportionally to these weights. Defaults to None which should be
-treated as an empty list.</p></li>
-<li><p><strong>input_source_id_offset</strong> – All source_ids returned from datasource will be
-offset by this value.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tf.Tensors containing a batch of input data with shapes
-[batch, …].</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.input_generator.AsrInput.BuildInputBatch">
-<span class="sig-name descname"><span class="pre">BuildInputBatch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">features_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bucket_keys</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/input_generator.html#AsrInput.BuildInputBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.input_generator.AsrInput.BuildInputBatch" title="Permalink to this definition"></a></dt>
-<dd><p>Builds an input batch.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>batch_size</strong> – batch size to use, defaults to infeed batch size.</p></li>
-<li><p><strong>features_list</strong> – Use this list to build the batch.</p></li>
-<li><p><strong>bucket_keys</strong> – If None, bucket_keys[i] is the bucketing key of the i-th
-sample.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>py_utils.NestedMap with feature names as keys and tensors as values.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.tasks.asr.input_generator.AsrInput._MaybePadSourceInputs">
-<span class="sig-name descname"><span class="pre">_MaybePadSourceInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">src_inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/input_generator.html#AsrInput._MaybePadSourceInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.input_generator.AsrInput._MaybePadSourceInputs" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-</dd></dl>
-
+  <section id="lingvo-tasks-asr-input-generator-module">
+<h1>lingvo.tasks.asr.input_generator module<a class="headerlink" href="#lingvo-tasks-asr-input-generator-module" title="Permalink to this headline"></a></h1>
 </section>
 
 
