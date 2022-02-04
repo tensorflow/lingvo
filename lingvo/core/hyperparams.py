@@ -31,6 +31,7 @@ from typing import (Any, Callable, Dict, List, Generator, Generic, Mapping,
 import lingvo.compat as tf
 from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
+import numpy as np
 from typing_extensions import Literal
 
 from google.protobuf import message
@@ -741,6 +742,8 @@ class Params:
         return _SortedDict({k: GetRepr(v) for k, v in val.IterParams()})
       if isinstance(val, dict):
         return _SortedDict({k: GetRepr(v) for k, v in val.items()})
+      if isinstance(val, np.ndarray):
+        return np.array2string(val, separator=', ')
       if dataclasses.is_dataclass(val):
         return _SortedDict({k: GetRepr(v) for k, v in val.__dict__.items()})
       if _IsNamedTuple(val):
