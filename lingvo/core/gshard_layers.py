@@ -19,17 +19,18 @@ from lingvo import compat as tf
 from lingvo.core import activations
 from lingvo.core import base_layer
 from lingvo.core import conv_layers_with_time_padding as conv_layers
+from lingvo.core import differentiable_assignment
 from lingvo.core import gshard_utils
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import tpu_summary
 from lingvo.core import var_tmp_wrappers
 import numpy as np
+
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.compiler.tf2xla.python import xla
 from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
 # pylint: enable=g-direct-tensorflow-import
-
 
 Split = gshard_utils.Split
 MeshSplit = gshard_utils.MeshSplit
@@ -1264,9 +1265,8 @@ class StateLayer(base_layer.BaseLayer):
     """Returns initial state.
 
     Args:
-      shape:
-        - [batch, max_steps] for beam_search_tpu_helper
-        - [batch, beam, max_steps] for flat_beam_search.
+      shape: - [batch, max_steps] for beam_search_tpu_helper - [batch, beam,
+        max_steps] for flat_beam_search.
 
     Returns:
       zero-initialized state tensor.
@@ -1291,9 +1291,8 @@ class MultiHeadAttentionStateLayer(StateLayer):
     """Returns initial state.
 
     Args:
-      shape:
-        - [batch, max_steps] for beam_search_tpu_helper
-        - [batch, beam, max_steps] for flat_beam_search.
+      shape: - [batch, max_steps] for beam_search_tpu_helper - [batch, beam,
+        max_steps] for flat_beam_search.
 
     Returns:
       zero-initialized state tensor whose shape can be:
@@ -1844,23 +1843,20 @@ def Top2GatingOnLogits(inputs,
     use_xla_sharding: bool, True if this function is used for the xla_sharding
       case.
     second_expert_policy: 'all', 'sampling' or 'random'.
-
       - 'all': we greedily pick the 2nd expert.
       - 'sampling': we sample the 2nd expert from the softmax.
       - 'random': we optionally 'random'-ize dispatch to second-best expert
         proportional to (weight / second_expert_threshold).
-
     second_expert_threshold: threshold for probability normalization for
       second_expert_policy == 'random'.
     legacy_mtf_behavior: bool, True if to match legacy mtf behavior exactly.
     capacity_factor: if set, increases expert_capacity_dim to at least
-      (group_size * capacity_factor) / experts_dim
-      where `group_size` is the size of G dimension of `inputs`. If the
-      value of expert_capacity_dim is already big enough no change is made.
+      (group_size * capacity_factor) / experts_dim where `group_size` is the
+      size of G dimension of `inputs`. If the value of expert_capacity_dim is
+      already big enough no change is made.
     importance: input importance weights for routing (G`S Tensor or None).
     mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
       tensors, mask_dtype is a special dtype for such tensors.
-
   TODO(lepikhin): get rid of the legacy_mtf_behavior flag.
 
   Returns:
@@ -2382,21 +2378,127 @@ def TokenShufflingOnlogits(inputs,
                        'within Top2GatingOnLogits are generally redundant.')
   del inputs  # inputs is currently not used.
   # logits.dtype could be tf.float32
-  # G`SE Tensor.
+  # Tensor shape: G`SE
   scores = tf.nn.softmax(logits)  # along E dim
   scores = tf.cast(scores, tf.bfloat16)
 
   seq_len = logits.shape[1]
   # number of ffn layers for each expert.
+  # Number of tokens per expert (C).
   bucket_size = seq_len // experts_dim
 
-  # G`EC Tensors.
+  # Tensor shape: G`EC.
   gate, indices = tf.math.top_k(
       tf.transpose(scores, [0, 2, 1]), k=bucket_size, sorted=False)
   # b x num_experts(k) x bucket_size(c) x seq_len(n)
-  # G`ECS Tensor.
+  # Tensor shpae: G`ECS
   perm = tf.one_hot(indices, seq_len)
   perm = tf.cast(perm, tf.bfloat16)
+  return tf.constant(0.0, dtype=tf.bfloat16), gate, perm
+
+
+def OptimalTransportOnlogits(logits, experts_dim, use_xla_sharding=False):
+  """Computes gating using sparse alignment based on optimal transport.
+
+  Dimensions cheat sheet:
+      G: group_dim
+      S: group_size_dim
+      E: number of experts
+      C: capacity per expert
+      M: model_dim (same as input_dim, same as output_dim)
+      B: original batch_dim
+      L: original sequence_length_dim
+
+  Args:
+    logits: G`SE Tensor.
+    experts_dim: number of experts.
+    use_xla_sharding: bool, True if this function is used for the xla_sharding
+      case.
+
+  Returns:
+    A tuple (aux_loss, combine_tensor, dispatch_tensor).
+    - aux_loss: Always 0.0, because we don't need an aux_loss in this method.
+    - combine_tensor: G`EC Tensor for combining expert outputs.
+    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to
+      experts.
+  """
+  if use_xla_sharding:
+    tf.logging.warning(
+        'Sharding propagation should be sufficient and Splits '
+        'within OptimalTransportOnlogits are generally redundant.')
+
+  # Tensor: [G, S, E]
+  group_dim, seq_len, _ = logits.shape
+
+  ave_expert_per_token = 2
+  # NOTE: Subject to tuning. A larger value could lead to more heterogeneous
+  # assignment.
+  max_token_capacity = 2
+  # Average number of tokens per expert.
+  expert_capacity = seq_len * ave_expert_per_token // experts_dim
+  # NOTE: Subject to tuning. `0.01` might work better than `0.1`, because
+  # `epsilon=0.1` may not make the assignment close enough to {0, 1} assignment.
+  epsilon = 0.1
+  # NOTE: Number of iterations has a direct impact on the convergence and the
+  # efficiency of the algorithm. Subject to tuning.
+  num_iterations = 50
+
+  # TODO(vzhao): Make the linear constrains configurable.
+  # Hard code the following linear constrains. The hardcoded config matches
+  # `TokenShufflingOnlogits`.
+  #   elementwise upper bound is 1.
+  #   `row_sums` (tokens per expert) is fixed.
+  #   `col_sums` (experts per token) is upper bounded.
+  # GES Tensor.
+  logits_t = tf.transpose(logits, [0, 2, 1])
+  scores = tf.cast(tf.nn.softmax(logits_t), tf.bfloat16)
+  # GES Tensor
+  upper_bound = tf.ones_like(scores, dtype=tf.bfloat16)
+  # GE Tensor
+  row_sums = tf.ones([group_dim, experts_dim],
+                     dtype=tf.bfloat16) * expert_capacity
+  # GS Tensor.
+  col_sums = tf.ones([group_dim, seq_len],
+                     dtype=tf.bfloat16) * max_token_capacity
+
+  # For linear inequality constrain on `col_sums`, append an extra row to scores
+  # for the dummy expert.
+  # G(E+1)S Tensor
+  scores_plus = tf.concat(
+      [scores, tf.zeros([group_dim, 1, seq_len], dtype=tf.bfloat16)], axis=1)
+  # Add elementwise upper bound for the dummy expert.
+  # upper_bound_plus: G(E+1)S Tensor.
+  extra_upper_bound = tf.ones([group_dim, 1, seq_len],
+                              dtype=scores.dtype) * max_token_capacity
+  upper_bound_plus = tf.concat([upper_bound, extra_upper_bound], axis=1)
+
+  extra_row_sum = tf.ones([group_dim, 1], dtype=tf.bfloat16) * (
+      max_token_capacity * seq_len - expert_capacity * experts_dim)
+  # G(E+1) Tensor.
+  row_sums_plus = tf.concat([row_sums, extra_row_sum], axis=1)
+
+  soft_assign, _, _, _ = differentiable_assignment.max_assignment(
+      scores_plus,
+      elementwise_upper_bound=upper_bound_plus,
+      row_sums=row_sums_plus,
+      col_sums=col_sums,
+      epsilon=epsilon,
+      num_iterations=num_iterations,
+      use_epsilon_scaling=True)
+  # Removes the row of the soft assignment to the dummy expert.
+  # GES Tensor.
+  soft_assign = soft_assign[:, :experts_dim, :]
+
+  # Applies `stop_gradient` to `soft_assign` to match the behavior of
+  # `TokenShuffleGating`.
+  # `indices`: GEC Tensor for top-k indicies.
+  gate, indices = tf.math.top_k(
+      tf.stop_gradient(soft_assign) * scores, k=expert_capacity, sorted=False)
+  # b x num_experts(k) x bucket_size(c) x seq_len(n)
+  # GECS
+  perm = tf.one_hot(indices, seq_len)
+  perm = tf.cast(perm, tf.bfloat16)
+
   return tf.constant(0.0, dtype=tf.bfloat16), gate, perm
 
 
@@ -2492,6 +2594,9 @@ def ComputeGating(w,
   if gating_func == 'token_shuffle':
     aux_loss, combine_tensor, dispatch_tensor = TokenShufflingOnlogits(
         inputs, logits, experts_dim, fprop_dtype, use_xla_sharding, mask_dtype)
+  elif gating_func == 'optimal_transport':
+    aux_loss, combine_tensor, dispatch_tensor = OptimalTransportOnlogits(
+        logits, experts_dim, use_xla_sharding)
   elif gating_func == 'top_2':
     aux_loss, combine_tensor, dispatch_tensor = Top2GatingOnLogits(
         inputs, paddings, logits, num_devices, experts_dim, expert_capacity_dim,
@@ -2530,6 +2635,11 @@ def Top2Gating(*args, **kargs):
 def TokenShuffleGating(*args, **kargs):
   """Computes token shuffle based gating for Mixture-of-Experts."""
   return ComputeGating(*args, gating_func='token_shuffle', **kargs)
+
+
+def OptimalTransportGating(*args, **kargs):
+  """Computes gating based on sparse alignment for Mixture-of-Experts."""
+  return ComputeGating(*args, gating_func='optimal_transport', **kargs)
 
 
 def FeedForwardNetworksApplyGating(gating,

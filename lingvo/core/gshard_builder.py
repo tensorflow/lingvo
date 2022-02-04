@@ -169,6 +169,10 @@ class MoEBuilder(builder.Base):
              'Mixture-of-Experts legacy mtf behavior. No renormalization.')
     p.Define('label_smoothing', 0.1, 'Label smoothing.')
     p.Define('capacity_factor', None, 'Capacity factor. Overrides c_dim.')
+    p.Define(
+        'gating_func', 'top_2',
+        'Gating function. Can be one of ["top_2", "token_shuffle", "optimal_transport"].'
+    )
 
     # Used in DecSelfAttentionRelativeBias:
     p.Define('relative_attention_type', None,
@@ -225,8 +229,7 @@ class MoEBuilder(builder.Base):
     p.Define('model_dim_reshape_segments', None,
              'Size of N when reshaping model dimension M to Nm')
     p.Define('use_xla_dynamic_update_slice', True, 'internal optimization')
-    p.Define('gating_func', 'top_2',
-             'Gating function. Can be top_2 or token_shuffle')
+
     return p
 
   @classmethod
@@ -1816,6 +1819,7 @@ class MoEBuilder(builder.Base):
           second_expert_threshold=p.second_expert_threshold,
           legacy_mtf_behavior=p.legacy_mtf_behavior,
           capacity_factor=p.capacity_factor)
+
     return self._Fn(name, _Compute)
 
   def _ShardedFeedForwardNetworksWeights(self, name):
@@ -1879,6 +1883,7 @@ class MoEBuilder(builder.Base):
           gec_split=self._AdjustMSplitByName('gec_split'),
           eah_split=self._AdjustMSplitByName('eah_split'),
           eam_split=self._AdjustMSplitByName('eam_split'),
+          gating_func=p.gating_func,
           activation_name=p.moe_activation)
 
     return self._Fn(name, _Compute)

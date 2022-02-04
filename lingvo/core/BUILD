@@ -6,7 +6,7 @@ load(
     "lingvo_proto_py",
     "lingvo_py_binary",
 )
-load("//lingvo:lingvo.bzl", "pytype_library")
+load("//devtools/python/bazel:pytype.bzl", "pytype_library", "pytype_strict_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -2220,6 +2220,7 @@ py_library(
         ":activations",
         ":base_layer",
         ":conv_layers_with_time_padding",
+        ":differentiable_assignment",
         ":gshard_utils",
         ":py_utils",
         ":recurrent",
@@ -2662,5 +2663,27 @@ py_strict_test(
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo:model_registry",
+    ],
+)
+
+pytype_strict_library(
+    name = "differentiable_assignment",
+    srcs = ["differentiable_assignment.py"],
+    deps = [
+        "//lingvo:compat",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_strict_test(
+    name = "differentiable_assignment_test",
+    srcs = ["differentiable_assignment_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":differentiable_assignment",
+        # Implicit absl.flags dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
