@@ -1292,7 +1292,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":py_utils",
-        # Implicit Tkinter dependency.  # buildcleaner: keep
         "//lingvo:compat",
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.

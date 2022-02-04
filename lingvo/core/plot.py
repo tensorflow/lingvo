@@ -21,7 +21,11 @@ import traceback
 
 import lingvo.compat as tf
 from lingvo.core import py_utils
-from matplotlib.backends import backend_agg
+
+import matplotlib  # pylint: disable=g-import-not-at-top
+
+matplotlib.use('Agg')  # Set Borg-friendly backend.
+from matplotlib.backends import backend_agg  # pylint: disable=g-import-not-at-top
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
