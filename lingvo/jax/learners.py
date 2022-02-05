@@ -35,13 +35,15 @@ NestedParams = pytypes.NestedParams
 InstantiableParams = py_utils.InstantiableParams
 
 
-class Learner(base_layer.BaseLayer):
+class Learner:
   """A learner."""
 
   @classmethod
   def Params(cls) -> InstantiableParams:  # pylint: disable=invalid-name
     """Returns the Learner params."""
-    p = super().Params()
+    p = InstantiableParams(cls)
+    p.Define('name', '',
+             'Name of this learner object, must be a valid identifier.')
     p.Define('loss_name', None,
              'Name of the loss this learner optimizes. Must not be None.')
     p.Define('optimizer', None, 'Params for the optimizer.')
@@ -73,12 +75,23 @@ class Learner(base_layer.BaseLayer):
 
   def __init__(self, params: InstantiableParams) -> None:
     """Constructor for the learner."""
-    super().__init__(params)
+    assert params.name, ('Learner params for %s must have a "name"' %
+                         self.__class__.__name__)
+    module_name = params.name
+    NestedMap.CheckKey(module_name)
+
+    self._params = params.Copy()
+
     p = self.params
     asserts.not_none(p.optimizer)
     asserts.not_none(p.loss_name)
     self._optimizer = p.optimizer.Instantiate()
-    self._grad_tx = self._optimizer.get_grad_transformation()
+    self._grad_tx = self.optimizer.get_grad_transformation()
+
+  @property
+  def params(self) -> InstantiableParams:
+    """Returns the params upon which this layer is built."""
+    return self._params
 
   @property
   def optimizer(self) -> optimizers.BaseOptimizer:
