@@ -6,7 +6,7 @@ load(
     "lingvo_proto_py",
     "lingvo_py_binary",
 )
-load("//devtools/python/bazel:pytype.bzl", "pytype_library", "pytype_strict_library")
+load("//lingvo:lingvo.bzl", "pytype_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -2666,7 +2666,7 @@ py_strict_test(
     ],
 )
 
-pytype_strict_library(
+pytype_library(
     name = "differentiable_assignment",
     srcs = ["differentiable_assignment.py"],
     deps = [
