@@ -543,11 +543,8 @@ its children layers.</p></li>
 <dd><p>Returns initial state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>shape</strong> – <ul class="simple">
-<li><p>[batch, max_steps] for beam_search_tpu_helper - [batch, beam,</p></li>
-</ul>
-<p>max_steps] for flat_beam_search.</p>
-</p>
+<dd class="field-odd"><p><strong>shape</strong> – [batch, max_steps] for beam_search_tpu_helper or
+[batch, beam, max_steps] for flat_beam_search.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>zero-initialized state tensor.</p>
@@ -581,11 +578,8 @@ returns x_full. The shape of x_full is then <code class="xref py py-obj docutils
 <dd><p>Returns initial state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>shape</strong> – <ul class="simple">
-<li><p>[batch, max_steps] for beam_search_tpu_helper - [batch, beam,</p></li>
-</ul>
-<p>max_steps] for flat_beam_search.</p>
-</p>
+<dd class="field-odd"><p><strong>shape</strong> – [batch, max_steps] for beam_search_tpu_helper or
+[batch, beam, max_steps] for flat_beam_search.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
@@ -950,14 +944,11 @@ embedded token or an element of Transformer layer output.</p></li>
 <li><p><strong>fprop_dtype</strong> – activations datatype to use.</p></li>
 <li><p><strong>use_xla_sharding</strong> – bool, True if this function is used for the xla_sharding
 case.</p></li>
-<li><p><strong>second_expert_policy</strong> – <p>‘all’, ‘sampling’ or ‘random’.
-- ‘all’: we greedily pick the 2nd expert.
-- ‘sampling’: we sample the 2nd expert from the softmax.
-- ‘random’: we optionally ‘random’-ize dispatch to second-best expert</p>
-<blockquote>
-<div><p>proportional to (weight / second_expert_threshold).</p>
-</div></blockquote>
-</p></li>
+<li><p><strong>second_expert_policy</strong> – ‘all’, ‘sampling’ or ‘random’.
+(i) ‘all’: we greedily pick the 2nd expert.
+(ii) ‘sampling’: we sample the 2nd expert from the softmax.
+(iii) ‘random’: we optionally ‘random’-ize dispatch to second-best expert
+proportional to (weight / second_expert_threshold).</p></li>
 <li><p><strong>second_expert_threshold</strong> – threshold for probability normalization for
 second_expert_policy == ‘random’.</p></li>
 <li><p><strong>legacy_mtf_behavior</strong> – bool, True if to match legacy mtf behavior exactly.</p></li>
@@ -1083,16 +1074,14 @@ group <code class="xref py py-obj docutils literal notranslate"><span class="pre
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.OptimalTransportOnlogits">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_layers.</span></span><span class="sig-name descname"><span class="pre">OptimalTransportOnlogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experts_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_xla_sharding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#OptimalTransportOnlogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.OptimalTransportOnlogits" title="Permalink to this definition"></a></dt>
 <dd><p>Computes gating using sparse alignment based on optimal transport.</p>
-<dl class="simple">
-<dt>Dimensions cheat sheet:</dt><dd><p>G: group_dim
-S: group_size_dim
-E: number of experts
-C: capacity per expert
-M: model_dim (same as input_dim, same as output_dim)
-B: original batch_dim
-L: original sequence_length_dim</p>
-</dd>
-</dl>
+<p>Dimensions cheat sheet:
+- G: group_dim
+- S: group_size_dim
+- E: number of experts
+- C: capacity per expert
+- M: model_dim (same as input_dim, same as output_dim)
+- B: original batch_dim
+- L: original sequence_length_dim</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -1103,14 +1092,10 @@ case.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A tuple (aux_loss, combine_tensor, dispatch_tensor).
+<dd class="field-even"><p>A tuple (aux_loss, combine_tensor, dispatch_tensor).
 - aux_loss: Always 0.0, because we don’t need an aux_loss in this method.
 - combine_tensor: G`EC Tensor for combining expert outputs.
-- dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to</p>
-<blockquote>
-<div><p>experts.</p>
-</div></blockquote>
-</p>
+- dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to experts.</p>
 </dd>
 </dl>
 </dd></dl>

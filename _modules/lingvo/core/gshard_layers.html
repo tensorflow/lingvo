@@ -1330,8 +1330,8 @@
     <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      shape: - [batch, max_steps] for beam_search_tpu_helper - [batch, beam,</span>
-<span class="sd">        max_steps] for flat_beam_search.</span>
+<span class="sd">      shape: [batch, max_steps] for beam_search_tpu_helper or</span>
+<span class="sd">        [batch, beam, max_steps] for flat_beam_search.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      zero-initialized state tensor.</span>
@@ -1356,8 +1356,8 @@
     <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      shape: - [batch, max_steps] for beam_search_tpu_helper - [batch, beam,</span>
-<span class="sd">        max_steps] for flat_beam_search.</span>
+<span class="sd">      shape: [batch, max_steps] for beam_search_tpu_helper or</span>
+<span class="sd">        [batch, beam, max_steps] for flat_beam_search.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      zero-initialized state tensor whose shape can be:</span>
@@ -1908,10 +1908,10 @@
 <span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
 <span class="sd">      case.</span>
 <span class="sd">    second_expert_policy: &#39;all&#39;, &#39;sampling&#39; or &#39;random&#39;.</span>
-<span class="sd">      - &#39;all&#39;: we greedily pick the 2nd expert.</span>
-<span class="sd">      - &#39;sampling&#39;: we sample the 2nd expert from the softmax.</span>
-<span class="sd">      - &#39;random&#39;: we optionally &#39;random&#39;-ize dispatch to second-best expert</span>
-<span class="sd">        proportional to (weight / second_expert_threshold).</span>
+<span class="sd">      (i) &#39;all&#39;: we greedily pick the 2nd expert.</span>
+<span class="sd">      (ii) &#39;sampling&#39;: we sample the 2nd expert from the softmax.</span>
+<span class="sd">      (iii) &#39;random&#39;: we optionally &#39;random&#39;-ize dispatch to second-best expert</span>
+<span class="sd">      proportional to (weight / second_expert_threshold).</span>
 <span class="sd">    second_expert_threshold: threshold for probability normalization for</span>
 <span class="sd">      second_expert_policy == &#39;random&#39;.</span>
 <span class="sd">    legacy_mtf_behavior: bool, True if to match legacy mtf behavior exactly.</span>
@@ -2466,13 +2466,13 @@
   <span class="sd">&quot;&quot;&quot;Computes gating using sparse alignment based on optimal transport.</span>
 
 <span class="sd">  Dimensions cheat sheet:</span>
-<span class="sd">      G: group_dim</span>
-<span class="sd">      S: group_size_dim</span>
-<span class="sd">      E: number of experts</span>
-<span class="sd">      C: capacity per expert</span>
-<span class="sd">      M: model_dim (same as input_dim, same as output_dim)</span>
-<span class="sd">      B: original batch_dim</span>
-<span class="sd">      L: original sequence_length_dim</span>
+<span class="sd">  - G: group_dim</span>
+<span class="sd">  - S: group_size_dim</span>
+<span class="sd">  - E: number of experts</span>
+<span class="sd">  - C: capacity per expert</span>
+<span class="sd">  - M: model_dim (same as input_dim, same as output_dim)</span>
+<span class="sd">  - B: original batch_dim</span>
+<span class="sd">  - L: original sequence_length_dim</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    logits: G`SE Tensor.</span>
@@ -2484,8 +2484,7 @@
 <span class="sd">    A tuple (aux_loss, combine_tensor, dispatch_tensor).</span>
 <span class="sd">    - aux_loss: Always 0.0, because we don&#39;t need an aux_loss in this method.</span>
 <span class="sd">    - combine_tensor: G`EC Tensor for combining expert outputs.</span>
-<span class="sd">    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to</span>
-<span class="sd">      experts.</span>
+<span class="sd">    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to experts.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">use_xla_sharding</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
