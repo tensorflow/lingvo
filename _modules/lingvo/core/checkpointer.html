@@ -575,11 +575,15 @@
 
 <div class="viewcode-block" id="EagerCheckpointerV1._GetSaver"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">all_vars</span> <span class="o">=</span> <span class="n">_GetSaveableVariablesDict</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">)</span>
+    <span class="c1"># TODO(b/217920843): sharded=True is needed to avoid sending all variables</span>
+    <span class="c1"># to one worker before saving the checkpoints, but it&#39;s not well supported</span>
+    <span class="c1"># in eager mode due to the use of Tensor.op. Investigate and fix it.</span>
     <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span>
         <span class="n">var_list</span><span class="o">=</span><span class="n">all_vars</span><span class="p">,</span>
         <span class="n">max_to_keep</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_max_to_keep</span><span class="p">,</span>
         <span class="n">keep_checkpoint_every_n_hours</span><span class="o">=</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_train_params</span><span class="o">.</span><span class="n">save_keep_checkpoint_every_n_hours</span><span class="p">),</span>
+        <span class="n">pad_step_number</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># %08d</span>
     <span class="k">return</span> <span class="n">saver</span></div>
 
 <div class="viewcode-block" id="EagerCheckpointerV1._GetRestorer"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1._GetRestorer">[docs]</a>  <span class="k">def</span> <span class="nf">_GetRestorer</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
