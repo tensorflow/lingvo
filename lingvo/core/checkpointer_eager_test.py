@@ -165,16 +165,16 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
   def testEagerMultiLearnerCheckpointCompatibility(self):
     self.assertTrue(tf.executing_eagerly())
     cfg = model_registry.GetParams('test.LinearModelParams', 'Train')
-
-    eager_v1_logdir = os.path.join(self.get_temp_dir(), 'eager_v1')
-    eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
     mdl = cfg.Instantiate()
     with py_utils.GradientTape(persistent=True):
       mdl.ConstructFPropBPropGraph()
+
+    eager_v1_logdir = os.path.join(self.get_temp_dir(), 'eager_v1')
+    eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
     checkpointer.EagerCheckpointerV1(eager_v1_logdir, mdl).Save(gsteps=0)
-    eager_v1_keys = _GetCheckpointKeys(
-        os.path.join(eager_v1_logdir, 'ckpt_V1', 'ckpt-0'))
     checkpointer.EagerCheckpointerV2(eager_v2_logdir, mdl).Save(gsteps=0)
+    eager_v1_keys = _GetCheckpointKeys(
+        os.path.join(eager_v1_logdir, 'ckpt_V1', 'ckpt-00000000'))
     eager_v2_keys = _GetCheckpointKeys(
         os.path.join(eager_v2_logdir, 'ckpt_V2', 'ckpt-0'))
     # Expecting two more variables in V2 checkpoints:

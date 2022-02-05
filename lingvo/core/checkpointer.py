@@ -510,11 +510,15 @@ class EagerCheckpointerV1(_EagerCheckpointer):
 
   def _GetSaver(self):
     all_vars = _GetSaveableVariablesDict(self._models)
+    # TODO(b/217920843): sharded=True is needed to avoid sending all variables
+    # to one worker before saving the checkpoints, but it's not well supported
+    # in eager mode due to the use of Tensor.op. Investigate and fix it.
     saver = tf.train.Saver(
         var_list=all_vars,
         max_to_keep=self._train_params.save_max_to_keep,
         keep_checkpoint_every_n_hours=(
-            self._train_params.save_keep_checkpoint_every_n_hours))
+            self._train_params.save_keep_checkpoint_every_n_hours),
+        pad_step_number=True)  # %08d
     return saver
 
   def _GetRestorer(self):
