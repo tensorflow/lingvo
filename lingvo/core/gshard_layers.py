@@ -1265,8 +1265,8 @@ class StateLayer(base_layer.BaseLayer):
     """Returns initial state.
 
     Args:
-      shape: - [batch, max_steps] for beam_search_tpu_helper - [batch, beam,
-        max_steps] for flat_beam_search.
+      shape: [batch, max_steps] for beam_search_tpu_helper or
+        [batch, beam, max_steps] for flat_beam_search.
 
     Returns:
       zero-initialized state tensor.
@@ -1291,8 +1291,8 @@ class MultiHeadAttentionStateLayer(StateLayer):
     """Returns initial state.
 
     Args:
-      shape: - [batch, max_steps] for beam_search_tpu_helper - [batch, beam,
-        max_steps] for flat_beam_search.
+      shape: [batch, max_steps] for beam_search_tpu_helper or
+        [batch, beam, max_steps] for flat_beam_search.
 
     Returns:
       zero-initialized state tensor whose shape can be:
@@ -1843,10 +1843,10 @@ def Top2GatingOnLogits(inputs,
     use_xla_sharding: bool, True if this function is used for the xla_sharding
       case.
     second_expert_policy: 'all', 'sampling' or 'random'.
-      - 'all': we greedily pick the 2nd expert.
-      - 'sampling': we sample the 2nd expert from the softmax.
-      - 'random': we optionally 'random'-ize dispatch to second-best expert
-        proportional to (weight / second_expert_threshold).
+      (i) 'all': we greedily pick the 2nd expert.
+      (ii) 'sampling': we sample the 2nd expert from the softmax.
+      (iii) 'random': we optionally 'random'-ize dispatch to second-best expert
+      proportional to (weight / second_expert_threshold).
     second_expert_threshold: threshold for probability normalization for
       second_expert_policy == 'random'.
     legacy_mtf_behavior: bool, True if to match legacy mtf behavior exactly.
@@ -2401,13 +2401,13 @@ def OptimalTransportOnlogits(logits, experts_dim, use_xla_sharding=False):
   """Computes gating using sparse alignment based on optimal transport.
 
   Dimensions cheat sheet:
-      G: group_dim
-      S: group_size_dim
-      E: number of experts
-      C: capacity per expert
-      M: model_dim (same as input_dim, same as output_dim)
-      B: original batch_dim
-      L: original sequence_length_dim
+  - G: group_dim
+  - S: group_size_dim
+  - E: number of experts
+  - C: capacity per expert
+  - M: model_dim (same as input_dim, same as output_dim)
+  - B: original batch_dim
+  - L: original sequence_length_dim
 
   Args:
     logits: G`SE Tensor.
@@ -2419,8 +2419,7 @@ def OptimalTransportOnlogits(logits, experts_dim, use_xla_sharding=False):
     A tuple (aux_loss, combine_tensor, dispatch_tensor).
     - aux_loss: Always 0.0, because we don't need an aux_loss in this method.
     - combine_tensor: G`EC Tensor for combining expert outputs.
-    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to
-      experts.
+    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to experts.
   """
   if use_xla_sharding:
     tf.logging.warning(

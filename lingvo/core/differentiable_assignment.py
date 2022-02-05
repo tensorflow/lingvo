@@ -16,11 +16,11 @@
 r"""Implementation of differentiable assignment operators in TF.
 
 References:
-  [1] Csisz{\'a}r, 2008. On Iterative Algoirthms with an Information Geometry
-    Background.
-  [2] Cuturi, 2013. Lightspeed Computation of Optimal Transport.
-  [3] Schmitzer 2019. Stabilized Sparse Scaling Algorithms for Entropy
-    Regularized Transport Problems.
+[1] Csisz{\'a}r, 2008. On Iterative Algoirthms with an Information Geometry
+Background.
+[2] Cuturi, 2013. Lightspeed Computation of Optimal Transport.
+[3] Schmitzer 2019. Stabilized Sparse Scaling Algorithms for Entropy
+Regularized Transport Problems.
 """
 
 from lingvo import compat as tf
@@ -44,9 +44,9 @@ def max_assignment(score: tf.Tensor,
       take and must be a non-negative value. For example, upper_bound[i, j,
       k]=1.0 for binary assignment problem.
     row_sums: a 2D tensor of size [batch_size, n_rows]. The row sum constraint.
-      The output assignment p[i, j, *] must sum to row_sums[i, j].
+      The output assignment p[i, j, :] must sum to row_sums[i, j].
     col_sums: a 2D tensor of size [batch_size, n_columns]. The column sum
-      constraint. The output assignment p[i, *, k] must sum to col_sums[i, k].
+      constraint. The output assignment p[i, :, k] must sum to col_sums[i, k].
     epsilon: the epsilon coefficient of entropy regularization. The value should
       be within the range (0, 1]. `0.01` might work better than `0.1`. `0.1` may
       not make the assignment close enough to 0 or 1.
@@ -55,21 +55,21 @@ def max_assignment(score: tf.Tensor,
       convergence of the iterative algorithm is much better if we start by
       solving the optimization with a larger epsilon value and re-use the
       solution (i.e. dual variables) for the instance with a smaller epsilon.
-      This is called the epsilon scaling trick. See [Schmitzer
-        2019](https://arxiv.org/pdf/1610.06519.pdf) as a reference. Here if
-          use_epsilon_scaling=True, after each iteration we decrease the running
-          epsilon by a constant factor until it reaches the target epsilon
-          value. We found this to work well for gradient backward propagation,
-          while the original scaling trick doesn't.
+      This is called the epsilon scaling trick. See [Schmitzer 2019]
+      (https://arxiv.org/pdf/1610.06519.pdf) as a reference. Here if
+      use_epsilon_scaling=True, after each iteration we decrease the running
+      epsilon by a constant factor until it reaches the target epsilon
+      value. We found this to work well for gradient backward propagation,
+      while the original scaling trick doesn't.
 
   Returns:
-    a tuple with the following values.
-    assignment: a 3D tensor of size [batch_size, n_rows, n_columns].
-      The output assignment.
-    used_iter: a scalar tensor indicating the number of iterations used.
-    eps: a scalar tensor indicating the stopping epsilon value.
-    delta: a scalar tensor indicating the stopping delta value (the relative
-      change on the margins of assignment p in the last iteration).
+    A tuple with the following values.
+      - assignment: a 3D tensor of size [batch_size, n_rows, n_columns].
+        The output assignment.
+      - used_iter: a scalar tensor indicating the number of iterations used.
+      - eps: a scalar tensor indicating the stopping epsilon value.
+      - delta: a scalar tensor indicating the stopping delta value (the relative
+        change on the margins of assignment p in the last iteration).
   """
 
   # Check if all shapes are correct
