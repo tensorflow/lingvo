@@ -84,17 +84,18 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">activations</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span> <span class="k">as</span> <span class="n">conv_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">differentiable_assignment</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">gshard_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_summary</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">var_tmp_wrappers</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.tf2xla.python</span> <span class="kn">import</span> <span class="n">xla</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compiler.xla.experimental.xla_sharding</span> <span class="kn">import</span> <span class="n">xla_sharding</span>
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
-
 
 <span class="n">Split</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">Split</span>
 <span class="n">MeshSplit</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span>
@@ -1329,9 +1330,8 @@
     <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      shape:</span>
-<span class="sd">        - [batch, max_steps] for beam_search_tpu_helper</span>
-<span class="sd">        - [batch, beam, max_steps] for flat_beam_search.</span>
+<span class="sd">      shape: - [batch, max_steps] for beam_search_tpu_helper - [batch, beam,</span>
+<span class="sd">        max_steps] for flat_beam_search.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      zero-initialized state tensor.</span>
@@ -1356,9 +1356,8 @@
     <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      shape:</span>
-<span class="sd">        - [batch, max_steps] for beam_search_tpu_helper</span>
-<span class="sd">        - [batch, beam, max_steps] for flat_beam_search.</span>
+<span class="sd">      shape: - [batch, max_steps] for beam_search_tpu_helper - [batch, beam,</span>
+<span class="sd">        max_steps] for flat_beam_search.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      zero-initialized state tensor whose shape can be:</span>
@@ -1909,23 +1908,20 @@
 <span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
 <span class="sd">      case.</span>
 <span class="sd">    second_expert_policy: &#39;all&#39;, &#39;sampling&#39; or &#39;random&#39;.</span>
-
 <span class="sd">      - &#39;all&#39;: we greedily pick the 2nd expert.</span>
 <span class="sd">      - &#39;sampling&#39;: we sample the 2nd expert from the softmax.</span>
 <span class="sd">      - &#39;random&#39;: we optionally &#39;random&#39;-ize dispatch to second-best expert</span>
 <span class="sd">        proportional to (weight / second_expert_threshold).</span>
-
 <span class="sd">    second_expert_threshold: threshold for probability normalization for</span>
 <span class="sd">      second_expert_policy == &#39;random&#39;.</span>
 <span class="sd">    legacy_mtf_behavior: bool, True if to match legacy mtf behavior exactly.</span>
 <span class="sd">    capacity_factor: if set, increases expert_capacity_dim to at least</span>
-<span class="sd">      (group_size * capacity_factor) / experts_dim</span>
-<span class="sd">      where `group_size` is the size of G dimension of `inputs`. If the</span>
-<span class="sd">      value of expert_capacity_dim is already big enough no change is made.</span>
+<span class="sd">      (group_size * capacity_factor) / experts_dim where `group_size` is the</span>
+<span class="sd">      size of G dimension of `inputs`. If the value of expert_capacity_dim is</span>
+<span class="sd">      already big enough no change is made.</span>
 <span class="sd">    importance: input importance weights for routing (G`S Tensor or None).</span>
 <span class="sd">    mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask</span>
 <span class="sd">      tensors, mask_dtype is a special dtype for such tensors.</span>
-
 <span class="sd">  TODO(lepikhin): get rid of the legacy_mtf_behavior flag.</span>
 
 <span class="sd">  Returns:</span>
@@ -2447,21 +2443,127 @@
                        <span class="s1">&#39;within Top2GatingOnLogits are generally redundant.&#39;</span><span class="p">)</span>
   <span class="k">del</span> <span class="n">inputs</span>  <span class="c1"># inputs is currently not used.</span>
   <span class="c1"># logits.dtype could be tf.float32</span>
-  <span class="c1"># G`SE Tensor.</span>
+  <span class="c1"># Tensor shape: G`SE</span>
   <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>  <span class="c1"># along E dim</span>
   <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
 
   <span class="n">seq_len</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
   <span class="c1"># number of ffn layers for each expert.</span>
+  <span class="c1"># Number of tokens per expert (C).</span>
   <span class="n">bucket_size</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="n">experts_dim</span>
 
-  <span class="c1"># G`EC Tensors.</span>
+  <span class="c1"># Tensor shape: G`EC.</span>
   <span class="n">gate</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">k</span><span class="o">=</span><span class="n">bucket_size</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
   <span class="c1"># b x num_experts(k) x bucket_size(c) x seq_len(n)</span>
-  <span class="c1"># G`ECS Tensor.</span>
+  <span class="c1"># Tensor shpae: G`ECS</span>
   <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
   <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">),</span> <span class="n">gate</span><span class="p">,</span> <span class="n">perm</span></div>
+
+
+<div class="viewcode-block" id="OptimalTransportOnlogits"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.OptimalTransportOnlogits">[docs]</a><span class="k">def</span> <span class="nf">OptimalTransportOnlogits</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes gating using sparse alignment based on optimal transport.</span>
+
+<span class="sd">  Dimensions cheat sheet:</span>
+<span class="sd">      G: group_dim</span>
+<span class="sd">      S: group_size_dim</span>
+<span class="sd">      E: number of experts</span>
+<span class="sd">      C: capacity per expert</span>
+<span class="sd">      M: model_dim (same as input_dim, same as output_dim)</span>
+<span class="sd">      B: original batch_dim</span>
+<span class="sd">      L: original sequence_length_dim</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    logits: G`SE Tensor.</span>
+<span class="sd">    experts_dim: number of experts.</span>
+<span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
+<span class="sd">      case.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple (aux_loss, combine_tensor, dispatch_tensor).</span>
+<span class="sd">    - aux_loss: Always 0.0, because we don&#39;t need an aux_loss in this method.</span>
+<span class="sd">    - combine_tensor: G`EC Tensor for combining expert outputs.</span>
+<span class="sd">    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to</span>
+<span class="sd">      experts.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">use_xla_sharding</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+        <span class="s1">&#39;Sharding propagation should be sufficient and Splits &#39;</span>
+        <span class="s1">&#39;within OptimalTransportOnlogits are generally redundant.&#39;</span><span class="p">)</span>
+
+  <span class="c1"># Tensor: [G, S, E]</span>
+  <span class="n">group_dim</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span>
+
+  <span class="n">ave_expert_per_token</span> <span class="o">=</span> <span class="mi">2</span>
+  <span class="c1"># NOTE: Subject to tuning. A larger value could lead to more heterogeneous</span>
+  <span class="c1"># assignment.</span>
+  <span class="n">max_token_capacity</span> <span class="o">=</span> <span class="mi">2</span>
+  <span class="c1"># Average number of tokens per expert.</span>
+  <span class="n">expert_capacity</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">*</span> <span class="n">ave_expert_per_token</span> <span class="o">//</span> <span class="n">experts_dim</span>
+  <span class="c1"># NOTE: Subject to tuning. `0.01` might work better than `0.1`, because</span>
+  <span class="c1"># `epsilon=0.1` may not make the assignment close enough to {0, 1} assignment.</span>
+  <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">0.1</span>
+  <span class="c1"># NOTE: Number of iterations has a direct impact on the convergence and the</span>
+  <span class="c1"># efficiency of the algorithm. Subject to tuning.</span>
+  <span class="n">num_iterations</span> <span class="o">=</span> <span class="mi">50</span>
+
+  <span class="c1"># TODO(vzhao): Make the linear constrains configurable.</span>
+  <span class="c1"># Hard code the following linear constrains. The hardcoded config matches</span>
+  <span class="c1"># `TokenShufflingOnlogits`.</span>
+  <span class="c1">#   elementwise upper bound is 1.</span>
+  <span class="c1">#   `row_sums` (tokens per expert) is fixed.</span>
+  <span class="c1">#   `col_sums` (experts per token) is upper bounded.</span>
+  <span class="c1"># GES Tensor.</span>
+  <span class="n">logits_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits_t</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+  <span class="c1"># GES Tensor</span>
+  <span class="n">upper_bound</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+  <span class="c1"># GE Tensor</span>
+  <span class="n">row_sums</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">group_dim</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">],</span>
+                     <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span> <span class="o">*</span> <span class="n">expert_capacity</span>
+  <span class="c1"># GS Tensor.</span>
+  <span class="n">col_sums</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">group_dim</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">],</span>
+                     <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_token_capacity</span>
+
+  <span class="c1"># For linear inequality constrain on `col_sums`, append an extra row to scores</span>
+  <span class="c1"># for the dummy expert.</span>
+  <span class="c1"># G(E+1)S Tensor</span>
+  <span class="n">scores_plus</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+      <span class="p">[</span><span class="n">scores</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">group_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+  <span class="c1"># Add elementwise upper bound for the dummy expert.</span>
+  <span class="c1"># upper_bound_plus: G(E+1)S Tensor.</span>
+  <span class="n">extra_upper_bound</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">group_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">],</span>
+                              <span class="n">dtype</span><span class="o">=</span><span class="n">scores</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_token_capacity</span>
+  <span class="n">upper_bound_plus</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">upper_bound</span><span class="p">,</span> <span class="n">extra_upper_bound</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="n">extra_row_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">group_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span>
+      <span class="n">max_token_capacity</span> <span class="o">*</span> <span class="n">seq_len</span> <span class="o">-</span> <span class="n">expert_capacity</span> <span class="o">*</span> <span class="n">experts_dim</span><span class="p">)</span>
+  <span class="c1"># G(E+1) Tensor.</span>
+  <span class="n">row_sums_plus</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">row_sums</span><span class="p">,</span> <span class="n">extra_row_sum</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="n">soft_assign</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">differentiable_assignment</span><span class="o">.</span><span class="n">max_assignment</span><span class="p">(</span>
+      <span class="n">scores_plus</span><span class="p">,</span>
+      <span class="n">elementwise_upper_bound</span><span class="o">=</span><span class="n">upper_bound_plus</span><span class="p">,</span>
+      <span class="n">row_sums</span><span class="o">=</span><span class="n">row_sums_plus</span><span class="p">,</span>
+      <span class="n">col_sums</span><span class="o">=</span><span class="n">col_sums</span><span class="p">,</span>
+      <span class="n">epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">,</span>
+      <span class="n">num_iterations</span><span class="o">=</span><span class="n">num_iterations</span><span class="p">,</span>
+      <span class="n">use_epsilon_scaling</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="c1"># Removes the row of the soft assignment to the dummy expert.</span>
+  <span class="c1"># GES Tensor.</span>
+  <span class="n">soft_assign</span> <span class="o">=</span> <span class="n">soft_assign</span><span class="p">[:,</span> <span class="p">:</span><span class="n">experts_dim</span><span class="p">,</span> <span class="p">:]</span>
+
+  <span class="c1"># Applies `stop_gradient` to `soft_assign` to match the behavior of</span>
+  <span class="c1"># `TokenShuffleGating`.</span>
+  <span class="c1"># `indices`: GEC Tensor for top-k indicies.</span>
+  <span class="n">gate</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">soft_assign</span><span class="p">)</span> <span class="o">*</span> <span class="n">scores</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">expert_capacity</span><span class="p">,</span> <span class="nb">sorted</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+  <span class="c1"># b x num_experts(k) x bucket_size(c) x seq_len(n)</span>
+  <span class="c1"># GECS</span>
+  <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
+  <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">),</span> <span class="n">gate</span><span class="p">,</span> <span class="n">perm</span></div>
 
 
@@ -2557,6 +2659,9 @@
   <span class="k">if</span> <span class="n">gating_func</span> <span class="o">==</span> <span class="s1">&#39;token_shuffle&#39;</span><span class="p">:</span>
     <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">TokenShufflingOnlogits</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="p">,</span> <span class="n">mask_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">gating_func</span> <span class="o">==</span> <span class="s1">&#39;optimal_transport&#39;</span><span class="p">:</span>
+    <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">OptimalTransportOnlogits</span><span class="p">(</span>
+        <span class="n">logits</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="p">)</span>
   <span class="k">elif</span> <span class="n">gating_func</span> <span class="o">==</span> <span class="s1">&#39;top_2&#39;</span><span class="p">:</span>
     <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">Top2GatingOnLogits</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">expert_capacity_dim</span><span class="p">,</span>
@@ -2595,6 +2700,11 @@
 <div class="viewcode-block" id="TokenShuffleGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.TokenShuffleGating">[docs]</a><span class="k">def</span> <span class="nf">TokenShuffleGating</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes token shuffle based gating for Mixture-of-Experts.&quot;&quot;&quot;</span>
   <span class="k">return</span> <span class="n">ComputeGating</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gating_func</span><span class="o">=</span><span class="s1">&#39;token_shuffle&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="OptimalTransportGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.OptimalTransportGating">[docs]</a><span class="k">def</span> <span class="nf">OptimalTransportGating</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes gating based on sparse alignment for Mixture-of-Experts.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">ComputeGating</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">gating_func</span><span class="o">=</span><span class="s1">&#39;optimal_transport&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">kargs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="FeedForwardNetworksApplyGating"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.FeedForwardNetworksApplyGating">[docs]</a><span class="k">def</span> <span class="nf">FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="n">gating</span><span class="p">,</span>
