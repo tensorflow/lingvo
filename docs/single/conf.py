@@ -37,7 +37,7 @@ napoleon_google_docstring = True
 default_role = 'py:obj'
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3.7', None),
-    'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+    'numpy': ('http://numpy.org/doc/stable/', None),
 }
 templates_path = ['_templates']
 source_parsers = {
