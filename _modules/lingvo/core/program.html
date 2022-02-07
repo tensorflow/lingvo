@@ -727,7 +727,7 @@
       <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
       <span class="n">values</span><span class="p">,</span> <span class="n">outfeeds</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">)</span>
-      <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+      <span class="n">infeed_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">PackMetricsValues</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
     <span class="n">eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">metrics</span>
@@ -912,7 +912,7 @@
       <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
       <span class="n">values</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">)</span>
-      <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+      <span class="n">infeed_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 
     <span class="n">status_strs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">PackMetricsValues</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
@@ -1322,7 +1322,7 @@
                            <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">buffered_decode_out</span><span class="p">,</span>
                            <span class="n">postprocess_futures</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+      <span class="n">infeed_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">threadpool</span><span class="p">:</span>
 
@@ -1455,8 +1455,8 @@
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">):</span>
       <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">decode_out_dict</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
-    <span class="n">decode_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
-    <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+    <span class="n">decode_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="n">infeed_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
     <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="n">elapsed_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
     <span class="n">num_examples_metric</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
@@ -1648,8 +1648,8 @@
     <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
 
-    <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
-    <span class="n">train_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+    <span class="n">infeed_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+    <span class="n">train_future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
