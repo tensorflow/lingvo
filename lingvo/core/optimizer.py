@@ -1109,24 +1109,19 @@ class XLAShardingAdafactor(Base):
     params.name = 'Adafactor'
     return params
 
-  def __init__(self, params):
-    super().__init__(params)
-
-    if self.params.decay_exponent_pow:
-      self._decay_rate = _AdafactorDecayRatePow(
-          self.params.decay_exponent_pow,
-          offset=self.params.decay_exponent_offset)
-    else:
-      self._decay_rate = _AdafactorDecayRateAdam(self.params.beta2)
-
   def GetOptimizer(self, lr):
     params = self.params
+    if params.decay_exponent_pow:
+      decay_rate = _AdafactorDecayRatePow(
+          params.decay_exponent_pow, offset=params.decay_exponent_offset)
+    else:
+      decay_rate = _AdafactorDecayRateAdam(params.beta2)
     return XLAShardingAdafactorOptimizer(
         learning_rate=lr,
         factored=params.factored,
         clipping_threshold=params.clipping_threshold,
         multiply_by_parameter_scale=params.multiply_by_parameter_scale,
-        decay_rate=self._decay_rate,
+        decay_rate=decay_rate,
         beta1=params.beta1,
         min_dim_size_to_factor=params.min_dim_size_to_factor,
         cond_is_finite=params.cond_is_finite,
