@@ -1174,24 +1174,19 @@
     <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;Adafactor&#39;</span>
     <span class="k">return</span> <span class="n">params</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_pow</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_decay_rate</span> <span class="o">=</span> <span class="n">_AdafactorDecayRatePow</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_pow</span><span class="p">,</span>
-          <span class="n">offset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_offset</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_decay_rate</span> <span class="o">=</span> <span class="n">_AdafactorDecayRateAdam</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">beta2</span><span class="p">)</span>
-
 <div class="viewcode-block" id="XLAShardingAdafactor.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.XLAShardingAdafactor.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_pow</span><span class="p">:</span>
+      <span class="n">decay_rate</span> <span class="o">=</span> <span class="n">_AdafactorDecayRatePow</span><span class="p">(</span>
+          <span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_pow</span><span class="p">,</span> <span class="n">offset</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">decay_exponent_offset</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">decay_rate</span> <span class="o">=</span> <span class="n">_AdafactorDecayRateAdam</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">beta2</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">XLAShardingAdafactorOptimizer</span><span class="p">(</span>
         <span class="n">learning_rate</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
         <span class="n">factored</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">factored</span><span class="p">,</span>
         <span class="n">clipping_threshold</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">clipping_threshold</span><span class="p">,</span>
         <span class="n">multiply_by_parameter_scale</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">multiply_by_parameter_scale</span><span class="p">,</span>
-        <span class="n">decay_rate</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_decay_rate</span><span class="p">,</span>
+        <span class="n">decay_rate</span><span class="o">=</span><span class="n">decay_rate</span><span class="p">,</span>
         <span class="n">beta1</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">beta1</span><span class="p">,</span>
         <span class="n">min_dim_size_to_factor</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">min_dim_size_to_factor</span><span class="p">,</span>
         <span class="n">cond_is_finite</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">cond_is_finite</span><span class="p">,</span>
