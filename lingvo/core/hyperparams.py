@@ -340,8 +340,10 @@ class Params:
     """
     if self._immutable:
       raise TypeError('This Params instance is immutable.')
-    assert name is not None and isinstance(name, str) and (re.match(
-        '^[a-z][a-z0-9_]*$', name) is not None)
+    assert name is not None and isinstance(name, str)
+    if re.match('^[a-z_][a-z0-9_]*$', name) is None:
+      raise ValueError(f'Attribute name string invalid: "{name}", '
+                       'must match regex "^[a-z_][a-z0-9_]*$".')
     if name in self._params:
       raise AttributeError('Parameter %s is already defined' % name)
     self._params[name] = _Param(name, default_value, description)

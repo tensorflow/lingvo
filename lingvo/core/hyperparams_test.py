@@ -176,13 +176,13 @@ class ParamsTest(test_utils.TestCase):
   def testLegalParamNames(self):
     p = hyperparams.Params()
     self.assertRaises(AssertionError, lambda: p.Define(None, 1, ''))
-    self.assertRaises(AssertionError, lambda: p.Define('', 1, ''))
-    self.assertRaises(AssertionError, lambda: p.Define('_foo', 1, ''))
-    self.assertRaises(AssertionError, lambda: p.Define('Foo', 1, ''))
-    self.assertRaises(AssertionError, lambda: p.Define('1foo', 1, ''))
-    self.assertRaises(AssertionError, lambda: p.Define('foo$', 1, ''))
+    self.assertRaises(ValueError, lambda: p.Define('', 1, ''))
+    self.assertRaises(ValueError, lambda: p.Define('Foo', 1, ''))
+    self.assertRaises(ValueError, lambda: p.Define('1foo', 1, ''))
+    self.assertRaises(ValueError, lambda: p.Define('foo$', 1, ''))
     p.Define('foo_bar', 1, '')
     p.Define('foo9', 1, '')
+    p.Define('_foo', 1, '')
 
   def testSetAndGet(self):
     p = hyperparams.Params()
@@ -266,7 +266,6 @@ class ParamsTest(test_utils.TestCase):
 
   def testFreeze(self):
     p = hyperparams.Params()
-    self.assertRaises(AssertionError, lambda: p.Define('_immutable', 1, ''))
     self.assertRaisesRegex(AttributeError, 'foo', lambda: p.Set(foo=4))
     # We use setattr() because lambda cannot contain explicit assignment.
     self.assertRaisesRegex(AttributeError, 'foo', lambda: setattr(p, 'foo', 4))
