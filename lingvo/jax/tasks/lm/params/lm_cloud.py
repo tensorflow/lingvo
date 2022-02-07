@@ -57,6 +57,24 @@ class SyntheticDataset(base_model_params.BaseModelParams):
     ]
 
 
+@model_registry.register_model
+class LargeMlp(model_params.ClassificationModelAdam, SyntheticDataset):
+  """An 8-layer MLP model with large hidden dimensions."""
+  NUM_LAYER = 8
+  INPUT_DIM = 4096
+  OUTPUT_DIM = 4096
+  HIDDEN_DIM = 7168
+
+
+@model_registry.register_model
+class SmallMlp(model_params.ClassificationModelAdam, SyntheticDataset):
+  """An 8-layer MLP model with small hidden dimensions."""
+  NUM_LAYER = 8
+  INPUT_DIM = 1024
+  OUTPUT_DIM = 1024
+  HIDDEN_DIM = 1024
+
+
 ## Data parallel training.
 
 

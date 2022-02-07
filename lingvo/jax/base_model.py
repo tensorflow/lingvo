@@ -113,8 +113,8 @@ def _greedy_decode(extend_step_fn: Callable[[NestedMap, JTensor],
     target_paddings: The paddings corresponding to the target sequence, with a 1
       denoting padding token and 0 denoting non-padding tokens.
     seq_len: The output sequence length to decode to.
-    max_decode_steps: Python int or None, the max decode step to run after
-      the prefix (if any). Since the prefixes might be of unequal lengths, this
+    max_decode_steps: Python int or None, the max decode step to run after the
+      prefix (if any). Since the prefixes might be of unequal lengths, this
       value is not equivalent with `seq_len` above. When None, decode steps is
       only limited by `seq_len` above.
     prefix_lengths: Optional argument supplying a prefix sizes to initialize the
@@ -315,6 +315,52 @@ class BaseModel(base_layer.BaseLayer):
         Each tuple is a key value pair.
     """
     raise NotImplementedError('Abstract method')
+
+
+class ClassificationMLPModel(BaseModel):
+  """Language Model task with a simple MLP model."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+
+    p.Define('mlp_tpl', layers.linears.MLPBlock.Params(),
+             'MLP model parameters.')
+    p.Define('softmax_tpl', layers.SingleShardSharedEmbeddingSoftmax.Params(),
+             'Input softmax embedding lookup layer.')
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    p = self.params
+    self.create_children('mlp_layers', p.mlp_tpl.Copy())
+    self.create_child('softmax', p.softmax_tpl.Copy())
+
+  def compute_predictions(self, theta: NestedMap,
+                          input_batch: NestedMap) -> Predictions:
+
+    input_emb = self.softmax.emb_lookup(theta.softmax, input_batch.ids)
+
+    output = self.mlp_layers.fprop(theta.mlp_layers, input_emb)
+    predictions = self.softmax.fprop(
+        theta=theta.softmax,
+        inputs=output,
+        class_weights=input_batch.weights[:, :, jnp.newaxis],
+        class_ids=input_batch.ids[:, :, jnp.newaxis])
+    return predictions
+
+  def compute_loss(self, theta: NestedMap, predictions: NestedMap,
+                   input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
+    labels = input_batch.labels
+    weights = input_batch.weights
+    class_weights = weights[:, :, jnp.newaxis]
+    num_preds = jnp.sum(class_weights)
+    predicted_labels = predictions.per_example_argmax.astype(labels.dtype)
+    mean_acc = jnp.sum(
+        (labels == predicted_labels) * weights) / jnp.maximum(num_preds, 1)
+    metrics = NestedMap(total_loss=(mean_acc, mean_acc),)
+
+    return metrics, NestedMap()
 
 
 class LanguageModel(BaseModel):

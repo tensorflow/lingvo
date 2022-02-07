@@ -182,6 +182,55 @@ class FeedForward(base_layer.BaseLayer):
     return output
 
 
+class MLPBlock(base_layer.BaseLayer):
+  """Feedforward layer with activation."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
+    p.Define('num_layers', 3, 'Number of FeedForward layers.')
+    p.Define('hidden_dims', 128, 'Dimension of hidden layers.')
+    p.Define('ff_tpl', FeedForward.Params(), 'Feedforward layer params')
+    return p
+
+  def __init__(self, params: InstantiableParams) -> None:
+    super().__init__(params)
+    p = self.params
+
+    wp = p.weight_split_dims_mapping
+    ap = p.activation_split_dims_mapping
+    input_layer_p = p.ff_tpl.Copy()
+    input_layer_p.Set(
+        input_dims=p.ff_tpl.input_dims,
+        output_dims=p.hidden_dims,
+        weight_split_dims_mapping=wp.Copy(),
+        activation_split_dims_mapping=ap.Copy())
+    hidden_layer_p = p.ff_tpl.Copy()
+    hidden_layer_p.Set(
+        input_dims=p.hidden_dims,
+        output_dims=p.hidden_dims,
+        weight_split_dims_mapping=wp.Copy(),
+        activation_split_dims_mapping=ap.Copy())
+    output_layer_p = p.ff_tpl.Copy()
+    output_layer_p.Set(
+        input_dims=p.hidden_dims,
+        output_dims=p.ff_tpl.output_dims,
+        weight_split_dims_mapping=wp.Copy(),
+        activation_split_dims_mapping=ap.Copy())
+    mlp_layers = [input_layer_p]
+    for _ in range(p.num_layers - 2):
+      mlp_layers.append(hidden_layer_p)
+    mlp_layers.append(output_layer_p)
+    self.create_children('mlp_layers', mlp_layers)
+
+  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+    output = inputs
+    p = self.params
+    for i in range(p.num_layers):
+      output = self.mlp_layers[i].fprop(theta.mlp_layers[i], output)
+    return output
+
+
 class StackingOverTime(base_layer.BaseLayer):
   """Stacking applied along the time axis.
 

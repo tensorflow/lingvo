@@ -144,6 +144,37 @@ def maybe_setup_moe_params(model_p: InstantiableParams):
   moe_p.norm_policy = ff_p.norm_policy
 
 
+class ClassificationModelAdam(base_model_params.BaseModelParams):
+  """A simple MLP language model configuration using Adam."""
+  NUM_LAYER = 8
+  INPUT_DIM = 4096
+  HIDDEN_DIM = 7168
+  OUTPUT_DIM = 4096
+  LEARNING_RATE = 1e-3
+  WEIGHT_DECAY = 1e-3
+  CHECKPOINT_EVERY_N_STEPS = 5
+  SUMMARY_INTERVAL_STEPS = 5
+  NUM_TRAIN_STEPS = 10
+
+  def task(self) -> InstantiableParams:
+    task_p = base_task.SingleTask.Params().Set(name='classification_task')
+    task_p.model = base_model.ClassificationMLPModel.Params().Set(
+        name='classification_model')
+    model_p = task_p.model
+    model_p.mlp_tpl.ff_tpl.input_dims = self.INPUT_DIM
+    model_p.mlp_tpl.ff_tpl.output_dims = self.OUTPUT_DIM
+    model_p.mlp_tpl.hidden_dims = self.HIDDEN_DIM
+    model_p.mlp_tpl.num_layers = self.NUM_LAYER
+    model_p.softmax_tpl.input_dims = self.INPUT_DIM
+    model_p.softmax_tpl.num_classes = self.INPUT_DIM
+    task_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
+    task_p.train.summary_interval_steps = self.SUMMARY_INTERVAL_STEPS
+
+    set_default_adam(task_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
+    task_p.train.num_train_steps = self.NUM_TRAIN_STEPS
+    return task_p
+
+
 class TransformerBertPmapAdam(base_model_params.BaseModelParams):
   """Base Pmap Transformer Bert configuration using Adam."""
 
