@@ -3824,6 +3824,12 @@ class BertTransformer(base_model.BaseTask):
         segment_pos=input_batch.segment_pos,
         masked_pos=masked_pos,
         aux_loss=tf.convert_to_tensor(0.0, py_utils.FPropDtype(self.params)))
+
+    # We use the masked & augmented input ids `emb_ids` here.
+    if p.moe and p.builder.gating_func == 'hashing':
+      expert_id = tf.math.floormod(emb_ids, p.builder.e_dim)
+      nmap.expert_id = expert_id
+
     return nmap
 
   def ComputePredictions(self, theta, input_batch):
