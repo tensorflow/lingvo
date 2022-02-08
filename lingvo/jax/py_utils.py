@@ -217,7 +217,7 @@ def create_gda(host_arrays: np.ndarray, global_shapes: jax.ShapeDtypeStruct,
     A GDA with x as the host-local data.
   """
 
-  local_devices = jax.local_devices()
+  local_devices = global_mesh.local_devices
   local_device_count = jax.local_device_count()
 
   def _put_to_devices(x):
