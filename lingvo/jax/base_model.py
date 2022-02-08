@@ -90,15 +90,15 @@ def _compute_xent_loss_helper(
   return metrics, per_example_output
 
 
-def _greedy_decode(extend_step_fn: Callable[[NestedMap, JTensor],
-                                            Tuple[NestedMap, JTensor]],
-                   decoder_state: NestedMap,
-                   target_ids: JTensor,
-                   target_paddings: JTensor,
-                   seq_len: int,
-                   max_decode_steps: Optional[int] = None,
-                   prefix_lengths: Optional[JTensor] = None,
-                   eos_id: Optional[int] = None) -> NestedMap:
+def greedy_decode(extend_step_fn: Callable[[NestedMap, JTensor],
+                                           Tuple[NestedMap, JTensor]],
+                  decoder_state: NestedMap,
+                  target_ids: JTensor,
+                  target_paddings: JTensor,
+                  seq_len: int,
+                  max_decode_steps: Optional[int] = None,
+                  prefix_lengths: Optional[JTensor] = None,
+                  eos_id: Optional[int] = None) -> NestedMap:
   """Greedy decode the input batch.
 
   Args:
@@ -484,7 +484,7 @@ class LanguageModel(BaseModel):
       new_states, xent = self.lm.extend_step(theta.lm, states, ids)
       return new_states, xent.logits
 
-    result = _greedy_decode(
+    result = greedy_decode(
         extend_step_fn,
         decoder_state,
         input_batch.ids,
@@ -637,7 +637,7 @@ class SequenceModel(BaseModel):
       new_states, xent = self.model.extend_step(theta.model, states, ids)
       return new_states, xent.logits
 
-    result = _greedy_decode(
+    result = greedy_decode(
         extend_step_fn,
         decoder_state,
         input_batch.tgt.ids,
