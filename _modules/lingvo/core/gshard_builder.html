@@ -2095,6 +2095,9 @@
 <span class="sd">    equation should not have &#39;N&#39;, and only use &#39;M&#39; when it is expected to be</span>
 <span class="sd">    reshaped.</span>
 
+<span class="sd">    For example, an input equation &#39;GSM,ME-&gt;GSE&#39; and model_dim_reshape_segments</span>
+<span class="sd">    # [16, 4] will be rewritten into the new equation &#39;GSNOL,NOLE-&gt;GSE&#39;.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">      equation: a string describing the contraction, in the same format as</span>
 <span class="sd">        numpy.einsum.</span>
@@ -2104,8 +2107,11 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      tf.einsum(maybe_modified_equation, x, y)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
-                                            <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">new_equation</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">_EinsumEqWithModelDim</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="n">equation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">new_equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DenseBuilder.DepthwiseConvAutoregressive"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DepthwiseConvAutoregressive">[docs]</a>  <span class="k">def</span> <span class="nf">DepthwiseConvAutoregressive</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">kernel_size</span><span class="p">,</span> <span class="n">model_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">model_dims</span> <span class="o">=</span> <span class="n">model_dims</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapedModelDims</span><span class="p">()</span>
