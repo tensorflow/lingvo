@@ -3889,6 +3889,12 @@
         <span class="n">segment_pos</span><span class="o">=</span><span class="n">input_batch</span><span class="o">.</span><span class="n">segment_pos</span><span class="p">,</span>
         <span class="n">masked_pos</span><span class="o">=</span><span class="n">masked_pos</span><span class="p">,</span>
         <span class="n">aux_loss</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)))</span>
+
+    <span class="c1"># We use the masked &amp; augmented input ids `emb_ids` here.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">moe</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">gating_func</span> <span class="o">==</span> <span class="s1">&#39;hashing&#39;</span><span class="p">:</span>
+      <span class="n">expert_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">emb_ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">e_dim</span><span class="p">)</span>
+      <span class="n">nmap</span><span class="o">.</span><span class="n">expert_id</span> <span class="o">=</span> <span class="n">expert_id</span>
+
     <span class="k">return</span> <span class="n">nmap</span></div>
 
 <div class="viewcode-block" id="BertTransformer.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.BertTransformer.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
