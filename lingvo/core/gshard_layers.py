@@ -1512,7 +1512,8 @@ class ReshapeInputLayer(base_layer.BaseLayer):
     p = self.params
     paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
     # Only reshape for tpu.
-    if py_utils.use_tpu() or not self.do_eval:
+    if (py_utils.use_tpu() or
+        not self.do_eval) and (not self.params.is_inference):
       orig_inputs = inputs
       # input size in tokens
       input_size = (
