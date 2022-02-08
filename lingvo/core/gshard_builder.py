@@ -2030,6 +2030,9 @@ class DenseBuilder(MoEBuilder):
     equation should not have 'N', and only use 'M' when it is expected to be
     reshaped.
 
+    For example, an input equation 'GSM,ME->GSE' and model_dim_reshape_segments
+    # [16, 4] will be rewritten into the new equation 'GSNOL,NOLE->GSE'.
+
     Args:
       equation: a string describing the contraction, in the same format as
         numpy.einsum.
@@ -2039,8 +2042,11 @@ class DenseBuilder(MoEBuilder):
     Returns:
       tf.einsum(maybe_modified_equation, x, y)
     """
-    return gshard_layers.EinsumWithModelDim(equation, x, y,
-                                            self._model_dim_reshape_segments)
+    if self._model_dim_reshape_segments is None:
+      return tf.einsum(equation, x, y)
+    new_equation = gshard_layers._EinsumEqWithModelDim(  # pylint: disable=protected-access
+        equation, self._model_dim_reshape_segments)
+    return tf.einsum(new_equation, x, y)
 
   def DepthwiseConvAutoregressive(self, name, kernel_size, model_dims=None):
     model_dims = model_dims or self._ReshapedModelDims()
