@@ -42,6 +42,8 @@ from lingvo.jax import checkpoints
 CheckpointType = checkpoint_pb2.CheckpointType
 InstantiableParams = py_utils.InstantiableParams
 
+_N_STEPS_WARMUP_LOGGING = 5
+
 
 def _write_params_file(model_config: base_model_params.BaseModelParams,
                        job_log_dir: str) -> None:
@@ -327,7 +329,7 @@ def train_and_evaluate_pmap(
           checkpoints.save_checkpoint(replicated_model_states, checkpoint_dir)
         checkpoint_manager.save_metadata(global_step_id=step_i)
 
-      if step_i <= 5:
+      if step_i <= _N_STEPS_WARMUP_LOGGING:
         logging.info('step=`%d`: Retrieving model inputs.', step_i)
       logging.debug('  Retrieving inputs.')
       model_inputs = tf.nest.map_structure(py_utils.reshard,
@@ -588,21 +590,23 @@ def train_and_evaluate_spmd_model(
                 f'checkpointer:saved:{checkpoint_dir}:step-{step_i}')
 
         # Get new model inputs
-        if step_i <= 5:
+        if step_i <= _N_STEPS_WARMUP_LOGGING:
           logging.info('step=`%d`: Retrieving model inputs.', step_i)
         logging.debug('  Retrieving inputs.')
         model_inputs = train_input_pipeline.get_next()
 
         if jax.config.jax_parallel_functions_output_gda:
-          start = time.time()
+          if step_i <= _N_STEPS_WARMUP_LOGGING:
+            start = time.time()
           py_utils.assert_same_shape_and_dtype(
               inputs_shape,
               tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
                                     model_inputs))
           model_inputs = py_utils.create_gda(model_inputs, inputs_shape,
                                              global_mesh, inputs_pspecs)
-          logging.info('GDA train batch input creation time %s',
-                       time.time() - start)
+          if step_i <= _N_STEPS_WARMUP_LOGGING:
+            logging.info('GDA train batch input creation time %s',
+                         time.time() - start)
 
         logging.debug('  Retrieved inputs.')
 
