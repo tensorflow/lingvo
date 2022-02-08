@@ -296,7 +296,7 @@ class ByDistance(BreakdownMetric):
 
       metrics = compute_metrics_fn(distance=d)
       curves = metrics['curves']
-      self._precision_recall[d] = np.array([c['pr'] for c in curves])
+      self._precision_recall[d] = np.array([c['pr'][..., :2] for c in curves])
     assert len(self._values) == len(list(self._precision_recall.keys()))
     tf.logging.info('Calculating by distance: finished')
 
@@ -401,7 +401,7 @@ class ByNumPoints(BreakdownMetric):
     for n, _ in enumerate(self._values):
       metrics = compute_metrics_fn(num_points=n)
       curves = metrics['curves']
-      self._precision_recall[n] = np.array([c['pr'] for c in curves])
+      self._precision_recall[n] = np.array([c['pr'][..., :2] for c in curves])
     assert len(self._values) == len(list(self._precision_recall.keys()))
     tf.logging.info('Calculating by number of points: finished')
 
@@ -589,7 +589,7 @@ class ByRotation(BreakdownMetric):
       self._values[r] = value_at_histogram
       metrics = compute_metrics_fn(rotation=r)
       curves = metrics['curves']
-      self._precision_recall[r] = np.array([c['pr'] for c in curves])
+      self._precision_recall[r] = np.array([c['pr'][..., :2] for c in curves])
     assert len(self._values) == len(list(self._precision_recall.keys()))
     tf.logging.info('Calculating by rotation: finished')
 
@@ -680,7 +680,7 @@ class ByDifficulty(BreakdownMetric):
       curves = metrics['curves']
       self._average_precisions[difficulty] = [s[p.ap_key] for s in scalars]
       self._precision_recall[difficulty] = np.array(
-          [c[p.pr_key] for c in curves])
+          [c[p.pr_key][..., :2] for c in curves])
 
       # Only KITTI metrics contains calibration data,
       # And we only compute calibration for the lowest difficulty level
