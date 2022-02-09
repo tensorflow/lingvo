@@ -133,8 +133,8 @@ class SeqVectorQuantizer(base_layer.BaseLayer):
     self.create_variable('w', weight_params)
 
   def _l2_normalize(self, x, axis, epsilon=1e-12):
-    norm = jnp.linalg.norm(x, ord=2, axis=axis, keepdims=True)
-    return x / jnp.maximum(norm, jnp.sqrt(epsilon))
+    norm = jnp.sqrt(jnp.sum(x * x, axis=axis, keepdims=True) + epsilon)
+    return x / norm
 
   def _get_latent_embedding(self, theta):
     """Gets the latent embedding."""
