@@ -135,25 +135,32 @@
 
   <span class="n">trainable_variables</span> <span class="o">=</span> <span class="p">[</span><span class="n">var</span> <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">model_var_list</span> <span class="k">if</span> <span class="n">var</span><span class="o">.</span><span class="n">trainable</span><span class="p">]</span>
 
-  <span class="c1"># We need to apply EMA to trainable and moving average variable of the task,</span>
-  <span class="c1"># not just bprop vars, so that we create a shadow &#39;/ExponentialMovingAverage&#39;</span>
-  <span class="c1"># variable for every trainable and moving average variable.</span>
-  <span class="n">all_refs</span> <span class="o">=</span> <span class="n">ref_set</span><span class="p">(</span><span class="n">trainable_variables</span><span class="p">)</span> <span class="o">|</span> <span class="n">ref_set</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">moving_average_variables</span><span class="p">())</span>
-  <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">:</span>
-    <span class="n">all_refs</span> <span class="o">|=</span> <span class="n">ref_set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">))</span>
-  <span class="n">all_refs</span> <span class="o">&amp;=</span> <span class="n">ref_set</span><span class="p">(</span><span class="n">model_var_list</span><span class="p">)</span>
-
   <span class="c1"># Remove TPU embedding variables since TPU embedding doesn&#39;t support EMA.</span>
+  <span class="n">disallowed_refs</span> <span class="o">=</span> <span class="n">ref_set</span><span class="p">([])</span>
   <span class="n">tpu_embedding_vars</span> <span class="o">=</span> <span class="p">(</span>
       <span class="n">tpu_embedding_layers</span><span class="o">.</span><span class="n">TpuEmbeddingCollection</span><span class="o">.</span><span class="n">Get</span><span class="p">()</span><span class="o">.</span><span class="n">table_variables</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">tpu_embedding_vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
         <span class="s1">&#39;Detected TPU embedding variables, and EMA does not apply to them. &#39;</span>
         <span class="sa">f</span><span class="s1">&#39;List of TPU embedding variables: </span><span class="si">{</span><span class="n">tpu_embedding_vars</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-    <span class="n">all_refs</span> <span class="o">-=</span> <span class="n">ref_set</span><span class="p">(</span><span class="n">tpu_embedding_vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+    <span class="n">disallowed_refs</span> <span class="o">=</span> <span class="n">ref_set</span><span class="p">(</span><span class="n">tpu_embedding_vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
-  <span class="n">all_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">deref</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">all_refs</span><span class="p">]</span>
+  <span class="n">moving_vars</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">:</span>
+    <span class="n">moving_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">)</span>
+
+  <span class="c1"># We need to apply EMA to trainable and moving average variable of the task,</span>
+  <span class="c1"># not just bprop vars, so that we create a shadow &#39;/ExponentialMovingAverage&#39;</span>
+  <span class="c1"># variable for every trainable and moving average variable.</span>
+  <span class="n">allowed_refs</span> <span class="o">=</span> <span class="n">ref_set</span><span class="p">(</span><span class="n">model_var_list</span><span class="p">)</span>
+  <span class="c1"># We generate the elements of all_vars in a deterministic order, avoiding</span>
+  <span class="c1"># set-iteration, to maintain determninism of the resulting computation graph.</span>
+  <span class="n">all_vars</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">trainable_variables</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">moving_average_variables</span><span class="p">()</span> <span class="o">+</span> <span class="n">moving_vars</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">in</span> <span class="n">allowed_refs</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">disallowed_refs</span><span class="p">):</span>
+      <span class="n">disallowed_refs</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">ref</span><span class="p">())</span>
+      <span class="n">all_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
   <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Variables for EMA: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">all_vars</span></div>
