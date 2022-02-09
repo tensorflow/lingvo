@@ -2422,9 +2422,9 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 its children layers.</p></li>
 <li><p><strong>inputs</strong> – A 4D tensor of shape [a, b, dim_reshape_segments, hidden_dim //
 dim_reshape_segments]. If a 3D tensor [time, batch, dim], the input
-(resp. output) rank is first augmented (resp. reduced) by splitting
-the last dimension according to the device_mesh (resp. merging the
-last two dimensions).</p></li>
+(resp. output) rank is first augmented (resp. reduced) by splitting the
+last dimension according to the device_mesh (resp. merging the last two
+dimensions).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -3488,6 +3488,62 @@ children layers.</p></li>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>A pair &lt;new_inputs, mask&gt;</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.layers.RotaryPositionalEmbeddingLayer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></span><span class="sig-name descname"><span class="pre">RotaryPositionalEmbeddingLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RotaryPositionalEmbeddingLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.RotaryPositionalEmbeddingLayer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.PositionalEmbeddingLayer" title="lingvo.core.layers.PositionalEmbeddingLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.PositionalEmbeddingLayer</span></code></a></p>
+<p>Applies rotary position embedding for a given 1-d sequence.</p>
+<p>The Rotary position embedding is described in <a class="reference external" href="https://arxiv.org/abs/2104.09864">https://arxiv.org/abs/2104.09864</a></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.RotaryPositionalEmbeddingLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">position</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RotaryPositionalEmbeddingLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.RotaryPositionalEmbeddingLayer.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Generates a JTensor of sinusoids with different frequencies.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – The input sequence on which to apply the Rotary position
+embedding. Since rotary position embeddings are applied to query and
+keys after projection, it is assumed of shape [B, S, N, H].</p></li>
+<li><p><strong>position</strong> – Optional position JTensor which denotes the position of each
+token in the sequence. This only needs to be supplied when the sequence
+is packed. It is of shape [B, S].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a JTensor of shape [B, S, N, H] if position JTensor
+is specified, else of shape [1, S, N, H].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.RotaryPositionalEmbeddingLayer.ExtendStep">
+<span class="sig-name descname"><span class="pre">ExtendStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RotaryPositionalEmbeddingLayer.ExtendStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.RotaryPositionalEmbeddingLayer.ExtendStep" title="Permalink to this definition"></a></dt>
+<dd><p>Generates a JTensor of sinusoids with different frequencies for a step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – The input sequence on which to apply the Rotary position
+embedding. Since rotary position embeddings are applied to query and
+keys after projection, it is assumed of shape [B, N, H] or of shape [B,
+P, N, H] where P may be a prefix length.</p></li>
+<li><p><strong>time_step</strong> – The time step which is being decoded, this should correspond to
+the time step of the last token in the prefix window (P) in the entire
+sequence length S.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a JTensor of the same shape as input.</p>
 </dd>
 </dl>
 </dd></dl>

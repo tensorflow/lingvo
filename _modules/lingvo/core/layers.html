@@ -4526,9 +4526,9 @@
 <span class="sd">        its children layers.</span>
 <span class="sd">      inputs: A 4D tensor of shape [a, b, dim_reshape_segments, hidden_dim //</span>
 <span class="sd">        dim_reshape_segments]. If a 3D tensor [time, batch, dim], the input</span>
-<span class="sd">        (resp. output) rank is first augmented (resp. reduced) by splitting</span>
-<span class="sd">        the last dimension according to the device_mesh (resp. merging the</span>
-<span class="sd">        last two dimensions).</span>
+<span class="sd">        (resp. output) rank is first augmented (resp. reduced) by splitting the</span>
+<span class="sd">        last dimension according to the device_mesh (resp. merging the last two</span>
+<span class="sd">        dimensions).</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      tensor of the same shape with inputs.</span>
@@ -6322,6 +6322,85 @@
         <span class="n">random_tokens</span> <span class="o">*</span> <span class="n">replace_with_random</span> <span class="o">+</span> <span class="n">inputs</span> <span class="o">*</span> <span class="n">replace_with_self</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">augmented</span><span class="p">,</span> <span class="n">replacement_pos</span></div></div>
+
+
+<div class="viewcode-block" id="RotaryPositionalEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.RotaryPositionalEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">RotaryPositionalEmbeddingLayer</span><span class="p">(</span><span class="n">PositionalEmbeddingLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Applies rotary position embedding for a given 1-d sequence.</span>
+
+<span class="sd">  The Rotary position embedding is described in https://arxiv.org/abs/2104.09864</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RotaryPositionalEmbeddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.RotaryPositionalEmbeddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates a JTensor of sinusoids with different frequencies.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: The input sequence on which to apply the Rotary position</span>
+<span class="sd">        embedding. Since rotary position embeddings are applied to query and</span>
+<span class="sd">        keys after projection, it is assumed of shape [B, S, N, H].</span>
+<span class="sd">      position: Optional position JTensor which denotes the position of each</span>
+<span class="sd">        token in the sequence. This only needs to be supplied when the sequence</span>
+<span class="sd">        is packed. It is of shape [B, S].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      a JTensor of shape [B, S, N, H] if position JTensor</span>
+<span class="sd">      is specified, else of shape [1, S, N, H].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">inputs_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs_shape</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">4</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input is assumed to be a rank 4 tensor of shape&#39;</span>
+                       <span class="s1">&#39;[batch, sequence, heads, dims].&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">%</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Embedding dim for rotary position embedding must be a&#39;</span>
+                       <span class="s1">&#39;multiple of 2.&#39;</span><span class="p">)</span>
+    <span class="n">half_embedding_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">fraction</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">half_embedding_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">fraction</span> <span class="o">/=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span>
+    <span class="n">timescale</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">min_timescale</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">max_timescale</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">min_timescale</span><span class="p">)</span><span class="o">**</span><span class="n">fraction</span>
+    <span class="k">if</span> <span class="n">position</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">seq_length</span> <span class="o">=</span> <span class="n">inputs_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">seq_length</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">position</span> <span class="o">=</span> <span class="n">position</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">timescale</span> <span class="o">=</span> <span class="n">timescale</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="n">sinusoid_inp</span> <span class="o">=</span> <span class="n">position</span> <span class="o">/</span> <span class="n">timescale</span>
+    <span class="n">sin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">sinusoid_inp</span><span class="p">)</span>
+    <span class="n">cos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">sinusoid_inp</span><span class="p">)</span>
+    <span class="n">first_half</span><span class="p">,</span> <span class="n">second_half</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">first_part</span> <span class="o">=</span> <span class="n">first_half</span> <span class="o">*</span> <span class="n">cos</span> <span class="o">-</span> <span class="n">second_half</span> <span class="o">*</span> <span class="n">sin</span>
+    <span class="n">second_part</span> <span class="o">=</span> <span class="n">second_half</span> <span class="o">*</span> <span class="n">cos</span> <span class="o">+</span> <span class="n">first_half</span> <span class="o">*</span> <span class="n">sin</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">first_part</span><span class="p">,</span> <span class="n">second_part</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="RotaryPositionalEmbeddingLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.RotaryPositionalEmbeddingLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">time_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates a JTensor of sinusoids with different frequencies for a step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: The input sequence on which to apply the Rotary position</span>
+<span class="sd">        embedding. Since rotary position embeddings are applied to query and</span>
+<span class="sd">        keys after projection, it is assumed of shape [B, N, H] or of shape [B,</span>
+<span class="sd">        P, N, H] where P may be a prefix length.</span>
+<span class="sd">      time_step: The time step which is being decoded, this should correspond to</span>
+<span class="sd">        the time step of the last token in the prefix window (P) in the entire</span>
+<span class="sd">        sequence length S.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      a JTensor of the same shape as input.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">3</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+    <span class="n">inputs_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]</span>
+    <span class="n">seq_length</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="c1"># Adjust the position with the time step.</span>
+    <span class="n">position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">time_step</span> <span class="o">-</span> <span class="n">seq_length</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">time_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span><span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">elems</span><span class="o">=</span><span class="n">position</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="n">position</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs_shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">output</span></div></div>
 </pre></div>
 
            </div>
