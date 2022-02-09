@@ -27,6 +27,7 @@ pytype_strict_library(
         ":objectives",
         ":pipeline",
         ":poolings",
+        ":quantizer",
         ":recurrent",
         ":repeats",
         ":resnets",
@@ -90,6 +91,7 @@ pytype_strict_library(
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
+        # Implicit numpy dependency.
     ],
 )
 

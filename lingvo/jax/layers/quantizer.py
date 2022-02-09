@@ -99,8 +99,10 @@ class SeqVectorQuantizer(base_layer.BaseLayer):
     p.Define('num_latent_classes', None, 'Number of latent classes.')
     p.Define('latent_dim', None, 'Latent vector dimension.')
     p.Define('beta', None, 'Scale of the commitment loss.')
-    p.Define('normalize', True,
-             'Normalize the L2 norm of each latent vector to 1')
+    p.Define('normalize_latent_vector', True,
+             'Normalize the L2 norm of each latent input vector to 1')
+    p.Define('normalize_codebook', True,
+             'Normalize the L2 norm of each codebook vector to 1')
     p.Define('num_groups', 1, 'Num of codebook groups.')
 
     p.name = 'sequence_vector_quantizer'
@@ -138,7 +140,7 @@ class SeqVectorQuantizer(base_layer.BaseLayer):
     """Gets the latent embedding."""
     p = self.params
     w = theta.w
-    if p.normalize:
+    if p.normalize_codebook:
       w = self._l2_normalize(w, -1)
     return w
 
@@ -178,7 +180,7 @@ class SeqVectorQuantizer(base_layer.BaseLayer):
     num_frames = jnp.sum(mask)
     z = self._apply_mask(z, mask)
 
-    if p.normalize:
+    if p.normalize_latent_vector:
       z = self._l2_normalize(z, axis=-1)
 
     # [b * t, d], [b * t, g], [b * t, g, c]

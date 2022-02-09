@@ -54,6 +54,8 @@ from lingvo.jax.layers.normalizations import LayerNorm
 from lingvo.jax.layers.pipeline import LayerwiseShardablePipelined
 from lingvo.jax.layers.poolings import GlobalPooling
 from lingvo.jax.layers.poolings import Pooling
+from lingvo.jax.layers.quantizer import SeqVectorQuantizer
+from lingvo.jax.layers.quantizer import VectorQuantize
 from lingvo.jax.layers.recurrent import AutodiffCheckpointType
 from lingvo.jax.layers.recurrent import recurrent_func
 from lingvo.jax.layers.recurrent import recurrent_static
@@ -74,6 +76,5 @@ from lingvo.jax.layers.transformers import TransformerEncoderDecoder
 from lingvo.jax.layers.transformers import TransformerFeedForward
 from lingvo.jax.layers.transformers import TransformerFeedForwardMoe
 from lingvo.jax.layers.transformers import TransformerLm
-
 from lingvo.jax.layers.vanillanets import VanillaBlock
 from lingvo.jax.layers.vanillanets import VanillaNet

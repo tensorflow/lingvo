@@ -35,7 +35,8 @@ class SeqVectorQuantizerTest(test_util.JaxTestCase):
   def _GetParams(self, num_classes, latent_dim):
     return quantizer.SeqVectorQuantizer.Params().Set(
         name='vq',
-        normalize=True,
+        normalize_latent_vector=True,
+        normalize_codebook=True,
         num_latent_classes=num_classes,
         latent_dim=latent_dim,
         beta=0.1)
