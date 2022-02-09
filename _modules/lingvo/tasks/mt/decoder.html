@@ -498,9 +498,6 @@
              <span class="s1">&#39;attention context and the rest of the layers use current &#39;</span>
              <span class="s1">&#39;attention context.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dropout_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Prob at which we do dropout.&#39;</span><span class="p">)</span>
-    <span class="c1"># Default value was mildly tuned. Could be further tuned in the future.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;qlogsoftmax_range_min&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mf">10.0</span><span class="p">,</span> <span class="s1">&#39;Quantization of the output of &#39;</span>
-             <span class="s1">&#39;log softmax.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_zero_atten_state&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;To use zero attention state &#39;</span>
         <span class="s1">&#39;instead of computing attention with zero query vector.&#39;</span><span class="p">)</span>
@@ -1144,8 +1141,7 @@
     <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">prev_atten_probs</span><span class="p">))</span>
 
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">step_out</span><span class="p">])</span>
-    <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span><span class="o">.</span><span class="n">qlogsoftmax</span><span class="p">(</span>
-        <span class="n">logits</span><span class="p">,</span> <span class="n">qmin</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">qlogsoftmax_range_min</span><span class="p">,</span> <span class="n">qmax</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">log_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span><span class="o">.</span><span class="n">qlogsoftmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">force_alignment</span><span class="p">:</span>
       <span class="k">if</span> <span class="s1">&#39;num_sentences&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">encoder_outputs</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Model does not support p.force_alignment as &#39;</span>
