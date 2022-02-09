@@ -533,6 +533,7 @@ class ConformerLayer(base_layer.BaseLayer):
                    atten_local_context=None,
                    atten_left_context=None,
                    atten_right_context=None,
+                   atten_chunk_size=None,
                    atten_logit_cap=0.0,
                    use_relative_atten=True,
                    query_stride=1,
@@ -631,6 +632,7 @@ class ConformerLayer(base_layer.BaseLayer):
       atten_tpl = cls._ConfigSelfAttenContext(
           atten_left_context,
           atten_right_context,
+          atten_chunk_size=atten_chunk_size,
           use_relative_atten=use_relative_atten,
           query_stride=query_stride,
           relative_pos_emb_dim=input_dim)
@@ -656,6 +658,8 @@ class ConformerLayer(base_layer.BaseLayer):
     p.trans_atten_tpl.atten_tpl.atten_logit_cap = atten_logit_cap
     if list_regex_dtypes is not None:
       p.list_regex_dtypes = list_regex_dtypes
+    if layer_order == 'mhsa':
+      p.lconv_tpl = None
     return p
 
   @classmethod
@@ -670,9 +674,15 @@ class ConformerLayer(base_layer.BaseLayer):
 
   @classmethod
   def _ConfigSelfAttenContext(cls, atten_left_context, atten_right_context, *,
-                              use_relative_atten, query_stride,
-                              relative_pos_emb_dim):
+                              use_relative_atten, atten_chunk_size,
+                              query_stride, relative_pos_emb_dim):
     # TODO(jamesqin): add an attention factory in batch_major_attention.
+    if atten_chunk_size is not None:
+      if use_relative_atten:
+        atten_type = 'chunk_relative'
+      else:
+        atten_type = 'chunk'
+
     if not _AttenCtxIsSet(atten_left_context) and not _AttenCtxIsSet(
         atten_right_context):
       # No atten context set, each position attends to all positions.
@@ -700,6 +710,17 @@ class ConformerLayer(base_layer.BaseLayer):
           left_context=atten_left_context,
           right_context=atten_right_context,
           query_stride=query_stride)
+    elif atten_type == 'chunk':
+      atten_tpl = attention_lib.ChunkwiseSelfAttention.Params().Set(
+          left_context=atten_left_context,
+          right_context=atten_right_context,
+          chunk_size=atten_chunk_size)
+    elif atten_type == 'chunk_relative':
+      atten_tpl = attention_lib.ChunkwiseSelfAttentionXL.Params().Set(
+          left_context=atten_left_context,
+          right_context=atten_right_context,
+          chunk_size=atten_chunk_size,
+          rel_pos_emb_dim=relative_pos_emb_dim)
     else:
       # No op for 'global' atten
       assert atten_type in ('global', 'global_causal'), (

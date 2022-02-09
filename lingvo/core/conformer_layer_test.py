@@ -592,6 +592,7 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
 
     if layer_order == 'mhsa':
       kernel = None
+      has_lconv = False
     p = conformer_layer.ConformerLayer.CommonParams(
         input_dim=input_dim,
         is_causal=True,
@@ -603,18 +604,19 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
         fflayer_hidden_dim=ffn_dim,
         kernel_size=kernel,
         layer_order=layer_order)
-    if norm_type == 'ln':
-      p.lconv_tpl.conv_norm_layer_tpl = lingvo_layers.LayerNorm.Params()
-    else:
-      p.lconv_tpl.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
-          num_groups=num_groups, cumulative=True)
     if not has_lconv:
       p.lconv_tpl = None
-    elif has_lconv == 'conv2d':
-      p.lconv_tpl.depthwise_conv_tpl = (
-          conv_layers_with_time_padding.CausalConv2DLayerWithPadding.Params())
     else:
-      assert has_lconv == 'depthwise'
+      if norm_type == 'ln':
+        p.lconv_tpl.conv_norm_layer_tpl = lingvo_layers.LayerNorm.Params()
+      else:
+        p.lconv_tpl.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
+            num_groups=num_groups, cumulative=True)
+      if has_lconv == 'conv2d':
+        p.lconv_tpl.depthwise_conv_tpl = (
+            conv_layers_with_time_padding.CausalConv2DLayerWithPadding.Params())
+      else:
+        assert has_lconv == 'depthwise'
     if not has_fflayer_start:
       p.fflayer_start_tpl = None
 
