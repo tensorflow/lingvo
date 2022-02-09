@@ -35,6 +35,7 @@ pytype_strict_library(
         ":stochastics",
         ":transformers",
         ":vanillanets",
+        ":vit",
     ],
 )
 
@@ -418,6 +419,37 @@ pytype_strict_library(
         "//lingvo/jax:pytypes",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
+    ],
+)
+
+pytype_strict_library(
+    name = "vit",
+    srcs = ["vit.py"],
+    deps = [
+        ":embedding_softmax",
+        ":linears",
+        ":normalizations",
+        ":poolings",
+        ":stochastics",
+        ":transformers",
+        "//third_party/py/einshape",
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+    ],
+)
+
+py_strict_test(
+    name = "vit_test",
+    srcs = ["vit_test.py"],
+    deps = [
+        ":vit",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        # Implicit numpy dependency.
+        "//third_party/py/tensorflow:tensorflow_no_contrib",
     ],
 )
 

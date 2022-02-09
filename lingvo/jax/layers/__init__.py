@@ -78,3 +78,5 @@ from lingvo.jax.layers.transformers import TransformerFeedForwardMoe
 from lingvo.jax.layers.transformers import TransformerLm
 from lingvo.jax.layers.vanillanets import VanillaBlock
 from lingvo.jax.layers.vanillanets import VanillaNet
+
+from lingvo.jax.layers.vit import VisionTransformer
