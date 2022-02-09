@@ -91,7 +91,8 @@ class NormalizationsTest(test_util.JaxTestCase):
     def Comp(theta, prng_key, global_step, inputs, paddings):
       with base_layer.JaxContext.new_context(
           global_step=global_step, prng_key=prng_key) as jax_context:
-        jax_context.bind(layer, {}, [base_layer.SCOPE_VARS])
+        jax_context.bind(layer, layer.vars_to_flax_vars(theta),
+                         [base_layer.SCOPE_VARS])
         # Mix in global steps so that prng seed depends on a global step.
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
@@ -161,7 +162,8 @@ class NormalizationsTest(test_util.JaxTestCase):
     def Comp(theta, prng_key, global_step, inputs, paddings):
       with base_layer.JaxContext.new_context(
           global_step=global_step, prng_key=prng_key) as jax_context:
-        jax_context.bind(layer, {}, [base_layer.SCOPE_VARS])
+        jax_context.bind(layer, layer.vars_to_flax_vars(theta),
+                         [base_layer.SCOPE_VARS])
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
         output = layer.fprop(theta, inputs, paddings)

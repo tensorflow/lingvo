@@ -550,7 +550,7 @@ class JaxContext:
 
   def bind(self,
            root_layer: BaseLayerT,
-           root_layer_vars: Optional[NestedMap],
+           root_layer_vars: Dict[str, Any],
            mutables: Optional[List[str]] = None):
     """Binds a root layer to this JaxContext.
 
@@ -572,11 +572,11 @@ class JaxContext:
     """
     assert self._root_layer is None, 'JaxContext is already bound.'
     # TODO(bf-jax): Also dispatch variables to individual layers through scope.
-    del root_layer_vars
     prng_key_dict = {DEFAULT_PRNGKEY: self.prng_key.next_key()}
     if mutables is None:
       mutables = [SCOPE_VARS, SCOPE_AUX_LOSS]
-    self._scope = flax_core.bind({}, prng_key_dict, mutables)
+    self._scope = flax_core.bind({SCOPE_VARS: root_layer_vars}, prng_key_dict,
+                                 mutables)
     self._layer_to_scope_map[root_layer.path] = self._scope
     self._root_layer = root_layer
 
@@ -1056,7 +1056,6 @@ class BaseLayer(metaclass=BaseLayerMeta):
     assert name in self._private_vars
     # Only non-trainable variables can be updated in the forward pass.
     assert var_not_trainable(self.vars[name])
-    assert not scope.has_variable(SCOPE_VARS, name)
     scope.put_variable(SCOPE_VARS, name, new_val)
 
   def fprop(self, theta: NestedMap, *args: Any, **kwargs: Any) -> Any:
@@ -1178,6 +1177,62 @@ class BaseLayer(metaclass=BaseLayerMeta):
     for k in self._private_vars.keys():
       ret[k] = self._private_vars[k]
     return ret
+
+  @property
+  def flax_vars(self) -> Dict[str, Any]:
+    """Returns variables of this layer and all its children layers."""
+    if self._create_variables_status != CreateLayerVariableStatus.COMPLETED:
+      raise ValueError(
+          'Cannot access vars for layer %s before they have been created.' %
+          self.params.cls)
+    ret = {}
+    private_children = tf.nest.flatten(self._private_children)
+    for child in private_children:
+      ret[child.name] = child.flax_vars
+    for k in self._private_vars.keys():
+      ret[k] = self._private_vars[k]
+    return ret
+
+  def vars_to_flax_vars(self, vars_map) -> Dict[str, Any]:
+    """Converts a dict in vars() format to flax_vars() format."""
+
+    def handle_node(node, node_vars, ret_dict):
+      if isinstance(node, BaseLayer):
+        ret_dict[node.name] = node.vars_to_flax_vars(node_vars)
+      elif isinstance(node, dict):
+        for k, v in node.items():
+          handle_node(v, node_vars[k], ret_dict)
+      elif isinstance(node, (list, tuple)):
+        for ii, v in enumerate(node):
+          handle_node(v, node_vars[ii], ret_dict)
+      else:
+        assert False, f'{type(node)} is not recognized'
+
+    ret = {}
+    handle_node(self._private_children, vars_map, ret)
+
+    for k in self._private_vars.keys():
+      assert k in vars_map
+      ret[k] = vars_map[k]
+
+    return ret
+
+  def flax_vars_to_vars(self, vars_map) -> NestedMap:
+    """Converts a dict in flax_vars() format to vars() format."""
+    ret = self._private_children.Transform(
+        lambda x: x.flax_vars_to_vars(vars_map[x.name]))
+    for k in self._private_vars:
+      ret[k] = vars_map[k]
+    return ret
+
+  def local_theta(self) -> NestedMap:
+    """Populates a theta dict from scope."""
+    # freshly populates the theta dict from scope. This means if some vars has
+    # been updated, this will gets a fresh copy.
+    scope = self.scope
+    assert scope is not None
+    flax_variables = scope.variables()[SCOPE_VARS]
+    return self.flax_vars_to_vars(flax_variables)
 
   @property
   def total_num_vars(self) -> int:

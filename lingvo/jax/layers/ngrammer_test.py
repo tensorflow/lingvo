@@ -93,7 +93,8 @@ class NgrammerTest(test_util.JaxTestCase):
     def compute_vq(theta, prng_key, global_step, inputs):
       with base_layer.JaxContext.new_context(
           prng_key=prng_key, global_step=global_step) as j_context:
-        j_context.bind(vq_layer, {}, [base_layer.SCOPE_VARS])
+        j_context.bind(vq_layer, vq_layer.vars_to_flax_vars(theta),
+                       [base_layer.SCOPE_VARS])
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
         output = vq_layer.fprop(theta, inputs)
@@ -153,7 +154,8 @@ class NgrammerTest(test_util.JaxTestCase):
     def compute_ngrams(theta, prng_key, global_step, inputs, input_embs):
       with base_layer.JaxContext.new_context(
           prng_key=prng_key, global_step=global_step) as j_context:
-        j_context.bind(ngrammer_layer, {}, [base_layer.SCOPE_VARS])
+        j_context.bind(ngrammer_layer, ngrammer_layer.vars_to_flax_vars(theta),
+                       [base_layer.SCOPE_VARS])
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
         output = ngrammer_layer.fprop(theta, inputs, input_embs, paddings)
@@ -295,6 +297,7 @@ class NgrammerTest(test_util.JaxTestCase):
 
     # compute vq ngrams function is fully functional.
     context_params = base_layer.JaxContext.Params().Set(do_eval=True)
+
     @jax.jit
     def compute_vq_ngrams(theta, prng_key, global_step, input_embs):
       with base_layer.JaxContext.new_context(

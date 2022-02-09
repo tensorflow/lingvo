@@ -401,6 +401,7 @@ def scan(carry_init: NestedMap,
   Returns:
     (final 'carry', 'ys', stacked summaries).
   """
+  del root_layer
   assert isinstance(carry_init, py_utils.NestedMap)
   assert isinstance(xs, py_utils.NestedMap)
   # Make a copy of carry_init structure.
@@ -448,13 +449,7 @@ def scan(carry_init: NestedMap,
     # Start a new prng_key branch that also depends on the time step.
     prng_key_t = jax.random.fold_in(carry.prng_key, carry.time_step)
     with base_layer.JaxContext.new_context(
-        prng_key=prng_key_t, global_step=carry.global_step) as jax_context:
-      # TODO(yonghui): Fix me. 1) we will always require a root layer for
-      # recurrent.scan to work.
-      if root_layer is not None:
-        # For now, we don't allow update variables in the recurrent.scan loop.
-        # TODO(yonghui/bf-jax): lift the constraint.
-        jax_context.bind(root_layer, None, [base_layer.SCOPE_AUX_LOSS])
+        prng_key=prng_key_t, global_step=carry.global_step):
 
       carry_new, ys_t = fn(carry, xs_t)
       carry_new.time_step = carry.time_step + 1

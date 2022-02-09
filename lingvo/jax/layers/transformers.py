@@ -1269,6 +1269,7 @@ class StackedTransformer(base_layer.BaseLayer):
     # so that p.num_layers == p.num_blocks * p.num_layers_per_block.
     p.Define('num_blocks', None, 'Number of blocks.')
     p.Define('num_layers_per_block', None, 'Block size.')
+    # TODO(pax): clean up num_blocks and num_layers_per_block
     p.Define('model_dims', 0, 'Model dimension in Transformer layers.')
     p.Define('hidden_dims', 0,
              'The hidden layer dimension of FFN in Transformer layers.')
@@ -1427,7 +1428,8 @@ class StackedTransformer(base_layer.BaseLayer):
         fold_padding_with_segment_mask=p.fold_padding_with_segment_mask)
 
     if p.enable_while_loop:
-
+      logging.warning('Enable_while_loop=True is no longer supported. '
+                      'Please use StackedTransformerRepeated instead.')
       num_blocks = p.num_layers // p.num_layers_per_block
 
       def _stack_vars(*args):
@@ -1677,11 +1679,12 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
       Output vector with shape [B, T, D].
     """
 
-    def sub_fprop_fn(sub, theta, inputs, *args: Any, **kwargs: Any):
+    def sub_fprop_fn(sub, inputs, *args: Any, **kwargs: Any):
       with py_utils.AuxLossContext(reentrant=True) as al_ctx:
         assert al_ctx is not None
         # sub is expected to be an instance of StackedTransformer
         assert isinstance(sub, StackedTransformer)
+        theta = sub.local_theta()
         out = sub.fprop(theta, inputs, *args, **kwargs)
 
         if al_ctx.aux_losses:
@@ -1693,8 +1696,8 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
 
         return out, NestedMap(aux_loss=aux_loss_inc)
 
-    out, stacked_extra = self.repeat.fprop(sub_fprop_fn, theta.repeat, inputs,
-                                           paddings, segment_mask, cross_inputs,
+    out, stacked_extra = self.repeat.fprop(sub_fprop_fn, inputs, paddings,
+                                           segment_mask, cross_inputs,
                                            cross_paddings, cross_segment_mask,
                                            segment_pos)
     aux_loss = jnp.sum(stacked_extra.aux_loss)
@@ -1719,11 +1722,11 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
       Initialized cache for decoding.
     """
 
-    def init_fn(block, theta, *args, **kwargs):
+    def init_fn(block, *args, **kwargs):
       assert isinstance(block, StackedTransformer)
-      return block.init_states(theta, *args, **kwargs)
+      return block.init_states(block.local_theta(), *args, **kwargs)
 
-    return self.repeat.init_states(init_fn, theta.repeat, *args, **kwargs)
+    return self.repeat.init_states(init_fn, *args, **kwargs)
 
   def extend_step(
       self,
@@ -1766,13 +1769,13 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
       - value - [T, B, N, H].
     """
 
-    def extend_fn(sub, theta, cached_states, step_inputs, *args, **kwargs):
+    def extend_fn(sub, cached_states, step_inputs, *args, **kwargs):
+      theta = sub.local_theta()
       assert isinstance(sub, StackedTransformer)
       return sub.extend_step(theta, cached_states, step_inputs, *args, **kwargs)
 
     return self.repeat.extend_step(
         extend_fn,
-        theta.repeat,
         cached_states,
         inputs,
         time_step=time_step,

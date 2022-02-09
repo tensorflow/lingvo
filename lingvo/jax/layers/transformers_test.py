@@ -37,6 +37,15 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 
 
+def apply(layer, layer_vars, method, *args, **kwags):
+  prng_key = jax.random.PRNGKey(seed=123)
+  with base_layer.JaxContext.new_context(
+      prng_key=prng_key,
+      global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
+    jax_context.bind(layer, layer.vars_to_flax_vars(layer_vars))
+    return method(*args, **kwags)
+
+
 @test_util.with_config(jax_numpy_rank_promotion='allow')
 class TransformersTest(test_util.JaxTestCase):
 
@@ -111,15 +120,16 @@ class TransformersTest(test_util.JaxTestCase):
         tf_cross_segment_mask = batch_major_attention.SegmentMask(
             segment_ids, source_segment_ids)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
-      outputs, _ = transformer_layer.fprop(
-          initial_vars,
-          inputs,
-          paddings,
-          attention_mask=attention_mask,
-          cross_inputs=cross_inputs,
-          cross_attention_mask=cross_attention_mask)
+    outputs, _ = apply(
+        transformer_layer,
+        initial_vars,
+        transformer_layer.fprop,
+        initial_vars,
+        inputs,
+        paddings,
+        attention_mask=attention_mask,
+        cross_inputs=cross_inputs,
+        cross_attention_mask=cross_attention_mask)
     logging.info('initial_vars in transformer layer = %s', initial_vars)
 
     # Test whether tf Transformer layer returns same output
@@ -215,7 +225,10 @@ class TransformersTest(test_util.JaxTestCase):
                                            cross_segment_mask)
 
     with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
+        prng_key=prng_key,
+        global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
+      jax_context.bind(transformer_layer,
+                       transformer_layer.vars_to_flax_vars(initial_vars))
       fprop_outputs, _ = transformer_layer.fprop(
           initial_vars,
           inputs,
@@ -283,7 +296,10 @@ class TransformersTest(test_util.JaxTestCase):
       segment_mask = attentions.segment_mask(segment_ids, dtype=np.float32)
       attention_mask = jnp.minimum(attention_mask, segment_mask)
     with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
+        prng_key=prng_key,
+        global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
+      jax_context.bind(transformer_layer,
+                       transformer_layer.vars_to_flax_vars(initial_vars))
       inputs_normalized = transformer_layer.layer_norm.fprop(
           initial_vars.layer_norm, inputs)
       # Compute self-attention, key/value vectors are the input itself
@@ -424,24 +440,29 @@ class TransformersTest(test_util.JaxTestCase):
         cross_segment_mask = attentions.segment_mask(
             segment_ids, source_segment_ids, dtype=np.float32)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
-      block_outputs = transformer_block.fprop(
-          initial_vars,
-          inputs,
-          paddings,
-          segment_mask=segment_mask,
-          cross_inputs=cross_inputs,
-          cross_paddings=cross_paddings,
-          cross_segment_mask=cross_segment_mask)
-      stack_outputs = transformer_stack.fprop(
-          initial_vars,
-          inputs,
-          paddings,
-          segment_mask=segment_mask,
-          cross_inputs=cross_inputs,
-          cross_paddings=cross_paddings,
-          cross_segment_mask=cross_segment_mask)
+    block_outputs = apply(
+        transformer_block,
+        initial_vars,
+        transformer_block.fprop,
+        initial_vars,
+        inputs,
+        paddings,
+        segment_mask=segment_mask,
+        cross_inputs=cross_inputs,
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
+
+    stack_outputs = apply(
+        transformer_stack,
+        initial_vars,
+        transformer_stack.fprop,
+        initial_vars,
+        inputs,
+        paddings,
+        segment_mask=segment_mask,
+        cross_inputs=cross_inputs,
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
     block_np_outputs = test_utils.to_np(block_outputs)
     stack_np_outputs = test_utils.to_np(stack_outputs)
     self.assertAllClose(stack_np_outputs, block_np_outputs, atol=1e-5)
@@ -463,6 +484,15 @@ class TransformersTest(test_util.JaxTestCase):
     stacked_transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = stacked_transformer_layer.instantiate_variables(prng_key)
+
+    # test conversion between vars and flax vars.
+    pax_vars = stacked_transformer_layer.vars
+    flax_vars = stacked_transformer_layer.flax_vars
+    tf.nest.assert_same_structure(
+        pax_vars, stacked_transformer_layer.flax_vars_to_vars(flax_vars))
+    tf.nest.assert_same_structure(
+        flax_vars, stacked_transformer_layer.vars_to_flax_vars(pax_vars))
+
     npy_inputs = np.random.normal(
         1.0, 0.5, [batch_size, seq_len, p.model_dims]).astype('float32')
     inputs = jnp.asarray(npy_inputs)
@@ -505,16 +535,17 @@ class TransformersTest(test_util.JaxTestCase):
         tf_cross_segment_mask = batch_major_attention.SegmentMask(
             segment_ids, source_segment_ids)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
-      outputs = stacked_transformer_layer.fprop(
-          initial_vars,
-          inputs,
-          paddings,
-          segment_mask=segment_mask,
-          cross_inputs=cross_inputs,
-          cross_paddings=cross_paddings,
-          cross_segment_mask=cross_segment_mask)
+    outputs = apply(
+        stacked_transformer_layer,
+        initial_vars,
+        stacked_transformer_layer.fprop,
+        initial_vars,
+        inputs,
+        paddings,
+        segment_mask=segment_mask,
+        cross_inputs=cross_inputs,
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
     logging.info('initial_vars in transformer layer = %s', initial_vars)
 
     # Test whether tf Transformer layer returns same output
@@ -580,11 +611,11 @@ class TransformersTest(test_util.JaxTestCase):
     initial_vars = stacked_transformer_layer.instantiate_variables(prng_key)
     repeated_transformer_layer.instantiate_variable_configs()
 
-    def _StackVars(*args):
+    def _stack_vars(*args):
       args = [x[jnp.newaxis, :] for x in args]
       return jnp.vstack(args)
 
-    stacked_vars = tf.nest.map_structure(_StackVars, *initial_vars.x_layers)
+    stacked_vars = tf.nest.map_structure(_stack_vars, *initial_vars.x_layers)
     repeated_vars = py_utils.NestedMap(
         repeat=py_utils.NestedMap(
             sub=py_utils.NestedMap(x_layers=[stacked_vars])))
@@ -621,26 +652,30 @@ class TransformersTest(test_util.JaxTestCase):
         cross_segment_mask = attentions.segment_mask(
             segment_ids, source_segment_ids, dtype=np.float32)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=jax.random.PRNGKey(seed=1234),
-        global_step=jnp.array(0, dtype=jnp.uint32)):
-      outputs = stacked_transformer_layer.fprop(
-          initial_vars,
-          inputs,
-          paddings,
-          segment_mask=segment_mask,
-          cross_inputs=cross_inputs,
-          cross_paddings=cross_paddings,
-          cross_segment_mask=cross_segment_mask)
-      outputs_repeated = repeated_transformer_layer.fprop(
-          repeated_vars,
-          inputs,
-          paddings,
-          segment_mask=segment_mask,
-          cross_inputs=cross_inputs,
-          cross_paddings=cross_paddings,
-          cross_segment_mask=cross_segment_mask)
-      self.assertAllClose(outputs, outputs_repeated, atol=1e-5)
+    outputs = apply(
+        stacked_transformer_layer,
+        initial_vars,
+        stacked_transformer_layer.fprop,
+        initial_vars,
+        inputs,
+        paddings,
+        segment_mask=segment_mask,
+        cross_inputs=cross_inputs,
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
+
+    outputs_repeated = apply(
+        repeated_transformer_layer,
+        repeated_vars,
+        repeated_transformer_layer.fprop,
+        repeated_vars,
+        inputs,
+        paddings,
+        segment_mask=segment_mask,
+        cross_inputs=cross_inputs,
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
+    self.assertAllClose(outputs, outputs_repeated, atol=1e-5)
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=5)))
   def test_stacked_transformer_layer_extendstep(self, packed_input,
@@ -687,8 +722,6 @@ class TransformersTest(test_util.JaxTestCase):
     stacked_transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = stacked_transformer_layer.instantiate_variables(prng_key)
-    initial_states = stacked_transformer_layer.init_states(
-        initial_vars, batch_size, seq_len)
     npy_inputs = np.random.normal(
         1.0, 0.5, [batch_size, seq_len, model_dims]).astype('float32')
     inputs = jnp.asarray(npy_inputs)
@@ -721,7 +754,10 @@ class TransformersTest(test_util.JaxTestCase):
     prng_key = jax.random.PRNGKey(seed=123)
     global_step = jnp.array(0, dtype=jnp.uint64)
     with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=global_step):
+        prng_key=prng_key, global_step=global_step) as jax_context:
+      jax_context.bind(
+          stacked_transformer_layer,
+          stacked_transformer_layer.vars_to_flax_vars(initial_vars))
       fprop_outputs = stacked_transformer_layer.fprop(
           initial_vars,
           inputs,
@@ -731,6 +767,8 @@ class TransformersTest(test_util.JaxTestCase):
           cross_paddings=cross_paddings,
           cross_segment_mask=cross_segment_mask)
       decoder_outputs = jnp.zeros(shape=[seq_len, batch_size, model_dims])
+      initial_states = stacked_transformer_layer.init_states(
+          initial_vars, batch_size, seq_len)
       atten_states = initial_states
       for t in range(seq_len):
         segment_mask_t = attention_mask[:, :, t, :]
@@ -819,29 +857,29 @@ class TransformersTest(test_util.JaxTestCase):
         cross_segment_mask = attentions.segment_mask(
             segment_ids, source_segment_ids, dtype=np.float32)
 
-    prng_key = jax.random.PRNGKey(seed=123)
-    global_step = jnp.array(0, dtype=jnp.uint64)
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=global_step):
-      fprop_outputs_1 = layer1.fprop(
-          initial_vars,
-          inputs,
-          paddings,
-          segment_mask=segment_mask,
-          cross_inputs=cross_inputs,
-          cross_paddings=cross_paddings,
-          cross_segment_mask=cross_segment_mask)
-      fprop_outputs_2 = layer2.fprop(
-          initial_vars,
-          inputs,
-          paddings,
-          segment_mask=segment_mask,
-          cross_inputs=cross_inputs,
-          cross_paddings=cross_paddings,
-          cross_segment_mask=cross_segment_mask)
-      all_summaries = base_layer.all_summaries()
-      for key, value in all_summaries.items():
-        logging.info('summary: %s', f'key:{key}, value:{value}')
+    fprop_outputs_1 = apply(
+        layer1,
+        initial_vars,
+        layer1.fprop,
+        initial_vars,
+        inputs,
+        paddings,
+        segment_mask=segment_mask,
+        cross_inputs=cross_inputs,
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
+
+    fprop_outputs_2 = apply(
+        layer2,
+        initial_vars,
+        layer2.fprop,
+        initial_vars,
+        inputs,
+        paddings,
+        segment_mask=segment_mask,
+        cross_inputs=cross_inputs,
+        cross_paddings=cross_paddings,
+        cross_segment_mask=cross_segment_mask)
 
     np_fprop_outputs_1 = test_utils.to_np(fprop_outputs_1)
     np_fprop_outputs_2 = test_utils.to_np(fprop_outputs_2)
@@ -1293,7 +1331,9 @@ class TransformersTest(test_util.JaxTestCase):
     with base_layer.JaxContext.new_context(
         params=context_params,
         prng_key=prng_key,
-        global_step=jnp.array(0, dtype=jnp.uint32)):
+        global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
+      jax_context.bind(transformer_enc_dec,
+                       transformer_enc_dec.vars_to_flax_vars(initial_vars))
       initial_states = transformer_enc_dec.init_states(initial_vars, inputs,
                                                        input_paddings,
                                                        batch_size, seq_len)
@@ -1489,109 +1529,110 @@ class TransformersTest(test_util.JaxTestCase):
         segment_pos=tf.convert_to_tensor(npy_segment_pos, dtype=tf.int32))
     tf_inputs = py_utils.NestedMap(tgt=tf_tgt_inputs)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
+    # Compute jax outputs
+    jax_outputs = apply(
+        jax_layer,
+        jax_vars,
+        jax_layer.fprop,
+        jax_vars,
+        jax_ids,
+        jax_paddings,
+        labels=py_utils.NestedMap(
+            class_ids=jax_labels,
+            class_weights=jax_label_weighs,
+        ),
+        segment_ids=jax_seg_ids,
+        segment_pos=jax_seg_pos)
 
-      # Compute jax outputs
-      jax_outputs = jax_layer.fprop(
-          jax_vars,
-          jax_ids,
-          jax_paddings,
-          labels=py_utils.NestedMap(
-              class_ids=jax_labels,
-              class_weights=jax_label_weighs,
-          ),
-          segment_ids=jax_seg_ids,
-          segment_pos=jax_seg_pos)
+    # Copy jax vars to tf ones.
+    tf_theta = tf_layer.theta.DeepCopy()
 
-      # Copy jax vars to tf ones.
-      tf_theta = tf_layer.theta.DeepCopy()
+    # GShardBuilder softmax weight use self.vars rather than theta.
+    tf_layer.vars.dec_emb.w.embedding.assign(jax_vars.softmax.embedding.w)
+    tf_theta.dec_emb.w.embedding = jax_vars.softmax.embedding.w
+    tf_theta.dec.final_layer_norm.w.scale = jax_vars.final_ln.scale
+    jax_layer_0_var = tf.nest.map_structure(
+        lambda v: jnp.squeeze(jnp.split(v, 2)[0], axis=0),
+        jax_vars.transformer.repeat.sub.x_layers[0])
+    tf_theta.dec.layer_000.ln.w.scale = jax_layer_0_var.layer_norm.scale
+    jax_atten_var = jax_layer_0_var.self_attention
+    tf_atten_var = tf_theta.dec.layer_000.dec_self_attention
+    tf_atten_var.w.wk = jax_atten_var.key.w
+    tf_atten_var.w.wq = jax_atten_var.query.w
+    tf_atten_var.w.wv = jax_atten_var.value.w
+    tf_atten_var.w.wo = jax_atten_var.post.w
+    tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
 
-      # GShardBuilder softmax weight use self.vars rather than theta.
-      tf_layer.vars.dec_emb.w.embedding.assign(jax_vars.softmax.embedding.w)
-      tf_theta.dec_emb.w.embedding = jax_vars.softmax.embedding.w
-      tf_theta.dec.final_layer_norm.w.scale = jax_vars.final_ln.scale
-      jax_layer_0_var = tf.nest.map_structure(
-          lambda v: jnp.squeeze(jnp.split(v, 2)[0], axis=0),
-          jax_vars.transformer.repeat.sub.x_layers[0])
-      tf_theta.dec.layer_000.ln.w.scale = jax_layer_0_var.layer_norm.scale
-      jax_atten_var = jax_layer_0_var.self_attention
-      tf_atten_var = tf_theta.dec.layer_000.dec_self_attention
-      tf_atten_var.w.wk = jax_atten_var.key.w
-      tf_atten_var.w.wq = jax_atten_var.query.w
-      tf_atten_var.w.wv = jax_atten_var.value.w
-      tf_atten_var.w.wo = jax_atten_var.post.w
-      tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
+    jax_moe_var = jax_layer_0_var.ff_layer
+    tf_theta.dec.layer_001.ln.w.scale = jax_moe_var.layer_norm.scale
+    tf_theta.dec.layer_001.moe.ffw.top_2_gating.w = jax_moe_var.gate
+    tf_theta.dec.layer_001.moe.moe.wi = jax_moe_var.wi_0
+    tf_theta.dec.layer_001.moe.moe.wo = jax_moe_var.wo_0
 
-      jax_moe_var = jax_layer_0_var.ff_layer
-      tf_theta.dec.layer_001.ln.w.scale = jax_moe_var.layer_norm.scale
-      tf_theta.dec.layer_001.moe.ffw.top_2_gating.w = jax_moe_var.gate
-      tf_theta.dec.layer_001.moe.moe.wi = jax_moe_var.wi_0
-      tf_theta.dec.layer_001.moe.moe.wo = jax_moe_var.wo_0
+    jax_layer_1_var = tf.nest.map_structure(
+        lambda v: jnp.squeeze(jnp.split(v, 2)[0], axis=0),
+        jax_vars.transformer.repeat.sub.x_layers[1])
+    tf_theta.dec.layer_002.ln.w.scale = jax_layer_1_var.layer_norm.scale
+    jax_atten_var = jax_layer_1_var.self_attention
+    tf_atten_var = tf_theta.dec.layer_002.dec_self_attention
+    tf_atten_var.w.wk = jax_atten_var.key.w
+    tf_atten_var.w.wq = jax_atten_var.query.w
+    tf_atten_var.w.wv = jax_atten_var.value.w
+    tf_atten_var.w.wo = jax_atten_var.post.w
+    tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
 
-      jax_layer_1_var = tf.nest.map_structure(
-          lambda v: jnp.squeeze(jnp.split(v, 2)[0], axis=0),
-          jax_vars.transformer.repeat.sub.x_layers[1])
-      tf_theta.dec.layer_002.ln.w.scale = jax_layer_1_var.layer_norm.scale
-      jax_atten_var = jax_layer_1_var.self_attention
-      tf_atten_var = tf_theta.dec.layer_002.dec_self_attention
-      tf_atten_var.w.wk = jax_atten_var.key.w
-      tf_atten_var.w.wq = jax_atten_var.query.w
-      tf_atten_var.w.wv = jax_atten_var.value.w
-      tf_atten_var.w.wo = jax_atten_var.post.w
-      tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
+    jax_ffn_var = jax_layer_1_var.ff_layer
+    tf_ffn_var = tf_theta.dec.layer_003.dense_relu_dense
+    tf_ffn_var.w.wi_0 = jax_ffn_var.ffn_layer1_gate.linear.w
+    tf_ffn_var.w.wi_1 = jax_ffn_var.ffn_layer1.linear.w
+    tf_ffn_var.w.wo = jax_ffn_var.ffn_layer2.linear.w
+    tf_theta.dec.layer_003.ln.w.scale = jax_ffn_var.layer_norm.scale
 
-      jax_ffn_var = jax_layer_1_var.ff_layer
-      tf_ffn_var = tf_theta.dec.layer_003.dense_relu_dense
-      tf_ffn_var.w.wi_0 = jax_ffn_var.ffn_layer1_gate.linear.w
-      tf_ffn_var.w.wi_1 = jax_ffn_var.ffn_layer1.linear.w
-      tf_ffn_var.w.wo = jax_ffn_var.ffn_layer2.linear.w
-      tf_theta.dec.layer_003.ln.w.scale = jax_ffn_var.layer_norm.scale
+    jax_layer_2_var = tf.nest.map_structure(
+        lambda v: jnp.squeeze(jnp.split(v, 2)[1], axis=0),
+        jax_vars.transformer.repeat.sub.x_layers[0])
+    tf_theta.dec.layer_004.ln.w.scale = jax_layer_2_var.layer_norm.scale
+    jax_atten_var = jax_layer_2_var.self_attention
+    tf_atten_var = tf_theta.dec.layer_004.dec_self_attention
+    tf_atten_var.w.wk = jax_atten_var.key.w
+    tf_atten_var.w.wq = jax_atten_var.query.w
+    tf_atten_var.w.wv = jax_atten_var.value.w
+    tf_atten_var.w.wo = jax_atten_var.post.w
+    tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
 
-      jax_layer_2_var = tf.nest.map_structure(
-          lambda v: jnp.squeeze(jnp.split(v, 2)[1], axis=0),
-          jax_vars.transformer.repeat.sub.x_layers[0])
-      tf_theta.dec.layer_004.ln.w.scale = jax_layer_2_var.layer_norm.scale
-      jax_atten_var = jax_layer_2_var.self_attention
-      tf_atten_var = tf_theta.dec.layer_004.dec_self_attention
-      tf_atten_var.w.wk = jax_atten_var.key.w
-      tf_atten_var.w.wq = jax_atten_var.query.w
-      tf_atten_var.w.wv = jax_atten_var.value.w
-      tf_atten_var.w.wo = jax_atten_var.post.w
-      tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
+    jax_moe_var = jax_layer_2_var.ff_layer
+    tf_theta.dec.layer_005.ln.w.scale = jax_moe_var.layer_norm.scale
+    tf_theta.dec.layer_005.moe.ffw.top_2_gating.w = jax_moe_var.gate
+    tf_theta.dec.layer_005.moe.moe.wi = jax_moe_var.wi_0
+    tf_theta.dec.layer_005.moe.moe.wo = jax_moe_var.wo_0
 
-      jax_moe_var = jax_layer_2_var.ff_layer
-      tf_theta.dec.layer_005.ln.w.scale = jax_moe_var.layer_norm.scale
-      tf_theta.dec.layer_005.moe.ffw.top_2_gating.w = jax_moe_var.gate
-      tf_theta.dec.layer_005.moe.moe.wi = jax_moe_var.wi_0
-      tf_theta.dec.layer_005.moe.moe.wo = jax_moe_var.wo_0
+    jax_layer_3_var = tf.nest.map_structure(
+        lambda v: jnp.squeeze(jnp.split(v, 2)[1], axis=0),
+        jax_vars.transformer.repeat.sub.x_layers[1])
+    tf_theta.dec.layer_006.ln.w.scale = jax_layer_3_var.layer_norm.scale
+    jax_atten_var = jax_layer_3_var.self_attention
+    tf_atten_var = tf_theta.dec.layer_006.dec_self_attention
+    tf_atten_var.w.wk = jax_atten_var.key.w
+    tf_atten_var.w.wq = jax_atten_var.query.w
+    tf_atten_var.w.wv = jax_atten_var.value.w
+    tf_atten_var.w.wo = jax_atten_var.post.w
+    tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
 
-      jax_layer_3_var = tf.nest.map_structure(
-          lambda v: jnp.squeeze(jnp.split(v, 2)[1], axis=0),
-          jax_vars.transformer.repeat.sub.x_layers[1])
-      tf_theta.dec.layer_006.ln.w.scale = jax_layer_3_var.layer_norm.scale
-      jax_atten_var = jax_layer_3_var.self_attention
-      tf_atten_var = tf_theta.dec.layer_006.dec_self_attention
-      tf_atten_var.w.wk = jax_atten_var.key.w
-      tf_atten_var.w.wq = jax_atten_var.query.w
-      tf_atten_var.w.wv = jax_atten_var.value.w
-      tf_atten_var.w.wo = jax_atten_var.post.w
-      tf_atten_var.wrb.wrb = jax_atten_var.relative_bias.wrb
+    jax_ffn_var = jax_layer_3_var.ff_layer
+    tf_ffn_var = tf_theta.dec.layer_007.dense_relu_dense
+    tf_ffn_var.w.wi_0 = jax_ffn_var.ffn_layer1_gate.linear.w
+    tf_ffn_var.w.wi_1 = jax_ffn_var.ffn_layer1.linear.w
+    tf_ffn_var.w.wo = jax_ffn_var.ffn_layer2.linear.w
+    tf_theta.dec.layer_007.ln.w.scale = jax_ffn_var.layer_norm.scale
 
-      jax_ffn_var = jax_layer_3_var.ff_layer
-      tf_ffn_var = tf_theta.dec.layer_007.dense_relu_dense
-      tf_ffn_var.w.wi_0 = jax_ffn_var.ffn_layer1_gate.linear.w
-      tf_ffn_var.w.wi_1 = jax_ffn_var.ffn_layer1.linear.w
-      tf_ffn_var.w.wo = jax_ffn_var.ffn_layer2.linear.w
-      tf_theta.dec.layer_007.ln.w.scale = jax_ffn_var.layer_norm.scale
+    tf_theta = test_utils.to_tf_nmap(tf_theta)
 
-      tf_theta = test_utils.to_tf_nmap(tf_theta)
+    # Compute TF outputs
+    tf_out, _ = tf_layer.FProp(tf_theta, tf_inputs)
+    self.assertAllClose(
+        test_utils.to_np(jax_outputs.total_loss),
+        test_utils.to_np(tf_out['loss'][0]))
 
-      # Compute TF outputs
-      tf_out, _ = tf_layer.FProp(tf_theta, tf_inputs)
-      self.assertAllClose(
-          test_utils.to_np(jax_outputs.total_loss),
-          test_utils.to_np(tf_out['loss'][0]))
 
 if __name__ == '__main__':
   absltest.main()

@@ -149,7 +149,7 @@ def train_step_single_learner(
     with base_layer.JaxContext.new_context(
         params=context_p, prng_key=subkey,
         global_step=states.step) as jax_context:
-      jax_context.bind(model, mdl_vars,
+      jax_context.bind(model, model.vars_to_flax_vars(mdl_vars),
                        [base_layer.SCOPE_VARS, base_layer.SCOPE_AUX_LOSS])
 
       metrics, per_example_output = model.fprop(mdl_vars, inputs)
@@ -239,7 +239,8 @@ def train_step_single_learner(
       params=context_p, prng_key=subkey,
       global_step=states.step) as jax_context:
     # Nothing is allowed to change, except for summaries.
-    jax_context.bind(model, states.mdl_vars, [base_layer.SCOPE_AUX_LOSS])
+    jax_context.bind(model, model.vars_to_flax_vars(states.mdl_vars),
+                     [base_layer.SCOPE_AUX_LOSS])
 
     # Add a summary for learning rate
     learning_rate = learner.optimizer.get_learning_rate(states.step)
@@ -362,7 +363,8 @@ def eval_step_single_learner(
       global_step=global_step) as jax_context:
     # Prepares mdl for fprop. This clears all forward-updated vars that kept
     # locally in mdl.
-    jax_context.bind(model, mdl_vars, [base_layer.SCOPE_AUX_LOSS])
+    jax_context.bind(model, model.vars_to_flax_vars(mdl_vars),
+                     [base_layer.SCOPE_AUX_LOSS])
 
     # Support multiple learners.
     assert len(jax_task.learners) == 1
@@ -451,7 +453,8 @@ def decode_step(
   with base_layer.JaxContext.new_context(
       params=context_p, prng_key=prng_key,
       global_step=global_step) as jax_context:
-    jax_context.bind(model, mdl_vars, [base_layer.SCOPE_AUX_LOSS])
+    jax_context.bind(model, model.vars_to_flax_vars(mdl_vars),
+                     [base_layer.SCOPE_AUX_LOSS])
 
     return model.decode(mdl_vars, inputs)
 
