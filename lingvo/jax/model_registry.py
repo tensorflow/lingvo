@@ -18,7 +18,7 @@
 Models are typically named as '<task>.<module>.<model>'.
 """
 
-from typing import Optional
+from typing import Mapping, Optional
 
 from absl import logging
 from lingvo.jax import base_model_params
@@ -66,6 +66,14 @@ class _ModelRegistryHelper:
         logging.info('Known model: %s', k)
     return cls._registry.get(key)
 
+  @classmethod
+  def get_all_registered_models(cls) -> Mapping[str, BaseModelParamsT]:
+    """Retrieves all the models from the global registry."""
+    if not cls._registry:
+      logging.warning('Model registry is empty.')
+    return cls._registry
+
 
 register_model = _ModelRegistryHelper.register_model
 get_model = _ModelRegistryHelper.get_model
+get_all_registered_models = _ModelRegistryHelper.get_all_registered_models

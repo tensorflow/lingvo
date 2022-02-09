@@ -33,6 +33,19 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "base_input",
+    srcs = ["base_input.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":py_utils",
+        ":pytypes",
+        "//lingvo/core:cluster_factory",
+        "//lingvo/core:datasource",
+        # Implicit tensorflow dependency.
+    ],
+)
+
+pytype_strict_library(
     name = "base_layer",
     srcs = ["base_layer.py"],
     srcs_version = "PY3",
@@ -49,44 +62,28 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
-    name = "base_input",
-    srcs = ["base_input.py"],
-    srcs_version = "PY3",
-    deps = [
-        ":py_utils",
-        ":pytypes",
-        "//lingvo/core:cluster_factory",
-        "//lingvo/core:datasource",
-        # Implicit tensorflow dependency.
-    ],
-)
-
-py_strict_test(
-    name = "base_input_test",
-    srcs = ["base_input_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
-    deps = [
-        ":base_input",
-        ":py_utils",
-        # Implicit absl.flags dependency.
-        # Implicit absl.testing.absltest dependency.
-        # Implicit jax dependency.
-        "//lingvo/core:base_input_generator",
-        "//lingvo/core:generic_input",
-        "//lingvo/core:py_utils",
-        # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
-    ],
-)
-
-pytype_strict_library(
     name = "base_model_params",
     srcs = ["base_model_params.py"],
     srcs_version = "PY3",
     deps = [
         ":base_input",
         ":py_utils",
+    ],
+)
+
+pytype_strict_library(
+    name = "base_task",
+    srcs = ["base_task.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":base_layer",
+        ":base_model",
+        ":learners",
+        ":optimizers",
+        ":py_utils",
+        ":train_states",
+        # Implicit jax dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -253,6 +250,17 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "models_test_helper",
+    testonly = True,
+    srcs = ["models_test_helper.py"],
+    deps = [
+        ":base_input",
+        ":base_task",
+        # Implicit absl.testing.absltest dependency.
+    ],
+)
+
+pytype_strict_library(
     name = "model_utils",
     srcs = ["model_utils.py"],
     srcs_version = "PY3",
@@ -358,22 +366,6 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
-    name = "base_task",
-    srcs = ["base_task.py"],
-    srcs_version = "PY3",
-    deps = [
-        ":base_layer",
-        ":base_model",
-        ":learners",
-        ":optimizers",
-        ":py_utils",
-        ":train_states",
-        # Implicit jax dependency.
-        # Implicit tensorflow dependency.
-    ],
-)
-
-pytype_strict_library(
     name = "test_utils",
     testonly = True,
     srcs = ["test_utils.py"],
@@ -446,6 +438,25 @@ py_strict_test(
         ":asserts",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+    ],
+)
+
+py_strict_test(
+    name = "base_input_test",
+    srcs = ["base_input_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_input",
+        ":py_utils",
+        # Implicit absl.flags dependency.
+        # Implicit absl.testing.absltest dependency.
+        # Implicit jax dependency.
+        "//lingvo/core:base_input_generator",
+        "//lingvo/core:generic_input",
+        "//lingvo/core:py_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
     ],
 )
 
