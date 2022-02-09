@@ -70,25 +70,32 @@ def _VariablesForEMA(params, model_var_list):
 
   trainable_variables = [var for var in model_var_list if var.trainable]
 
-  # We need to apply EMA to trainable and moving average variable of the task,
-  # not just bprop vars, so that we create a shadow '/ExponentialMovingAverage'
-  # variable for every trainable and moving average variable.
-  all_refs = ref_set(trainable_variables) | ref_set(
-      tf.moving_average_variables())
-  if params.train.ema_decay_moving_vars:
-    all_refs |= ref_set(tf.get_collection('moving_vars'))
-  all_refs &= ref_set(model_var_list)
-
   # Remove TPU embedding variables since TPU embedding doesn't support EMA.
+  disallowed_refs = ref_set([])
   tpu_embedding_vars = (
       tpu_embedding_layers.TpuEmbeddingCollection.Get().table_variables)
   if tpu_embedding_vars.Flatten():
     tf.logging.warning(
         'Detected TPU embedding variables, and EMA does not apply to them. '
         f'List of TPU embedding variables: {tpu_embedding_vars}.')
-    all_refs -= ref_set(tpu_embedding_vars.Flatten())
+    disallowed_refs = ref_set(tpu_embedding_vars.Flatten())
 
-  all_vars = [v.deref() for v in all_refs]
+  moving_vars = []
+  if params.train.ema_decay_moving_vars:
+    moving_vars = tf.get_collection('moving_vars')
+
+  # We need to apply EMA to trainable and moving average variable of the task,
+  # not just bprop vars, so that we create a shadow '/ExponentialMovingAverage'
+  # variable for every trainable and moving average variable.
+  allowed_refs = ref_set(model_var_list)
+  # We generate the elements of all_vars in a deterministic order, avoiding
+  # set-iteration, to maintain determninism of the resulting computation graph.
+  all_vars = []
+  for var in trainable_variables + tf.moving_average_variables() + moving_vars:
+    if (var.ref() in allowed_refs) and (var.ref() not in disallowed_refs):
+      disallowed_refs.add(var.ref())
+      all_vars.append(var)
+
   for var in all_vars:
     tf.logging.debug('Variables for EMA: %s', var.name)
   return all_vars
