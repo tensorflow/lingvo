@@ -293,7 +293,7 @@ class BaseRunner:
 
       if unprocessed_ckpts:
         # Process the checkpoints sequentially.
-        ckpt_path = sorted(unprocessed_ckpts)[0]
+        ckpt_path = checkpointer.SortCheckpointPaths(unprocessed_ckpts)[0]
         try:
           runner_fn(sess, ckpt_path)
           py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)

@@ -31,6 +31,11 @@ tf.flags.DEFINE_boolean('use_custom_saver', False,
 FLAGS = tf.flags.FLAGS
 
 
+def SortCheckpointPaths(ckpts):
+  """Sorts checkpoints based on the step number in the paths."""
+  return sorted(ckpts, key=lambda x: int(x.split('-')[-1]))
+
+
 class SaverWrapper:
   """Wrapper interface between tf.train.Saver and the custom saver."""
 
