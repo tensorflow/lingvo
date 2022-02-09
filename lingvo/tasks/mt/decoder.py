@@ -433,9 +433,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
              'attention context and the rest of the layers use current '
              'attention context.')
     p.Define('dropout_prob', 0.0, 'Prob at which we do dropout.')
-    # Default value was mildly tuned. Could be further tuned in the future.
-    p.Define('qlogsoftmax_range_min', -10.0, 'Quantization of the output of '
-             'log softmax.')
     p.Define(
         'use_zero_atten_state', False, 'To use zero attention state '
         'instead of computing attention with zero query vector.')
@@ -1079,8 +1076,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     atten_probs = tf.reshape(atten_probs, tf.shape(prev_atten_probs))
 
     logits = self.softmax.Logits(theta.softmax, [step_out])
-    log_probs = self.fns.qlogsoftmax(
-        logits, qmin=p.qlogsoftmax_range_min, qmax=0.0)
+    log_probs = self.fns.qlogsoftmax(logits)
     if p.force_alignment:
       if 'num_sentences' not in encoder_outputs:
         raise ValueError('Model does not support p.force_alignment as '

@@ -556,18 +556,11 @@ class QuantizableLayer(base_layer.BaseLayer):
     def WrapOp(op_name, op, dist=None):
       """Adds a wrapper op to the layer's fns."""
 
-      def Wrapped(*op_args,
-                  qout_name=None,
-                  qmin=None,
-                  qmax=None,
-                  qdomain=None,
-                  **op_kwargs):
+      def Wrapped(*op_args, qout_name=None, qdomain=None, **op_kwargs):
         """Wraps a native op."""
-        if (qout_name is None and (qmin is None or qmax is None) and
-            dist is None):
+        if qout_name is None and dist is None:
           raise ValueError(
-              f'Quantized op "{op_name}" requires qout_name (QTensor name) or '
-              'qmin/qmax to be set.')
+              f'Quantized op "{op_name}" requires qout_name to be set.')
 
         # Provide a better default name if none provided.
         if 'name' not in op_kwargs and qout_name is not None:
@@ -579,10 +572,6 @@ class QuantizableLayer(base_layer.BaseLayer):
         # Handle the output.
         if qout_name is not None:
           y = self.QTensor(qout_name, y)
-        elif qmin is not None:
-          qd = self._GetQDomain(qdomain)
-          if qd:
-            y = qd.QuantizeNaturalRange(y, qmin, qmax)
         else:
           y = self.QRAct(y, dist, qdomain)
         return y
