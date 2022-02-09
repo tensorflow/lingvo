@@ -88,7 +88,8 @@ class CheckpointManager:
                save_interval_steps=int,
                max_to_keep: Optional[int],
                keep_interval_timedelta: Optional[datetime.timedelta] = None,
-               checkpoint_basename: str = CHECKPOINT_BASENAME):
+               checkpoint_basename: str = CHECKPOINT_BASENAME,
+               todelete_subdir: Optional[str] = None):
     """Constructor.
 
     Only a single CheckpointManager for a given training program is expected
@@ -117,6 +118,10 @@ class CheckpointManager:
         since the last preserved checkpoint. The default setting of `None` does
         not preserve any checkpoints in this way.
       checkpoint_basename: The basename of the checkpoint metadata file.
+      todelete_subdir: If set, checkpoints to be deleted will be only renamed
+        into a subdirectory with the provided string. Otherwise, they will be
+        directly deleted from the file system. Useful if checkpoint deletion is
+        time consuming. By default, delete the checkpoint assets.
     """
     self._config_name: str = config_name
     self._root_dir: str = root_dir
@@ -126,7 +131,8 @@ class CheckpointManager:
     self._max_to_keep: Optional[int] = max_to_keep
     self._keep_interval_timedelta: Optional[datetime.timedelta] = (
         keep_interval_timedelta)
-    self._checkpoint_basename = checkpoint_basename
+    self._checkpoint_basename: str = checkpoint_basename
+    self._todelete_subdir: Optional[str] = todelete_subdir
 
     self._init_checkpoint_history()
 
@@ -260,11 +266,22 @@ class CheckpointManager:
 
     self._save_checkpoint_file(latest_global_step)
 
-  def _delete_pattern_if_exists(self, filepath: str) -> None:
+  def _delete_pattern_if_exists(self, root_dir: str, filepath: str) -> None:
     """Deletes everything under `filepath`."""
-    logging.info('Deleting files with filepath: `%s`', filepath)
-    if tf.io.gfile.exists(filepath):
-      tf.io.gfile.rmtree(filepath)
+    # Note: This method may be called by different JAX processes. The
+    # concurrency logic is handled in _delete_checkpoint() below.
+    src = os.path.join(root_dir, filepath)
+    logging.info('Deleting files with filepath: `%s`', src)
+    if tf.io.gfile.exists(src):
+      if self._todelete_subdir:
+        rename_dir = os.path.join(root_dir, self._todelete_subdir)
+        if not tf.io.gfile.exists(rename_dir):
+          tf.io.gfile.mkdir(rename_dir)
+        dst = os.path.join(rename_dir, filepath)
+        # TODO(lingvo-team): Check if dst already exists?
+        tf.io.gfile.rename(src, dst)
+      else:
+        tf.io.gfile.rmtree(src)
 
   def _delete_checkpoint(self,
                          checkpoint: checkpoint_pb2.CheckpointMetadata) -> None:
@@ -276,14 +293,12 @@ class CheckpointManager:
       if jax.process_index() != 0:
         return
       self._delete_pattern_if_exists(
-          os.path.join(self._root_dir,
-                       f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id}'))
+          self._root_dir, f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id}')
     elif (self._checkpoint_history.checkpoint_type ==
           CheckpointType.CHECKPOINT_MULTI_HOST_FLAX):
       root_dir = os.path.join(self._root_dir, f'{jax.process_index():03d}')
       self._delete_pattern_if_exists(
-          os.path.join(root_dir,
-                       f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id}'))
+          root_dir, f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id}')
     elif self._checkpoint_history.checkpoint_type in {
         CheckpointType.CHECKPOINT_PERSISTENCE,
         CheckpointType.CHECKPOINT_GDA,
@@ -291,8 +306,7 @@ class CheckpointManager:
       if jax.process_index() != 0:
         return
       self._delete_pattern_if_exists(
-          os.path.join(self._root_dir,
-                       f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id:08d}'))
+          self._root_dir, f'{CHECKPOINT_PREFIX}{checkpoint.global_step_id:08d}')
 
   def _sweep(self, global_step_id: int) -> None:
     """Deletes or preserves managed checkpoints."""

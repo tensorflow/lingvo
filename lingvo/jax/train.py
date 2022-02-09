@@ -103,11 +103,9 @@ def _parse_duration(
 
 
 def _create_checkpoint_manager(
-    model_name: str,
-    task_p: InstantiableParams,
-    job_log_dir: str,
+    model_name: str, task_p: InstantiableParams, job_log_dir: str,
     checkpoint_type: CheckpointType,
-) -> checkpoint_managers.CheckpointManager:
+    todelete_subdir: Optional[str]) -> checkpoint_managers.CheckpointManager:
   """Creates a checkpoint manager."""
   checkpoint_dir = _checkpoint_dir(job_log_dir)
   train_p = task_p.train
@@ -120,15 +118,19 @@ def _create_checkpoint_manager(
       checkpoint_type=checkpoint_type,
       max_to_keep=max_to_keep,
       save_interval_steps=save_interval_steps,
-      keep_interval_timedelta=keep_interval_timedelta)
+      keep_interval_timedelta=keep_interval_timedelta,
+      todelete_subdir=todelete_subdir)
 
 
-def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
-                       multi_host_checkpointing: Optional[bool],
-                       maybe_use_persistence_checkpointing: bool,
-                       restore_checkpoint_dir: Optional[str],
-                       restore_checkpoint_step: Optional[int],
-                       eval_on_test: Optional[bool]) -> None:
+def train_and_evaluate(
+    model_name: str,
+    job_log_dir: Optional[str],
+    multi_host_checkpointing: Optional[bool],
+    maybe_use_persistence_checkpointing: bool,
+    restore_checkpoint_dir: Optional[str],
+    restore_checkpoint_step: Optional[int],
+    eval_on_test: Optional[bool],
+    checkpoint_todelete_subdir: Optional[str] = None) -> None:
   """Runs the training and evaluation loop.
 
   Args:
@@ -143,6 +145,10 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
     restore_checkpoint_step: If set, the checkpoint step to restore. If unset,
       try to restore from the latest checkpoint if any.
     eval_on_test: Whether to eval on test as a part of the training loop.
+    checkpoint_todelete_subdir: If set, checkpoints to be deleted will be only
+      renamed into the provided subdirectory. Otherwise, they will be directly
+      deleted from the file system. This is useful, when checkpoint deletion is
+      time consuming.
   """
   model_config = model_utils.get_model(model_name)()
   _write_params_file(model_config, job_log_dir)
@@ -170,7 +176,8 @@ def train_and_evaluate(model_name: str, job_log_dir: Optional[str],
       multi_host_checkpointing, maybe_use_persistence_checkpointing, task_p)
 
   checkpoint_manager = _create_checkpoint_manager(model_name, task_p,
-                                                  job_log_dir, checkpoint_type)
+                                                  job_log_dir, checkpoint_type,
+                                                  checkpoint_todelete_subdir)
 
   if task_p.model.device_mesh is not None:
     train_and_evaluate_spmd_model(task_p, train_input_p, job_log_dir,

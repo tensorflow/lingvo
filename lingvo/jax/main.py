@@ -61,6 +61,12 @@ flags.DEFINE_bool(
     'If suitable, will try to rely on persistence-based checkpointing rather '
     'than Flax-based checkpointing for SPMD models.')
 flags.DEFINE_string(
+    'checkpoint_todelete_subdir', None,
+    'If set, checkpoints to be deleted will be only renamed into a '
+    'subdirectory with the provided string. Otherwise, they will be directly '
+    'deleted from the file system. Useful if checkpoint deletion is time '
+    'consuming. By default, delete the checkpoint assets.')
+flags.DEFINE_string(
     'restore_checkpoint_dir', None,
     'If set, the directory from which to restore checkpoint. If unset, the '
     'script tries to restore from --job_log_dir\'s `checkpoints` subdirectory.')
@@ -142,7 +148,7 @@ def main(argv: Sequence[str]) -> None:
 
   # Start jax.profiler for Tensorboard and profiling in open source.
   if FLAGS.jax_profiler_port is not None:
-    server = jax.profiler.start_server(FLAGS.jax_profiler_port)
+    server = jax.profiler.start_server(FLAGS.jax_profiler_port)  # pylint:disable=unused-variable
   if FLAGS.mode == 'train':
     train.train_and_evaluate(
         model_name=FLAGS.model,
@@ -152,7 +158,8 @@ def main(argv: Sequence[str]) -> None:
         .maybe_use_persistence_checkpointing,
         restore_checkpoint_dir=FLAGS.restore_checkpoint_dir,
         restore_checkpoint_step=FLAGS.restore_checkpoint_step,
-        eval_on_test=FLAGS.eval_on_test)
+        eval_on_test=FLAGS.eval_on_test,
+        checkpoint_todelete_subdir=FLAGS.checkpoint_todelete_subdir)
   elif FLAGS.mode == 'eval':
     eval_lib.evaluate(
         model_name=FLAGS.model,
