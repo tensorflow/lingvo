@@ -18,7 +18,9 @@
 from typing import Any, Optional
 
 from absl import flags
+import jax
 from jax import numpy as jnp
+from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 import numpy as np
 import tensorflow.compat.v2 as tf
@@ -72,6 +74,15 @@ def to_tf_nmap(x_nmap: NestedMap) -> NestedMap:
       assert 'dtype not supported yet'
 
   return tf.nest.map_structure(to_tf, x_nmap)
+
+
+def apply(layer, layer_vars, method, *args, **kwags):
+  prng_key = jax.random.PRNGKey(seed=123)
+  with base_layer.JaxContext.new_context(
+      prng_key=prng_key,
+      global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
+    jax_context.bind(layer, layer.vars_to_flax_vars(layer_vars))
+    return method(*args, **kwags)
 
 
 def replace_jax_transformer_ffwd_vars_to_tf(

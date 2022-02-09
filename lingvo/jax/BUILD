@@ -371,11 +371,13 @@ pytype_strict_library(
     srcs = ["test_utils.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_layer",
         ":py_utils",
         # Implicit absl.flags dependency.
         # Implicit jax dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
+        "//third_party/py/tensorflow:tensorflow_no_contrib",
     ],
 )
 

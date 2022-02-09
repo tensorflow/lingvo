@@ -37,15 +37,6 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 
 
-def apply(layer, layer_vars, method, *args, **kwags):
-  prng_key = jax.random.PRNGKey(seed=123)
-  with base_layer.JaxContext.new_context(
-      prng_key=prng_key,
-      global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
-    jax_context.bind(layer, layer.vars_to_flax_vars(layer_vars))
-    return method(*args, **kwags)
-
-
 @test_util.with_config(jax_numpy_rank_promotion='allow')
 class TransformersTest(test_util.JaxTestCase):
 
@@ -120,7 +111,7 @@ class TransformersTest(test_util.JaxTestCase):
         tf_cross_segment_mask = batch_major_attention.SegmentMask(
             segment_ids, source_segment_ids)
 
-    outputs, _ = apply(
+    outputs, _ = test_utils.apply(
         transformer_layer,
         initial_vars,
         transformer_layer.fprop,
@@ -440,7 +431,7 @@ class TransformersTest(test_util.JaxTestCase):
         cross_segment_mask = attentions.segment_mask(
             segment_ids, source_segment_ids, dtype=np.float32)
 
-    block_outputs = apply(
+    block_outputs = test_utils.apply(
         transformer_block,
         initial_vars,
         transformer_block.fprop,
@@ -452,7 +443,7 @@ class TransformersTest(test_util.JaxTestCase):
         cross_paddings=cross_paddings,
         cross_segment_mask=cross_segment_mask)
 
-    stack_outputs = apply(
+    stack_outputs = test_utils.apply(
         transformer_stack,
         initial_vars,
         transformer_stack.fprop,
@@ -535,7 +526,7 @@ class TransformersTest(test_util.JaxTestCase):
         tf_cross_segment_mask = batch_major_attention.SegmentMask(
             segment_ids, source_segment_ids)
 
-    outputs = apply(
+    outputs = test_utils.apply(
         stacked_transformer_layer,
         initial_vars,
         stacked_transformer_layer.fprop,
@@ -652,7 +643,7 @@ class TransformersTest(test_util.JaxTestCase):
         cross_segment_mask = attentions.segment_mask(
             segment_ids, source_segment_ids, dtype=np.float32)
 
-    outputs = apply(
+    outputs = test_utils.apply(
         stacked_transformer_layer,
         initial_vars,
         stacked_transformer_layer.fprop,
@@ -664,7 +655,7 @@ class TransformersTest(test_util.JaxTestCase):
         cross_paddings=cross_paddings,
         cross_segment_mask=cross_segment_mask)
 
-    outputs_repeated = apply(
+    outputs_repeated = test_utils.apply(
         repeated_transformer_layer,
         repeated_vars,
         repeated_transformer_layer.fprop,
@@ -857,7 +848,7 @@ class TransformersTest(test_util.JaxTestCase):
         cross_segment_mask = attentions.segment_mask(
             segment_ids, source_segment_ids, dtype=np.float32)
 
-    fprop_outputs_1 = apply(
+    fprop_outputs_1 = test_utils.apply(
         layer1,
         initial_vars,
         layer1.fprop,
@@ -869,7 +860,7 @@ class TransformersTest(test_util.JaxTestCase):
         cross_paddings=cross_paddings,
         cross_segment_mask=cross_segment_mask)
 
-    fprop_outputs_2 = apply(
+    fprop_outputs_2 = test_utils.apply(
         layer2,
         initial_vars,
         layer2.fprop,
@@ -1530,7 +1521,7 @@ class TransformersTest(test_util.JaxTestCase):
     tf_inputs = py_utils.NestedMap(tgt=tf_tgt_inputs)
 
     # Compute jax outputs
-    jax_outputs = apply(
+    jax_outputs = test_utils.apply(
         jax_layer,
         jax_vars,
         jax_layer.fprop,
