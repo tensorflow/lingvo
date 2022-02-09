@@ -358,7 +358,7 @@
 
       <span class="k">if</span> <span class="n">unprocessed_ckpts</span><span class="p">:</span>
         <span class="c1"># Process the checkpoints sequentially.</span>
-        <span class="n">ckpt_path</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">unprocessed_ckpts</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">SortCheckpointPaths</span><span class="p">(</span><span class="n">unprocessed_ckpts</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="k">try</span><span class="p">:</span>
           <span class="n">runner_fn</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">UpdateProcessedCheckpoints</span><span class="p">(</span><span class="n">runner_dir</span><span class="p">,</span> <span class="n">ckpt_path</span><span class="p">)</span>

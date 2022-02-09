@@ -96,6 +96,11 @@
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
+<div class="viewcode-block" id="SortCheckpointPaths"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.SortCheckpointPaths">[docs]</a><span class="k">def</span> <span class="nf">SortCheckpointPaths</span><span class="p">(</span><span class="n">ckpts</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sorts checkpoints based on the step number in the paths.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">ckpts</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span></div>
+
+
 <div class="viewcode-block" id="SaverWrapper"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.SaverWrapper">[docs]</a><span class="k">class</span> <span class="nc">SaverWrapper</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Wrapper interface between tf.train.Saver and the custom saver.&quot;&quot;&quot;</span>
 
