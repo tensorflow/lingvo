@@ -200,6 +200,9 @@ def collapse_and_remove_blanks(labels: jnp.ndarray,
   # Scatter to flat shape.
   flat = jnp.zeros(flat_idx_mask.shape).astype(labels.dtype)
   flat = flat.at[indices].set(updates)
+  # 0'th position in the flat array gets clobbered by later padded updates,
+  # so reset it here to its original value
+  flat = flat.at[0].set(updates[0])
 
   # Reshape back to square batch.
   batch_size = labels.shape[0]

@@ -308,5 +308,17 @@ class CollapseRemoveBlankLabelTest(jax.test_util.JaxTestCase):
         collapsed, jnp.array([[1, 2, 3, 0, 0], [1, 1, 0, 0, 0], [1, 1, 0, 0,
                                                                  0]]))
 
+  def test_first_item_is_blank(self):
+    collapsed, new_seq_lengths = ctc_objectives.collapse_and_remove_blanks(
+        labels=jnp.array([[0, 0, 1, 0, 0, 2, 3], [0, 0, 1, 0, 1, 1, 2],
+                          [0, 0, 1, 0, 1, 0, 1]]),
+        seq_length=jnp.array([7, 7, 7]))
+    self.assertArraysEqual(new_seq_lengths, jnp.array([3, 3, 3]))
+    self.assertArraysEqual(
+        collapsed,
+        jnp.array([[1, 2, 3, 0, 0, 0, 0], [1, 1, 2, 0, 0, 0, 0],
+                   [1, 1, 1, 0, 0, 0, 0]]))
+
+
 if __name__ == '__main__':
   absltest.main()
