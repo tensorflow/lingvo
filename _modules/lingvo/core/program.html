@@ -673,10 +673,11 @@
       <span class="k">return</span> <span class="n">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">metric_values</span><span class="p">,</span> <span class="n">outfeed</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">TrainFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">TrainFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="n">TrainFunc</span><span class="p">()</span>
 
@@ -868,10 +869,12 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">()</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">EvalFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">EvalFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EvalFunc</span><span class="p">()</span></div>
 
@@ -891,10 +894,11 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="c1"># In eager mode, after resetting the input generator, we need to</span>
-        <span class="c1"># re-trace the infeed tf.function to ensure it uses the new iterator.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+          <span class="c1"># In eager mode, after resetting the input generator, we need to</span>
+          <span class="c1"># re-trace the infeed tf.function to ensure it uses the new iterator.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="n">async_executor</span> <span class="o">=</span> <span class="n">executor</span><span class="o">.</span><span class="n">new_executor</span><span class="p">(</span><span class="n">enable_async</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
@@ -1117,11 +1121,12 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuSetup</span><span class="p">(</span><span class="n">cpu_passthrough</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">()</span></div>
 
@@ -1260,10 +1265,11 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="c1"># In eager mode, after resetting the input generator, we need to</span>
-        <span class="c1"># re-trace the infeed tf.function to ensure it uses the new iterator.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+          <span class="c1"># In eager mode, after resetting the input generator, we need to</span>
+          <span class="c1"># re-trace the infeed tf.function to ensure it uses the new iterator.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
 
     <span class="c1"># The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop</span>
     <span class="c1"># (that runs _DecodeStep). As an input batch is successfully fed through</span>
