@@ -1085,7 +1085,8 @@ class DotProductAttention(base_layer.BaseLayer):
     if p.attention_extra_logit is None:
       probs = jax.nn.softmax(padded_logits, axis=-1).astype(key.dtype)
     else:
-      probs = self._log_softmax(padded_logits).astype(key.dtype)
+      probs = jnp.exp(self._log_softmax_with_extra_logit(padded_logits)).astype(
+          key.dtype)
     # Compute the attention context.
     encoded = jnp.einsum('BNS,SBNH->BNH', probs, value)
     encoded = self._shard_bnh(encoded)

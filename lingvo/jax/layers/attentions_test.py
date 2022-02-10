@@ -484,8 +484,9 @@ class AttentionsTest(test_util.JaxTestCase):
     self.assertEqual(atten_output.shape,
                      (target_batch_size, source_max_length, mdl_dim))
 
-  @parameterized.parameters([(32, 128), (2, 8), (8, 32)])
-  def test_relative_bias_extend_step(self, num_buckets, max_distance):
+  @parameterized.parameters([(32, 128, None), (2, 8, 0.0), (8, 32, 0.1)])
+  def test_relative_bias_extend_step(self, num_buckets, max_distance,
+                                     attention_extra_logit):
     mdl_dim = 16
     hidden_dim = 32
     num_heads = 4
@@ -493,6 +494,7 @@ class AttentionsTest(test_util.JaxTestCase):
         name='relative_attn',
         input_dim=mdl_dim,
         hidden_dim=hidden_dim,
+        attention_extra_logit=attention_extra_logit,
         num_heads=num_heads)
     test_layer_p.relative_bias_tpl = attentions.RelativeBias.Params().Set(
         relative_attention_num_buckets=num_buckets,
