@@ -318,14 +318,14 @@ class Conformer(base_layer.BaseLayer):
       inputs = self.trans_atten.fprop(
           theta.trans_atten, inputs=inputs, paddings=paddings)
     elif p.layer_order == 'conv':
-      inputs = self.lconv.fprop(theta.lconv, inputs, paddings)
+      inputs = self.lconv.fprop(inputs, paddings)
     elif p.layer_order == 'mhsa_before_conv':
       inputs = self.trans_atten.fprop(
           theta.trans_atten, inputs=inputs, paddings=paddings)
-      inputs = self.lconv.fprop(theta.lconv, inputs, paddings)
+      inputs = self.lconv.fprop(inputs, paddings)
     else:
       assert p.layer_order == 'conv_before_mhsa'
-      inputs = self.lconv.fprop(theta.lconv, inputs, paddings)
+      inputs = self.lconv.fprop(inputs, paddings)
       inputs = self.trans_atten.fprop(
           theta.trans_atten, inputs=inputs, paddings=paddings)
 

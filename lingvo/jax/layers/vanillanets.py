@@ -84,11 +84,10 @@ class VanillaBlock(base_layer.BaseLayer):
         filter_stride=(1, 1)))
     self.create_children('body', body)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Forward propagation of a VanillaBlock.
 
     Args:
-      theta: A `.NestedMap` object containing variable values of this layer.
       inputs: A `.JTensor` as inputs of [B, H, W, D_in] also commonly known as
         NHWC format.
 
@@ -99,8 +98,7 @@ class VanillaBlock(base_layer.BaseLayer):
     outputs = inputs
 
     for i in range(len(self.body)):
-      outputs = tailored_lrelu(p.negative_slope,
-                               self.body[i].fprop(theta.body[i], outputs))
+      outputs = tailored_lrelu(p.negative_slope, self.body[i].fprop(outputs))
     return outputs
 
 
@@ -235,12 +233,10 @@ class VanillaNet(base_layer.BaseLayer):
       self.create_child('output_spatial_pooling',
                         p.output_spatial_pooling_params)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Applies the VanillaNet model to the inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input image tensor of shape [B, H, W, 3].
 
     Returns:
@@ -253,21 +249,21 @@ class VanillaNet(base_layer.BaseLayer):
     p = self.params
 
     # Apply the entryflow conv.
-    outputs = tailored_lrelu(
-        p.negative_slope, self.entryflow_conv.fprop(theta.entryflow_conv,
-                                                    inputs))
+    outputs = tailored_lrelu(p.negative_slope,
+                             self.entryflow_conv.fprop(inputs))
 
     # Apply the entryflow maxpooling layer.
-    outputs, _ = self.entryflow_maxpool.fprop(theta.entryflow_maxpool, outputs)
+    outputs, _ = self.entryflow_maxpool.fprop(
+        self.entryflow_maxpool.local_theta(), outputs)
 
     # Apply the VanillaNet blocks.
     for stage_id, num_blocks in enumerate(p.blocks):
       for block_id in range(num_blocks):
         block_name = f'stage_{stage_id}_block_{block_id}'
-        outputs = getattr(self, block_name).fprop(theta[block_name], outputs)
+        outputs = getattr(self, block_name).fprop(outputs)
 
     # Apply optional spatial global pooling.
     if p.output_spatial_pooling_params is not None:
-      outputs = self.output_spatial_pooling.fprop(theta.output_spatial_pooling,
-                                                  outputs)
+      outputs = self.output_spatial_pooling.fprop(
+          self.output_spatial_pooling.local_theta(), outputs)
     return outputs

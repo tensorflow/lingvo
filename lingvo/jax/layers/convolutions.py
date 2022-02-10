@@ -89,15 +89,10 @@ class Conv2D(base_layer.BaseLayer):
           weight_params(
               shape=[p.filter_shape[-1]], dtype=p.dtype, init=p.bias_init))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """FProp that supports strided, dilated convolution, depthwise convolution.
 
     Args:
-      theta: NestedMap containing the filter weights of shape [F_h, F_w, D_in,
-        D_out]. Optionally for depthwise separable convolutions the kernel can
-        be of shape [F_h, F_w, D_in//f, D_out], where f is the
-        feature_group_count. Note that in this case D_out must be a multiple of
-        feature_group_count.
       inputs: Input sequence of shape [B, H, W, D_in], also known more popularly
         as NHWC format.
 
@@ -107,6 +102,7 @@ class Conv2D(base_layer.BaseLayer):
       then H' = H and W' = W.
     """
     p = self.params
+    theta = self.local_theta()
     # Check if the feature_group_count is compatible with the inputs and filter
     # For more information see XLA docs on ConvWithGeneralPadding below
     # https://www.tensorflow.org/xla/operation_semantics#convwithgeneralpadding_convolution
@@ -179,15 +175,10 @@ class ConvBNAct(Conv2D):
     act_p = activations.Activation.Params().Set(activation=p.activation)
     self.create_child('activation', act_p)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Forward prop which applies conv-bn-activation.
 
     Args:
-      theta: NestedMap containing the filter weights of shape [F_h, F_w, D_in,
-        D_out]. Optionally for depthwise separable convolutions the kernel can
-        be of shape [F_h, F_w, D_in//f, D_out], where f is the
-        feature_group_count. Note that in this case D_out must be a multiple of
-        feature_group_count.
       inputs: Input sequence of shape [B, H, W, D_in], also known more popularly
         as NHWC format.
 
@@ -197,22 +188,17 @@ class ConvBNAct(Conv2D):
       then H' = H and W' = W.
     """
     p = self.params
-    outputs = super().fprop(theta, inputs)
+    outputs = super().fprop(inputs)
     if p.batch_norm:
-      outputs = self.bn.fprop(theta.bn, outputs)
-    outputs = self.activation.fprop(theta.activation, outputs)
+      outputs = self.bn.fprop(self.bn.local_theta(), outputs)
+    outputs = self.activation.fprop(self.activation.local_theta(), outputs)
     return outputs
 
-  def fprop_with_padding(self, theta: NestedMap, inputs: JTensor,
+  def fprop_with_padding(self, inputs: JTensor,
                          paddings: JTensor) -> Tuple[JTensor, JTensor]:
     """Forward prop with time paddings.
 
     Args:
-      theta: NestedMap containing the filter weights of shape [F_h, F_w, D_in,
-        D_out]. Optionally for depthwise separable convolutions the kernel can
-        be of shape [F_h, F_w, D_in//f, D_out], where f is the
-        feature_group_count. Note that in this case D_out must be a multiple of
-        feature_group_count.
       inputs: Input sequence of shape [B, H, W, D_in], also known more popularly
         as NHWC format.
       paddings: Input sequence of shape [B, H], where H is the time dimension.
@@ -225,7 +211,7 @@ class ConvBNAct(Conv2D):
     """
     p = self.params
 
-    outputs = self.fprop(theta, inputs)
+    outputs = self.fprop(inputs)
 
     if p.filter_stride[0] == 1 and p.padding == 'SAME':
       return outputs, paddings
@@ -289,13 +275,10 @@ class DepthwiseConv1D(base_layer.BaseLayer):
       self.create_variable(
           'b', weight_params(shape=[p.dim], dtype=p.dtype, init=p.bias_init))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor,
-            paddings: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor, paddings: JTensor) -> JTensor:
     """Depthwise convolution layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input sequence JTensor of shape [B, T, H].
       paddings: Input paddings JTensor of shape [B, T].
 
@@ -303,6 +286,7 @@ class DepthwiseConv1D(base_layer.BaseLayer):
       The depthwise conv output with shape [B, T, H].
     """
     p = self.params
+    theta = self.local_theta()
 
     # Applying padding.
     inputs = inputs * (1.0 - jnp.expand_dims(paddings, axis=-1))
@@ -400,13 +384,10 @@ class LightConv1D(base_layer.BaseLayer):
         name='dropout', keep_prob=1. - p.dropout_prob)
     self.create_child('dropout', dropout_p)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor,
-            paddings: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor, paddings: JTensor) -> JTensor:
     """Lightweight conv layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input sequence JTensor of shape [B, T, H].
       paddings: Input paddings JTensor of shape [B, T].
 
@@ -415,22 +396,23 @@ class LightConv1D(base_layer.BaseLayer):
     """
     unnormalized_inputs = inputs
 
-    inputs = self.ln.fprop(theta.ln, inputs)
-    act_inputs = self.linear_start_act.fprop(theta.linear_start_act, inputs)
-    gated_inputs = self.linear_start_gated.fprop(theta.linear_start_gated,
-                                                 inputs)
+    inputs = self.ln.fprop(self.ln.local_theta(), inputs)
+    act_inputs = self.linear_start_act.fprop(
+        self.linear_start_act.local_theta(), inputs)
+    gated_inputs = self.linear_start_gated.fprop(
+        self.linear_start_gated.local_theta(), inputs)
     inputs = act_inputs * jax.nn.sigmoid(gated_inputs)
 
-    inputs = self.depthwise_conv1d.fprop(theta.depthwise_conv1d, inputs,
-                                         paddings)
+    inputs = self.depthwise_conv1d.fprop(inputs, paddings)
 
-    inputs = self.conv_norm.fprop(theta.conv_norm, inputs,
+    inputs = self.conv_norm.fprop(self.conv_norm.local_theta(), inputs,
                                   jnp.expand_dims(paddings, -1))
 
-    inputs = self.conv_activation.fprop(theta.conv_activation, inputs)
+    inputs = self.conv_activation.fprop(self.conv_activation.local_theta(),
+                                        inputs)
 
-    inputs = self.linear_end.fprop(theta.linear_end, inputs)
-    inputs = self.dropout.fprop(theta.dropout, inputs)
+    inputs = self.linear_end.fprop(self.linear_end.local_theta(), inputs)
+    inputs = self.dropout.fprop(self.dropout.local_theta(), inputs)
 
     output = inputs + unnormalized_inputs
     return output

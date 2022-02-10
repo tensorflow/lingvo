@@ -76,9 +76,10 @@ def to_tf_nmap(x_nmap: NestedMap) -> NestedMap:
   return tf.nest.map_structure(to_tf, x_nmap)
 
 
-def apply(layer, layer_vars, method, *args, **kwags):
+def apply(layer, layer_vars, method, *args, context_p=None, **kwags):
   prng_key = jax.random.PRNGKey(seed=123)
   with base_layer.JaxContext.new_context(
+      params=context_p,
       prng_key=prng_key,
       global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
     jax_context.bind(layer, layer.vars_to_flax_vars(layer_vars))

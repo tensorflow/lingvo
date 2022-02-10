@@ -110,11 +110,11 @@ class ResNetBlock(base_layer.BaseLayer):
 
     # body
     for i in range(len(self.body)):
-      outputs = self.body[i].fprop(self.body[i].local_theta(), outputs)
+      outputs = self.body[i].fprop(outputs)
 
     # projection
     if not self._in_out_same_shape:
-      inputs = self.shortcut.fprop(self.shortcut.local_theta(), inputs)
+      inputs = self.shortcut.fprop(inputs)
 
     # residual
     if p.residual_droppath_prob:
@@ -274,8 +274,7 @@ class ResNet(base_layer.BaseLayer):
     p = self.params
 
     # Apply the entryflow conv.
-    outputs = self.entryflow_conv.fprop(self.entryflow_conv.local_theta(),
-                                        inputs)
+    outputs = self.entryflow_conv.fprop(inputs)
 
     # Apply the entryflow maxpooling layer.
     outputs, _ = self.entryflow_maxpool.fprop(

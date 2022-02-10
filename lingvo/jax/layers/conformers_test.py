@@ -78,7 +78,9 @@ class ConformerTest(test_util.JaxTestCase):
     def Comp(theta, inputs, paddings):
       with cluster_factory.SetEval(True):
         with base_layer.JaxContext.new_context(
-            params=context_p, prng_key=prng_key, global_step=jnp.asarray(0)):
+            params=context_p, prng_key=prng_key,
+            global_step=jnp.asarray(0)) as jax_context:
+          jax_context.bind(conformer, conformer.vars_to_flax_vars(theta))
           output = conformer.fprop(theta, inputs, paddings)
           return output
 
@@ -147,7 +149,10 @@ class StackedConformerTest(test_util.JaxTestCase):
     def Comp(theta, inputs, paddings):
       with cluster_factory.SetEval(True):
         with base_layer.JaxContext.new_context(
-            params=context_p, prng_key=prng_key, global_step=jnp.asarray(0)):
+            params=context_p, prng_key=prng_key,
+            global_step=jnp.asarray(0)) as jax_context:
+          jax_context.bind(stacked_conformer,
+                           stacked_conformer.vars_to_flax_vars(theta))
           output = stacked_conformer.fprop(theta, inputs, paddings)
       return output
 
