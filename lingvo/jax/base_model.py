@@ -720,7 +720,7 @@ class ClassificationModel(BaseModel):
     """
     p = self.params
     inputs = input_batch.Get(p.input_field)
-    features = self.network.fprop(theta.network, inputs)
+    features = self.network.fprop(inputs)
     batch_size = inputs.shape[0]
     example_weights = jnp.ones([batch_size])
     if 'weight' in input_batch:
