@@ -31,6 +31,7 @@ pytype_strict_library(
         ":recurrent",
         ":repeats",
         ":resnets",
+        ":rnn_cell",
         ":spectrum_augmenter",
         ":stochastics",
         ":transformers",
@@ -313,6 +314,19 @@ py_strict_test(
         "//lingvo/jax/layers:spectrum_augmenter",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
+    ],
+)
+
+pytype_strict_library(
+    name = "rnn_cell",
+    srcs = ["rnn_cell.py"],
+    srcs_version = "PY3",
+    deps = [
+        # Implicit jax dependency.
+        "//lingvo/jax:asserts",
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
     ],
 )
 
@@ -643,6 +657,24 @@ py_strict_test(
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_strict_test(
+    name = "rnn_cell_test",
+    srcs = ["rnn_cell_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":rnn_cell",
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit jax dependency.
+        "//lingvo/core:rnn_cell",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],

@@ -63,6 +63,8 @@ from lingvo.jax.layers.recurrent import scan
 from lingvo.jax.layers.repeats import Repeat
 from lingvo.jax.layers.resnets import ResNet
 from lingvo.jax.layers.resnets import ResNetBlock
+from lingvo.jax.layers.rnn_cell import CIFGLSTMCellSimple
+from lingvo.jax.layers.rnn_cell import LSTMCellSimple
 from lingvo.jax.layers.spectrum_augmenter import SpectrumAugmenter
 from lingvo.jax.layers.stochastics import Dropout
 from lingvo.jax.layers.stochastics import StochasticResidual
