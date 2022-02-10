@@ -351,7 +351,6 @@ class StackedConformer(base_layer.BaseLayer):
     p.Define('input_dims', None, 'Input feature dimensions')
     p.Define('model_dims', None, 'Conformer model dimensions')
     p.Define('num_layers', None, 'Number of layers')
-    p.Define('dropout_prob', 0.0, 'Dropout probability')
     return p
 
   @property
@@ -366,9 +365,7 @@ class StackedConformer(base_layer.BaseLayer):
     layers_p = []
     for _ in range(p.num_layers):
       conformer_p = p.conformer_tpl.Copy().Set(
-          input_dims=p.model_dims,
-          model_dims=p.model_dims,
-          dropout_prob=p.dropout_prob)
+          input_dims=p.model_dims, model_dims=p.model_dims)
       layers_p.append(conformer_p)
 
     # adjust input layer

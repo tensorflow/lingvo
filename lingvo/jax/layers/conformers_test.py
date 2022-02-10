@@ -128,10 +128,10 @@ class StackedConformerTest(test_util.JaxTestCase):
         name='conformer',
         input_dims=input_dims,
         model_dims=model_dims,
-        num_layers=2,
-        dropout_prob=dropout_prob)
+        num_layers=2)
     p.conformer_tpl.atten_num_heads = atten_num_heads
     p.conformer_tpl.kernel_size = kernel_size
+    p.conformer_tpl.dropout_prob = dropout_prob
 
     stacked_conformer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
