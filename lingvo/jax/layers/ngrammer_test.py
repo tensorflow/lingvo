@@ -85,22 +85,10 @@ class NgrammerTest(test_util.JaxTestCase):
     )
     vq_layer = vq_layer_p.Instantiate()
     initial_vars = vq_layer.instantiate_variables(init_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
-    prng_key, compute_key = jax.random.split(prng_key)
 
-    # comppute vq function is fully functional.
-    @jax.jit
-    def compute_vq(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step) as j_context:
-        j_context.bind(vq_layer, vq_layer.vars_to_flax_vars(theta),
-                       [base_layer.SCOPE_VARS])
-        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = vq_layer.fprop(theta, inputs)
-        return output
+    jax_dists, _ = test_utils.apply(vq_layer, initial_vars, vq_layer.fprop,
+                                    inputs)
 
-    jax_dists, _ = compute_vq(initial_vars, compute_key, global_step, inputs)
     # Now run TF based computation.
     tf_vq_layer_p = attention_util.KMeansClusteringForAtten.Params().Set(
         name='tf_vq_layer',
@@ -146,23 +134,10 @@ class NgrammerTest(test_util.JaxTestCase):
     )
     ngrammer_layer = ngrammer_layer_p.Instantiate()
     initial_vars = ngrammer_layer.instantiate_variables(init_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
-    prng_key, compute_key = jax.random.split(prng_key)
 
-    # compute ngrams function is fully functional.
-    @jax.jit
-    def compute_ngrams(theta, prng_key, global_step, inputs, input_embs):
-      with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step) as j_context:
-        j_context.bind(ngrammer_layer, ngrammer_layer.vars_to_flax_vars(theta),
-                       [base_layer.SCOPE_VARS])
-        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = ngrammer_layer.fprop(theta, inputs, input_embs, paddings)
-        return output
-
-    ngram_embs = compute_ngrams(initial_vars, compute_key, global_step, inputs,
-                                input_embs)
+    ngram_embs = test_utils.apply(ngrammer_layer, initial_vars,
+                                  ngrammer_layer.fprop, inputs, input_embs,
+                                  paddings)
     ngram_embs = np.reshape(ngram_embs,
                             [batch_size, seq_len, num_heads, dim_per_head])
     input_embs = np.reshape(input_embs,
@@ -221,21 +196,10 @@ class NgrammerTest(test_util.JaxTestCase):
     )
     ngrammer_layer = ngrammer_layer_p.Instantiate()
     initial_vars = ngrammer_layer.instantiate_variables(init_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
-    prng_key, compute_key = jax.random.split(prng_key)
 
-    # compute ngrams function is fully functional.
-    @jax.jit
-    def compute_ngrams(theta, prng_key, global_step, inputs, input_embs):
-      with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step):
-        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = ngrammer_layer.fprop(theta, inputs, input_embs, paddings)
-        return output
-
-    ngram_embs = compute_ngrams(initial_vars, compute_key, global_step, inputs,
-                                input_embs)
+    ngram_embs = test_utils.apply(ngrammer_layer, initial_vars,
+                                  ngrammer_layer.fprop, inputs, input_embs,
+                                  paddings)
     ngram_embs = np.reshape(ngram_embs,
                             [batch_size, seq_len, num_heads, dim_per_head])
     input_embs = np.reshape(input_embs,
@@ -301,12 +265,14 @@ class NgrammerTest(test_util.JaxTestCase):
     @jax.jit
     def compute_vq_ngrams(theta, prng_key, global_step, input_embs):
       with base_layer.JaxContext.new_context(
-          params=context_params, prng_key=prng_key, global_step=global_step):
+          params=context_params, prng_key=prng_key,
+          global_step=global_step) as jax_context:
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = vq_ngrammer_layer.fprop(theta, None, input_embs, paddings)
-        distances, _ = vq_ngrammer_layer.vq_layer.fprop(theta.vq_layer,
-                                                        input_embs)
+        jax_context.bind(vq_ngrammer_layer,
+                         vq_ngrammer_layer.vars_to_flax_vars(theta))
+        output = vq_ngrammer_layer.fprop(None, input_embs, paddings)
+        distances, _ = vq_ngrammer_layer.vq_layer.fprop(input_embs)
         return output, distances
 
     ngram_embs, dists = compute_vq_ngrams(initial_vars, compute_key,

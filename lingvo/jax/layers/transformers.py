@@ -2349,7 +2349,6 @@ class TransformerLm(base_layer.BaseLayer):
       # Add NGrammer to the source embeddings.
       if p.ngrammer_tpl is not None:
         input_emb = self.ngrammer.fprop(
-            theta.ngrammer,
             input_ids=inputs,
             input_embs=input_emb,
             paddings=paddings,
@@ -2426,7 +2425,7 @@ class TransformerLm(base_layer.BaseLayer):
     # Add Ngrammer layer if applicable.
     if p.ngrammer_tpl is not None:
       input_emb = self.ngrammer.fprop(
-          theta.ngrammer, inputs, input_emb, paddings=None, segment_pos=None)
+          inputs, input_emb, paddings=None, segment_pos=None)
       inputs = inputs[:, -1][:, jnp.newaxis]
       input_emb = input_emb[:, -1, :][:, jnp.newaxis, :]
 
@@ -2672,7 +2671,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     # Add NGrammer to the source embeddings.
     if p.encoder_ngrammer_tpl is not None:
       input_emb = self.encoder_ngrammer.fprop(
-          theta.encoder_ngrammer,
           input_ids=inputs,
           input_embs=input_emb,
           paddings=input_paddings,
@@ -2815,7 +2813,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
 
     if p.decoder_ngrammer_tpl is not None:
       target_emb = self.decoder_ngrammer.fprop(
-          theta.decoder_ngrammer,
           input_ids=targets,
           input_embs=target_emb,
           paddings=target_paddings,
@@ -2940,7 +2937,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     time_step = cached_states.step
     if p.decoder_ngrammer_tpl is not None:
       target_emb = self.decoder_ngrammer.fprop(
-          theta.decoder_ngrammer,
           targets,
           target_emb,
           paddings=None,

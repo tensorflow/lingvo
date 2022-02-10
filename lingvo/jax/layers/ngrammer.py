@@ -125,13 +125,11 @@ class VectorQuantization(base_layer.BaseLayer):
     self.create_variable('means', means, trainable=False)
 
   def fprop(self,
-            theta: NestedMap,
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> Tuple[JTensor, JTensor]:
     """Computes distances of the given input 'x' to all centroids.
 
     Args:
-      theta: A `.NestedMap` of weights' values of this layer.
       inputs: Input tensor of shape [B, L, N, H] or [B, L, D].
       paddings: If not None, a tensor of shape [B, L]. The padding tensor is
         supplied when we want certain tokens to not affect the centroids.
@@ -144,6 +142,7 @@ class VectorQuantization(base_layer.BaseLayer):
              [B, L, N, H].
     """
     p = self.params
+    theta = self.local_theta()
     inputs = self._cast_to_fprop_dtype(inputs)
     inputs_shape = inputs.shape
     if len(inputs_shape) == 3:
@@ -276,7 +275,6 @@ class Ngrammer(base_layer.BaseLayer):
     self.create_children('ngram_table', ngram_emb_table_p)
 
   def fprop(self,
-            theta: NestedMap,
             input_ids: JTensor,
             input_embs: JTensor,
             paddings: Optional[JTensor] = None,
@@ -284,7 +282,6 @@ class Ngrammer(base_layer.BaseLayer):
     """Augments the input embeddings with VQ n-gram layer embeddings.
 
     Args:
-      theta: A `.NestedMap` of weights' values of this layer.
       input_ids: Input unigram id tensor of shape [B, L] or [B, L, N].
       input_embs: Input unigram embedding tensor of shape [B, L, D] to which to
         add the ngram embedding.
@@ -334,10 +331,11 @@ class Ngrammer(base_layer.BaseLayer):
       ngram_ids_for_head = _multi_way_hash_ids(ngram_ids, i + 1, i + 1,
                                                primes[i], vocab_size)
       ngram_embs_to_concat.append(self.ngram_table[i].fprop(
-          theta.ngram_table[i], jnp.reshape(ngram_ids_for_head, [-1])))
+          self.ngram_table[i].local_theta(),
+          jnp.reshape(ngram_ids_for_head, [-1])))
       # [B * L, H]
       ngram_embs_to_concat[i] = self.ngram_layer_norm[i].fprop(
-          theta.ngram_layer_norm[i], ngram_embs_to_concat[i])
+          self.ngram_layer_norm[i].local_theta(), ngram_embs_to_concat[i])
 
     # [B * L, N * H].
     ngram_embs = jnp.concatenate(ngram_embs_to_concat, 1)
@@ -350,7 +348,7 @@ class Ngrammer(base_layer.BaseLayer):
       # Reshape into [B * L, H]
       per_head_emb = jnp.reshape(input_embs_per_head[i], [-1, p.dim_per_head])
       input_embs_per_head[i] = self.emb_layer_norm[i].fprop(
-          theta.emb_layer_norm[i], per_head_emb)
+          self.emb_layer_norm[i].local_theta(), per_head_emb)
       # Reshape to [B, L, H]
       input_embs_per_head[i] = jnp.reshape(
           input_embs_per_head[i], [batch_size, seq_length, p.dim_per_head])
@@ -438,7 +436,6 @@ class VQNgrammer(base_layer.BaseLayer):
     self.create_child('ngram_layer', ngram_layer_p)
 
   def fprop(self,
-            theta: NestedMap,
             input_ids: JTensor,
             input_embs: JTensor,
             paddings: Optional[JTensor] = None,
@@ -446,7 +443,6 @@ class VQNgrammer(base_layer.BaseLayer):
     """Augments the input embeddings with VQ ngram layer embeddings.
 
     Args:
-      theta: A `.NestedMap` of weights' values of this layer.
       input_ids: Input unigram id tensor of shape [B, L] or [B, L, N]. This is
         unused and is added here to be consistent with the Ngrammger API.
       input_embs: Input unigram embedding tensor of shape [B, L, D] to which to
@@ -464,13 +460,12 @@ class VQNgrammer(base_layer.BaseLayer):
     input_embs = self._cast_to_fprop_dtype(input_embs)
 
     # Distances of shape [B, L, N, K].
-    distances, _ = self.vq_layer.fprop(
-        theta.vq_layer, input_embs, paddings=paddings)
+    distances, _ = self.vq_layer.fprop(input_embs, paddings=paddings)
 
     # [B, L, N].
     cluster_ids = jnp.argmin(distances, -1)
 
     # [B, L, D].
-    output_embs = self.ngram_layer.fprop(theta.ngram_layer, cluster_ids,
-                                         input_embs, paddings, segment_pos)
+    output_embs = self.ngram_layer.fprop(cluster_ids, input_embs, paddings,
+                                         segment_pos)
     return output_embs

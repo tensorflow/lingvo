@@ -1032,7 +1032,9 @@ class TransformersTest(test_util.JaxTestCase):
     with base_layer.JaxContext.new_context(
         params=context_params,
         prng_key=prng_key,
-        global_step=jnp.array(0, dtype=jnp.uint32)):
+        global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
+      jax_context.bind(transformer_lm,
+                       transformer_lm.vars_to_flax_vars(initial_vars))
       fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
                                            jnp.zeros_like(inputs))
       logits = fprop_outputs.logits
@@ -1161,7 +1163,9 @@ class TransformersTest(test_util.JaxTestCase):
     with base_layer.JaxContext.new_context(
         params=context_params,
         prng_key=prng_key,
-        global_step=jnp.array(0, dtype=jnp.uint32)):
+        global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
+      jax_context.bind(transformer_lm,
+                       transformer_lm.vars_to_flax_vars(initial_vars))
       fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
                                            jnp.zeros_like(inputs))
       logits = fprop_outputs.logits
