@@ -124,12 +124,10 @@ class VitEntryLayers(base_layer.BaseLayer):
           name='dropout', keep_prob=1.0 - p.pos_emb_dropout_prob)
       self.create_child('dropout', p_dropout)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Applies the vit entry operations to the input image.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input image tensor of shape [B, H, W, 3].
 
     Returns:
@@ -137,13 +135,14 @@ class VitEntryLayers(base_layer.BaseLayer):
     """
     p = self.params
     features = image_to_patch(inputs, p.patch_size)
-    features = self.patch_projection.fprop(theta.patch_projection, features)
+    features = self.patch_projection.fprop(self.patch_projection.local_theta(),
+                                           features)
 
     num_patches = (p.image_size // p.patch_size)**2
     features = features + self.pos_emb.fprop(
-        theta.pos_emb, seq_length=num_patches)
+        self.pos_emb.local_theta(), seq_length=num_patches)
     if self.params.pos_emb_dropout_prob > 0.0:
-      features = self.dropout.fprop(theta.dropout, features)
+      features = self.dropout.fprop(self.dropout.local_theta(), features)
 
     return features
 
@@ -201,19 +200,17 @@ class VitTransformerLayers(base_layer.BaseLayer):
 
     self.create_child('tfms', p_stacked_tfm)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Applying transformers sequentially.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input tensor of shape [B, N, D].
 
     Returns:
       Output tensor of shape [B, N, D].
     """
     paddings = jnp.zeros(inputs.shape[:2])
-    inputs = self.tfms.fprop(theta.tfms, inputs, paddings)
+    inputs = self.tfms.fprop(self.tfms.local_theta(), inputs, paddings)
 
     return inputs
 
@@ -254,22 +251,20 @@ class VitExitLayers(base_layer.BaseLayer):
                                                    p.output_dropout_prob)
       self.create_child('dropout', p_dropout)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """FProp function.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input tensor of shape [B, N, D].
 
     Returns:
       Output tensor of shape [B, D].
     """
-    inputs = self.ln.fprop(theta.ln, inputs)
+    inputs = self.ln.fprop(self.ln.local_theta(), inputs)
     inputs = self.pooling.fprop(inputs)
-    inputs = self.fc_tanh.fprop(theta.fc_tanh, inputs)
+    inputs = self.fc_tanh.fprop(self.fc_tanh.local_theta(), inputs)
     if self.params.output_dropout_prob > 0.0:
-      inputs = self.dropout.fprop(theta.dropout, inputs)
+      inputs = self.dropout.fprop(self.dropout.local_theta(), inputs)
     return inputs
 
 
@@ -432,18 +427,16 @@ class VisionTransformer(base_layer.BaseLayer):
     )
     self.create_child('exit_stack', p_exit)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Applies the Vit model to the inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input image tensor of shape [B, H, W, 3] (H == W).
 
     Returns:
       Output tensor of shape [B, D].
     """
-    features = self.entry_stack.fprop(theta.entry_stack, inputs)  # [B, N, D]
-    features = self.mid_stack.fprop(theta.mid_stack, features)  # [B, N, D]
-    features = self.exit_stack.fprop(theta.exit_stack, features)  # [B, D]
+    features = self.entry_stack.fprop(inputs)  # [B, N, D]
+    features = self.mid_stack.fprop(features)  # [B, N, D]
+    features = self.exit_stack.fprop(features)  # [B, D]
     return features

@@ -19,8 +19,7 @@ from absl.testing import absltest
 import jax
 from jax import numpy as jnp
 from jax import test_util
-from lingvo.jax import base_layer
-
+from lingvo.jax import test_utils
 from lingvo.jax.layers import vit
 
 import numpy as np
@@ -47,9 +46,7 @@ class VitTest(test_util.JaxTestCase):
     inputs_np = np.random.normal(size=[batch_size, height, width, 3])
     inputs = jnp.asarray(inputs_np)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
-      features = entry.fprop(initial_vars, inputs)
+    features = test_utils.apply(entry, initial_vars, entry.fprop, inputs)
 
     self.assertEqual(features.shape,
                      (batch_size, height * width // patch_size**2, hidden_dim))
@@ -80,9 +77,7 @@ class VitTest(test_util.JaxTestCase):
     inputs_np = np.random.normal(size=[batch_size, num_tokens, input_dims])
     inputs = jnp.asarray(inputs_np)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
-      features = middle.fprop(initial_vars, inputs)
+    features = test_utils.apply(middle, initial_vars, middle.fprop, inputs)
 
     self.assertEqual(features.shape, (batch_size, num_tokens, input_dims))
 
@@ -104,9 +99,8 @@ class VitTest(test_util.JaxTestCase):
     inputs_np = np.random.normal(size=[batch_size, num_tokens, input_dims])
     inputs = jnp.asarray(inputs_np)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
-      features = exit_module.fprop(initial_vars, inputs)
+    features = test_utils.apply(exit_module, initial_vars, exit_module.fprop,
+                                inputs)
 
     self.assertEqual(features.shape, (batch_size, input_dims))
 
@@ -142,9 +136,8 @@ class VitTest(test_util.JaxTestCase):
     inputs_np = np.random.normal(size=[batch_size, height, width, 3])
     inputs = jnp.asarray(inputs_np)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=prng_key, global_step=jnp.array(0, dtype=jnp.uint32)):
-      features = vit_model.fprop(initial_vars, inputs)
+    features = test_utils.apply(vit_model, initial_vars, vit_model.fprop,
+                                inputs)
 
     self.assertEqual(features.shape, (batch_size, hidden_dims))
 

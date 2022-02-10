@@ -462,6 +462,7 @@ py_strict_test(
         # Implicit absl.testing.absltest dependency.
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
+        "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         "//third_party/py/tensorflow:tensorflow_no_contrib",
     ],
