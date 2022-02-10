@@ -608,10 +608,11 @@ class TrainProgram(BaseProgram):
       return _ConstructPostTrainingLoop(metric_values, outfeed)
 
     if py_utils.IsEagerMode():
-      self.infeed_fn = tf.function(autograph=False)(
-          self.InfeedFunc).get_concrete_function()
-      self.tpu_outs = (
-          tf.function(autograph=False)(TrainFunc).get_concrete_function())
+      with self._summary_writer.as_default():
+        self.infeed_fn = tf.function(autograph=False)(
+            self.InfeedFunc).get_concrete_function()
+        self.tpu_outs = (
+            tf.function(autograph=False)(TrainFunc).get_concrete_function())
     else:
       self.tpu_outs = TrainFunc()
 
@@ -803,10 +804,12 @@ class EvalProgram(BaseProgram):
       self._task.input.TpuSetup()
 
       if py_utils.IsEagerMode():
-        self.infeed_fn = tf.function(autograph=False)(
-            self.InfeedFunc).get_concrete_function()
-        self.tpu_outs = (
-            tf.function(autograph=False)(self.EvalFunc).get_concrete_function())
+        with self._summary_writer.as_default():
+          self.infeed_fn = tf.function(autograph=False)(
+              self.InfeedFunc).get_concrete_function()
+          self.tpu_outs = (
+              tf.function(autograph=False)(
+                  self.EvalFunc).get_concrete_function())
       else:
         self.tpu_outs = self.EvalFunc()
 
@@ -826,10 +829,11 @@ class EvalProgram(BaseProgram):
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
       if py_utils.IsEagerMode():
-        # In eager mode, after resetting the input generator, we need to
-        # re-trace the infeed tf.function to ensure it uses the new iterator.
-        self.infeed_fn = tf.function(autograph=False)(
-            self.InfeedFunc).get_concrete_function()
+        with self._summary_writer.as_default():
+          # In eager mode, after resetting the input generator, we need to
+          # re-trace the infeed tf.function to ensure it uses the new iterator.
+          self.infeed_fn = tf.function(autograph=False)(
+              self.InfeedFunc).get_concrete_function()
 
     if py_utils.IsEagerMode():
       async_executor = executor.new_executor(enable_async=True)
@@ -1052,11 +1056,12 @@ class DecodeProgram(BaseProgram):
       self._task.input.TpuSetup(cpu_passthrough=True)
 
       if py_utils.IsEagerMode():
-        self.infeed_fn = tf.function(autograph=False)(
-            self.InfeedFunc).get_concrete_function()
-        self.tpu_outs = (
-            tf.function(autograph=False)(
-                self.DecodeFunc).get_concrete_function())
+        with self._summary_writer.as_default():
+          self.infeed_fn = tf.function(autograph=False)(
+              self.InfeedFunc).get_concrete_function()
+          self.tpu_outs = (
+              tf.function(autograph=False)(
+                  self.DecodeFunc).get_concrete_function())
       else:
         self.tpu_outs = self.DecodeFunc()
 
@@ -1195,10 +1200,11 @@ class DecodeProgram(BaseProgram):
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
       if py_utils.IsEagerMode():
-        # In eager mode, after resetting the input generator, we need to
-        # re-trace the infeed tf.function to ensure it uses the new iterator.
-        self.infeed_fn = tf.function(autograph=False)(
-            self.InfeedFunc).get_concrete_function()
+        with self._summary_writer.as_default():
+          # In eager mode, after resetting the input generator, we need to
+          # re-trace the infeed tf.function to ensure it uses the new iterator.
+          self.infeed_fn = tf.function(autograph=False)(
+              self.InfeedFunc).get_concrete_function()
 
     # The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop
     # (that runs _DecodeStep). As an input batch is successfully fed through
