@@ -266,7 +266,7 @@ class VitExitLayers(base_layer.BaseLayer):
       Output tensor of shape [B, D].
     """
     inputs = self.ln.fprop(theta.ln, inputs)
-    inputs = self.pooling.fprop(theta.pooling, inputs)
+    inputs = self.pooling.fprop(inputs)
     inputs = self.fc_tanh.fprop(theta.fc_tanh, inputs)
     if self.params.output_dropout_prob > 0.0:
       inputs = self.dropout.fprop(theta.dropout, inputs)

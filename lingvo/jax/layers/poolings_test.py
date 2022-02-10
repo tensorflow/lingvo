@@ -65,7 +65,8 @@ class PoolingsTest(test_util.JaxTestCase):
     inputs = jnp.asarray(npy_inputs)
     paddings = None
     tf_paddings = None
-    output, _ = pooling_layer.fprop(initial_vars, inputs, paddings)
+    output, _ = test_utils.apply(pooling_layer, initial_vars,
+                                 pooling_layer.fprop, inputs, paddings)
     # Test whether tf Pooling layer returns the same output.
     # Modify initial_vars to use TF compatible params.
     tf_initial_vars = initial_vars
@@ -122,7 +123,9 @@ class PoolingsTest(test_util.JaxTestCase):
           0, 2, [input_shape[0], input_shape[1]]).astype(npy_inputs.dtype)
     paddings = jnp.asarray(npy_paddings)
     tf_paddings = tf.constant(npy_paddings, dtype=tf.float32)
-    output, out_paddings = pooling_layer.fprop(initial_vars, inputs, paddings)
+    output, out_paddings = test_utils.apply(pooling_layer, initial_vars,
+                                            pooling_layer.fprop, inputs,
+                                            paddings)
     # Test whether tf Pooling layer returns the same output.
     # Modify initial_vars to use TF compatible params.
     tf_initial_vars = initial_vars

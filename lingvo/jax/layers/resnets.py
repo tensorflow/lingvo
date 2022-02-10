@@ -277,8 +277,7 @@ class ResNet(base_layer.BaseLayer):
     outputs = self.entryflow_conv.fprop(inputs)
 
     # Apply the entryflow maxpooling layer.
-    outputs, _ = self.entryflow_maxpool.fprop(
-        self.entryflow_maxpool.local_theta(), outputs)
+    outputs, _ = self.entryflow_maxpool.fprop(outputs)
 
     # Apply the ResNet blocks.
     for stage_id, num_blocks in enumerate(p.blocks):
@@ -289,6 +288,5 @@ class ResNet(base_layer.BaseLayer):
 
     # Apply optional spatial global pooling.
     if p.output_spatial_pooling_params is not None:
-      outputs = self.output_spatial_pooling.fprop(
-          self.output_spatial_pooling.local_theta(), outputs)
+      outputs = self.output_spatial_pooling.fprop(outputs)
     return outputs

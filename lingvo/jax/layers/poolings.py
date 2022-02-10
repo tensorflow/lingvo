@@ -67,15 +67,12 @@ class Pooling(base_layer.BaseLayer):
 
   def fprop(
       self,
-      theta: NestedMap,
       inputs: JTensor,
       paddings: Optional[JTensor] = None,
   ) -> Tuple[JTensor, Optional[JTensor]]:
     """Applies pooling to inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input sequence of shape [B, H, W, D_in], also known more popularly
         as NHWC format.
       paddings: The paddings tensor. It is expected to be of shape [B, H].
@@ -201,12 +198,10 @@ class GlobalPooling(base_layer.BaseLayer):
       if not all([p_dims >= 0 for p_dims in p.pooling_dims]):
         raise ValueError('pooling_dims must be non-negative integers.')
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Applies global spatial pooling to inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: An input tensor.
 
     Returns:
