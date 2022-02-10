@@ -154,23 +154,25 @@ def train_and_evaluate(
   _write_params_file(model_config, job_log_dir)
   task_p = model_config.task()
 
-  for inp in model_config.datasets():
+  input_p = model_config.datasets()
+  # Note that we modify input params below with runtime information, therefore
+  # model_config.dataset() should not be called again as it won't have the
+  # correct runtime information populated.
+  for inp in input_p:
     if not isinstance(inp, base_input.BaseInputParams):
       raise ValueError('Expecting BaseInputParams from datasets(), got: '
                        f'{inp.ToText()}')
     inp.num_infeed_hosts = jax.process_count()
     inp.infeed_host_index = jax.process_index()
-  train_input_p = [v for v in model_config.datasets() if v.is_training]
+  train_input_p = [v for v in input_p if v.is_training]
   if len(train_input_p) != 1:
     raise ValueError(
         f'Expecting exactly one training split. Got `{len(train_input_p)}`.')
   train_input_p = train_input_p[0]
+  logging.info('train_input_p=%s', train_input_p.ToText())
   eval_input_p = None
   if eval_on_test:
-    eval_input_p = [v for v in model_config.datasets() if not v.is_training]
-  if 'bucket_batch_limit' in train_input_p:
-    logging.info('train_input_p.bucket_batch_limit: %s',
-                 train_input_p.bucket_batch_limit)
+    eval_input_p = [v for v in input_p if not v.is_training]
 
   checkpoint_type = checkpoints.retrieve_checkpoint_type(
       multi_host_checkpointing, maybe_use_persistence_checkpointing, task_p)
