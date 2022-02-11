@@ -254,12 +254,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     return outputs
 
-  def fprop(self, theta: NestedMap, inputs: JTensor,
+  def fprop(self, inputs: JTensor,
             paddings: JTensor) -> Tuple[JTensor, JTensor]:
     """Applies data augmentation by randomly masking values in the spectrum.
 
     Args:
-      theta: A `.NestedMap` object containing weights. Not used for this layer.
       inputs: A tensor of shape [batch, length, channels].
       paddings: A 0/1 tensor of shape [batch, length].
 
@@ -268,8 +267,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       new_inputs: A tensor of shape [batch, length, channels].
       paddings: A 0/1 tensor of shape [batch, length].
     """
-    del theta
-
     lengths = jnp.einsum('bh->b', 1 - paddings).astype(jnp.int32)
 
     prng_key = base_layer.next_prng_key()
