@@ -339,11 +339,10 @@ class ClassificationMLPModel(BaseModel):
   def compute_predictions(self, theta: NestedMap,
                           input_batch: NestedMap) -> Predictions:
 
-    input_emb = self.softmax.emb_lookup(theta.softmax, input_batch.ids)
+    input_emb = self.softmax.emb_lookup(input_batch.ids)
 
     output = self.mlp_layers.fprop(theta.mlp_layers, input_emb)
     predictions = self.softmax.fprop(
-        theta=theta.softmax,
         inputs=output,
         class_weights=input_batch.weights[:, :, jnp.newaxis],
         class_ids=input_batch.ids[:, :, jnp.newaxis])
@@ -480,9 +479,17 @@ class LanguageModel(BaseModel):
         target_batch_size=batch_size,
         target_max_length=p.decoder.seqlen)
 
+    prng_key = base_layer.next_prng_key()
+    global_step = base_layer.cur_global_step()
+
+    lm_theta = self.lm.local_theta()
     def extend_step_fn(states, ids):
-      new_states, xent = self.lm.extend_step(theta.lm, states, ids)
-      return new_states, xent.logits
+      with base_layer.JaxContext.new_context(
+          prng_key=prng_key, global_step=global_step) as jax_context:
+        jax_context.bind(self.lm, self.lm.vars_to_flax_vars(lm_theta),
+                         [base_layer.SCOPE_AUX_LOSS])
+        new_states, xent = self.lm.extend_step(lm_theta, states, ids)
+        return new_states, xent.logits
 
     result = greedy_decode(
         extend_step_fn,
@@ -633,9 +640,17 @@ class SequenceModel(BaseModel):
         target_batch_size=batch_size,
         target_max_length=p.decoder.seqlen)
 
+    prng_key = base_layer.next_prng_key()
+    global_step = base_layer.cur_global_step()
+
+    model_theta = self.model.local_theta()
     def extend_step_fn(states, ids):
-      new_states, xent = self.model.extend_step(theta.model, states, ids)
-      return new_states, xent.logits
+      with base_layer.JaxContext.new_context(
+          prng_key=prng_key, global_step=global_step) as jax_context:
+        jax_context.bind(self.model, self.model.vars_to_flax_vars(model_theta),
+                         [base_layer.SCOPE_AUX_LOSS])
+        new_states, xent = self.model.extend_step(model_theta, states, ids)
+        return new_states, xent.logits
 
     result = greedy_decode(
         extend_step_fn,
@@ -731,7 +746,6 @@ class ClassificationModel(BaseModel):
             f'is {example_weights.shape}')
     # Softmax expects weights to be of shape [..., 1].
     softmax_output = self.softmax.fprop(
-        theta=theta.softmax,
         inputs=features,
         class_weights=example_weights[:, jnp.newaxis],
         class_probabilities=input_batch.label_probs)

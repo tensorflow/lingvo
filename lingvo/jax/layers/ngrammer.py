@@ -261,7 +261,7 @@ class Ngrammer(base_layer.BaseLayer):
       ngram_emb_layer_norm_p.append(ngram_layer_norm_p)
 
       # Create embedding table for ngram lookup.
-      embedding_p = (embedding_softmax.SingleShardEmbedding.Params().Copy())
+      embedding_p = embedding_softmax.SingleShardEmbedding.Params().Copy()
       embedding_p.name = f'embedding_{i}'
       embedding_p.vocab_size = p.ngram_vocab_size
       embedding_p.embedding_dims = p.ngram_emb_dim
@@ -331,7 +331,6 @@ class Ngrammer(base_layer.BaseLayer):
       ngram_ids_for_head = _multi_way_hash_ids(ngram_ids, i + 1, i + 1,
                                                primes[i], vocab_size)
       ngram_embs_to_concat.append(self.ngram_table[i].fprop(
-          self.ngram_table[i].local_theta(),
           jnp.reshape(ngram_ids_for_head, [-1])))
       # [B * L, H]
       ngram_embs_to_concat[i] = self.ngram_layer_norm[i].fprop(

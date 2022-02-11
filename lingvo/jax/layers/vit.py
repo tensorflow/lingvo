@@ -139,8 +139,7 @@ class VitEntryLayers(base_layer.BaseLayer):
                                            features)
 
     num_patches = (p.image_size // p.patch_size)**2
-    features = features + self.pos_emb.fprop(
-        self.pos_emb.local_theta(), seq_length=num_patches)
+    features = features + self.pos_emb.fprop(seq_length=num_patches)
     if self.params.pos_emb_dropout_prob > 0.0:
       features = self.dropout.fprop(self.dropout.local_theta(), features)
 

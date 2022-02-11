@@ -148,8 +148,10 @@ class NgrammerTest(test_util.JaxTestCase):
                                                    unigram_vocab_size)
       ngram_ids_per_head *= (i + 1)
       ngram_ids_per_head += (i + 1)
-      ngram_embs_expected = ngrammer_layer.ngram_table[i].fprop(
-          initial_vars.ngram_table[i], np.reshape(ngram_ids_per_head, [-1]))
+      ngram_embs_expected = test_utils.apply(
+          ngrammer_layer.ngram_table[i], initial_vars.ngram_table[i],
+          ngrammer_layer.ngram_table[i].fprop,
+          np.reshape(ngram_ids_per_head, [-1]))
       ngram_embs_expected = ngrammer_layer.ngram_layer_norm[i].fprop(
           initial_vars.ngram_layer_norm[i], ngram_embs_expected)
       ngram_embs_expected = jnp.reshape(ngram_embs_expected,
@@ -210,8 +212,10 @@ class NgrammerTest(test_util.JaxTestCase):
                                                    unigram_vocab_size)
       ngram_ids_per_head *= (i + 1)
       ngram_ids_per_head += (i + 1)
-      ngram_embs_expected = ngrammer_layer.ngram_table[i].fprop(
-          initial_vars.ngram_table[i], np.reshape(ngram_ids_per_head, [-1]))
+      ngram_embs_expected = test_utils.apply(
+          ngrammer_layer.ngram_table[i], initial_vars.ngram_table[i],
+          ngrammer_layer.ngram_table[i].fprop,
+          np.reshape(ngram_ids_per_head, [-1]))
       ngram_embs_expected = ngrammer_layer.ngram_layer_norm[i].fprop(
           initial_vars.ngram_layer_norm[i], ngram_embs_expected)
       ngram_embs_expected = jnp.reshape(ngram_embs_expected,
@@ -290,8 +294,10 @@ class NgrammerTest(test_util.JaxTestCase):
                                                    num_clusters)
       ngram_ids_per_head *= (i + 1)
       ngram_ids_per_head += (i + 1)
-      ngram_embs_expected = vq_ngrammer_layer.ngram_layer.ngram_table[i].fprop(
+      ngram_embs_expected = test_utils.apply(
+          vq_ngrammer_layer.ngram_layer.ngram_table[i],
           initial_vars.ngram_layer.ngram_table[i],
+          vq_ngrammer_layer.ngram_layer.ngram_table[i].fprop,
           np.reshape(ngram_ids_per_head, [-1]))
       ngram_embs_expected = (
           vq_ngrammer_layer.ngram_layer.ngram_layer_norm[i].fprop(

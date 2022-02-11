@@ -52,7 +52,7 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     initial_vars = emb_layer.instantiate_variables(prng_key)
     npy_input = np.random.randint(0, p.vocab_size, [10, 20]).astype('int32')
     inputs = jnp.asarray(npy_input)
-    outputs = emb_layer.fprop(initial_vars, inputs)
+    outputs = test_utils.apply(emb_layer, initial_vars, emb_layer.fprop, inputs)
     # Test whether tf Embedding layer returns same output
     # Modify initial_vars to use TF compatible params
     tf_initial_vars = initial_vars
@@ -93,9 +93,12 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     class_weights = np.random.normal(1.5, 2.0, [8, 10, 1])
     if class_probabilities is not None:
       class_probabilities /= np.sum(class_probabilities, axis=-1, keepdims=True)
-    logits = softmax_layer.get_logits(initial_vars, inputs)
-    outputs = softmax_layer.fprop(
+    logits = test_utils.apply(softmax_layer, initial_vars,
+                              softmax_layer.get_logits, inputs)
+    outputs = test_utils.apply(
+        softmax_layer,
         initial_vars,
+        softmax_layer.fprop,
         inputs,
         class_weights,
         class_ids=class_ids,
@@ -141,9 +144,12 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     npy_input = np.random.normal(1.5, 2.0, [batch_size, p.input_dims])
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [batch_size, 1])
-    logits = softmax_layer.get_logits(initial_vars, inputs)
-    outputs = softmax_layer.fprop(
+    logits = test_utils.apply(softmax_layer, initial_vars,
+                              softmax_layer.get_logits, inputs)
+    outputs = test_utils.apply(
+        softmax_layer,
         initial_vars,
+        softmax_layer.fprop,
         inputs,
         class_weights,
         class_ids=class_ids,
@@ -189,9 +195,12 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     npy_input = np.random.normal(1.5, 2.0, [batch_size, p.input_dims])
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [batch_size, 1])
-    logits = softmax_layer.get_logits(initial_vars, inputs)
-    outputs = softmax_layer.fprop(
+    logits = test_utils.apply(softmax_layer, initial_vars,
+                              softmax_layer.get_logits, inputs)
+    outputs = test_utils.apply(
+        softmax_layer,
         initial_vars,
+        softmax_layer.fprop,
         inputs,
         class_weights,
         class_ids=None,
@@ -236,8 +245,10 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [batch_size, 1])
     with self.assertRaises(ValueError):
-      _ = softmax_layer.fprop(
+      _ = test_utils.apply(
+          softmax_layer,
           initial_vars,
+          softmax_layer.fprop,
           inputs,
           class_weights,
           class_ids=class_ids,
@@ -261,11 +272,19 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     npy_input = np.random.normal(1.5, 2.0, [8, 10, p.input_dims])
     inputs = jnp.asarray(npy_input)
     class_weights = np.random.normal(1.5, 2.0, [8, 10, 1])
-    outputs = softmax_layer.fprop(
-        initial_vars, inputs, class_weights, class_ids=class_ids)
+    outputs = test_utils.apply(
+        softmax_layer,
+        initial_vars,
+        softmax_layer.fprop,
+        inputs,
+        class_weights,
+        class_ids=class_ids)
     ids = np.squeeze(class_ids, axis=-1)
-    emb_lookup_outputs = softmax_layer.emb_lookup(
-        initial_vars, ids=jnp.asarray(ids))
+    emb_lookup_outputs = test_utils.apply(
+        softmax_layer,
+        initial_vars,
+        softmax_layer.emb_lookup,
+        ids=jnp.asarray(ids))
     # Test whether tf Softmax layer returns same output
     # Modify initial_vars to use TF compatible params
     tf_initial_vars = initial_vars
@@ -312,7 +331,8 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = pos_layer.instantiate_variables(prng_key)
     seq_length = np.random.randint(100, 1000)
-    output = pos_layer.fprop(initial_vars, seq_length)
+    output = test_utils.apply(pos_layer, initial_vars, pos_layer.fprop,
+                              seq_length)
     output = jnp.squeeze(output, axis=0)
     # Test whether tf PositionalEmbedding layer returns same output
     # Modify initial_vars to use TF compatible params
@@ -343,7 +363,8 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
                          [0, 1, 2, 0, 1, 2, 0, 1, 2, 0],
                          [0, 1, 2, 3, 4, 5, 6, 0, 1, 2],
                          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]])
-    output = pos_layer.fprop(initial_vars, position=position)
+    output = test_utils.apply(
+        pos_layer, initial_vars, pos_layer.fprop, position=position)
     # Test whether tf PositionalEmbedding layer returns same output
     # Modify initial_vars to use TF compatible params
     tf_initial_vars = initial_vars
@@ -371,7 +392,8 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = pos_layer.instantiate_variables(prng_key)
     inputs = np.random.normal(1.5, 2.5, (2, 8, 4, embedding_dims))
-    output = pos_layer.fprop(initial_vars, inputs=inputs)
+    output = test_utils.apply(
+        pos_layer, initial_vars, pos_layer.fprop, inputs=inputs)
     # Test whether extend_step returns same output.
     for i in range(inputs.shape[1]):
       start = max(0, i + 1 - window_size)
@@ -380,8 +402,12 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
       pad_width = window_size - end + start
       paddings = [(0, 0), (pad_width, 0), (0, 0), (0, 0)]
       inputs_prefix = jnp.pad(inputs_prefix, paddings)
-      jax_extend_step_out = pos_layer.extend_step(
-          initial_vars, inputs_prefix, time_step=i)
+      jax_extend_step_out = test_utils.apply(
+          pos_layer,
+          initial_vars,
+          pos_layer.extend_step,
+          inputs_prefix,
+          time_step=i)
       jax_extend_step_out = jax.lax.dynamic_slice_in_dim(
           jax_extend_step_out,
           start_index=window_size - 1,
@@ -405,11 +431,16 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = pos_layer.instantiate_variables(prng_key)
     inputs = np.random.normal(1.5, 2.5, (2, 8, 4, embedding_dims))
-    output = pos_layer.fprop(initial_vars, inputs=inputs)
+    output = test_utils.apply(
+        pos_layer, initial_vars, pos_layer.fprop, inputs=inputs)
     # Test whether extend_step returns same output.
     for i in range(inputs.shape[1]):
-      jax_extend_step_out = pos_layer.extend_step(
-          initial_vars, inputs[:, i, :, :], time_step=i)
+      jax_extend_step_out = test_utils.apply(
+          pos_layer,
+          initial_vars,
+          pos_layer.extend_step,
+          inputs[:, i, :, :],
+          time_step=i)
       jax_np_extend_step_out = test_utils.to_np(jax_extend_step_out)
       jax_fprop_slice = output[:, i, :, :]
       self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out)
@@ -437,8 +468,12 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     if position is None:
       position = jnp.arange(4, dtype=jnp.float32)
     position = jnp.array(position)
-    output = pos_layer.fprop(
-        initial_vars, inputs=inputs, position=position[jnp.newaxis, :])
+    output = test_utils.apply(
+        pos_layer,
+        initial_vars,
+        pos_layer.fprop,
+        inputs=inputs,
+        position=position[jnp.newaxis, :])
     np_output = test_utils.to_np(output)
     sinusoid_inp = position
     sin = jnp.sin(sinusoid_inp)
@@ -461,7 +496,8 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     npy_input = np.random.randint(0, p.max_seq_length,
                                   [10, p.max_seq_length]).astype('int32')
     inputs = jnp.asarray(npy_input)
-    outputs = emb_layer.fprop(initial_vars, p.max_seq_length, inputs)
+    outputs = test_utils.apply(emb_layer, initial_vars, emb_layer.fprop,
+                               p.max_seq_length, inputs)
     # Test whether tf Embedding layer returns same output
     # Modify initial_vars to use TF compatible params
     tf_initial_vars = initial_vars

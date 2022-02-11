@@ -1147,10 +1147,8 @@ class DotProductAttention(base_layer.BaseLayer):
     # Apply rotary position embeddings.
     # Paper: https://arxiv.org/abs/2104.09864.
     if p.use_rotary_position_emb:
-      query_proj = self.rotary_position_emb.fprop(theta.rotary_position_emb,
-                                                  query_proj)
-      key_proj = self.rotary_position_emb.fprop(theta.rotary_position_emb,
-                                                key_proj)
+      query_proj = self.rotary_position_emb.fprop(query_proj)
+      key_proj = self.rotary_position_emb.fprop(key_proj)
 
     # Apply relative bias.
     # Paper: https://aclanthology.org/N18-2074.pdf.
@@ -1329,9 +1327,9 @@ class DotProductAttention(base_layer.BaseLayer):
     # Paper: https://arxiv.org/abs/2104.09864.
     if p.use_rotary_position_emb:
       new_query_proj = self.rotary_position_emb.extend_step(
-          theta.rotary_position_emb, new_query_proj, time_step)
+          new_query_proj, time_step)
       new_key_proj = self.rotary_position_emb.extend_step(
-          theta.rotary_position_emb, new_key_proj, time_step)
+          new_key_proj, time_step)
 
       # Update key post rotary position embedding in the cache.
       updated_state.key_post_rotary_pos_emb = (

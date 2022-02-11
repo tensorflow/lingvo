@@ -2262,7 +2262,7 @@ class TransformerLm(base_layer.BaseLayer):
       equal to the sum of xent loss for tokens in a sequence.
     """
     if labels is None:
-      logits = self.softmax.get_logits(theta=theta.softmax, inputs=activations)
+      logits = self.softmax.get_logits(inputs=activations)
       xent_output = NestedMap(logits=logits)
       xent_output.log_probs = jax.nn.log_softmax(logits)
       xent_output.probs = jax.nn.softmax(xent_output.logits)
@@ -2275,7 +2275,6 @@ class TransformerLm(base_layer.BaseLayer):
         class_probabilities = labels.class_probabilities
       class_weights = labels.class_weights[:, :, jnp.newaxis]
       xent_output = self.softmax.fprop(
-          theta.softmax,
           activations,
           class_weights,
           class_ids=class_ids,
@@ -2334,9 +2333,9 @@ class TransformerLm(base_layer.BaseLayer):
       assert aux_loss_ctx is not None
       # Get the input embeddings.
       if self.params.separate_embedding_tpl is not None:
-        input_emb = self.embedding_lookup.fprop(theta.embedding_lookup, inputs)
+        input_emb = self.embedding_lookup.fprop(inputs)
       else:
-        input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
+        input_emb = self.softmax.emb_lookup(inputs)
       batch, seq_length = inputs.shape
 
       if segment_ids is None:
@@ -2356,7 +2355,7 @@ class TransformerLm(base_layer.BaseLayer):
 
       if p.position_emb_tpl is not None:
         position_emb = self.position_emb.fprop(
-            theta.position_emb, seq_length=seq_length, position=segment_pos)
+            seq_length=seq_length, position=segment_pos)
         inputs = input_emb + position_emb
       else:
         inputs = input_emb
@@ -2417,9 +2416,9 @@ class TransformerLm(base_layer.BaseLayer):
 
     # Get the input embeddings.
     if self.params.separate_embedding_tpl is not None:
-      input_emb = self.embedding_lookup.fprop(theta.embedding_lookup, inputs)
+      input_emb = self.embedding_lookup.fprop(inputs)
     else:
-      input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
+      input_emb = self.softmax.emb_lookup(inputs)
     time_step = cached_states.step
 
     # Add Ngrammer layer if applicable.
@@ -2432,8 +2431,7 @@ class TransformerLm(base_layer.BaseLayer):
     if p.position_emb_tpl is not None:
       # During autoregressive decoding inputs are not packed.
       segment_pos = jnp.zeros((inputs.shape[0], 1)) + time_step
-      position_emb = self.position_emb.fprop(
-          theta.position_emb, seq_length=1, position=segment_pos)
+      position_emb = self.position_emb.fprop(seq_length=1, position=segment_pos)
 
       inputs = input_emb + position_emb
     else:
@@ -2648,16 +2646,14 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     batch, seq_length = inputs.shape
     if p.encoder_embedding_tpl is not None:
       # Encoder has its own embedding lookup table for source ids.
-      input_emb = self.encoder_embedding_lookup.fprop(
-          theta.encoder_embedding_lookup, inputs)
+      input_emb = self.encoder_embedding_lookup.fprop(inputs)
     elif p.decoder_embedding_tpl is not None:
       # Encoder shares the same embedding as the target ids.
       # The embedding lookup for target ids is separate from the softmax.
-      input_emb = self.decoder_embedding_lookup.fprop(
-          theta.decoder_embedding_lookup, inputs)
+      input_emb = self.decoder_embedding_lookup.fprop(inputs)
     else:
       # Encoder and decoder share the softmax and embedding params.
-      input_emb = self.softmax.emb_lookup(theta.softmax, inputs)
+      input_emb = self.softmax.emb_lookup(inputs)
 
     if input_segment_ids is None:
       assert input_segment_pos is None
@@ -2678,7 +2674,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
 
     if p.position_emb_tpl is not None:
       position_emb = self.position_emb.fprop(
-          theta.position_emb, seq_length=seq_length, position=input_segment_pos)
+          seq_length=seq_length, position=input_segment_pos)
       input_emb += position_emb
 
     inputs_segment_mask = attentions.segment_mask(
@@ -2715,7 +2711,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
       equal to the sum of xent loss for tokens in a sequence.
     """
     if labels is None:
-      logits = self.softmax.get_logits(theta=theta.softmax, inputs=activations)
+      logits = self.softmax.get_logits(inputs=activations)
       xent_output = NestedMap(logits=logits)
       xent_output.log_probs = jax.nn.log_softmax(logits)
       xent_output.probs = jax.nn.softmax(xent_output.logits)
@@ -2728,7 +2724,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
         class_probabilities = labels.class_probabilities
       class_weights = labels.class_weights[:, :, jnp.newaxis]
       xent_output = self.softmax.fprop(
-          theta.softmax,
           activations,
           class_weights,
           class_ids=class_ids,
@@ -2805,11 +2800,10 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
 
     if p.decoder_embedding_tpl is not None:
       # Targets have separate embedding params.
-      target_emb = self.decoder_embedding_lookup.fprop(
-          theta.decoder_embedding_lookup, targets)
+      target_emb = self.decoder_embedding_lookup.fprop(targets)
     else:
       # Embedding parameters are shared with targets and softmax.
-      target_emb = self.softmax.emb_lookup(theta.softmax, targets)
+      target_emb = self.softmax.emb_lookup(targets)
 
     if p.decoder_ngrammer_tpl is not None:
       target_emb = self.decoder_ngrammer.fprop(
@@ -2820,7 +2814,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
 
     if p.position_emb_tpl is not None:
       targets_position_emb = self.position_emb.fprop(
-          theta.position_emb,
           seq_length=target_seq_length,
           position=target_segment_pos)
       target_emb += targets_position_emb
@@ -2928,11 +2921,10 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
 
     if p.decoder_embedding_tpl is not None:
       # Targets have separate embedding params.
-      target_emb = self.decoder_embedding_lookup.fprop(
-          theta.decoder_embedding_lookup, targets)
+      target_emb = self.decoder_embedding_lookup.fprop(targets)
     else:
       # Embedding parameters are shared with targets and softmax.
-      target_emb = self.softmax.emb_lookup(theta.softmax, targets)
+      target_emb = self.softmax.emb_lookup(targets)
 
     time_step = cached_states.step
     if p.decoder_ngrammer_tpl is not None:
@@ -2950,7 +2942,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
       # During autoregressive decoding inputs are not packed.
       segment_pos = jnp.zeros((targets.shape[0], 1)) + time_step
       target_position_emb = self.position_emb.fprop(
-          theta.position_emb, seq_length=1, position=segment_pos)
+          seq_length=1, position=segment_pos)
       target_emb += target_position_emb
 
     updated_cache, outputs = self.decoder.extend_step(

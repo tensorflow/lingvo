@@ -25,6 +25,7 @@ from lingvo.jax.layers import vit
 import numpy as np
 
 
+@test_util.with_config(jax_numpy_rank_promotion='allow')
 class VitTest(test_util.JaxTestCase):
 
   def testVitEntryLayers(self):
