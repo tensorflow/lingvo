@@ -86,7 +86,6 @@ class BertAdamL4H128(model_params.TransformerBertPmapAdam, BertDataset):
   LEARNING_RATE = 1e-3
   WEIGHT_DECAY = 1e-3
   USE_REPEATED_LAYER = False
-  ENABLE_WHILE_LOOP = True
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_DOT_WITH_NO_BATCH_DIM
   ACTIVATION_FUNCTION = 'RELU'
   # Save a checkpoint every n steps.
@@ -107,7 +106,6 @@ class BertSpmd(model_params.TransformerBertSpmdAdafactor, BertDataset):
   LEARNING_RATE = 1e-3
   WEIGHT_DECAY = 1e-3
   USE_REPEATED_LAYER = False
-  ENABLE_WHILE_LOOP = True
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_DOT_WITH_NO_BATCH_DIM
   ENABLE_BFLOAT16 = False
   MASK_TOKEN_ID = 0
@@ -136,7 +134,6 @@ class BertSpmdL4H128(BertSpmd):
   DROPOUT_PROB = 0.0
   LEARNING_RATE = 2.5e-4
   USE_REPEATED_LAYER = False
-  ENABLE_WHILE_LOOP = True
   ENABLE_BFLOAT16 = True
 
   # Sub-class has to specify a mesh.
@@ -165,7 +162,6 @@ class BertSpmdL33H12kBiggerBatch(BertSpmd):
   LEARNING_RATE = 2.5e-4
   WEIGHT_DECAY = 1e-2
   USE_REPEATED_LAYER = False
-  ENABLE_WHILE_LOOP = True
   ENABLE_BFLOAT16 = True
   USE_MLPERF_DATA = True
   MLPERF_REMASK = True

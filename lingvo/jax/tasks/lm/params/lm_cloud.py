@@ -90,7 +90,6 @@ class LmCloudTransformerAdam(model_params.TransformerLmPmapAdam,
   HIDDEN_DIMS = MODEL_DIMS * 4
   DROPOUT_PROB = 0.0
   LEARNING_RATE = 1e-3
-  ENABLE_WHILE_LOOP = True
 
 
 @model_registry.register_model

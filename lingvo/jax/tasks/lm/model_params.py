@@ -187,7 +187,6 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
   LEARNING_RATE = 1e-3
   WEIGHT_DECAY = 1e-3
   USE_REPEATED_LAYER = False
-  ENABLE_WHILE_LOOP = True
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_DOT_WITH_NO_BATCH_DIM
   ACTIVATION_FUNCTION = 'RELU'
   # Save a checkpoint every n steps.
@@ -213,7 +212,6 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
     stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
     stacked_transformer_tpl.num_layers = self.NUM_LAYERS
     stacked_transformer_tpl.num_heads = self.NUM_HEADS
-    stacked_transformer_tpl.enable_while_loop = (self.ENABLE_WHILE_LOOP)
     stacked_transformer_tpl.checkpoint_policy = (self.CHECKPOINT_POLICY)
     stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
     transformer_layer_p = (stacked_transformer_tpl.transformer_layer_params_tpl)
@@ -222,7 +220,6 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
     transformer_layer_p.tr_fflayer_tpl.activation = self.ACTIVATION_FUNCTION
 
     if self.USE_REPEATED_LAYER:
-      assert not self.ENABLE_WHILE_LOOP
       model_p.lm.stacked_transformer_tpl = (
           layers.StackedTransformerRepeated.Params())
       stacked_transformer_tpl.num_layers = 1
@@ -260,7 +257,6 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
   LEARNING_RATE = 1e-3
   WEIGHT_DECAY = 1e-3
   USE_REPEATED_LAYER = False
-  ENABLE_WHILE_LOOP = True
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_DOT_WITH_NO_BATCH_DIM
   ENABLE_BFLOAT16 = False
   MASK_TOKEN_ID = 0
@@ -292,7 +288,6 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
     stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
     stacked_transformer_tpl.num_layers = self.NUM_LAYERS
     stacked_transformer_tpl.num_heads = self.NUM_HEADS
-    stacked_transformer_tpl.enable_while_loop = (self.ENABLE_WHILE_LOOP)
     stacked_transformer_tpl.checkpoint_policy = (self.CHECKPOINT_POLICY)
     stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
     transformer_layer_p = (stacked_transformer_tpl.transformer_layer_params_tpl)
@@ -302,7 +297,6 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
     transformer_layer_p.tr_fflayer_tpl.activation = self.ACTIVATION_FUNCTION
 
     if self.USE_REPEATED_LAYER:
-      assert not self.ENABLE_WHILE_LOOP
       model_p.lm.stacked_transformer_tpl = (
           layers.StackedTransformerRepeated.Params())
       stacked_transformer_tpl.num_layers = 1
@@ -342,7 +336,7 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
   DROPOUT_PROB = 0.0
   LEARNING_RATE = 1e-3
   WEIGHT_DECAY = 1e-3
-  ENABLE_WHILE_LOOP = True
+  USE_REPEATED_LAYER = False
   ACTIVATION_FUNCTION = 'RELU'
 
   PACKED_INPUT = True
@@ -358,21 +352,28 @@ class TransformerLmPmapAdam(base_model_params.BaseModelParams):
     model_p.lm.model_dims = self.MODEL_DIMS
     model_p.lm.vocab_size = self.VOCAB_SIZE
     model_p.lm.softmax_tpl.scale_sqrt_depth = True
-    model_p.lm.stacked_transformer_tpl = layers.StackedTransformer.Params()
-    stacked_transformer_tpl = model_p.lm.stacked_transformer_tpl
+
+    stacked_transformer_tpl = layers.StackedTransformer.Params()
     stacked_transformer_tpl.model_dims = self.MODEL_DIMS
     stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
     stacked_transformer_tpl.num_layers = self.NUM_LAYERS
     stacked_transformer_tpl.num_heads = self.NUM_HEADS
 
-    model_p.lm.stacked_transformer_tpl.enable_while_loop = (
-        self.ENABLE_WHILE_LOOP)
-    model_p.lm.stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
-    transformer_layer_p = (
-        model_p.lm.stacked_transformer_tpl.transformer_layer_params_tpl)
+    stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
+    transformer_layer_p = (stacked_transformer_tpl.transformer_layer_params_tpl)
     transformer_layer_p.tr_atten_tpl.atten_logit_cap = self.ATTEN_LOGIT_CAP
     transformer_layer_p.tr_atten_tpl.use_bias = self.USE_BIAS
     transformer_layer_p.tr_fflayer_tpl.activation = self.ACTIVATION_FUNCTION
+
+    if self.USE_REPEATED_LAYER:
+      model_p.lm.stacked_transformer_tpl = (
+          layers.StackedTransformerRepeated.Params())
+      stacked_transformer_tpl.num_layers = 1
+      model_p.lm.stacked_transformer_tpl.block = (stacked_transformer_tpl)
+      model_p.lm.stacked_transformer_tpl.x_times = self.NUM_LAYERS
+    else:
+      model_p.lm.stacked_transformer_tpl = stacked_transformer_tpl
+
     softmax_init = WeightInit.Gaussian(1.0 / math.sqrt(self.MODEL_DIMS))
     model_p.lm.softmax_tpl.params_init = softmax_init
 
@@ -395,7 +396,6 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
   ATTEN_LOGIT_CAP = 50.0
   LEARNING_RATE = 2.5e-4
   WEIGHT_DECAY = 1e-3
-  ENABLE_WHILE_LOOP = True
   USE_REPEATED_LAYER = False
   SOFTMAX_CAP_LOGITS = 30.0
   ATTEN_LOGIT_CAP = 50.0
@@ -439,7 +439,6 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
     stacked_transformer_tpl.num_layers = self.NUM_LAYERS
     stacked_transformer_tpl.num_heads = num_heads
 
-    stacked_transformer_tpl.enable_while_loop = (self.ENABLE_WHILE_LOOP)
     stacked_transformer_tpl.checkpoint_policy = (self.CHECKPOINT_POLICY)
 
     stacked_transformer_tpl.dropout_prob = dropout_prob
