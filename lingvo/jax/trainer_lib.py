@@ -152,7 +152,7 @@ def train_step_single_learner(
       jax_context.bind(model, model.vars_to_flax_vars(mdl_vars),
                        [base_layer.SCOPE_VARS, base_layer.SCOPE_AUX_LOSS])
 
-      metrics, per_example_output = model.fprop(mdl_vars, inputs)
+      metrics, per_example_output = model.fprop(inputs)
       loss_name = learner.loss_name
       assert loss_name in metrics
       loss, loss_weight = metrics[loss_name]
@@ -370,7 +370,7 @@ def eval_step_single_learner(
     assert len(jax_task.learners) == 1
     learner = jax_task.learners[0]
 
-    metrics, per_example_out = model.fprop(mdl_vars, inputs)
+    metrics, per_example_out = model.fprop(inputs)
     loss_name = learner.loss_name
     assert loss_name in metrics
     loss, loss_weight = metrics[loss_name]
@@ -456,7 +456,7 @@ def decode_step(
     jax_context.bind(model, model.vars_to_flax_vars(mdl_vars),
                      [base_layer.SCOPE_AUX_LOSS])
 
-    return model.decode(mdl_vars, inputs)
+    return model.decode(inputs)
 
 
 def initialize_partitioned_model_states(

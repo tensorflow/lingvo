@@ -74,7 +74,7 @@ class LanguageModelTest(test_util.JaxTestCase):
     theta = NestedMap(lm=NestedMap())
     # We fix seed to 1027 to get the desired prefix lengths below.
     _, results = test_utils.apply(
-        lang_model, theta, lang_model.decode, theta, input_batch, seed=1027)
+        lang_model, theta, lang_model.decode, input_batch, seed=1027)
     return results
 
   def test_base_case(self):

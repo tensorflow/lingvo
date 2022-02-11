@@ -163,11 +163,11 @@ class TestModel01(base_model.BaseModel):
             init=p.params_init,
             dtype=p.dtype))
 
-  def compute_predictions(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def compute_predictions(self, inputs: JTensor) -> JTensor:
     in_normed = self.bn.fprop(inputs)
-    return jnp.einsum('bi,io->bo', in_normed, theta.var01)
+    return jnp.einsum('bi,io->bo', in_normed, self.local_theta().var01)
 
-  def compute_loss(self, theta: NestedMap, predictions: JTensor,
+  def compute_loss(self, predictions: JTensor,
                    inputs: JTensor) -> Tuple[NestedMap, NestedMap]:
     del inputs
     loss = jnp.sum(predictions)
@@ -200,11 +200,10 @@ class TestLinearRegressionModel(base_model.BaseModel):
     params.output_dims = p.output_dims
     self.create_child('linear', params)
 
-  def compute_predictions(self, theta: NestedMap,
-                          input_batch: NestedMap) -> JTensor:
+  def compute_predictions(self, input_batch: NestedMap) -> JTensor:
     return self.linear.fprop(input_batch.inputs)
 
-  def compute_loss(self, theta, predictions, input_batch):
+  def compute_loss(self, predictions, input_batch):
     targets = input_batch.targets
     error = predictions - targets
     loss = jnp.mean(jnp.square(error))
@@ -229,11 +228,10 @@ class TestBatchNormalizationModel(base_model.BaseModel):
         name='bn', dim=p.input_dims)
     self.create_child('bn', bn_params)
 
-  def compute_predictions(self, theta: NestedMap,
-                          input_batch: NestedMap) -> JTensor:
+  def compute_predictions(self, input_batch: NestedMap) -> JTensor:
     return self.bn.fprop(input_batch.inputs)
 
-  def compute_loss(self, theta: NestedMap, predictions: JTensor,
+  def compute_loss(self, predictions: JTensor,
                    input_batch: NestedMap) -> Tuple[NestedMap, NestedMap]:
     targets = input_batch.targets
     error = predictions - targets
@@ -258,10 +256,10 @@ class TestSpmdModel(base_model.BaseModel):
     p = self.params
     self.create_child('ffwd', p.xformer_ffw)
 
-  def compute_predictions(self, theta: NestedMap, inputs: NestedMap) -> JTensor:
-    return self.ffwd.fprop(theta.ffwd, inputs)
+  def compute_predictions(self, inputs: NestedMap) -> JTensor:
+    return self.ffwd.fprop(self.ffwd.local_theta(), inputs)
 
-  def compute_loss(self, theta: NestedMap, predictions: JTensor,
+  def compute_loss(self, predictions: JTensor,
                    input_batch: NestedMap) -> Tuple[NestedMap, NestedMap]:
     loss = jnp.mean(jnp.square(predictions))
     per_example_out = NestedMap(predictions=predictions)
