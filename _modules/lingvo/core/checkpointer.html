@@ -598,6 +598,13 @@
     <span class="n">restorer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Checkpoint</span><span class="p">(</span><span class="n">variables</span><span class="o">=</span><span class="n">all_vars</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">restorer</span></div>
 
+<div class="viewcode-block" id="EagerCheckpointerV1._WrapRestoreErrorWithGraphModeWarning"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1._WrapRestoreErrorWithGraphModeWarning">[docs]</a>  <span class="k">def</span> <span class="nf">_WrapRestoreErrorWithGraphModeWarning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">err</span><span class="p">):</span>
+    <span class="k">return</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;Could not restore V1 checkpoint during eager mode. If you are &#39;</span>
+        <span class="s1">&#39;restoring optimizer slot variables from a non-eager checkpoint, &#39;</span>
+        <span class="s1">&#39;please set p.train.optimizer.clear_variable_scope = True. See &#39;</span>
+        <span class="s1">&#39;b/218397533 for more details.</span><span class="se">\n\n</span><span class="s1">Original Error: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">err</span><span class="p">))</span></div>
+
 <div class="viewcode-block" id="EagerCheckpointerV1.Restore"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` and `force_reinitialize` are unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
@@ -605,12 +612,16 @@
     <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Eager checkpoint is restored with path: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">path</span>
-    <span class="c1"># No checkpoint is loaded, we need to initialize the variables,</span>
-    <span class="c1"># and apply the init_from_checkpoint_rules if applicable.</span>
-    <span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-      <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">path</span></div>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># No checkpoint is loaded, we need to initialize the variables,</span>
+      <span class="c1"># and apply the init_from_checkpoint_rules if applicable.</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+          <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">path</span>
+      <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">NotFoundError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WrapRestoreErrorWithGraphModeWarning</span><span class="p">(</span><span class="n">err</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="EagerCheckpointerV1.RestoreGlobalStepIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.RestoreGlobalStepIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreGlobalStepIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
@@ -639,7 +650,12 @@
 
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint (V1) </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
-    <span class="n">load_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restorer</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">load_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restorer</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">NotFoundError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WrapRestoreErrorWithGraphModeWarning</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
     <span class="c1"># Check all model vars are matched from the checkpoint.</span>
     <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
