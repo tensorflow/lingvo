@@ -78,7 +78,6 @@ class ConformerTest(test_util.JaxTestCase):
         conformer,
         initial_vars,
         conformer.fprop,
-        initial_vars,
         inputs,
         paddings,
         context_p=context_p)
@@ -147,7 +146,6 @@ class StackedConformerTest(test_util.JaxTestCase):
           stacked_conformer,
           initial_vars,
           stacked_conformer.fprop,
-          initial_vars,
           inputs,
           paddings,
           context_p=context_p,

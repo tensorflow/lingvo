@@ -88,8 +88,7 @@ class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
     params.keep_prob = (1.0 - p.residual_dropout_prob)
     self.create_child('residual_dropout', params)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor,
-            paddings: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor, paddings: JTensor) -> JTensor:
     p = self.params
 
     unnormalized_inputs = inputs
@@ -290,13 +289,10 @@ class Conformer(base_layer.BaseLayer):
   def has_fflayer_end(self) -> bool:
     return hasattr(self, 'fflayer_end')
 
-  def fprop(self, theta: NestedMap, inputs: JTensor,
-            paddings: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor, paddings: JTensor) -> JTensor:
     """Conformer layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input sequence JTensor of shape [B, T, H].
       paddings: Input paddings JTensor of shape [B, T] (only used in FFN layer).
 
@@ -306,28 +302,28 @@ class Conformer(base_layer.BaseLayer):
     p = self.params
 
     if self.has_fflayer_start:
-      inputs = self.fflayer_start.fprop(theta.fflayer_start, inputs, paddings)
+      inputs = self.fflayer_start.fprop(self.fflayer_start.local_theta(),
+                                        inputs, paddings)
 
     if p.layer_order == 'mhsa':
-      inputs = self.trans_atten.fprop(
-          theta.trans_atten, inputs=inputs, paddings=paddings)
+      inputs = self.trans_atten.fprop(inputs=inputs, paddings=paddings)
     elif p.layer_order == 'conv':
       inputs = self.lconv.fprop(inputs, paddings)
     elif p.layer_order == 'mhsa_before_conv':
-      inputs = self.trans_atten.fprop(
-          theta.trans_atten, inputs=inputs, paddings=paddings)
+      inputs = self.trans_atten.fprop(inputs=inputs, paddings=paddings)
       inputs = self.lconv.fprop(inputs, paddings)
     else:
       assert p.layer_order == 'conv_before_mhsa'
       inputs = self.lconv.fprop(inputs, paddings)
-      inputs = self.trans_atten.fprop(
-          theta.trans_atten, inputs=inputs, paddings=paddings)
+      inputs = self.trans_atten.fprop(inputs=inputs, paddings=paddings)
 
     if self.has_fflayer_end:
-      inputs = self.fflayer_end.fprop(theta.fflayer_end, inputs, paddings)
+      inputs = self.fflayer_end.fprop(self.fflayer_end.local_theta(), inputs,
+                                      paddings)
     elif p.fflayer_weight_sharing:
       # With the weight sharing, we apply fflayer_start again
-      inputs = self.fflayer_start.fprop(theta.fflayer_start, inputs, paddings)
+      inputs = self.fflayer_start.fprop(self.fflayer_start.local_theta(),
+                                        inputs, paddings)
 
     inputs = self.final_ln.fprop(inputs)
     return inputs
@@ -352,7 +348,7 @@ class StackedConformer(base_layer.BaseLayer):
     return self.params.model_dims
 
   def __init__(self, params):
-    super(StackedConformer, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     # seed default for all layers
@@ -366,12 +362,10 @@ class StackedConformer(base_layer.BaseLayer):
     layers_p[0].input_dims = p.input_dims
     self.create_children('layers', layers_p)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor,
-            paddings: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor, paddings: JTensor) -> JTensor:
     """Forward prop through a stack of conformer layers.
 
     Args:
-      theta: layer variables
       inputs: input features of shape [b, t, d], where d == params.input_dims.
       paddings: associated paddings of shape [b, t], with 1's where the input is
         not valid
@@ -386,6 +380,6 @@ class StackedConformer(base_layer.BaseLayer):
 
     x = inputs
     for i in range(0, p.num_layers):
-      x = self.layers[i].fprop(theta.layers[i], x, paddings)
+      x = self.layers[i].fprop(x, paddings)
 
     return x
