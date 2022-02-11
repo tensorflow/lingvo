@@ -42,11 +42,11 @@ class StochaticsTest(test_util.JaxTestCase):
     global_step = jnp.array(0, dtype=jnp.uint64)
 
     def Comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.new_context():
-        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output1 = layer.fprop(theta, inputs)
-        output2 = layer.fprop(theta, inputs)
+      with base_layer.JaxContext.new_context(
+          prng_key=prng_key, global_step=global_step) as jax_context:
+        jax_context.bind(layer, layer.vars_to_flax_vars(theta))
+        output1 = layer.fprop(inputs)
+        output2 = layer.fprop(inputs)
         return output1, output2
 
     output1, output2 = Comp(initial_vars, compute_key, global_step, inputs)
@@ -61,10 +61,10 @@ class StochaticsTest(test_util.JaxTestCase):
     logging.info('out1_nonzero: %s', out1_nonzero)
     logging.info('out2_nonzero: %s', out2_nonzero)
 
-    self.assertEqual(9920.0, out1_sum)
-    self.assertEqual(10048.0, out2_sum)
-    self.assertEqual(7944.0, out1_nonzero)
-    self.assertEqual(8029.0, out2_nonzero)
+    self.assertEqual(10048.0, out1_sum)
+    self.assertEqual(9920.0, out2_sum)
+    self.assertEqual(8019.0, out1_nonzero)
+    self.assertEqual(7927.0, out2_nonzero)
 
   def test_dropout_layer_02(self):
     test_layer_p = stochastics.Dropout.Params().Set(
@@ -84,10 +84,10 @@ class StochaticsTest(test_util.JaxTestCase):
     global_step = jnp.array(0, dtype=jnp.uint64)
 
     def Comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.new_context():
-        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output1 = layer.fprop(theta, inputs)
+      with base_layer.JaxContext.new_context(
+          prng_key=prng_key, global_step=global_step) as jax_context:
+        jax_context.bind(layer, layer.vars_to_flax_vars(theta))
+        output1 = layer.fprop(inputs)
         return output1
 
     output1 = Comp(initial_vars, compute_key, global_step, inputs)
@@ -98,8 +98,8 @@ class StochaticsTest(test_util.JaxTestCase):
     logging.info('out1_sum: %s', out1_sum)
     logging.info('out1_nonzero: %s', out1_nonzero)
 
-    self.assertEqual(980, out1_sum)
-    self.assertEqual(784, out1_nonzero)
+    self.assertEqual(860, out1_sum)
+    self.assertEqual(688, out1_nonzero)
 
 
 if __name__ == '__main__':

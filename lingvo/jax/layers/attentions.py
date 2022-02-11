@@ -1010,7 +1010,6 @@ class DotProductAttention(base_layer.BaseLayer):
     """
     # Add key sharding annotations.
     p = self.params
-    theta = self.local_theta()
     query = self._shard_blnh(query)
     key = self._shard_blnh(key)
     value = self._shard_blnh(value)
@@ -1045,7 +1044,7 @@ class DotProductAttention(base_layer.BaseLayer):
       probs = jnp.exp(self._log_softmax_with_extra_logit(padded_logits)).astype(
           key.dtype)
     # Apply attention dropout.
-    probs = self.atten_dropout.fprop(theta.atten_dropout, probs)
+    probs = self.atten_dropout.fprop(probs)
     # Compute the attention context.
     encoded = jnp.einsum('BNTS,BSNH->BTNH', probs, value)
     encoded = checkpoint_name(encoded, 'context')

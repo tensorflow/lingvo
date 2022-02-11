@@ -409,7 +409,7 @@ class LightConv1D(base_layer.BaseLayer):
     inputs = self.conv_activation.fprop(inputs)
 
     inputs = self.linear_end.fprop(inputs)
-    inputs = self.dropout.fprop(self.dropout.local_theta(), inputs)
+    inputs = self.dropout.fprop(inputs)
 
     output = inputs + unnormalized_inputs
     return output

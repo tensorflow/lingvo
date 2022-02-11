@@ -52,25 +52,22 @@ class Dropout(base_layer.BaseLayer):
              'Whether or not to also perform dropout at eval time.')
     return p
 
-  def _Dropout(self, theta: NestedMap, inputs: JTensor,
-               noise_shape: List[int]) -> JTensor:
+  def _dropout(self, inputs: JTensor, noise_shape: List[int]) -> JTensor:
     p = self.params
     if noise_shape is None:
       noise_shape = inputs.shape
-    prng_seed = base_layer.next_prng_key()
+    prng_key = base_layer.next_prng_key()
     keep_prob = p.keep_prob
     assert keep_prob > 0.0
     random_nums = keep_prob + jax.random.uniform(
-        prng_seed, noise_shape, inputs.dtype, minval=0.0, maxval=1.0)
+        prng_key, noise_shape, inputs.dtype, minval=0.0, maxval=1.0)
     binary_mask = jnp.floor(random_nums)
     return inputs * binary_mask / keep_prob
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Applies dropout to inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: The inputs JTensor.
 
     Returns:
@@ -88,7 +85,7 @@ class Dropout(base_layer.BaseLayer):
           noise_shape[dim] = 1
       else:
         noise_shape = p.noise_shape
-      ret = self._Dropout(theta, inputs, noise_shape)
+      ret = self._dropout(inputs, noise_shape)
       return ret
     else:
       return inputs
@@ -108,7 +105,7 @@ class StochasticResidual(base_layer.BaseLayer):
              'Survival probability of the residual branch while dropping out.')
     return p
 
-  def _DropConnect(self, inputs: JTensor) -> JTensor:
+  def _drop_connect(self, inputs: JTensor) -> JTensor:
     """Drops the entire residual layer with given survival probability.
 
     Args:
@@ -133,16 +130,14 @@ class StochasticResidual(base_layer.BaseLayer):
     output = inputs / self.params.survival_prob * binary_tensor
     return output
 
-  def fprop(self, theta: NestedMap, inputs: JTensor,
-            residual: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor, residual: JTensor) -> JTensor:
     """Returns inputs + residual with stochastic dropout.
 
     Args:
-      theta: A `.NestedMap` of weights defined in this layer.
       inputs: input `.JTensor`.
       residual: residual `.JTensor` which is added to input with dropout.
 
     Returns:
       Output `.JTensor` which is residual added to inputs with dropout.
     """
-    return inputs + self.params.residual_weight * self._DropConnect(residual)
+    return inputs + self.params.residual_weight * self._drop_connect(residual)

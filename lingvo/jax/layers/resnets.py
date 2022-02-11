@@ -118,11 +118,7 @@ class ResNetBlock(base_layer.BaseLayer):
 
     # residual
     if p.residual_droppath_prob:
-      outputs = self.residual_droppath.fprop(
-          self.residual_droppath.local_theta(),
-          inputs,
-          outputs,
-      )
+      outputs = self.residual_droppath.fprop(inputs, outputs)
     else:
       outputs += inputs
 

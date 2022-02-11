@@ -115,9 +115,9 @@ class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
     if not p.pre_layer_norm:
       result = self.normalize(theta, result, paddings)
 
-    result = self.residual_dropout.fprop(
-        theta.residual_dropout,
-        result) * p.residual_weight + unnormalized_inputs * p.input_weight
+    result = (
+        self.residual_dropout.fprop(result) * p.residual_weight +
+        unnormalized_inputs * p.input_weight)
     return result
 
 

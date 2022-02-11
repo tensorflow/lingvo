@@ -301,8 +301,7 @@ class TransformersTest(test_util.JaxTestCase):
           inputs_normalized,
           atten_mask=attention_mask)
       # Residual dropout and connection.
-      atten_output = transformer_layer.residual_dropout.fprop(
-          initial_vars.residual_dropout, atten_output)
+      atten_output = transformer_layer.residual_dropout.fprop(atten_output)
       atten_output += inputs
       # Normalize atten outputs using cross attention.
       atten_output_normalized = transformer_layer.cross_layer_norm.fprop(

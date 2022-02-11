@@ -140,7 +140,7 @@ class VitEntryLayers(base_layer.BaseLayer):
     num_patches = (p.image_size // p.patch_size)**2
     features = features + self.pos_emb.fprop(seq_length=num_patches)
     if self.params.pos_emb_dropout_prob > 0.0:
-      features = self.dropout.fprop(self.dropout.local_theta(), features)
+      features = self.dropout.fprop(features)
 
     return features
 
@@ -262,7 +262,7 @@ class VitExitLayers(base_layer.BaseLayer):
     inputs = self.pooling.fprop(inputs)
     inputs = self.fc_tanh.fprop(inputs)
     if self.params.output_dropout_prob > 0.0:
-      inputs = self.dropout.fprop(self.dropout.local_theta(), inputs)
+      inputs = self.dropout.fprop(inputs)
     return inputs
 
 

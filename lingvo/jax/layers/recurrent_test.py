@@ -151,7 +151,7 @@ class RecurrentTest(test_util.JaxTestCase):
 
     def cell_fn(theta, state0, inputs_t):
       increment = theta.delta + inputs_t.x
-      increment = layer.fprop(theta.dropout, increment)
+      increment = layer.fprop(increment)
       y = state0.y + increment
       return NestedMap(y=y)
 

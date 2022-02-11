@@ -380,8 +380,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
       projected_inputs *= (1.0 - paddings)
 
     # Apply RELU dropout
-    projected_inputs = self.relu_dropout.fprop(theta.relu_dropout,
-                                               projected_inputs)
+    projected_inputs = self.relu_dropout.fprop(projected_inputs)
 
     # Apply second FFN layer
     projected_inputs = self.ffn_layer2.fprop(projected_inputs)
@@ -397,8 +396,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
                                                     projected_inputs)
 
     # Apply residual dropout
-    projected_inputs = self.residual_dropout.fprop(theta.residual_dropout,
-                                                   projected_inputs)
+    projected_inputs = self.residual_dropout.fprop(projected_inputs)
 
     if hasattr(self, 'res_proj'):
       inputs = self.res_proj_norm.fprop(theta.res_proj_norm,
@@ -772,7 +770,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     # Activation function.
     hidden = self.activation.fprop(hidden)
     # Dropout.
-    hidden = self.relu_dropout.fprop(theta.relu_dropout, hidden)
+    hidden = self.relu_dropout.fprop(hidden)
     # Output.
     expert_output = jnp.einsum('egch,ehm->egcm', hidden, theta_wo)
     expert_output = split(expert_output, ap.egcm)
@@ -791,8 +789,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
       combined_output = self.post_layer_norm.fprop(theta.post_layer_norm,
                                                    combined_output)
     # Residual dropout.
-    after_residual = self.residual_dropout.fprop(theta.residual_dropout,
-                                                 combined_output)
+    after_residual = self.residual_dropout.fprop(combined_output)
     if p.add_skip_connection:
       if p.residual_droppath_prob:
         out = self.residual_droppath.fprop(theta.residual_droppath, inputs,
@@ -1010,8 +1007,7 @@ class Transformer(base_layer.BaseLayer):
                                                 atten_output)
 
     # Residual dropout and connection
-    atten_output = self.residual_dropout.fprop(theta.residual_dropout,
-                                               atten_output)
+    atten_output = self.residual_dropout.fprop(atten_output)
     atten_output += inputs
 
     # Apply cross attention if applicable
@@ -1030,8 +1026,7 @@ class Transformer(base_layer.BaseLayer):
       atten_probs.cross_atten = cross_atten_probs
 
       # Residual dropout and connection
-      cross_atten_output = self.residual_dropout.fprop(theta.residual_dropout,
-                                                       cross_atten_output)
+      cross_atten_output = self.residual_dropout.fprop(cross_atten_output)
       atten_output += cross_atten_output
 
     # Apply FFN layer
@@ -1097,8 +1092,7 @@ class Transformer(base_layer.BaseLayer):
                                                 atten_output)
 
     # Residual dropout and connection
-    atten_output = self.residual_dropout.fprop(theta.residual_dropout,
-                                               atten_output)
+    atten_output = self.residual_dropout.fprop(atten_output)
     atten_output += inputs
 
     # Apply cross attention if applicable
@@ -1115,8 +1109,7 @@ class Transformer(base_layer.BaseLayer):
           atten_mask=cross_attention_mask)
 
       # Residual dropout and connection
-      cross_atten_output = self.residual_dropout.fprop(theta.residual_dropout,
-                                                       cross_atten_output)
+      cross_atten_output = self.residual_dropout.fprop(cross_atten_output)
       # Squeeze sequence dim
       cross_atten_output = jnp.squeeze(cross_atten_output, axis=1)
       atten_output += cross_atten_output
