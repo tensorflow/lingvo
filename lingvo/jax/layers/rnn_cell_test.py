@@ -81,8 +81,8 @@ class RnnCellTest(test_util.JaxTestCase):
 
     output, _ = test_utils.apply(model, model.vars_to_flax_vars(theta),
                                  model.fprop, state0, inputs)
-    np.allclose(m_expected, output.m)
-    np.allclose(c_expected, output.c)
+    self.assertAllClose(m_expected, output.m)
+    self.assertAllClose(c_expected, output.c)
 
 
 if __name__ == '__main__':

@@ -336,8 +336,9 @@ class LSTMCellSimple(RNNCell):
           jnp.full(new_c.shape, -p.cell_value_cap), new_c,
           jnp.full(new_c.shape, p.cell_value_cap))
     if p.output_nonlinearity:
-      new_c = jnp.tanh(new_c)
-    new_m = jax.nn.sigmoid(o_g) * new_c
+      new_m = jax.nn.sigmoid(o_g) * jnp.tanh(new_c)
+    else:
+      new_m = jax.nn.sigmoid(o_g) * new_c
     if p.num_hidden_nodes:
       w_proj = self.local_theta().w_proj
       new_m = new_m * w_proj
