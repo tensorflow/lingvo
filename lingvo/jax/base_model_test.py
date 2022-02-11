@@ -72,8 +72,9 @@ class LanguageModelTest(test_util.JaxTestCase):
     p.lm.logits = logits
     lang_model = p.Instantiate()
     theta = NestedMap(lm=NestedMap())
-    _, results = test_utils.apply(lang_model, theta, lang_model.decode, theta,
-                                  input_batch)
+    # We fix seed to 1027 to get the desired prefix lengths below.
+    _, results = test_utils.apply(
+        lang_model, theta, lang_model.decode, theta, input_batch, seed=1027)
     return results
 
   def test_base_case(self):
@@ -234,13 +235,13 @@ class LanguageModelTest(test_util.JaxTestCase):
     results = self._run_decode(p, logits, input_batch)
     # This is fixed by the prng seed provided.
     self.assertArraysEqual(results.prefix_lengths,
-                           np.array([1, 2, 0], dtype=np.int32))
+                           np.array([2, 1, 0], dtype=np.int32))
     # Row 0 copies 2 ids from the input as prefix, and continues without
     # ever hitting EOS. Row 1 and 2 only copies the first id from the input,
     # and continues until EOS is found.
     self.assertArraysEqual(
         results.output_ids,
-        np.array([[11, 4, 3, 3, 4], [12, 14, 4, 2, 0], [20, 3, 2, 0, 0]],
+        np.array([[11, 13, 3, 3, 4], [12, 3, 4, 2, 0], [20, 3, 2, 0, 0]],
                  dtype=np.int32))
     self.assertArraysEqual(results.decode_lengths,
                            np.array([5, 4, 3], dtype=np.int32))
@@ -276,7 +277,7 @@ class LanguageModelTest(test_util.JaxTestCase):
     results = self._run_decode(p, logits, input_batch)
     # This is fixed by the prng seed provided.
     self.assertArraysEqual(results.prefix_lengths,
-                           np.array([1, 2, 0], dtype=np.int32))
+                           np.array([2, 1, 0], dtype=np.int32))
     # Row 0 has prefix length 2, and hit EOS after decode for one step, so it
     # stops. Row 1 has prefix length 1, and hit max decode steps of 2, so it
     # stops at 3 decoded ids. Row 2 has prefix length 0, and stops after
@@ -286,18 +287,19 @@ class LanguageModelTest(test_util.JaxTestCase):
     # only difference is how they affect the counting of max_decode_steps.
     self.assertArraysEqual(
         results.output_ids,
-        np.array([[11, 4, 2, 0, 0], [12, 14, 4, 4, 0], [20, 3, 0, 0, 0]],
+        np.array([[11, 13, 2, 0, 0], [12, 3, 4, 0, 0], [20, 3, 0, 0, 0]],
                  dtype=np.int32))
     self.assertArraysEqual(results.decode_lengths,
-                           np.array([3, 4, 2], dtype=np.int32))
+                           np.array([3, 3, 2], dtype=np.int32))
     # softmax on logits of [0, 0, 0, 0, 1] reproduces:
     # [-1.904833   -1.904833   -1.904833   -1.904833   -0.90483296]
     self.assertAllClose(
         results.logprobs,
-        np.array([[1., -0.904832, -0.904832, 1., 1.],
-                  [1., -1.904832, -0.904832, -0.904832, 1.],
-                  [1., -0.904832, 1., 1., 1.]],
-                 dtype=np.float32))
+        np.array(
+            [[1., -0.904832, -0.904832, 1., 1.],
+             [1., -0.904832, -0.904832, 1., 1.], [1., -0.904832, 1., 1., 1.]],
+            dtype=np.float32))
+
 
 if __name__ == '__main__':
   absltest.main()

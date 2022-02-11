@@ -76,8 +76,8 @@ def to_tf_nmap(x_nmap: NestedMap) -> NestedMap:
   return tf.nest.map_structure(to_tf, x_nmap)
 
 
-def apply(layer, layer_vars, method, *args, context_p=None, **kwags):
-  prng_key = jax.random.PRNGKey(seed=123)
+def apply(layer, layer_vars, method, *args, context_p=None, seed=123, **kwags):
+  prng_key = jax.random.PRNGKey(seed=seed)
   with base_layer.JaxContext.new_context(
       params=context_p,
       prng_key=prng_key,
