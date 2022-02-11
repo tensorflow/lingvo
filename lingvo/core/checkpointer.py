@@ -533,6 +533,13 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     restorer = tf.train.Checkpoint(variables=all_vars)
     return restorer
 
+  def _WrapRestoreErrorWithGraphModeWarning(self, err):
+    return ValueError(
+        'Could not restore V1 checkpoint during eager mode. If you are '
+        'restoring optimizer slot variables from a non-eager checkpoint, '
+        'please set p.train.optimizer.clear_variable_scope = True. See '
+        'b/218397533 for more details.\n\nOriginal Error: {}'.format(err))
+
   def Restore(self, sess=None, force_reinitialize=None):
     """`sess` and `force_reinitialize` are unused in Eager context."""
     assert sess is None
@@ -540,12 +547,16 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     if path:
       tf.logging.info('Eager checkpoint is restored with path: %s', path)
       return path
-    # No checkpoint is loaded, we need to initialize the variables,
-    # and apply the init_from_checkpoint_rules if applicable.
-    for msg, fn in self._restore_fns:
-      tf.logging.info(msg)
-      fn(sess)
-    return path
+    else:
+      # No checkpoint is loaded, we need to initialize the variables,
+      # and apply the init_from_checkpoint_rules if applicable.
+      try:
+        for msg, fn in self._restore_fns:
+          tf.logging.info(msg)
+          fn(sess)
+        return path
+      except tf.errors.NotFoundError as err:
+        raise self._WrapRestoreErrorWithGraphModeWarning(err)
 
   def RestoreGlobalStepIfNeeded(self, sess=None):
     """`sess` is unused in Eager context."""
@@ -574,7 +585,12 @@ class EagerCheckpointerV1(_EagerCheckpointer):
 
     assert not self._save_only
     tf.logging.info('Load from checkpoint (V1) %s.', checkpoint_path)
-    load_status = self._restorer.restore(save_path=checkpoint_path)
+
+    try:
+      load_status = self._restorer.restore(save_path=checkpoint_path)
+    except tf.errors.NotFoundError as err:
+      raise self._WrapRestoreErrorWithGraphModeWarning(err)
+
     # Check all model vars are matched from the checkpoint.
     load_status.assert_existing_objects_matched()
     tf.logging.info('Load checkpoint done.')
