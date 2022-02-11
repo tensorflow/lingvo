@@ -397,10 +397,8 @@ class LightConv1D(base_layer.BaseLayer):
     unnormalized_inputs = inputs
 
     inputs = self.ln.fprop(self.ln.local_theta(), inputs)
-    act_inputs = self.linear_start_act.fprop(
-        self.linear_start_act.local_theta(), inputs)
-    gated_inputs = self.linear_start_gated.fprop(
-        self.linear_start_gated.local_theta(), inputs)
+    act_inputs = self.linear_start_act.fprop(inputs)
+    gated_inputs = self.linear_start_gated.fprop(inputs)
     inputs = act_inputs * jax.nn.sigmoid(gated_inputs)
 
     inputs = self.depthwise_conv1d.fprop(inputs, paddings)
@@ -410,7 +408,7 @@ class LightConv1D(base_layer.BaseLayer):
 
     inputs = self.conv_activation.fprop(inputs)
 
-    inputs = self.linear_end.fprop(self.linear_end.local_theta(), inputs)
+    inputs = self.linear_end.fprop(inputs)
     inputs = self.dropout.fprop(self.dropout.local_theta(), inputs)
 
     output = inputs + unnormalized_inputs

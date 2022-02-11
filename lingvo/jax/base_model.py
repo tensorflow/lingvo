@@ -341,7 +341,7 @@ class ClassificationMLPModel(BaseModel):
 
     input_emb = self.softmax.emb_lookup(input_batch.ids)
 
-    output = self.mlp_layers.fprop(theta.mlp_layers, input_emb)
+    output = self.mlp_layers.fprop(input_emb)
     predictions = self.softmax.fprop(
         inputs=output,
         class_weights=input_batch.weights[:, :, jnp.newaxis],

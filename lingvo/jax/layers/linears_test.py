@@ -51,7 +51,7 @@ class LinearsTest(test_util.JaxTestCase):
     npy_input = np.random.normal(1.0, 0.5,
                                  [10, 10, p.input_dims]).astype('float32')
     inputs = jnp.asarray(npy_input)
-    outputs = ffn.fprop(initial_vars, inputs)
+    outputs = test_utils.apply(ffn, initial_vars, ffn.fprop, inputs)
     logging.info('initial_vars in ffn = %s', initial_vars)
     # Test whether tf projection layer returns same output
     # Modify initial_vars to use TF compatible params
@@ -88,7 +88,7 @@ class LinearsTest(test_util.JaxTestCase):
     npy_input = np.random.normal(1.0, 0.5,
                                  [10, 10, p.input_dims]).astype('float32')
     inputs = jnp.asarray(npy_input)
-    outputs = ffn.fprop(initial_vars, inputs)
+    outputs = test_utils.apply(ffn, initial_vars, ffn.fprop, inputs)
     logging.info('initial_vars in ffn = %s', initial_vars)
     # Test whether tf projection layer returns same output
     # Modify initial_vars to use TF compatible params
@@ -146,7 +146,8 @@ class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
         [[[0], [0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1], [1]]],
         dtype=jnp.float32)
 
-    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    outputs, output_paddings = test_utils.apply(stacker, stacker_vars,
+                                                stacker.fprop, inputs, paddings)
     print(f'{outputs}')
     if pad_with_left_frame:
       expected_outputs = jnp.array([
@@ -194,7 +195,8 @@ class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
                        dtype=jnp.float32)
     paddings = jnp.array([[[0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1]]],
                          dtype=jnp.float32)
-    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    outputs, output_paddings = test_utils.apply(stacker, stacker_vars,
+                                                stacker.fprop, inputs, paddings)
     print(f'{outputs}')
 
     if pad_with_right_frame:
@@ -237,7 +239,8 @@ class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
         [[[0], [0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1], [1]]],
         dtype=jnp.float32)
 
-    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    outputs, output_paddings = test_utils.apply(stacker, stacker_vars,
+                                                stacker.fprop, inputs, paddings)
     print(f'{outputs}')
     expected_outputs = jnp.array([
         [[0, 0, 0, 0, 1, 1], [1, 1, 2, 2, 3, 3], [3, 3, 4, 4, 5, 5]],
@@ -270,7 +273,8 @@ class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
 
     paddings = 1.0 - mask
     paddings = jnp.expand_dims(paddings, -1)
-    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    outputs, output_paddings = test_utils.apply(stacker, stacker_vars,
+                                                stacker.fprop, inputs, paddings)
 
     # length
     self.assertAllClose(
@@ -292,7 +296,8 @@ class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
     inputs = jnp.array([[[1], [2], [3], [4], [5]]], dtype=jnp.float32)
     paddings = jnp.zeros([1, 5, 1], dtype=jnp.float32)
 
-    outputs, output_paddings = stacker.fprop(stacker_vars, inputs, paddings)
+    outputs, output_paddings = test_utils.apply(stacker, stacker_vars,
+                                                stacker.fprop, inputs, paddings)
     print(f'{outputs}')
     expected_outputs = jnp.array([[[1], [2], [3], [4], [5]]], dtype=jnp.float32)
     self.assertAllClose(expected_outputs, outputs)
@@ -306,8 +311,9 @@ class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
 
     stacker = params.Instantiate()
     stacker_vars = None
-    stacked, _ = stacker.fprop(stacker_vars, inputs)
-    unstacked = stacker.unstack(stacked)
+    stacked, _ = test_utils.apply(stacker, stacker_vars, stacker.fprop, inputs)
+    unstacked = test_utils.apply(stacker, stacker_vars, stacker.unstack,
+                                 stacked)
     print(f'{unstacked}')
 
     batch, input_length, depth = inputs.shape

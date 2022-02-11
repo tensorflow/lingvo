@@ -51,7 +51,7 @@ class ProjectionLayer(base_layer.BaseLayer):
     self.create_child('bias', bias_layer_p)
 
   def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
-    return self.bias.fprop(theta.bias, self.linear.fprop(theta.linear, inputs))
+    return self.bias.fprop(self.linear.fprop(inputs))
 
 
 class AddOneLayer(base_layer.BaseLayer):
@@ -87,10 +87,10 @@ class TestLayer(base_layer.BaseLayer):
             shape=[4, 5], init=p.params_init, dtype=p.dtype))
 
   def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
-    x1 = self.linear.linear01.fprop(theta.linear.linear01, inputs)
-    x2 = self.bias[0].fprop(theta.bias[0], x1)
-    x3 = self.linear.linear02.fprop(theta.linear.linear02, x2)
-    x4 = self.bias[1].fprop(theta.bias[1], x3)
+    x1 = self.linear.linear01.fprop(inputs)
+    x2 = self.bias[0].fprop(x1)
+    x3 = self.linear.linear02.fprop(x2)
+    x4 = self.bias[1].fprop(x3)
     x5 = linears.project_last_dim(x4, theta.final_proj)
     x6 = self.add_one.fprop(theta.add_one, x5)
     return x6
@@ -202,7 +202,7 @@ class TestLinearRegressionModel(base_model.BaseModel):
 
   def compute_predictions(self, theta: NestedMap,
                           input_batch: NestedMap) -> JTensor:
-    return self.linear.fprop(theta.linear, input_batch.inputs)
+    return self.linear.fprop(input_batch.inputs)
 
   def compute_loss(self, theta, predictions, input_batch):
     targets = input_batch.targets

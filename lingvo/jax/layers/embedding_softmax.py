@@ -123,7 +123,7 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
     """
     p = self.params
     # Compute logits
-    logits = self.logits_ffn.fprop(self.logits_ffn.local_theta(), inputs)
+    logits = self.logits_ffn.fprop(inputs)
 
     # Soft cap logits if applicable
     if p.soft_cap_logits:

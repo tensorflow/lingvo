@@ -83,18 +83,17 @@ class Linear(base_layer.BaseLayer):
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp.wt))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Apply projection to inputs.
 
     Args:
-      theta: A NestedMap object containing weights' values of this layer and its
-        children layers.
       inputs: The inputs JTensor.  Shaped [..., input_dims].
 
     Returns:
       Projected inputs.
     """
     p = self.params
+    theta = self.local_theta()
     ap = p.activation_split_dims_mapping
     out = project_last_dim(inputs, theta.w)
     out = base_layer.maybe_shard(out, ap.out, p.mesh_axis_names)
@@ -123,17 +122,16 @@ class Bias(base_layer.BaseLayer):
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp.wt))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Adds bias to inputs.
 
     Args:
-      theta: A NestedMap object containing weights' values of this layer and its
-        children layers.
       inputs: The inputs JTensor.  Shaped [..., dims].
 
     Returns:
       Inputs plus bias.
     """
+    theta = self.local_theta()
     return inputs + theta.b
 
 
@@ -174,10 +172,10 @@ class FeedForward(base_layer.BaseLayer):
     act_p = activations.Activation.Params().Set(activation=p.activation)
     self.create_child('activation', act_p)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
-    projected_inputs = self.linear.fprop(theta.linear, inputs)
+  def fprop(self, inputs: JTensor) -> JTensor:
+    projected_inputs = self.linear.fprop(inputs)
     if self.params.has_bias:
-      projected_inputs = self.bias.fprop(theta.bias, projected_inputs)
+      projected_inputs = self.bias.fprop(projected_inputs)
     output = self.activation.fprop(projected_inputs)
     return output
 
@@ -223,11 +221,11 @@ class MLPBlock(base_layer.BaseLayer):
     mlp_layers.append(output_layer_p)
     self.create_children('mlp_layers', mlp_layers)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     output = inputs
     p = self.params
     for i in range(p.num_layers):
-      output = self.mlp_layers[i].fprop(theta.mlp_layers[i], output)
+      output = self.mlp_layers[i].fprop(output)
     return output
 
 
@@ -334,11 +332,10 @@ class StackingOverTime(base_layer.BaseLayer):
     out = out[:, ::p.stride]
     return out
 
-  def fprop(self, theta, inputs, paddings=None):
+  def fprop(self, inputs, paddings=None):
     """Apply the stacking to inputs along the time axis.
 
     Args:
-      theta: For consistence with all other fprop add an unused theta
       inputs: The inputs tensor. It is expected to be of shape [batch, time,
         feature].
       paddings: The paddings tensor. It is expected to be of shape [batch, time,

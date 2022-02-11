@@ -368,14 +368,11 @@ class TransformerFeedForward(base_layer.BaseLayer):
     # Apply first FFN layer
     if self._is_ffn1_gated:
       # theta.ffn_layer1_gate corresponds to gshard_builder's wi0
-      gate_value = self.ffn_layer1_gate.fprop(theta.ffn_layer1_gate,
-                                              inputs_normalized)
+      gate_value = self.ffn_layer1_gate.fprop(inputs_normalized)
       # theta.ffn_layer1 corresponds to gshard_builder's wi1
-      projected_inputs = gate_value * self.ffn_layer1.fprop(
-          theta.ffn_layer1, inputs_normalized)
+      projected_inputs = gate_value * self.ffn_layer1.fprop(inputs_normalized)
     else:
-      projected_inputs = self.ffn_layer1.fprop(theta.ffn_layer1,
-                                               inputs_normalized)
+      projected_inputs = self.ffn_layer1.fprop(inputs_normalized)
       projected_inputs = checkpoint_name(projected_inputs, 'ffn1')
 
     # Apply paddings if not None
@@ -387,7 +384,7 @@ class TransformerFeedForward(base_layer.BaseLayer):
                                                projected_inputs)
 
     # Apply second FFN layer
-    projected_inputs = self.ffn_layer2.fprop(theta.ffn_layer2, projected_inputs)
+    projected_inputs = self.ffn_layer2.fprop(projected_inputs)
     projected_inputs = checkpoint_name(projected_inputs, 'ffn2')
 
     # Apply paddings if not None
@@ -404,8 +401,8 @@ class TransformerFeedForward(base_layer.BaseLayer):
                                                    projected_inputs)
 
     if hasattr(self, 'res_proj'):
-      inputs = self.res_proj_norm.fprop(
-          theta.res_proj_norm, self.res_proj.fprop(theta.res_proj, inputs))
+      inputs = self.res_proj_norm.fprop(theta.res_proj_norm,
+                                        self.res_proj.fprop(inputs))
 
     # Apply skip connection
     if p.add_skip_connection:
