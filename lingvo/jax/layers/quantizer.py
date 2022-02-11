@@ -150,13 +150,12 @@ class SeqVectorQuantizer(base_layer.BaseLayer):
     mask = jnp.reshape(mask, mask.shape + tuple([1] * (x_rank - mask_rank)))
     return x * mask.astype(x.dtype)
 
-  def fprop(self, theta: NestedMap, z: JTensor, paddings: JTensor) -> NestedMap:
+  def fprop(self, z: JTensor, paddings: JTensor) -> NestedMap:
     """Quantizes 'z' of shape [B, T, D].
 
     The z_codes of padded locations are 0.
 
     Args:
-      theta:    A NestedMap.
       z:        [B, T, D].
       paddings: [B, T].
 
@@ -173,6 +172,7 @@ class SeqVectorQuantizer(base_layer.BaseLayer):
         - entropy:           [], exp(pplx).
     """
     p = self.params
+    theta = self.local_theta()
     b, t, d = z.shape
     g, c = p.num_groups, p.num_latent_classes
 
@@ -235,9 +235,10 @@ class SeqVectorQuantizer(base_layer.BaseLayer):
         pplx=pplx,
         entropy=entropy)
 
-  def look_up(self, theta, z_codes):
+  def look_up(self, z_codes):
     """Looks up latent vectors [B, T, D] by z_codes [B, T, G]."""
     p = self.params
+    theta = self.local_theta()
     b, t = z_codes.shape[:2]
     latent = jnp.einsum('btgc,cgd->btgd',
                         jax.nn.one_hot(z_codes, p.num_latent_classes),

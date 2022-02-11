@@ -20,6 +20,7 @@ from absl.testing import absltest
 import jax
 from jax import test_util
 import jax.numpy as jnp
+from lingvo.jax import test_utils
 from lingvo.jax.layers import quantizer
 import numpy as np
 
@@ -54,7 +55,7 @@ class SeqVectorQuantizerTest(test_util.JaxTestCase):
     vq = vq_p.Instantiate()
     vq_theta = vq.instantiate_variables(jax.random.PRNGKey(1))
     vq_theta.w = jnp.expand_dims(self.w, 1)
-    out = vq.fprop(vq_theta, z, paddings)
+    out = test_utils.apply(vq, vq_theta, vq.fprop, z, paddings)
 
     with self.subTest('test_shape'):
       self.assertEqual((b, t, latent_dim), out.z_q.shape)
@@ -85,7 +86,7 @@ class SeqVectorQuantizerTest(test_util.JaxTestCase):
     vq_p.Set(num_groups=num_groups)
     vq = vq_p.Instantiate()
     vq_theta = vq.instantiate_variables(jax.random.PRNGKey(1))
-    out = vq.fprop(vq_theta, z, paddings)
+    out = test_utils.apply(vq, vq_theta, vq.fprop, z, paddings)
 
     with self.subTest('test_shape'):
       self.assertEqual((b, t, latent_dim), out.z_q.shape)
