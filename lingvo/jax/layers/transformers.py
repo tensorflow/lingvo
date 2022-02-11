@@ -1148,7 +1148,8 @@ class StackedTransformer(base_layer.BaseLayer):
                  num_groups=1,
                  c_dim=None,
                  capacity_factor=0.0,
-                 e_dim=None):
+                 e_dim=None,
+                 combine_qkv=False):
     """Common setup for GLaM Transformer layers.
 
     This function setups a transformer block for both MoE and dense GLaM models.
@@ -1182,6 +1183,7 @@ class StackedTransformer(base_layer.BaseLayer):
         over the average number of examples per expert assuming routing is
         completely uniform.
       e_dim: Number of experts.
+      combine_qkv: if combined qkv projection layer is used.
 
     Returns:
       A Params object to set up a StackedTransformer.
@@ -1217,6 +1219,10 @@ class StackedTransformer(base_layer.BaseLayer):
         relative_attention_num_buckets=relative_attention_num_buckets,
         relative_attention_max_distance=relative_attention_max_distance)
     tr_atten_tpl.output_proj_use_nhd_shape = True
+    if combine_qkv:
+      tr_atten_tpl.combine_qkv = True
+      tr_atten_tpl.combined_qkv_proj_tpl.use_bias = False
+      tr_atten_tpl.combined_qkv_proj_tpl.attention_combine_dims = True
     # Non-MoE ffn setup
     ff_tpl = p.transformer_layer_params_tpl.tr_fflayer_tpl
     assert ff_tpl.cls == TransformerFeedForward
@@ -1928,7 +1934,8 @@ class TransformerLm(base_layer.BaseLayer):
                                e_dim=None,
                                use_tgt_labels_size_as_loss_denominator=True,
                                moe_load_balance_loss_weight=0.01,
-                               z_loss_weight=1e-4):
+                               z_loss_weight=1e-4,
+                               combine_qkv=False):
     """Common setup for GLaM Decoder-only Transformer Model.
 
     This function sets up configs for both MoE and dense GLaM models.
@@ -1967,6 +1974,7 @@ class TransformerLm(base_layer.BaseLayer):
         non-padding tokens instead of fixed tgt_labels tensor size.
       moe_load_balance_loss_weight: Weight of the aux loss for MoE layers.
       z_loss_weight: additional loss term to stablize the final softmax logit.
+      combine_qkv: if combined qkv projection layer is used.
 
     Returns:
       A Params object to set up a StackedTransformer.
@@ -2007,7 +2015,8 @@ class TransformerLm(base_layer.BaseLayer):
         num_groups=num_groups,
         c_dim=c_dim,
         capacity_factor=capacity_factor,
-        e_dim=e_dim)
+        e_dim=e_dim,
+        combine_qkv=combine_qkv)
 
     p.stacked_transformer_tpl = StackedTransformerRepeated.Params()
     num_blocks = num_transformer_layers // 2 if moe else num_transformer_layers

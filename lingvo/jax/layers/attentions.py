@@ -533,6 +533,10 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
     p.Define('num_heads', 0, 'Number of heads.')
     p.Define('dim_per_head', 0, 'Size of each head.')
     p.Define('use_bias', True, 'If to add bias in projection.')
+    p.Define(
+        'attention_combine_dims', False,
+        'The heads and key/value dimensions are combined in the variables '
+        'and the computation.')
     return p
 
   def create_layer_variables(self) -> None:
@@ -541,17 +545,34 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
     wp = p.weight_split_dims_mapping
     if p.device_mesh is not None:
       assert wp.wt is not None, self.path
-      # Replicate the concat axis.
-      assert len(wp.wt) == 3, ('wp.wt only specifies the sharding for '
-                               'the last three dims of the weight tensor.')
-      weight_split_dims_mapping = [None] + list(wp.wt)
-      bias_split_dims_mapping = [None, wp.wt[1], wp.wt[2]]
+      if (p.attention_combine_dims and isinstance(wp.wt, list) and
+          len(wp.wt) == 3):
+        wt = [axis for axis in wp.wt if axis is not None]
+        assert len(wt) == 2, ('wp.wt only specifies the sharding for '
+                              'the last two dims of the weight tensor.')
+      else:
+        wt = wp.wt
+        # Replicate the concat axis.
+        assert len(wt) == 3, ('wp.wt only specifies the sharding for '
+                              'the last three dims of the weight tensor.')
+      weight_split_dims_mapping = [None] + list(wt)
+      if p.attention_combine_dims:
+        bias_split_dims_mapping = [None, wt[1]]
+      else:
+        bias_split_dims_mapping = [None, wt[1], wt[2]]
     else:
       weight_split_dims_mapping = None
       bias_split_dims_mapping = None
+
+    if p.attention_combine_dims:
+      hd_shape = [p.num_heads * p.dim_per_head]
+    else:
+      hd_shape = [p.num_heads, p.dim_per_head]
+
+    pc_shape = [3, p.input_dim] + hd_shape
     # Combined weight for q, k, v projections.
     pc = weight_params(
-        shape=[3, p.input_dim, p.num_heads, p.dim_per_head],
+        shape=pc_shape,
         init=p.params_init,
         dtype=p.dtype,
         device_mesh=p.device_mesh,
@@ -560,7 +581,7 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
     if p.use_bias:
       # Combined bias weight for q, k, v projections.
       pc_bias = weight_params(
-          shape=[3, p.num_heads, p.dim_per_head],
+          shape=[3] + hd_shape,
           init=WeightInit.Constant(0.0),
           dtype=p.dtype,
           device_mesh=p.device_mesh,
@@ -595,14 +616,25 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
     assert shape[-1] == p.input_dim
     batch_dims_rank = rank - 1
     batch_eqn = eqn_sym[:batch_dims_rank] if rank else '...'
+    if p.attention_combine_dims:
+      pc_shape = [3, p.input_dim, p.num_heads, p.dim_per_head]
+      w = jnp.reshape(theta.w, pc_shape)
+      if p.use_bias:
+        b_shape = [3, p.num_heads, p.dim_per_head]
+        b = jnp.reshape(theta.b, b_shape)
+    else:
+      w = theta.w
+      if p.use_bias:
+        b = theta.b
+
     # K indexes qkv.
     eqn = f'{batch_eqn}D,KDNH->K{batch_eqn}NH'
-    ret = jnp.einsum(eqn, inputs, theta.w)
+    ret = jnp.einsum(eqn, inputs, w)
     ret = checkpoint_name(ret, 'combined_qkv_proj')
     if p.use_bias:
       # Add newaxis to bias weight for each batch dim since ret is K...NH
       # and theta.b is KNH. Need to reshape theta.b to K...NH
-      ret += jnp.expand_dims(theta.b, list(range(1, batch_dims_rank + 1)))
+      ret += jnp.expand_dims(b, list(range(1, batch_dims_rank + 1)))
     # Split into three projections.
     query_proj, key_proj, value_proj = ret
     query_proj = checkpoint_name(query_proj, 'query_proj')

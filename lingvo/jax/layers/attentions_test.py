@@ -526,6 +526,55 @@ class AttentionsTest(test_util.JaxTestCase):
         test_utils.to_np(result),
         (1.0 - expect) * attentions._get_large_negative_number(jnp.float32))
 
+  def test_combine_qkv_with_attention_combine_dims(self):
+    input_dim = 64
+    dim_per_head = 8
+    num_heads = 8
+    # Reference combine qkv projection layer.
+    ref_proj_p = attentions.CombinedQKVProjectionLayer.Params().Set(
+        name='ref',
+        input_dim=input_dim,
+        dim_per_head=dim_per_head,
+        num_heads=num_heads)
+    proj = ref_proj_p.Instantiate()
+
+    # Combine attention dim combine qkv projection layer.
+    combine_proj_p = attentions.CombinedQKVProjectionLayer.Params().Set(
+        name='ref',
+        input_dim=input_dim,
+        dim_per_head=dim_per_head,
+        num_heads=num_heads,
+        attention_combine_dims=True)
+    combine_proj = combine_proj_p.Instantiate()
+
+    prng_key = jax.random.PRNGKey(seed=123)
+    prng_key, init_key = jax.random.split(prng_key)
+    initial_vars = proj.instantiate_variables(init_key)
+
+    # Set up initial vars for combine attention dim projection.
+    combine_initial_vars = combine_proj.instantiate_variables(init_key)
+    combine_initial_vars.w = np.reshape(
+        initial_vars.w, (3, input_dim, num_heads * dim_per_head))
+    combine_initial_vars.b = np.reshape(initial_vars.b,
+                                        (3, num_heads * dim_per_head))
+
+    batch_size = 3
+    inputs = np.random.normal(size=[batch_size, input_dim]).astype(np.float32)
+
+    prng_key, compute_key = jax.random.split(prng_key)
+    global_step = jnp.array(0, dtype=jnp.uint64)
+
+    with base_layer.JaxContext.new_context(
+        prng_key=compute_key, global_step=global_step):
+      q_proj_ref, k_proj_ref, v_proj_ref = test_utils.apply(
+          proj, initial_vars, proj.fprop, inputs)
+      q_proj_combine, k_proj_combine, v_proj_combine = test_utils.apply(
+          combine_proj, combine_initial_vars, combine_proj.fprop, inputs)
+
+    self.assertAllClose(q_proj_ref, q_proj_combine)
+    self.assertAllClose(k_proj_ref, k_proj_combine)
+    self.assertAllClose(v_proj_ref, v_proj_combine)
+
 
 if __name__ == '__main__':
   absltest.main()
