@@ -563,6 +563,10 @@ class SequenceModel(BaseModel):
         'eos_id', 2,
         'The id of EOS token indicating the termination of decoding.')
     p.Define('decoder', decoder_p, 'Decoder params.')
+    p.Define(
+        'label_smoothing_prob', 0.0,
+        'If > 0.0, smooth out one-hot prob by spreading this amount of'
+        ' prob mass to all other tokens.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -585,8 +589,18 @@ class SequenceModel(BaseModel):
       }
     else:
       packed_input_kwargs = {}
+
     labels = NestedMap(
         class_ids=input_batch.tgt.labels, class_weights=input_batch.tgt.weights)
+    if p.label_smoothing_prob > 0.0:
+      vocab_size = p.model.softmax_tpl.num_classes
+      class_probabilities = jax.nn.one_hot(labels.class_ids, vocab_size)
+      fill_prob = p.label_smoothing_prob / (vocab_size - 1)
+      class_probabilities = (
+          (1.0 - p.label_smoothing_prob) * class_probabilities + fill_prob *
+          (1.0 - class_probabilities)).astype(self.fprop_dtype)
+      labels.class_probabilities = class_probabilities
+
     return self.model.fprop(
         theta=theta.model,
         inputs=input_batch.src.ids,
@@ -667,8 +681,9 @@ class SequenceModel(BaseModel):
                      jnp.array(batch_size, jnp.float32)))
     return metrics, result
 
-  def process_decode_out(self, input_obj: base_input.BaseInput,
-                         decode_out: NestedMap) -> Sequence[Tuple[str, Any]]:
+  def process_decode_out(
+      self, input_obj: base_input.BaseInput,
+      decode_out: NestedMap) -> Tuple[NestedMap, Sequence[Tuple[str, Any]]]:
     """Processes one batch of decoded outputs.
 
     Args:
@@ -676,10 +691,10 @@ class SequenceModel(BaseModel):
       decode_out: The output from decode(). May have an extra leading axis.
 
     Returns:
-      A dict where each entry corresponds to a row in the batch. The keys should
-      be unique across the entire decode dataset. The returned dict contains
-      the source sequence, the decoded sequence and the gold truth target
-      sequence.
+      - metrics, a NestedMap containing str keys and (metric, weight) pairs for
+        the current batch (a tuple of two scalars).
+      - A list of dict where each entry corresponds to a row in the batch. The
+        keys should be unique across the entire decode dataset.
     """
     decoded_strs = input_obj.ids_to_strings(
         decode_out.output_ids, decode_out.decode_lengths, key='tgt')
@@ -695,8 +710,14 @@ class SequenceModel(BaseModel):
           'source': source_strs[idx],
           'decoded': decoded_str,
           'target': target_strs[idx],
+          'ids': decode_out.output_ids[idx],
+          'logprobs': decode_out.logprobs[idx],
+          'decode_length': decode_out.decode_lengths[idx],
       }))
-    return ret
+    decode_lengths = jnp.average(decode_out.decode_lengths).astype(jnp.float32)
+    metrics = NestedMap(
+        decode_length=(decode_lengths, jnp.array(1.0, jnp.float32)))
+    return metrics, ret
 
 
 class ClassificationModel(BaseModel):
