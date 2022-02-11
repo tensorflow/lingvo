@@ -358,10 +358,9 @@ class TransformerFeedForward(base_layer.BaseLayer):
       inputs *= (1.0 - paddings)
 
     if p.norm_policy == 'primer_hybrid':
-      inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
-                                                    inputs)
+      inputs_normalized = self.pre_layer_norm.fprop(inputs)
     elif p.norm_policy == 'pre':
-      inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
+      inputs_normalized = self.layer_norm.fprop(inputs)
     else:
       inputs_normalized = inputs
 
@@ -392,15 +391,13 @@ class TransformerFeedForward(base_layer.BaseLayer):
 
     # Apply Primer normalization before dropout.
     if p.norm_policy == 'primer_hybrid':
-      projected_inputs = self.post_layer_norm.fprop(theta.post_layer_norm,
-                                                    projected_inputs)
+      projected_inputs = self.post_layer_norm.fprop(projected_inputs)
 
     # Apply residual dropout
     projected_inputs = self.residual_dropout.fprop(projected_inputs)
 
     if hasattr(self, 'res_proj'):
-      inputs = self.res_proj_norm.fprop(theta.res_proj_norm,
-                                        self.res_proj.fprop(inputs))
+      inputs = self.res_proj_norm.fprop(self.res_proj.fprop(inputs))
 
     # Apply skip connection
     if p.add_skip_connection:
@@ -663,10 +660,9 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
 
     # TODO(zhangqiaorjc): Handle input of shape [batch, seq_len, g, model/g]?
     if p.norm_policy == 'primer_hybrid':
-      inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
-                                                    inputs)
+      inputs_normalized = self.pre_layer_norm.fprop(inputs)
     elif p.norm_policy == 'pre':
-      inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
+      inputs_normalized = self.layer_norm.fprop(inputs)
     else:
       inputs_normalized = inputs
 
@@ -786,8 +782,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     combined_output *= (1.0 - jnp.expand_dims(paddings, -1)).astype(fprop_dtype)
     # Primer normalization before dropout.
     if p.norm_policy == 'primer_hybrid':
-      combined_output = self.post_layer_norm.fprop(theta.post_layer_norm,
-                                                   combined_output)
+      combined_output = self.post_layer_norm.fprop(combined_output)
     # Residual dropout.
     after_residual = self.residual_dropout.fprop(combined_output)
     if p.add_skip_connection:
@@ -987,10 +982,9 @@ class Transformer(base_layer.BaseLayer):
     base_layer.add_summary('xformer_input_abs_max', inputs_stats.max_v)
 
     if p.norm_policy == 'primer_hybrid':
-      inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
-                                                    inputs)
+      inputs_normalized = self.pre_layer_norm.fprop(inputs)
     elif p.norm_policy == 'pre':
-      inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
+      inputs_normalized = self.layer_norm.fprop(inputs)
     else:
       inputs_normalized = inputs
 
@@ -1003,8 +997,7 @@ class Transformer(base_layer.BaseLayer):
         query_segment_pos=segment_pos)
     atten_probs = NestedMap(self_atten=self_atten_probs)
     if p.norm_policy == 'primer_hybrid':
-      atten_output = self.post_layer_norm.fprop(theta.post_layer_norm,
-                                                atten_output)
+      atten_output = self.post_layer_norm.fprop(atten_output)
 
     # Residual dropout and connection
     atten_output = self.residual_dropout.fprop(atten_output)
@@ -1019,7 +1012,7 @@ class Transformer(base_layer.BaseLayer):
       assert p.norm_policy != 'primer_hybrid'
 
       cross_atten_output, cross_atten_probs = self.cross_attention.fprop(
-          self.cross_layer_norm.fprop(theta.cross_layer_norm, atten_output),
+          self.cross_layer_norm.fprop(atten_output),
           cross_inputs,
           cross_inputs,
           atten_mask=cross_attention_mask)
@@ -1076,10 +1069,9 @@ class Transformer(base_layer.BaseLayer):
     p = self.params
     # Layer normalize input
     if p.norm_policy == 'primer_hybrid':
-      inputs_normalized = self.pre_layer_norm.fprop(theta.pre_layer_norm,
-                                                    inputs)
+      inputs_normalized = self.pre_layer_norm.fprop(inputs)
     elif p.norm_policy == 'pre':
-      inputs_normalized = self.layer_norm.fprop(theta.layer_norm, inputs)
+      inputs_normalized = self.layer_norm.fprop(inputs)
 
     # Self-attention layer.
     updated_states, atten_output = self.self_attention.extend_step(
@@ -1088,8 +1080,7 @@ class Transformer(base_layer.BaseLayer):
         atten_mask=attention_mask,
         time_step=time_step)
     if p.norm_policy == 'primer_hybrid':
-      atten_output = self.post_layer_norm.fprop(theta.post_layer_norm,
-                                                atten_output)
+      atten_output = self.post_layer_norm.fprop(atten_output)
 
     # Residual dropout and connection
     atten_output = self.residual_dropout.fprop(atten_output)
@@ -1101,7 +1092,7 @@ class Transformer(base_layer.BaseLayer):
       assert cross_attention_mask is not None
 
       atten_output_normalized = self.cross_layer_norm.fprop(
-          theta.cross_layer_norm, jnp.expand_dims(atten_output, axis=1))
+          jnp.expand_dims(atten_output, axis=1))
       cross_atten_output, _ = self.cross_attention.fprop(
           atten_output_normalized,
           cross_inputs,
@@ -2372,7 +2363,7 @@ class TransformerLm(base_layer.BaseLayer):
 
       # Final layer norm
       if p.final_ln_tpl is not None:
-        output = self.final_ln.fprop(theta.final_ln, output)
+        output = self.final_ln.fprop(output)
       return self.compute_loss(theta, output, labels)
 
   def extend_step(
@@ -2442,7 +2433,7 @@ class TransformerLm(base_layer.BaseLayer):
     cached_states.transformer = updated_cache
     cached_states.step += 1
     if p.final_ln_tpl is not None:
-      outputs = self.final_ln.fprop(theta.final_ln, outputs)
+      outputs = self.final_ln.fprop(outputs)
     xent_output = self.compute_loss(theta, outputs)
     return cached_states, xent_output
 
@@ -2683,7 +2674,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
         segment_mask=inputs_segment_mask)
 
     # Final layer norm for encoder output.
-    encoder_output = self.encoder_ln.fprop(theta.encoder_ln, encoder_output)
+    encoder_output = self.encoder_ln.fprop(encoder_output)
     return encoder_output
 
   def compute_loss(self,
@@ -2845,7 +2836,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
         cross_segment_mask=cross_segment_mask)
 
     # Final layer norm for decoder.
-    output = self.decoder_ln.fprop(theta.decoder_ln, output)
+    output = self.decoder_ln.fprop(output)
 
     return self.compute_loss(theta, output, labels)
 
@@ -2951,6 +2942,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
         cross_paddings=input_paddings)
     cached_states.decoder = updated_cache
     cached_states.step += 1
-    outputs = self.decoder_ln.fprop(theta.decoder_ln, outputs)
+    outputs = self.decoder_ln.fprop(outputs)
     xent_output = self.compute_loss(theta, outputs)
     return cached_states, xent_output

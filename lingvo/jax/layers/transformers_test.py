@@ -292,8 +292,7 @@ class TransformersTest(test_util.JaxTestCase):
         global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
       jax_context.bind(transformer_layer,
                        transformer_layer.vars_to_flax_vars(initial_vars))
-      inputs_normalized = transformer_layer.layer_norm.fprop(
-          initial_vars.layer_norm, inputs)
+      inputs_normalized = transformer_layer.layer_norm.fprop(inputs)
       # Compute self-attention, key/value vectors are the input itself
       atten_output, _ = transformer_layer.self_attention.fprop(
           inputs_normalized,
@@ -305,7 +304,7 @@ class TransformersTest(test_util.JaxTestCase):
       atten_output += inputs
       # Normalize atten outputs using cross attention.
       atten_output_normalized = transformer_layer.cross_layer_norm.fprop(
-          initial_vars.cross_layer_norm, atten_output)
+          atten_output)
       inputs_normalized = test_utils.to_np(inputs_normalized)
       atten_output_normalized = test_utils.to_np(atten_output_normalized)
     self.assertAllClose(

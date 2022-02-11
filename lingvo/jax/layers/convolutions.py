@@ -190,7 +190,7 @@ class ConvBNAct(Conv2D):
     p = self.params
     outputs = super().fprop(inputs)
     if p.batch_norm:
-      outputs = self.bn.fprop(self.bn.local_theta(), outputs)
+      outputs = self.bn.fprop(outputs)
     outputs = self.activation.fprop(outputs)
     return outputs
 
@@ -396,15 +396,14 @@ class LightConv1D(base_layer.BaseLayer):
     """
     unnormalized_inputs = inputs
 
-    inputs = self.ln.fprop(self.ln.local_theta(), inputs)
+    inputs = self.ln.fprop(inputs)
     act_inputs = self.linear_start_act.fprop(inputs)
     gated_inputs = self.linear_start_gated.fprop(inputs)
     inputs = act_inputs * jax.nn.sigmoid(gated_inputs)
 
     inputs = self.depthwise_conv1d.fprop(inputs, paddings)
 
-    inputs = self.conv_norm.fprop(self.conv_norm.local_theta(), inputs,
-                                  jnp.expand_dims(paddings, -1))
+    inputs = self.conv_norm.fprop(inputs, jnp.expand_dims(paddings, -1))
 
     inputs = self.conv_activation.fprop(inputs)
 

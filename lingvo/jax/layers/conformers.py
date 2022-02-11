@@ -88,11 +88,6 @@ class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
     params.keep_prob = (1.0 - p.residual_dropout_prob)
     self.create_child('residual_dropout', params)
 
-  def normalize(self, theta: NestedMap, inputs: JTensor,
-                paddings: JTensor) -> JTensor:
-    # LayerNorm doesn't need paddings
-    return self.norm.fprop(theta.norm, inputs)
-
   def fprop(self, theta: NestedMap, inputs: JTensor,
             paddings: JTensor) -> JTensor:
     p = self.params
@@ -100,7 +95,7 @@ class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
     unnormalized_inputs = inputs
 
     if p.pre_layer_norm:
-      inputs = self.normalize(theta, inputs, paddings)
+      inputs = self.norm.fprop(inputs)
 
     if p.left_context is not None or p.right_context is not None:
       atten_mask = attentions.limited_context_mask_from_padding(
@@ -113,7 +108,7 @@ class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
         value_vec=inputs,
         atten_mask=atten_mask)[0]
     if not p.pre_layer_norm:
-      result = self.normalize(theta, result, paddings)
+      result = self.norm.fprop(result)
 
     result = (
         self.residual_dropout.fprop(result) * p.residual_weight +
@@ -334,7 +329,7 @@ class Conformer(base_layer.BaseLayer):
       # With the weight sharing, we apply fflayer_start again
       inputs = self.fflayer_start.fprop(theta.fflayer_start, inputs, paddings)
 
-    inputs = self.final_ln.fprop(theta.final_ln, inputs)
+    inputs = self.final_ln.fprop(inputs)
     return inputs
 
 

@@ -334,7 +334,7 @@ class Ngrammer(base_layer.BaseLayer):
           jnp.reshape(ngram_ids_for_head, [-1])))
       # [B * L, H]
       ngram_embs_to_concat[i] = self.ngram_layer_norm[i].fprop(
-          self.ngram_layer_norm[i].local_theta(), ngram_embs_to_concat[i])
+          ngram_embs_to_concat[i])
 
     # [B * L, N * H].
     ngram_embs = jnp.concatenate(ngram_embs_to_concat, 1)
@@ -346,8 +346,7 @@ class Ngrammer(base_layer.BaseLayer):
     for i in range(p.num_heads):
       # Reshape into [B * L, H]
       per_head_emb = jnp.reshape(input_embs_per_head[i], [-1, p.dim_per_head])
-      input_embs_per_head[i] = self.emb_layer_norm[i].fprop(
-          self.emb_layer_norm[i].local_theta(), per_head_emb)
+      input_embs_per_head[i] = self.emb_layer_norm[i].fprop(per_head_emb)
       # Reshape to [B, L, H]
       input_embs_per_head[i] = jnp.reshape(
           input_embs_per_head[i], [batch_size, seq_length, p.dim_per_head])

@@ -164,7 +164,7 @@ class TestModel01(base_model.BaseModel):
             dtype=p.dtype))
 
   def compute_predictions(self, theta: NestedMap, inputs: JTensor) -> JTensor:
-    in_normed = self.bn.fprop(theta.bn, inputs)
+    in_normed = self.bn.fprop(inputs)
     return jnp.einsum('bi,io->bo', in_normed, theta.var01)
 
   def compute_loss(self, theta: NestedMap, predictions: JTensor,
@@ -231,7 +231,7 @@ class TestBatchNormalizationModel(base_model.BaseModel):
 
   def compute_predictions(self, theta: NestedMap,
                           input_batch: NestedMap) -> JTensor:
-    return self.bn.fprop(theta.bn, input_batch.inputs)
+    return self.bn.fprop(input_batch.inputs)
 
   def compute_loss(self, theta: NestedMap, predictions: JTensor,
                    input_batch: NestedMap) -> Tuple[NestedMap, NestedMap]:

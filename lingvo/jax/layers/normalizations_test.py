@@ -96,7 +96,7 @@ class NormalizationsTest(test_util.JaxTestCase):
         # Mix in global steps so that prng seed depends on a global step.
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = layer.fprop(theta, inputs, paddings)
+        output = layer.fprop(inputs, paddings)
         forward_updated_theta = layer.updated_vars
 
         def UpdateParam(old, new):
@@ -166,7 +166,7 @@ class NormalizationsTest(test_util.JaxTestCase):
                          [base_layer.SCOPE_VARS])
         per_step_prng_key = jax.random.fold_in(prng_key, global_step)
         base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = layer.fprop(theta, inputs, paddings)
+        output = layer.fprop(inputs, paddings)
         forward_updated_theta = layer.updated_vars
 
         def UpdateParam(old, new):
@@ -211,7 +211,8 @@ class NormalizationsTest(test_util.JaxTestCase):
     npy_input = np.random.normal(1.0, 0.5,
                                  [10, 10, 10, p.input_dims]).astype('float32')
     inputs = jnp.asarray(npy_input)
-    outputs = layer_norm.fprop(initial_vars, inputs)
+    outputs = test_utils.apply(layer_norm, initial_vars, layer_norm.fprop,
+                               inputs)
     # Now test whether tf layer norm returns same output
     tf_p = lingvo_layers.LayerNorm.Params().Set(
         name='tf_ln', input_dim=p.input_dims)
@@ -237,7 +238,7 @@ class NormalizationsTest(test_util.JaxTestCase):
     npy_input = np.random.normal(1.0, 0.5,
                                  [10, 10, 10, p.input_dims]).astype('float32')
     inputs = jnp.asarray(npy_input)
-    outputs = rms_norm.fprop(initial_vars, inputs)
+    outputs = test_utils.apply(rms_norm, initial_vars, rms_norm.fprop, inputs)
     # Now test whether tf RMS norm returns same output.
     tf_p = lingvo_layers.LayerNorm.Params().Set(
         name='tf_rmsn', input_dim=p.input_dims, bias=False, center=False)
@@ -288,10 +289,13 @@ class NormalizationsTest(test_util.JaxTestCase):
     npy_input = np.random.normal(1.0, 0.5, input_shape).astype(np.float32)
     inputs = jnp.asarray(npy_input, dtype=input_dtype)
     if paddings is None:
-      output = group_norm.fprop(initial_vars, inputs, paddings=None)
+      output = test_utils.apply(
+          group_norm, initial_vars, group_norm.fprop, inputs, paddings=None)
     else:
-      output, output_paddings = group_norm.fprop(
+      output, output_paddings = test_utils.apply(
+          group_norm,
           initial_vars,
+          group_norm.fprop,
           inputs,
           paddings=jnp.asarray(paddings, dtype=input_dtype))
 

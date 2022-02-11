@@ -164,8 +164,9 @@ class BatchNorm(base_layer.BaseLayer):
     in_shape[-1] = 1
     return jnp.zeros(in_shape, dtype=inputs.dtype)
 
-  def _get_beta_gamma(self, theta: NestedMap) -> Tuple[JTensor, JTensor]:
+  def _get_beta_gamma(self) -> Tuple[JTensor, JTensor]:
     p = self.params
+    theta = self.local_theta()
     if p.use_moving_avg_in_training:
       beta = 0.0
       gamma = 1.0
@@ -175,13 +176,11 @@ class BatchNorm(base_layer.BaseLayer):
     return beta, gamma
 
   def compute_and_update_moments(
-      self, theta: NestedMap, inputs: JTensor,
+      self, inputs: JTensor,
       paddings: JTensor) -> Tuple[JTensor, JTensor, JTensor, JTensor]:
     """Computes moments and updates state.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: The inputs JTensor. Shaped [..., dim].
       paddings: The paddings JTensor. Shaped [..., 1], with the same rank as the
         input JTensor.
@@ -190,6 +189,7 @@ class BatchNorm(base_layer.BaseLayer):
       Tuple of (mean, variance, beta, gamma).
     """
     p = self.params
+    theta = self.local_theta()
     if self.do_eval:
       # The mean and variance used for normalization.
       norm_mean, norm_variance = theta.moving_mean, theta.moving_variance
@@ -225,18 +225,15 @@ class BatchNorm(base_layer.BaseLayer):
         norm_mean = mean
         norm_variance = variance
 
-    beta, gamma = self._get_beta_gamma(theta)
+    beta, gamma = self._get_beta_gamma()
     return norm_mean, norm_variance, beta, gamma
 
   def fprop(self,
-            theta: NestedMap,
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> JTensor:
     """Apply batch normalization.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: The inputs JTensor. Shaped [..., dim].
       paddings: The paddings JTensor. Shaped [..., 1].
 
@@ -253,7 +250,7 @@ class BatchNorm(base_layer.BaseLayer):
     asserts.eq(paddings.shape[-1], 1)
 
     norm_mean, norm_variance, beta, gamma = self.compute_and_update_moments(
-        theta, inputs, paddings)
+        inputs, paddings)
 
     inv = gamma / jnp.sqrt(norm_variance + self._epsilon)
     bn_output = (inputs - norm_mean) * inv + beta
@@ -306,18 +303,17 @@ class LayerNorm(base_layer.BaseLayer):
               device_mesh=p.device_mesh,
               tensor_split_dims_mapping=wp_bias))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Apply layer norm to inputs.
 
     Args:
-      theta: A NestedMap object containing weights' values of this layer and its
-        children layers.
       inputs: The inputs JTensor. Shaped [..., input_dims].
 
     Returns:
       Layer normalized input.
     """
     p = self.params
+    theta = self.local_theta()
     mean = jnp.mean(inputs, axis=[-1], keepdims=True)
     var = jnp.mean(jnp.square(inputs - mean), axis=[-1], keepdims=True)
     normed_inputs = (inputs - mean) * jax.lax.rsqrt(var + self.params.epsilon)
@@ -364,17 +360,16 @@ class RmsNorm(base_layer.BaseLayer):
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=wp_scale))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Apply RMS norm to inputs.
 
     Args:
-      theta: A NestedMap object containing weights' values of this layer and its
-        children layers.
       inputs: The inputs JTensor. Shaped [..., input_dims].
 
     Returns:
       RMS normalized input.
     """
+    theta = self.local_theta()
     var = jnp.mean(jnp.square(inputs), axis=[-1], keepdims=True)
     normed_inputs = inputs * jax.lax.rsqrt(var + self.params.epsilon)
     scale = theta.scale if self.params.direct_scale else 1 + theta.scale
@@ -446,9 +441,10 @@ class GroupNorm(base_layer.BaseLayer):
     p = self.params
     return p.dim // self.group_size
 
-  def _normalize(self, theta: NestedMap, grouped_inputs: JTensor,
-                 group_mean: JTensor, group_variance: JTensor) -> JTensor:
+  def _normalize(self, grouped_inputs: JTensor, group_mean: JTensor,
+                 group_variance: JTensor) -> JTensor:
     p = self.params
+    theta = self.local_theta()
     moment_shape = list(grouped_inputs.shape)
     if p.input_rank == 4:
       moment_shape[2] = 1
@@ -470,14 +466,11 @@ class GroupNorm(base_layer.BaseLayer):
     return outputs
 
   def fprop(self,
-            theta: NestedMap,
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> JTensor:
     """Applies group normalization.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: The inputs JTensor. Shaped [batch_size, height, width, channel] if
         p.rank == 4, else [batch, height, channel].
       paddings: The paddings JTensor. Shaped [batch_size, height]. Intended to
@@ -522,7 +515,7 @@ class GroupNorm(base_layer.BaseLayer):
           enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
           keepdims=True)
 
-    outputs = self._normalize(theta, x, group_mean, group_variance)
+    outputs = self._normalize(x, group_mean, group_variance)
 
     if paddings is None:
       return outputs

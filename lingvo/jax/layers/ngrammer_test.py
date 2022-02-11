@@ -152,16 +152,19 @@ class NgrammerTest(test_util.JaxTestCase):
           ngrammer_layer.ngram_table[i], initial_vars.ngram_table[i],
           ngrammer_layer.ngram_table[i].fprop,
           np.reshape(ngram_ids_per_head, [-1]))
-      ngram_embs_expected = ngrammer_layer.ngram_layer_norm[i].fprop(
-          initial_vars.ngram_layer_norm[i], ngram_embs_expected)
+      ngram_embs_expected = test_utils.apply(
+          ngrammer_layer.ngram_layer_norm[i], initial_vars.ngram_layer_norm[i],
+          ngrammer_layer.ngram_layer_norm[i].fprop, ngram_embs_expected)
       ngram_embs_expected = jnp.reshape(ngram_embs_expected,
                                         [batch_size, seq_len, ngram_emb_dim])
       ngram_embs_expected *= (1 - paddings[:, :, np.newaxis])
       if concat_ngrams:
         ngram_embs_slice = ngram_embs[:, :, i, -ngram_emb_dim:]
       else:
-        input_embs_ln = ngrammer_layer.emb_layer_norm[i].fprop(
-            initial_vars.emb_layer_norm[i], input_embs[:, :, i, :])
+        input_embs_ln = test_utils.apply(ngrammer_layer.emb_layer_norm[i],
+                                         initial_vars.emb_layer_norm[i],
+                                         ngrammer_layer.emb_layer_norm[i].fprop,
+                                         input_embs[:, :, i, :])
         ngram_embs_slice = ngram_embs[:, :, i, :] - input_embs_ln
       self.assertAllClose(to_np(ngram_embs_slice), to_np(ngram_embs_expected))
 
@@ -216,16 +219,19 @@ class NgrammerTest(test_util.JaxTestCase):
           ngrammer_layer.ngram_table[i], initial_vars.ngram_table[i],
           ngrammer_layer.ngram_table[i].fprop,
           np.reshape(ngram_ids_per_head, [-1]))
-      ngram_embs_expected = ngrammer_layer.ngram_layer_norm[i].fprop(
-          initial_vars.ngram_layer_norm[i], ngram_embs_expected)
+      ngram_embs_expected = test_utils.apply(
+          ngrammer_layer.ngram_layer_norm[i], initial_vars.ngram_layer_norm[i],
+          ngrammer_layer.ngram_layer_norm[i].fprop, ngram_embs_expected)
       ngram_embs_expected = jnp.reshape(ngram_embs_expected,
                                         [batch_size, seq_len, ngram_emb_dim])
       ngram_embs_expected *= (1 - paddings[:, :, np.newaxis])
       if concat_ngrams:
         ngram_embs_slice = ngram_embs[:, :, i, -ngram_emb_dim:]
       else:
-        input_embs_ln = ngrammer_layer.emb_layer_norm[i].fprop(
-            initial_vars.emb_layer_norm[i], input_embs[:, :, i, :])
+        input_embs_ln = test_utils.apply(ngrammer_layer.emb_layer_norm[i],
+                                         initial_vars.emb_layer_norm[i],
+                                         ngrammer_layer.emb_layer_norm[i].fprop,
+                                         input_embs[:, :, i, :])
         ngram_embs_slice = ngram_embs[:, :, i, :] - input_embs_ln
       self.assertAllClose(to_np(ngram_embs_slice), to_np(ngram_embs_expected))
 
@@ -299,18 +305,22 @@ class NgrammerTest(test_util.JaxTestCase):
           initial_vars.ngram_layer.ngram_table[i],
           vq_ngrammer_layer.ngram_layer.ngram_table[i].fprop,
           np.reshape(ngram_ids_per_head, [-1]))
-      ngram_embs_expected = (
-          vq_ngrammer_layer.ngram_layer.ngram_layer_norm[i].fprop(
-              initial_vars.ngram_layer.ngram_layer_norm[i],
-              ngram_embs_expected))
+      ngram_embs_expected = test_utils.apply(
+          vq_ngrammer_layer.ngram_layer.ngram_layer_norm[i],
+          initial_vars.ngram_layer.ngram_layer_norm[i],
+          vq_ngrammer_layer.ngram_layer.ngram_layer_norm[i].fprop,
+          ngram_embs_expected)
       ngram_embs_expected = jnp.reshape(ngram_embs_expected,
                                         [batch_size, seq_len, ngram_emb_dim])
       ngram_embs_expected *= (1 - paddings[:, :, np.newaxis])
       if concat_ngrams:
         ngram_embs_slice = ngram_embs[:, :, i, -ngram_emb_dim:]
       else:
-        input_embs_ln = vq_ngrammer_layer.ngram_layer.emb_layer_norm[i].fprop(
-            initial_vars.ngram_layer.emb_layer_norm[i], input_embs[:, :, i, :])
+        input_embs_ln = test_utils.apply(
+            vq_ngrammer_layer.ngram_layer.emb_layer_norm[i],
+            initial_vars.ngram_layer.emb_layer_norm[i],
+            vq_ngrammer_layer.ngram_layer.emb_layer_norm[i].fprop,
+            input_embs[:, :, i, :])
         ngram_embs_slice = ngram_embs[:, :, i, :] - input_embs_ln
       self.assertAllClose(to_np(ngram_embs_slice), to_np(ngram_embs_expected))
 
