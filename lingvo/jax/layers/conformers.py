@@ -108,7 +108,6 @@ class SelfAttentionWithNormAndResidual(base_layer.BaseLayer):
     else:
       atten_mask = attentions.convert_paddings_to_mask(paddings, inputs.dtype)
     result = self.self_atten.fprop(
-        theta.self_atten,
         query_vec=inputs,
         key_vec=inputs,
         value_vec=inputs,

@@ -49,13 +49,11 @@ class MaskedLmDataAugmenter(base_layer.BaseLayer):
     p.Define('mask_token_id', -1, 'Id of the special <MASK> token.')
     return p
 
-  def fprop(self, theta: NestedMap, inputs: JTensor,
+  def fprop(self, inputs: JTensor,
             paddings: JTensor) -> Tuple[JTensor, JTensor]:
     """Applies data augmentation by randomly masking/replacing tokens in inputs.
 
     Args:
-      theta: A NestedMap object containing weights' values of this layer and its
-        children layers.
       inputs: An int32 tensor of shape [batch, length].
       paddings: A 0/1 tensor of shape [batch, length].
 

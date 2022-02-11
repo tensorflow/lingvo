@@ -216,6 +216,7 @@ py_strict_test(
         ":base_layer",
         ":base_model",
         ":py_utils",
+        ":test_utils",
         # Implicit absl.testing.absltest dependency.
         # Implicit jax dependency.
         # Implicit numpy dependency.

@@ -74,17 +74,14 @@ class ConformerTest(test_util.JaxTestCase):
 
     context_p = base_layer.JaxContext.Params().Set(do_eval=True)
 
-    @jax.jit
-    def Comp(theta, inputs, paddings):
-      with cluster_factory.SetEval(True):
-        with base_layer.JaxContext.new_context(
-            params=context_p, prng_key=prng_key,
-            global_step=jnp.asarray(0)) as jax_context:
-          jax_context.bind(conformer, conformer.vars_to_flax_vars(theta))
-          output = conformer.fprop(theta, inputs, paddings)
-          return output
-
-    output = Comp(initial_vars, inputs, paddings)
+    output = test_utils.apply(
+        conformer,
+        initial_vars,
+        conformer.fprop,
+        initial_vars,
+        inputs,
+        paddings,
+        context_p=context_p)
     # Test whether tf Conformer layer returns the same output
     # Modify initial_vars to use TF compatible params
     tf_initial_vars = test_utils.replace_jax_conformer_layer_vars_to_tf(
@@ -145,18 +142,17 @@ class StackedConformerTest(test_util.JaxTestCase):
 
     context_p = base_layer.JaxContext.Params().Set(do_eval=True)
 
-    @jax.jit
-    def Comp(theta, inputs, paddings):
-      with cluster_factory.SetEval(True):
-        with base_layer.JaxContext.new_context(
-            params=context_p, prng_key=prng_key,
-            global_step=jnp.asarray(0)) as jax_context:
-          jax_context.bind(stacked_conformer,
-                           stacked_conformer.vars_to_flax_vars(theta))
-          output = stacked_conformer.fprop(theta, inputs, paddings)
-      return output
+    with cluster_factory.SetEval(True):
+      output = test_utils.apply(
+          stacked_conformer,
+          initial_vars,
+          stacked_conformer.fprop,
+          initial_vars,
+          inputs,
+          paddings,
+          context_p=context_p,
+      )
 
-    output = Comp(initial_vars, inputs, paddings)
     self.assertEqual(output.shape, (batch_size, seq_len, model_dims))
 
 

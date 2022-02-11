@@ -78,20 +78,8 @@ class AttentionsTest(test_util.JaxTestCase):
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = np.random.normal(1.5, 2.0, [5, 4]).astype(np.float32)
-    prng_key, compute_key = jax.random.split(prng_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
 
-    # comp function is fully functional.
-    @jax.jit
-    def comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step):
-        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = layer.fprop(theta, inputs)
-        return output
-
-    jax_out = comp(initial_vars, compute_key, global_step, inputs)
+    jax_out = test_utils.apply(layer, initial_vars, layer.fprop, inputs)
     logging.info('jax_output: %s', jax_out)
 
     # Now run TF based computation.
@@ -119,20 +107,8 @@ class AttentionsTest(test_util.JaxTestCase):
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = np.random.normal(1.5, 2.0, [5, 16]).astype(np.float32)
-    prng_key, compute_key = jax.random.split(prng_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
 
-    # comp function is fully functional.
-    @jax.jit
-    def comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step):
-        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = layer.fprop(theta, inputs)
-        return output
-
-    jax_out = comp(initial_vars, compute_key, global_step, inputs)
+    jax_out = test_utils.apply(layer, initial_vars, layer.fprop, inputs)
     logging.info('jax_output: %s', jax_out)
 
     # Now run TF based computation.
@@ -171,20 +147,8 @@ class AttentionsTest(test_util.JaxTestCase):
     logging.info('initial_vars: %s', initial_vars)
 
     inputs = np.random.normal(1.5, 2.0, [5, 2, 5]).astype(np.float32)
-    prng_key, compute_key = jax.random.split(prng_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
 
-    # comp function is fully functional.
-    @jax.jit
-    def comp(theta, prng_key, global_step, inputs):
-      with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step):
-        per_step_prng_key = jax.random.fold_in(prng_key, global_step)
-        base_layer.reset_prng_key(per_step_prng_key, global_step)
-        output = layer.fprop(theta, inputs)
-        return output
-
-    jax_out = comp(initial_vars, compute_key, global_step, inputs)
+    jax_out = test_utils.apply(layer, initial_vars, layer.fprop, inputs)
     logging.info('jax_output: %s', jax_out)
 
     if use_nhd_shape:
@@ -267,8 +231,7 @@ class AttentionsTest(test_util.JaxTestCase):
     target_batch_size = 3
     source_max_length = 16
     target_max_length = 16
-    initial_states = layer.init_states(initial_vars, target_batch_size,
-                                       target_max_length)
+    initial_states = layer.init_states(target_batch_size, target_max_length)
     query_vec = np.random.normal(
         size=[target_batch_size, source_max_length, mdl_dim]).astype(np.float32)
     key_vec = query_vec
@@ -279,16 +242,15 @@ class AttentionsTest(test_util.JaxTestCase):
     global_step = jnp.array(0, dtype=jnp.uint64)
 
     with base_layer.JaxContext.new_context(
-        prng_key=compute_key, global_step=global_step):
-      fprop_out, _ = layer.fprop(initial_vars, query_vec, key_vec, value_vec,
-                                 atten_mask)
+        prng_key=compute_key, global_step=global_step) as jax_context:
+      jax_context.bind(layer, layer.vars_to_flax_vars(initial_vars))
+      fprop_out, _ = layer.fprop(query_vec, key_vec, value_vec, atten_mask)
 
       decoder_output = jnp.zeros(
           shape=[target_max_length, target_batch_size, mdl_dim])
       atten_states = initial_states
       for t in range(target_max_length):
         atten_states, encoded = layer.extend_step(
-            initial_vars,
             atten_states,
             query_vec=query_vec[:, t, :],
             atten_mask=atten_mask[:, :, t, :],
@@ -332,14 +294,10 @@ class AttentionsTest(test_util.JaxTestCase):
         0, 1, size=[target_batch_size, target_max_length]).astype(np.int32)
     atten_mask = attentions.causal_segment_mask(segment_ids, np.float32)
 
-    prng_key, compute_key = jax.random.split(prng_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
-
-    with base_layer.JaxContext.new_context(
-        prng_key=compute_key, global_step=global_step):
-      jax_fprop_out, jax_atten_prob = layer.fprop(initial_vars, query_vec,
-                                                  key_vec, value_vec,
-                                                  atten_mask)
+    jax_fprop_out, jax_atten_prob = test_utils.apply(layer, initial_vars,
+                                                     layer.fprop, query_vec,
+                                                     key_vec, value_vec,
+                                                     atten_mask)
 
     tf_layer_p = batch_major_attention.MultiHeadedAttention.Params().Set(
         name='mh',
@@ -401,7 +359,13 @@ class AttentionsTest(test_util.JaxTestCase):
       kernel_shape = [hidden_dims]
     for k in range(kernel_size):
       initial_vars[f'dconv_{k}'] = np.ones(kernel_shape)
-    jax_dconv_out = causal_dconv_layer.fprop(initial_vars, inputs, axis=axis)
+
+    jax_dconv_out = test_utils.apply(
+        causal_dconv_layer,
+        initial_vars,
+        causal_dconv_layer.fprop,
+        inputs,
+        axis=axis)
     jax_np_out = test_utils.to_np(jax_dconv_out)
     outputs = inputs
     for _ in range(1, kernel_size):
@@ -423,22 +387,28 @@ class AttentionsTest(test_util.JaxTestCase):
     prng_key = jax.random.PRNGKey(seed=123)
     prng_key, init_key = jax.random.split(prng_key)
     initial_vars = causal_dconv_layer.instantiate_variables(init_key)
-    jax_dconv_out = causal_dconv_layer.fprop(initial_vars, inputs, axis=axis)
-    jax_np_out = test_utils.to_np(jax_dconv_out)
-    jax_extend_step_out = jnp.zeros_like(jax_dconv_out)
-    for i in range(shape[1]):
-      jax_extend_step_out = causal_dconv_layer.extend_step(
-          initial_vars, inputs, axis=axis, step=i)
-      jax_np_extend_step_out = test_utils.to_np(jax_extend_step_out)
-      jax_extend_step_out_tensor = causal_dconv_layer.extend_step(
-          initial_vars, inputs, axis=axis, step=jnp.array(i))
-      jax_np_extend_step_out_tensor = test_utils.to_np(
-          jax_extend_step_out_tensor)
-      jax_fprop_slice = jax.lax.dynamic_slice_in_dim(
-          jax_np_out, start_index=i, slice_size=1, axis=axis)
-      jax_fprop_slice = jnp.squeeze(jax_fprop_slice, axis)
-      self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out)
-      self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out_tensor)
+    prng_key, compute_key = jax.random.split(prng_key)
+    global_step = jnp.array(0, dtype=jnp.uint64)
+    with base_layer.JaxContext.new_context(
+        prng_key=compute_key, global_step=global_step) as jax_context:
+      jax_context.bind(causal_dconv_layer,
+                       causal_dconv_layer.vars_to_flax_vars(initial_vars))
+      jax_dconv_out = causal_dconv_layer.fprop(inputs, axis=axis)
+      jax_np_out = test_utils.to_np(jax_dconv_out)
+      jax_extend_step_out = jnp.zeros_like(jax_dconv_out)
+      for i in range(shape[1]):
+        jax_extend_step_out = causal_dconv_layer.extend_step(
+            inputs, axis=axis, step=i)
+        jax_np_extend_step_out = test_utils.to_np(jax_extend_step_out)
+        jax_extend_step_out_tensor = causal_dconv_layer.extend_step(
+            inputs, axis=axis, step=jnp.array(i))
+        jax_np_extend_step_out_tensor = test_utils.to_np(
+            jax_extend_step_out_tensor)
+        jax_fprop_slice = jax.lax.dynamic_slice_in_dim(
+            jax_np_out, start_index=i, slice_size=1, axis=axis)
+        jax_fprop_slice = jnp.squeeze(jax_fprop_slice, axis)
+        self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out)
+        self.assertArraysEqual(jax_fprop_slice, jax_np_extend_step_out_tensor)
 
   @parameterized.parameters([(32, 128), (2, 8), (8, 32)])
   def test_relative_bias(self, num_buckets, max_distance):
@@ -468,18 +438,15 @@ class AttentionsTest(test_util.JaxTestCase):
         [target_batch_size, source_max_length]).astype('int32')
     atten_mask = attentions.causal_mask(query_vec)
 
-    prng_key, compute_key = jax.random.split(prng_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
-
-    with base_layer.JaxContext.new_context(
-        prng_key=compute_key, global_step=global_step):
-      atten_output, _ = layer.fprop(
-          initial_vars,
-          query_vec,
-          key_vec,
-          value_vec,
-          atten_mask=atten_mask,
-          query_segment_pos=segment_pos)
+    atten_output, _ = test_utils.apply(
+        layer,
+        initial_vars,
+        layer.fprop,
+        query_vec,
+        key_vec,
+        value_vec,
+        atten_mask=atten_mask,
+        query_segment_pos=segment_pos)
 
     self.assertEqual(atten_output.shape,
                      (target_batch_size, source_max_length, mdl_dim))
@@ -509,21 +476,18 @@ class AttentionsTest(test_util.JaxTestCase):
     inputs = np.random.normal(
         size=[target_batch_size, source_max_length, mdl_dim]).astype(np.float32)
     atten_mask = attentions.causal_mask(inputs)
-    initial_states = layer.init_states(initial_vars, target_batch_size,
-                                       target_max_length)
+    initial_states = layer.init_states(target_batch_size, target_max_length)
 
     time_step = 2
-    prng_key, compute_key = jax.random.split(prng_key)
-    global_step = jnp.array(0, dtype=jnp.uint64)
 
-    with base_layer.JaxContext.new_context(
-        prng_key=compute_key, global_step=global_step):
-      _, atten_output = layer.extend_step(
-          initial_vars,
-          initial_states,
-          inputs[:, time_step, :],
-          atten_mask=atten_mask[:, :, time_step, :],
-          time_step=time_step)
+    _, atten_output = test_utils.apply(
+        layer,
+        initial_vars,
+        layer.extend_step,
+        initial_states,
+        inputs[:, time_step, :],
+        atten_mask=atten_mask[:, :, time_step, :],
+        time_step=time_step)
 
     self.assertEqual(atten_output.shape, (target_batch_size, mdl_dim))
 

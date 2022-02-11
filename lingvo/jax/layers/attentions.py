@@ -216,17 +216,17 @@ class PerDimScale(base_layer.BaseLayer):
         shape=[p.dim], init=WeightInit.Constant(0.0), dtype=p.dtype)
     self.create_variable('per_dim_scale', pc)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
-    """Return theta.scale * inputs / jnp.sqrt(dim)).
+  def fprop(self, inputs: JTensor) -> JTensor:
+    """Return per_dim_scale * inputs / jnp.sqrt(dim)).
 
     Args:
-      theta: A `.NestedMap` object containing weights defined in this layer.
       inputs: A JTensor with shape [..., p.dim].
 
     Returns:
       outpus: A JTensor with shape [..., p.dim].
     """
     p = self.params
+    theta = self.local_theta()
     inputs_shape = inputs.shape
     assert inputs_shape[-1] == p.dim
 
@@ -307,7 +307,6 @@ class RelativeBias(base_layer.BaseLayer):
     return ret
 
   def fprop(self,
-            theta: NestedMap,
             query_segment_pos: JTensor,
             key_segment_pos: Optional[JTensor] = None) -> JTensor:
     """Return relative bias for attention.
@@ -324,7 +323,6 @@ class RelativeBias(base_layer.BaseLayer):
     but key_segment_pos is [batch, memory_size] (because of k_pos StateLayer).
 
     Args:
-      theta: A `.NestedMap` object containing weights defined in this layer.
       query_segment_pos: A JTensor with shape [B, T].
       key_segment_pos: A JTensor with shape [B, S].
 
@@ -332,6 +330,7 @@ class RelativeBias(base_layer.BaseLayer):
       relative_bias: A JTensor with shape [B, N, T, S].
     """
     p = self.params
+    theta = self.local_theta()
 
     if key_segment_pos is None:
       key_segment_pos = query_segment_pos
@@ -361,7 +360,6 @@ class RelativeBias(base_layer.BaseLayer):
     return relative_bias
 
   def extend_step(self,
-                  theta: NestedMap,
                   seq_length: int,
                   time_step: Optional[Union[int, JTensor]] = None) -> JTensor:
     """Generates a JTensor for a step in greedy search.
@@ -372,8 +370,6 @@ class RelativeBias(base_layer.BaseLayer):
     N = number of attention heads
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       seq_length: An integer equal to S.
       time_step: The time step which is being decoded.
 
@@ -383,7 +379,6 @@ class RelativeBias(base_layer.BaseLayer):
     query_segment_pos = jnp.zeros([1], jnp.int32) + time_step
     key_segment_pos = jnp.arange(seq_length, dtype=jnp.int32)
     relative_bias = self.fprop(
-        theta,
         query_segment_pos=query_segment_pos[jnp.newaxis, :],
         key_segment_pos=key_segment_pos[jnp.newaxis, :])
     return relative_bias
@@ -471,12 +466,10 @@ class AttentionProjection(base_layer.BaseLayer):
             tensor_split_dims_mapping=bias_split_dims_mapping)
       self.create_variable('b', pc_bias)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     """Computes the multi headed projection for inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: A JTensor of shape [..., num_heads, dim_per_head] if
         p.is_output_projection is True or [..., p.input_dim] otherwise..
 
@@ -486,6 +479,7 @@ class AttentionProjection(base_layer.BaseLayer):
       otherwise.
     """
     p = self.params
+    theta = self.local_theta()
 
     # Because tf.einsum is not fully optimized unless all the dimensions are
     # fully specified, we have to avoid using '...' for batch dimensions in the
@@ -575,13 +569,10 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
 
   # TODO(zhangqiaorjc): Take query, key, value as inputs to support all
   # attentions.
-  def fprop(self, theta: NestedMap,
-            inputs: JTensor) -> Tuple[JTensor, JTensor, JTensor]:
+  def fprop(self, inputs: JTensor) -> Tuple[JTensor, JTensor, JTensor]:
     """Computes the QKV projection for inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: A JTensor of shape [..., p.input_dim].
 
     Returns:
@@ -589,6 +580,7 @@ class CombinedQKVProjectionLayer(base_layer.BaseLayer):
       in q_proj, k_proj and v_proj order.
     """
     p = self.params
+    theta = self.local_theta()
 
     # Because tf.einsum is not fully optimized unless all the dimensions are
     # fully specified, we have to avoid using '...' for batch dimensions in the
@@ -962,7 +954,6 @@ class DotProductAttention(base_layer.BaseLayer):
 
   def _dot_atten(
       self,
-      theta: NestedMap,
       query: JTensor,
       key: JTensor,
       value: JTensor,
@@ -971,8 +962,6 @@ class DotProductAttention(base_layer.BaseLayer):
     """Main attention function.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       query: JTensor of shape [B, T, N, H].
       key: JTensor of shape [B, S, N, H].
       value: JTensor of shape [B, S, N, H].
@@ -989,6 +978,7 @@ class DotProductAttention(base_layer.BaseLayer):
     """
     # Add key sharding annotations.
     p = self.params
+    theta = self.local_theta()
     query = self._shard_blnh(query)
     key = self._shard_blnh(key)
     value = self._shard_blnh(value)
@@ -1006,7 +996,7 @@ class DotProductAttention(base_layer.BaseLayer):
     assert atten_mask.shape[2] in [1, t]
     assert atten_mask.shape[0] in [1, b]
     if p.internal_enable_per_dim_scale:
-      query = self.per_dim_scale.fprop(theta.per_dim_scale, query)
+      query = self.per_dim_scale.fprop(query)
     logits = jnp.einsum('BTNH,BSNH->BNTS', query, key)
     if relative_bias is not None:
       base_layer.assert_has_shape(relative_bias, [b, n, t, s])
@@ -1031,7 +1021,6 @@ class DotProductAttention(base_layer.BaseLayer):
     return encoded, probs
 
   def _dot_atten_one_step(self,
-                          theta: NestedMap,
                           query: JTensor,
                           key: JTensor,
                           value: JTensor,
@@ -1040,8 +1029,6 @@ class DotProductAttention(base_layer.BaseLayer):
     """Dot attention function for queries with 1 time step.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       query: JTensor of shape [B, N, H].
       key: JTensor of shape [S, B, N, H].
       value: JTensor of shape [S, B, N, H].
@@ -1069,7 +1056,7 @@ class DotProductAttention(base_layer.BaseLayer):
     base_layer.assert_has_shape(atten_mask, [-1, 1, s])
     assert atten_mask.shape[0] in [1, b]
     if p.internal_enable_per_dim_scale:
-      query = self.per_dim_scale.fprop(theta.per_dim_scale, query)
+      query = self.per_dim_scale.fprop(query)
     logits = jnp.einsum('BNH,SBNH->BNS', query, key)
     if relative_bias is not None:
       base_layer.assert_has_shape(relative_bias, [-1, n, 1, s])
@@ -1094,7 +1081,6 @@ class DotProductAttention(base_layer.BaseLayer):
 
   def fprop(
       self,
-      theta: NestedMap,
       query_vec: JTensor,
       key_vec: JTensor,
       value_vec: JTensor,
@@ -1104,8 +1090,6 @@ class DotProductAttention(base_layer.BaseLayer):
     """Computes the value vector given the current query output.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       query_vec: JTensor of shape [B, T, D].
       key_vec: JTensor of shape [B, S, D].
       value_vec: JTensor of shape [B, S, D].
@@ -1128,21 +1112,20 @@ class DotProductAttention(base_layer.BaseLayer):
       assert query_vec is value_vec
       # Project inputs to key, value and query using a combined weight for
       # faster performance on TPU.
-      query_proj, key_proj, value_proj = self.combined_qkv.fprop(
-          theta.combined_qkv, query_vec)
+      query_proj, key_proj, value_proj = self.combined_qkv.fprop(query_vec)
     else:
       # Project inputs to key, value and query, respectively has shape
       # [B, S, N, H], [B, S, N, H], and [B, T, N, H].
-      query_proj = self.query.fprop(theta.query, query_vec)
-      key_proj = self.key.fprop(theta.key, key_vec)
-      value_proj = self.value.fprop(theta.value, value_vec)
+      query_proj = self.query.fprop(query_vec)
+      key_proj = self.key.fprop(key_vec)
+      value_proj = self.value.fprop(value_vec)
 
     # Apply depth-wise convolution as in Primer.
     # Paper: https://arxiv.org/abs/2109.08668.
     if p.dconv_qkv:
-      query_proj = self.dconv_q.fprop(theta.dconv_q, query_proj, axis=1)
-      key_proj = self.dconv_k.fprop(theta.dconv_k, key_proj, axis=1)
-      value_proj = self.dconv_v.fprop(theta.dconv_v, value_proj, axis=1)
+      query_proj = self.dconv_q.fprop(query_proj, axis=1)
+      key_proj = self.dconv_k.fprop(key_proj, axis=1)
+      value_proj = self.dconv_v.fprop(value_proj, axis=1)
 
     # Apply rotary position embeddings.
     # Paper: https://arxiv.org/abs/2104.09864.
@@ -1153,30 +1136,26 @@ class DotProductAttention(base_layer.BaseLayer):
     # Apply relative bias.
     # Paper: https://aclanthology.org/N18-2074.pdf.
     if p.relative_bias_tpl:
-      relative_bias = self.relative_bias.fprop(theta.relative_bias,
-                                               query_segment_pos,
+      relative_bias = self.relative_bias.fprop(query_segment_pos,
                                                key_segment_pos)
     else:
       relative_bias = None
 
-    encoded, atten_probs = self._dot_atten(theta, query_proj, key_proj,
-                                           value_proj, atten_mask,
-                                           relative_bias)
+    encoded, atten_probs = self._dot_atten(query_proj, key_proj, value_proj,
+                                           atten_mask, relative_bias)
 
     # Post projection
-    encoded = self.post.fprop(theta.post, encoded)
+    encoded = self.post.fprop(encoded)
     encoded = self._shard_bld(encoded)
     encoded = checkpoint_name(encoded, 'out_proj')
 
     return encoded, atten_probs
 
-  def init_states(self, theta: NestedMap, target_batch_size: int,
+  def init_states(self, target_batch_size: int,
                   target_max_length: int) -> NestedMap:
     """Initializes cache for autoregressive cached decoding.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       target_batch_size: The batch size of the target to be decoded.
       target_max_length: The sequence length of the target to be decoded.
 
@@ -1237,16 +1216,14 @@ class DotProductAttention(base_layer.BaseLayer):
     cache = jax.tree_map(self._shard_lbnh, cache)
     return cache
 
-  def extend_step(self, theta: NestedMap, cached_states: NestedMap,
-                  query_vec: JTensor, *, atten_mask: JTensor,
+  def extend_step(self, cached_states: NestedMap, query_vec: JTensor, *,
+                  atten_mask: JTensor,
                   time_step: JTensor) -> Tuple[JTensor, NestedMap]:
     """Computes the value vector given the query of the current step.
 
     This function is used by autoregressive decoding.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for fast decoding. Contains key of
         shape [T, B, N, H] and value of shape [T, B, N, H].
@@ -1272,12 +1249,12 @@ class DotProductAttention(base_layer.BaseLayer):
       # Project inputs to key, value and query using a combined weight for
       # faster performance on TPU.
       new_query_proj, new_key_proj, new_value_proj = self.combined_qkv.fprop(
-          theta.combined_qkv, query_vec)
+          query_vec)
     else:
       # Project inputs to key, value and query. Each has shape [B, N, H].
-      new_key_proj = self.key.fprop(theta.key, query_vec)
-      new_value_proj = self.value.fprop(theta.value, query_vec)
-      new_query_proj = self.query.fprop(theta.query, query_vec)
+      new_key_proj = self.key.fprop(query_vec)
+      new_value_proj = self.value.fprop(query_vec)
+      new_query_proj = self.query.fprop(query_vec)
 
     updated_state = NestedMap()
     updated_state.key = cached_states.key.at[time_step].set(new_key_proj)
@@ -1304,11 +1281,11 @@ class DotProductAttention(base_layer.BaseLayer):
 
       # Aggregate depth-wise convolution for keys and values at time step.
       new_query_proj = self.dconv_q.extend_step(
-          theta.dconv_q, updated_state.query, axis=0, step=time_step)
+          updated_state.query, axis=0, step=time_step)
       new_key_proj = self.dconv_k.extend_step(
-          theta.dconv_k, extended_key, axis=0, step=time_step)
+          extended_key, axis=0, step=time_step)
       new_value_proj = self.dconv_v.extend_step(
-          theta.dconv_v, extended_value, axis=0, step=time_step)
+          extended_value, axis=0, step=time_step)
 
       # Update queries, keys and values post dconv in cache.
       updated_state.query_post_dconv = cached_states.query_post_dconv.at[
@@ -1341,19 +1318,18 @@ class DotProductAttention(base_layer.BaseLayer):
 
     if p.relative_bias_tpl:
       relative_bias = self.relative_bias.extend_step(
-          theta.relative_bias,
           seq_length=updated_state.key.shape[0],
           time_step=time_step)
     else:
       relative_bias = None
 
-    encoded, atten_prob = self._dot_atten_one_step(theta, new_query_proj,
-                                                   extended_key, extended_value,
-                                                   atten_mask, relative_bias)
+    encoded, atten_prob = self._dot_atten_one_step(new_query_proj, extended_key,
+                                                   extended_value, atten_mask,
+                                                   relative_bias)
     # TODO(yonghui): return atten_probs back to the caller.
     del atten_prob
     # Post projection.
-    encoded = self.post.fprop(theta.post, encoded)
+    encoded = self.post.fprop(encoded)
     encoded = self._shard_bd(encoded)
     return updated_state, encoded
 
@@ -1411,12 +1387,10 @@ class CausalDepthwiseConv1D(base_layer.BaseLayer):
               device_mesh=p.device_mesh,
               tensor_split_dims_mapping=wp.wt))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor, axis: int) -> JTensor:
+  def fprop(self, inputs: JTensor, axis: int) -> JTensor:
     """FProp applying depth-wise convolution on 1D sequence.
 
     Args:
-      theta: NestedMap containing the filter weights to apply the depth-wise
-        convolution.
       inputs: Input sequence of possible shapes: [B, L, D], [B, L, N, H] or [L,
         B, N, H] where the L represents the sequence length.
       axis: The axis which corresponds to the sequence dimension, i.e. the
@@ -1426,19 +1400,18 @@ class CausalDepthwiseConv1D(base_layer.BaseLayer):
       Output sequence after applying the depth-wise convolution on the sequence.
     """
     p = self.params
+    theta = self.local_theta()
     outputs = inputs * theta.dconv_0
     for i in range(1, p.kernel_size):
       inputs = shift_1d(inputs, offset=1, axis=axis)
       outputs += inputs * getattr(theta, f'dconv_{i}')
     return outputs
 
-  def extend_step(self, theta: NestedMap, inputs: JTensor, axis: int,
+  def extend_step(self, inputs: JTensor, axis: int,
                   step: Union[int, JTensor]) -> JTensor:
     """extend_step applying depth-wise convolution on 1D sequence at a step.
 
     Args:
-      theta: NestedMap containing the filter weights to apply the depth-wise
-        convolution.
       inputs: Input sequence of possible shapes: [B, L, D], [B, L, N, H] or [L,
         B, N, H] where the L represents the sequence length.
       axis: The axis which corresponds to the sequence dimension, i.e. the
@@ -1451,6 +1424,7 @@ class CausalDepthwiseConv1D(base_layer.BaseLayer):
       on the sequence.
     """
     p = self.params
+    theta = self.local_theta()
     get_single_slice_at_index = functools.partial(
         jax.lax.dynamic_slice_in_dim, inputs, slice_size=1, axis=axis)
     outputs = get_single_slice_at_index(start_index=step)

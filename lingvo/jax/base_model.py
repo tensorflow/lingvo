@@ -479,13 +479,13 @@ class LanguageModel(BaseModel):
         target_batch_size=batch_size,
         target_max_length=p.decoder.seqlen)
 
-    prng_key = base_layer.next_prng_key()
     global_step = base_layer.cur_global_step()
 
     lm_theta = self.lm.local_theta()
     def extend_step_fn(states, ids):
       with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step) as jax_context:
+          prng_key=base_layer.next_prng_key(),
+          global_step=global_step) as jax_context:
         jax_context.bind(self.lm, self.lm.vars_to_flax_vars(lm_theta),
                          [base_layer.SCOPE_AUX_LOSS])
         new_states, xent = self.lm.extend_step(lm_theta, states, ids)
@@ -654,13 +654,13 @@ class SequenceModel(BaseModel):
         target_batch_size=batch_size,
         target_max_length=p.decoder.seqlen)
 
-    prng_key = base_layer.next_prng_key()
     global_step = base_layer.cur_global_step()
 
     model_theta = self.model.local_theta()
     def extend_step_fn(states, ids):
       with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step) as jax_context:
+          prng_key=base_layer.next_prng_key(),
+          global_step=global_step) as jax_context:
         jax_context.bind(self.model, self.model.vars_to_flax_vars(model_theta),
                          [base_layer.SCOPE_AUX_LOSS])
         new_states, xent = self.model.extend_step(model_theta, states, ids)
@@ -862,7 +862,7 @@ class BertModel(BaseModel):
       augmented_pos = input_batch.masked_pos
     else:
       augmented_labels, augmented_pos = self.mlm_augmenter.fprop(
-          theta.mlm_augmenter, labels, paddings)
+          labels, paddings)
 
     if p.label_smoothing_prob > 0.0:
       class_probabilities = jax.nn.one_hot(labels, p.lm.vocab_size)

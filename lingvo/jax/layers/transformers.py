@@ -773,7 +773,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     hidden = split(hidden, ap.egch)
 
     # Activation function.
-    hidden = self.activation.fprop(theta.activation, hidden)
+    hidden = self.activation.fprop(hidden)
     # Dropout.
     hidden = self.relu_dropout.fprop(theta.relu_dropout, hidden)
     # Output.
@@ -948,8 +948,7 @@ class Transformer(base_layer.BaseLayer):
     Returns:
       Initialized cache for decoding.
     """
-    return self.self_attention.init_states(theta.self_attention,
-                                           target_batch_size, target_max_length)
+    return self.self_attention.init_states(target_batch_size, target_max_length)
 
   def fprop(
       self,
@@ -1003,7 +1002,6 @@ class Transformer(base_layer.BaseLayer):
 
     # Compute self-attention, key/value vectors are the input itself
     atten_output, self_atten_probs = self.self_attention.fprop(
-        theta.self_attention,
         inputs_normalized,
         inputs_normalized,
         inputs_normalized,
@@ -1028,7 +1026,6 @@ class Transformer(base_layer.BaseLayer):
       assert p.norm_policy != 'primer_hybrid'
 
       cross_atten_output, cross_atten_probs = self.cross_attention.fprop(
-          theta.cross_attention,
           self.cross_layer_norm.fprop(theta.cross_layer_norm, atten_output),
           cross_inputs,
           cross_inputs,
@@ -1094,7 +1091,6 @@ class Transformer(base_layer.BaseLayer):
 
     # Self-attention layer.
     updated_states, atten_output = self.self_attention.extend_step(
-        theta.self_attention,
         cached_states,
         inputs_normalized,
         atten_mask=attention_mask,
@@ -1116,7 +1112,6 @@ class Transformer(base_layer.BaseLayer):
       atten_output_normalized = self.cross_layer_norm.fprop(
           theta.cross_layer_norm, jnp.expand_dims(atten_output, axis=1))
       cross_atten_output, _ = self.cross_attention.fprop(
-          theta.cross_attention,
           atten_output_normalized,
           cross_inputs,
           cross_inputs,
@@ -1462,6 +1457,9 @@ class StackedTransformer(base_layer.BaseLayer):
 
       # TODO(lepikhin): generalize this function to be a more generic one
       def _scan_fn(carry, block_vars):
+        jax_context = base_layer.cur_jax_context()
+        flax_block_vars = self.vars_to_flax_vars(block_vars)
+        jax_context.bind(self, flax_block_vars, [base_layer.SCOPE_AUX_LOSS])
         # TODO(b/199950567): Sharding propagation does not seem to handle scan
         # boundary well. We need to annotate all parameters from within the scan
         # body even though we already pass them to pjit invocation outside the

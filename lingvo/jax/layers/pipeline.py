@@ -150,14 +150,17 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     def _wrapped_fn(theta, per_stage_inputs, *per_stage_args,
                     **per_stage_kwargs):
       with base_layer.JaxContext.new_context(
-          prng_key=prng_key, global_step=global_step):
+          prng_key=prng_key, global_step=global_step) as jax_ctx:
+        jax_ctx.bind(self.body, self.body.vars_to_flax_vars(theta),
+                     [base_layer.SCOPE_AUX_LOSS])
         res = self.body.fprop(theta, per_stage_inputs, *per_stage_args,
                               **per_stage_kwargs)
         summaries = base_layer.all_summaries()
         return res, summaries
 
-    res, summaries = jax.vmap(_wrapped_fn)(theta.body, per_stage_inputs,
-                                           *per_stage_args, **per_stage_kwargs)
+    res, summaries = jax.vmap(_wrapped_fn)(self.body.local_theta(),
+                                           per_stage_inputs, *per_stage_args,
+                                           **per_stage_kwargs)
 
     self._forward_summary(summaries)
     return res
@@ -231,6 +234,10 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
         lambda x: jnp.zeros((L,) + x.shape[1:], dtype=x.dtype), padded_inputs)
 
     def _scan_fn(carry, xs):
+      jax_context = base_layer.cur_jax_context()
+      flax_theta = self.vars_to_flax_vars(theta)
+      jax_context.bind(self, flax_theta, [base_layer.SCOPE_AUX_LOSS])
+
       in_state, loop_iter, inp = carry.data, carry.loop_iter, xs.inputs
 
       # Bring in the next microbatch.

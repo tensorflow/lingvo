@@ -191,7 +191,7 @@ class ConvBNAct(Conv2D):
     outputs = super().fprop(inputs)
     if p.batch_norm:
       outputs = self.bn.fprop(self.bn.local_theta(), outputs)
-    outputs = self.activation.fprop(self.activation.local_theta(), outputs)
+    outputs = self.activation.fprop(outputs)
     return outputs
 
   def fprop_with_padding(self, inputs: JTensor,
@@ -408,8 +408,7 @@ class LightConv1D(base_layer.BaseLayer):
     inputs = self.conv_norm.fprop(self.conv_norm.local_theta(), inputs,
                                   jnp.expand_dims(paddings, -1))
 
-    inputs = self.conv_activation.fprop(self.conv_activation.local_theta(),
-                                        inputs)
+    inputs = self.conv_activation.fprop(inputs)
 
     inputs = self.linear_end.fprop(self.linear_end.local_theta(), inputs)
     inputs = self.dropout.fprop(self.dropout.local_theta(), inputs)

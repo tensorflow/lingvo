@@ -38,8 +38,7 @@ class Activation(base_layer.BaseLayer):
         'GELU, SILU, SWISH, NONE.')
     return p
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
-    del theta  # not used
+  def fprop(self, inputs: JTensor) -> JTensor:
     p = self.params
     if p.activation == 'RELU':
       outputs = jax.nn.relu(inputs)

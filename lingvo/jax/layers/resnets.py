@@ -127,7 +127,7 @@ class ResNetBlock(base_layer.BaseLayer):
       outputs += inputs
 
     # post activation
-    outputs = self.postact.fprop(self.postact.local_theta(), outputs)
+    outputs = self.postact.fprop(outputs)
     return outputs
 
 

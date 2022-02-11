@@ -178,7 +178,7 @@ class FeedForward(base_layer.BaseLayer):
     projected_inputs = self.linear.fprop(theta.linear, inputs)
     if self.params.has_bias:
       projected_inputs = self.bias.fprop(theta.bias, projected_inputs)
-    output = self.activation.fprop(theta.activation, projected_inputs)
+    output = self.activation.fprop(projected_inputs)
     return output
 
 
