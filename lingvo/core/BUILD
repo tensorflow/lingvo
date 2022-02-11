@@ -21,8 +21,8 @@ py_library(
     deps = [
         ":base_layer",
         ":py_utils",
+        ":test_utils",
         "//lingvo:compat",
-        "//lingvo/core:test_utils",
         # Implicit numpy dependency.
     ],
 )
@@ -236,13 +236,13 @@ py_test(
     shard_count = 8,
     srcs_version = "PY3",
     deps = [
+        ":bn_layers",
         ":conformer_layer",
         ":py_utils",
         ":stream_step_test_base",
+        ":test_utils",
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
-        "//lingvo/core:bn_layers",
-        "//lingvo/core:test_utils",
     ],
 )
 
@@ -251,11 +251,11 @@ py_library(
     srcs = ["stream_step_test_base.py"],
     srcs_version = "PY3",
     deps = [
+        ":bn_layers",
         ":py_utils",
+        ":test_utils",
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
-        "//lingvo/core:bn_layers",
-        "//lingvo/core:test_utils",
     ],
 )
 
@@ -1965,7 +1965,7 @@ py_library(
     srcs = ["routing_config_helper.py"],
     srcs_version = "PY3",
     deps = [
-        "//lingvo/core:batch_major_attention",
+        ":batch_major_attention",
     ],
 )
 
@@ -2117,10 +2117,10 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":lstm_frnn_layer",
+        ":py_utils",
+        ":test_utils",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
-        "//lingvo/core:py_utils",
-        "//lingvo/core:test_utils",
     ],
 )
 
@@ -2151,13 +2151,11 @@ py_library(
     name = "entmax",
     srcs = ["entmax.py"],
     srcs_version = "PY3",
-    visibility = [
-        "//lingvo/core:__subpackages__",
-    ],
+    visibility = [":__subpackages__"],
     deps = [
+        ":py_utils",
         ":test_utils",
         "//lingvo:compat",
-        "//lingvo/core:py_utils",
     ],
 )
 
@@ -2555,10 +2553,10 @@ py_library(
     srcs = ["graddrop.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_layer",
+        ":py_utils",
+        ":summary_utils",
         "//lingvo:compat",
-        "//lingvo/core:base_layer",
-        "//lingvo/core:py_utils",
-        "//lingvo/core:summary_utils",
     ],
 )
 
@@ -2568,10 +2566,10 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":builder_layers",
         ":graddrop",
+        ":test_utils",
         "//lingvo:compat",
-        "//lingvo/core:builder_layers",
-        "//lingvo/core:test_utils",
     ],
 )
 
@@ -2641,9 +2639,9 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":py_utils",
+        ":test_utils",
         ":var_tmp_wrappers",
         "//lingvo:compat",
-        "//lingvo/core:test_utils",
     ],
 )
 
