@@ -150,6 +150,25 @@ class Exponential(BaseSchedule):
     return jnp.exp(self.linear.value(count))
 
 
+class Cosine(BaseSchedule):
+  """Cosine learning rate schedule."""
+
+  @classmethod
+  def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
+    p = super().Params()
+    p.Define('initial_value', 1.0, 'Initial decay value.')
+    p.Define('final_value', 0., 'Final decay value.')
+    p.Define('total_steps', 0, 'Number of steps to reach full decay.')
+    return p
+
+  def value(self, count: JTensor) -> JTensor:
+    p = self.params
+    decay_gap = p.initial_value - p.final_value
+    return p.final_value + 0.5 * decay_gap * (1 + jnp.cos(math.pi * jnp.minimum(
+        1.0,
+        jnp.array(count, dtype=jnp.float32) / p.total_steps)))
+
+
 class PiecewiseConstant(BaseSchedule):
   """A schedule with piecewise constants rate decay."""
 
