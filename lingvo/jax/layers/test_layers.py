@@ -50,14 +50,14 @@ class ProjectionLayer(base_layer.BaseLayer):
     bias_layer_p = linears.Bias.Params().Set(dims=p.output_dims)
     self.create_child('bias', bias_layer_p)
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     return self.bias.fprop(self.linear.fprop(inputs))
 
 
 class AddOneLayer(base_layer.BaseLayer):
   """A layers without any variables."""
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
     return inputs + 1.0
 
 
@@ -86,13 +86,14 @@ class TestLayer(base_layer.BaseLayer):
         base_layer.weight_params(
             shape=[4, 5], init=p.params_init, dtype=p.dtype))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
+    theta = self.local_theta()
     x1 = self.linear.linear01.fprop(inputs)
     x2 = self.bias[0].fprop(x1)
     x3 = self.linear.linear02.fprop(x2)
     x4 = self.bias[1].fprop(x3)
     x5 = linears.project_last_dim(x4, theta.final_proj)
-    x6 = self.add_one.fprop(theta.add_one, x5)
+    x6 = self.add_one.fprop(x5)
     return x6
 
 
@@ -123,7 +124,8 @@ class VarUnusedLayer(base_layer.BaseLayer):
             init=p.params_init,
             dtype=p.dtype))
 
-  def fprop(self, theta: NestedMap, inputs: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor) -> JTensor:
+    theta = self.local_theta()
     out = jnp.einsum('bi,io->bo', inputs, theta.var01)
     loss = jnp.sum(out)
     return loss
