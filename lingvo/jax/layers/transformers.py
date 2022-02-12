@@ -1792,7 +1792,6 @@ class PipelinedTransformer(base_layer.BaseLayer):
       Output vector with shape [B, T, D].
     """
     return self.pipeline.fprop(
-        self.pipeline.local_theta(),
         inputs,
         paddings,
         segment_mask=segment_mask,

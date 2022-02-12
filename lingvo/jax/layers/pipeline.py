@@ -165,7 +165,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     self._forward_summary(summaries)
     return res
 
-  def fprop(self, theta: NestedMap, inputs: NestedJTensor, *broadcast_inputs,
+  def fprop(self, inputs: NestedJTensor, *broadcast_inputs,
             **broadcast_kwargs) -> NestedJTensor:
     """FProp inputs through the pipeline body.
 
@@ -176,7 +176,6 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     outputs are expected to be of the same structure as inputs.
 
     Args:
-      theta: The combined layer params for all pipeline stages.
       inputs: Inputs to body_fprop, same structure as outputs.
       *broadcast_inputs: Broadcasted args to body_fprop.
       **broadcast_kwargs: Broadcasted kwargs to body_fprop
@@ -233,6 +232,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     state0 = jax.tree_map(
         lambda x: jnp.zeros((L,) + x.shape[1:], dtype=x.dtype), padded_inputs)
 
+    theta = self.local_theta()
     def _scan_fn(carry, xs):
       jax_context = base_layer.cur_jax_context()
       flax_theta = self.vars_to_flax_vars(theta)
