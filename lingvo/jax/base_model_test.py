@@ -45,17 +45,15 @@ class MockLM(base_layer.BaseLayer):
     super().__init__(p)
     self.logits = jnp.array(p.logits, dtype=jnp.float32)
 
-  def init_states(self, theta: NestedMap, *args: Any,
-                  **kwargs: Any) -> NestedMap:
+  def init_states(self, *args: Any, **kwargs: Any) -> NestedMap:
     return NestedMap(step=0)
 
   def extend_step(
       self,
-      theta: Any,
       states: NestedMap,
       inputs: Any,
   ) -> Tuple[Any, NestedMap]:
-    del theta, inputs
+    del inputs
     ret = NestedMap()
     ret.logits = self.logits.at[states.step].get()
     states.step = states.step + 1

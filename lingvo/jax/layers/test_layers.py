@@ -257,7 +257,7 @@ class TestSpmdModel(base_model.BaseModel):
     self.create_child('ffwd', p.xformer_ffw)
 
   def compute_predictions(self, inputs: NestedMap) -> JTensor:
-    return self.ffwd.fprop(self.ffwd.local_theta(), inputs)
+    return self.ffwd.fprop(inputs)
 
   def compute_loss(self, predictions: JTensor,
                    input_batch: NestedMap) -> Tuple[NestedMap, NestedMap]:

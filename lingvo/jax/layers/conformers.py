@@ -302,8 +302,7 @@ class Conformer(base_layer.BaseLayer):
     p = self.params
 
     if self.has_fflayer_start:
-      inputs = self.fflayer_start.fprop(self.fflayer_start.local_theta(),
-                                        inputs, paddings)
+      inputs = self.fflayer_start.fprop(inputs, paddings)
 
     if p.layer_order == 'mhsa':
       inputs = self.trans_atten.fprop(inputs=inputs, paddings=paddings)
@@ -318,12 +317,10 @@ class Conformer(base_layer.BaseLayer):
       inputs = self.trans_atten.fprop(inputs=inputs, paddings=paddings)
 
     if self.has_fflayer_end:
-      inputs = self.fflayer_end.fprop(self.fflayer_end.local_theta(), inputs,
-                                      paddings)
+      inputs = self.fflayer_end.fprop(inputs, paddings)
     elif p.fflayer_weight_sharing:
       # With the weight sharing, we apply fflayer_start again
-      inputs = self.fflayer_start.fprop(self.fflayer_start.local_theta(),
-                                        inputs, paddings)
+      inputs = self.fflayer_start.fprop(inputs, paddings)
 
     inputs = self.final_ln.fprop(inputs)
     return inputs

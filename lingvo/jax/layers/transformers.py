@@ -346,7 +346,6 @@ class TransformerFeedForward(base_layer.BaseLayer):
     self.create_child('residual_dropout', residual_dropout_p)
 
   def fprop(self,
-            theta: NestedMap,
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> JTensor:
     p = self.params
@@ -637,13 +636,10 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
       self.create_variable('wo_%d' % ii, wo_pc)
 
   # TODO(zhangqiaorjc): Allow paddings to be optional?
-  def fprop(self, theta: NestedMap, inputs: JTensor,
-            paddings: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor, paddings: JTensor) -> JTensor:
     """Layer-norm, route, feed-forward, combine, residual.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: [batch, seq_len, model].
       paddings: [batch, seq_len].
 
@@ -651,6 +647,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
       Tensor of the same shape as inputs.
     """
     p = self.params
+    theta = self.local_theta()
     # Assume output_dims == input_dims
     output_dims = p.input_dims
 
@@ -787,8 +784,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     after_residual = self.residual_dropout.fprop(combined_output)
     if p.add_skip_connection:
       if p.residual_droppath_prob:
-        out = self.residual_droppath.fprop(theta.residual_droppath, inputs,
-                                           after_residual)
+        out = self.residual_droppath.fprop(inputs, after_residual)
       else:
         out = inputs + after_residual * p.residual_weight
 
@@ -924,13 +920,11 @@ class Transformer(base_layer.BaseLayer):
       params.norm_policy = p.norm_policy
       self.create_child('ff_layer', params)
 
-  def init_states(self, theta: NestedMap, target_batch_size: int,
+  def init_states(self, target_batch_size: int,
                   target_max_length: int) -> NestedMap:
     """Initialize the cache for the Transformer layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       target_batch_size: Batch size for the target.
       target_max_length: The length to decode the target.
 
@@ -941,7 +935,6 @@ class Transformer(base_layer.BaseLayer):
 
   def fprop(
       self,
-      theta: NestedMap,
       inputs: JTensor,
       paddings: JTensor,
       attention_mask: JTensor,
@@ -952,8 +945,6 @@ class Transformer(base_layer.BaseLayer):
     """Transformer decoder layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input sequence JTensor of shape [B, T, H].
       paddings: Input paddings JTensor of shape [B, T] (only used in FFN layer).
       attention_mask: Self attention mask ready to add to the logits. It can be
@@ -1023,13 +1014,11 @@ class Transformer(base_layer.BaseLayer):
       atten_output += cross_atten_output
 
     # Apply FFN layer
-    output = self.ff_layer.fprop(
-        theta.ff_layer, atten_output, paddings=paddings)
+    output = self.ff_layer.fprop(atten_output, paddings=paddings)
     return output, atten_probs
 
   def extend_step(
       self,
-      theta: NestedMap,
       cached_states: NestedMap,
       inputs: JTensor,
       *,
@@ -1041,8 +1030,6 @@ class Transformer(base_layer.BaseLayer):
     """Transformer decoder layer, autoregressive cached decoding.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for cached decoding. key   - [T, B,
         N, H]. value - [T, B, N, H].
@@ -1106,7 +1093,7 @@ class Transformer(base_layer.BaseLayer):
       atten_output += cross_atten_output
 
     # Apply FFN layer
-    output = self.ff_layer.fprop(theta.ff_layer, atten_output)
+    output = self.ff_layer.fprop(atten_output)
     return updated_states, output
 
 
@@ -1342,13 +1329,10 @@ class StackedTransformer(base_layer.BaseLayer):
     layer_params = [_layer_params(i) for i in range(p.num_layers)]
     self.create_children('x_layers', layer_params)
 
-  def init_states(self, theta: NestedMap, *args: Any,
-                  **kwargs: Any) -> NestedMap:
+  def init_states(self, *args: Any, **kwargs: Any) -> NestedMap:
     """Initialize the cache for the StackedTransformer layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       *args: Other arguments.
       **kwargs: Other keyword arguments.
 
@@ -1356,12 +1340,10 @@ class StackedTransformer(base_layer.BaseLayer):
       Initialized cache for decoding.
     """
     return NestedMap(x_layers=[
-        layer.init_states(layer_theta, *args, **kwargs)
-        for layer, layer_theta in zip(self.x_layers, theta.x_layers)
+        layer.init_states(*args, **kwargs) for layer in self.x_layers
     ])
 
   def fprop(self,
-            theta: NestedMap,
             inputs: JTensor,
             paddings: JTensor,
             segment_mask: Optional[JTensor] = None,
@@ -1372,8 +1354,6 @@ class StackedTransformer(base_layer.BaseLayer):
     """Stacked Transformer layer.
 
     Args:
-      theta: A `NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input sequence of shape [B, T, H].
       paddings: Input paddings of shape [B, T].
       segment_mask: Segment mask for packed input of shape [B, 1, T, T] ready to
@@ -1423,11 +1403,11 @@ class StackedTransformer(base_layer.BaseLayer):
       # trivial case num_layers_per_block=1 it's equivalent to
       #
       # stacked_vars = py_utils.NestedMap(layer_000=tf.nest.map_structure(
-      #     _stack_vars, *theta.x_layers))
+      #     _stack_vars, *self.x_layers.local_theta()))
       #
       stacked_vars = []
       for i in range(p.num_layers_per_block):
-        x_layers_i = theta.x_layers[i::p.num_layers_per_block]
+        x_layers_i = self.x_layers[i::p.num_layers_per_block].local_theta()
         stacked_vars_i = tf.nest.map_structure(_stack_vars, *x_layers_i)
         stacked_vars.append(stacked_vars_i)
 
@@ -1516,7 +1496,6 @@ class StackedTransformer(base_layer.BaseLayer):
       for i in range(p.num_layers):
         x_in = x_out
         x_out, _ = self.x_layers[i].fprop(
-            theta.x_layers[i],
             x_in,
             paddings,
             attention_mask,
@@ -1527,7 +1506,6 @@ class StackedTransformer(base_layer.BaseLayer):
 
   def extend_step(
       self,
-      theta: NestedMap,
       cached_states: NestedMap,
       inputs: JTensor,
       *,
@@ -1540,8 +1518,6 @@ class StackedTransformer(base_layer.BaseLayer):
     """Transformer stacked decoder layers, autoregressive cached decoding.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for cached decoding.
         cached_states.x_layers is a list corresponding to self.x_layers with key
@@ -1586,10 +1562,8 @@ class StackedTransformer(base_layer.BaseLayer):
 
     updated_states = NestedMap(x_layers=[])
     decoder_input = inputs
-    for layer, layer_theta, layer_states in zip(self.x_layers, theta.x_layers,
-                                                cached_states.x_layers):
+    for layer, layer_states in zip(self.x_layers, cached_states.x_layers):
       updated_layer_states, decoder_output = layer.extend_step(
-          layer_theta,
           layer_states,
           decoder_input,
           time_step=time_step,
@@ -1636,7 +1610,6 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
     self.create_child('repeat', repeat_l_params)
 
   def fprop(self,
-            theta: NestedMap,
             inputs: JTensor,
             paddings: JTensor,
             segment_mask: Optional[JTensor] = None,
@@ -1647,8 +1620,6 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
     """Stacked Transformer layer.
 
     Args:
-      theta: A `NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input sequence of shape [B, T, H].
       paddings: Input paddings of shape [B, T].
       segment_mask: Segment mask for packed input of shape [B, 1, T, T] ready to
@@ -1669,8 +1640,7 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
         assert al_ctx is not None
         # sub is expected to be an instance of StackedTransformer
         assert isinstance(sub, StackedTransformer)
-        theta = sub.local_theta()
-        out = sub.fprop(theta, inputs, *args, **kwargs)
+        out = sub.fprop(inputs, *args, **kwargs)
 
         if al_ctx.aux_losses:
           assert isinstance(al_ctx.aux_losses, list)
@@ -1693,13 +1663,10 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
       aux_loss_ctx.AddLoss(aux_loss)
     return out
 
-  def init_states(self, theta: NestedMap, *args: Any,
-                  **kwargs: Any) -> NestedMap:
+  def init_states(self, *args: Any, **kwargs: Any) -> NestedMap:
     """Initialize the cache for the StackedTransformerRepeated layer.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       *args: Other arguments.
       **kwargs: Other keyword arguments.
 
@@ -1709,13 +1676,12 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
 
     def init_fn(block, *args, **kwargs):
       assert isinstance(block, StackedTransformer)
-      return block.init_states(block.local_theta(), *args, **kwargs)
+      return block.init_states(*args, **kwargs)
 
     return self.repeat.init_states(init_fn, *args, **kwargs)
 
   def extend_step(
       self,
-      theta: NestedMap,
       cached_states: NestedMap,
       inputs: JTensor,
       *,
@@ -1728,8 +1694,6 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
     """Transformer stacked decoder layers, autoregressive cached decoding.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for cached decoding.
         cached_states.x_layers is a list corresponding to self.x_layers with key
@@ -1755,9 +1719,8 @@ class StackedTransformerRepeated(base_layer.BaseLayer):
     """
 
     def extend_fn(sub, cached_states, step_inputs, *args, **kwargs):
-      theta = sub.local_theta()
       assert isinstance(sub, StackedTransformer)
-      return sub.extend_step(theta, cached_states, step_inputs, *args, **kwargs)
+      return sub.extend_step(cached_states, step_inputs, *args, **kwargs)
 
     return self.repeat.extend_step(
         extend_fn,
@@ -1806,7 +1769,6 @@ class PipelinedTransformer(base_layer.BaseLayer):
     self.create_child('pipeline', pipeline_params)
 
   def fprop(self,
-            theta: NestedMap,
             inputs: JTensor,
             paddings: JTensor,
             segment_mask: Optional[JTensor] = None,
@@ -1816,8 +1778,6 @@ class PipelinedTransformer(base_layer.BaseLayer):
     """Pipelined Transformer layer.
 
     Args:
-      theta: A `NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input sequence of shape [B, T, H].
       paddings: Input paddings of shape [B, T].
       segment_mask: Segment mask for packed input of shape [B, 1, T, T] ready to
@@ -1832,7 +1792,7 @@ class PipelinedTransformer(base_layer.BaseLayer):
       Output vector with shape [B, T, D].
     """
     return self.pipeline.fprop(
-        theta.pipeline,
+        self.pipeline.local_theta(),
         inputs,
         paddings,
         segment_mask=segment_mask,
@@ -1840,12 +1800,11 @@ class PipelinedTransformer(base_layer.BaseLayer):
         cross_paddings=cross_paddings,
         cross_segment_mask=cross_segment_mask)
 
-  def init_states(self, theta, *args, **kwargs) -> NestedMap:
+  def init_states(self, *args, **kwargs) -> NestedMap:
     raise NotImplementedError(type(self))
 
   def extend_step(
       self,
-      theta: NestedMap,
       cached_states: NestedMap,
       inputs: JTensor,
       *,
@@ -2210,13 +2169,10 @@ class TransformerLm(base_layer.BaseLayer):
     softmax_params.num_classes = p.vocab_size
     self.create_child('softmax', softmax_params)
 
-  def init_states(self, theta: NestedMap, *args: Any,
-                  **kwargs: Any) -> NestedMap:
+  def init_states(self, *args: Any, **kwargs: Any) -> NestedMap:
     """Initialize the cache for the autoregressive decoding.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       *args: Other arguments.
       **kwargs: Other keyword arguments.
 
@@ -2225,18 +2181,14 @@ class TransformerLm(base_layer.BaseLayer):
     """
     return NestedMap(
         step=jnp.array(0, dtype=jnp.uint32),
-        transformer=self.transformer.init_states(theta.transformer, *args,
-                                                 **kwargs))
+        transformer=self.transformer.init_states(*args, **kwargs))
 
   def compute_loss(self,
-                   theta: NestedMap,
                    activations: JTensor,
                    labels: Optional[NestedMap] = None) -> NestedMap:
     """Computes cross entropy loss.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       activations: Output of last layer of shape [B, T, D].
       labels: A `.NestedMap` containing the following fields: class_weights, a
         JTensor with shape [B, T] containing weights for each target word.
@@ -2286,7 +2238,6 @@ class TransformerLm(base_layer.BaseLayer):
     return xent_output
 
   def fprop(self,
-            theta: NestedMap,
             inputs: JTensor,
             paddings: JTensor,
             labels: Optional[NestedMap] = None,
@@ -2295,8 +2246,6 @@ class TransformerLm(base_layer.BaseLayer):
     """Computes xent loss given the language model inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input ids. An int32 JTensor of shape [B, T].
       paddings: A 0/1 JTensor of shape [B, T] with 1 denoting padding.
       labels: A `.NestedMap` containing the following fields: class_weights, a
@@ -2355,7 +2304,6 @@ class TransformerLm(base_layer.BaseLayer):
         segment_mask = attentions.causal_segment_mask(segment_ids, inputs.dtype)
 
       output = self.transformer.fprop(
-          theta.transformer,
           inputs,
           paddings,
           segment_mask=segment_mask,
@@ -2364,19 +2312,16 @@ class TransformerLm(base_layer.BaseLayer):
       # Final layer norm
       if p.final_ln_tpl is not None:
         output = self.final_ln.fprop(output)
-      return self.compute_loss(theta, output, labels)
+      return self.compute_loss(output, labels)
 
   def extend_step(
       self,
-      theta: NestedMap,
       cached_states: NestedMap,
       inputs: JTensor,
   ) -> Tuple[NestedMap, NestedMap]:
     """Autoregressive cached decoding of Transformer LM.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for cached decoding.
         cached_states.transformer.x_layers is a list corresponding to
@@ -2426,7 +2371,6 @@ class TransformerLm(base_layer.BaseLayer):
       inputs = input_emb
 
     updated_cache, outputs = self.transformer.extend_step(
-        theta.transformer,
         cached_states.transformer,
         inputs[:, 0, :],
         time_step=time_step)
@@ -2434,7 +2378,7 @@ class TransformerLm(base_layer.BaseLayer):
     cached_states.step += 1
     if p.final_ln_tpl is not None:
       outputs = self.final_ln.fprop(outputs)
-    xent_output = self.compute_loss(theta, outputs)
+    xent_output = self.compute_loss(outputs)
     return cached_states, xent_output
 
 
@@ -2609,7 +2553,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     self.create_child('softmax', softmax_params)
 
   def _encode(self,
-              theta: NestedMap,
               inputs: JTensor,
               input_paddings: JTensor,
               input_segment_ids: Optional[JTensor] = None,
@@ -2617,8 +2560,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     """Apply the Transformer encoder to the source sequence.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input ids. An int32 JTensor of shape [B, S].
       input_paddings: A 0/1 JTensor of shape [B, S] with 1 denoting padding
         correspdonding to the input sequence.
@@ -2668,7 +2609,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     inputs_segment_mask = attentions.segment_mask(
         input_segment_ids, dtype=input_emb.dtype)
     encoder_output = self.encoder.fprop(
-        theta.encoder,
         input_emb,
         input_paddings,
         segment_mask=inputs_segment_mask)
@@ -2678,14 +2618,11 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     return encoder_output
 
   def compute_loss(self,
-                   theta: NestedMap,
                    activations: JTensor,
                    labels: Optional[NestedMap] = None) -> NestedMap:
     """Computes cross entropy loss.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       activations: Output of last layer of shape [B, T, D].
       labels: A `.NestedMap` containing the following fields: class_weights, a
         JTensor with shape [B, T] containing weights for each target word.
@@ -2736,7 +2673,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
 
   def fprop(
       self,
-      theta: NestedMap,
       inputs: JTensor,
       input_paddings: JTensor,
       targets: JTensor,
@@ -2750,8 +2686,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     """Computes xent loss given the sequence model inputs.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input ids. An int32 JTensor of shape [B, S].
       input_paddings: A 0/1 JTensor of shape [B, S] with 1 denoting padding
         correspdonding to the input sequence.
@@ -2783,8 +2717,8 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     batch, seq_length = inputs.shape
     _, target_seq_length = targets.shape
 
-    encoder_output = self._encode(theta, inputs, input_paddings,
-                                  input_segment_ids, input_segment_pos)
+    encoder_output = self._encode(inputs, input_paddings, input_segment_ids,
+                                  input_segment_pos)
 
     if p.decoder_embedding_tpl is not None:
       # Targets have separate embedding params.
@@ -2827,7 +2761,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     target_segment_mask = attentions.causal_segment_mask(
         target_segment_ids, target_emb.dtype)
     output = self.decoder.fprop(
-        theta.decoder,
         target_emb,
         target_paddings,
         target_segment_mask,
@@ -2838,16 +2771,13 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     # Final layer norm for decoder.
     output = self.decoder_ln.fprop(output)
 
-    return self.compute_loss(theta, output, labels)
+    return self.compute_loss(output, labels)
 
-  def init_states(self, theta: NestedMap, inputs: JTensor,
-                  input_paddings: JTensor, *args: Any,
+  def init_states(self, inputs: JTensor, input_paddings: JTensor, *args: Any,
                   **kwargs: Any) -> NestedMap:
     """Initialize the cache for autoregressive decoding.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       inputs: Input ids. An int32 JTensor of shape [B, S].
       input_paddings: A 0/1 JTensor of shape [B, S] with 1 denoting padding
         correspdonding to the input sequence.
@@ -2859,9 +2789,8 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     """
     cache = NestedMap(
         step=jnp.array(0, dtype=jnp.uint32),
-        decoder=self.decoder.init_states(theta.decoder, *args, **kwargs))
+        decoder=self.decoder.init_states(*args, **kwargs))
     encoder_output = self._encode(
-        theta,
         inputs,
         input_paddings,
         input_segment_ids=None,
@@ -2870,13 +2799,11 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     cache.input_paddings = input_paddings
     return cache
 
-  def extend_step(self, theta: NestedMap, cached_states: NestedMap,
+  def extend_step(self, cached_states: NestedMap,
                   targets: JTensor) -> Tuple[NestedMap, NestedMap]:
     """Autoregressive cached decoding of the Transformer encoder decoder.
 
     Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for cached decoding.
         cached_states.transformer.x_layers is a list corresponding to
@@ -2934,7 +2861,6 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
       target_emb += target_position_emb
 
     updated_cache, outputs = self.decoder.extend_step(
-        theta.decoder,
         cached_states.decoder,
         target_emb[:, 0, :],
         time_step=time_step,
@@ -2943,5 +2869,5 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     cached_states.decoder = updated_cache
     cached_states.step += 1
     outputs = self.decoder_ln.fprop(outputs)
-    xent_output = self.compute_loss(theta, outputs)
+    xent_output = self.compute_loss(outputs)
     return cached_states, xent_output

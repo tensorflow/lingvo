@@ -208,7 +208,7 @@ class VitTransformerLayers(base_layer.BaseLayer):
       Output tensor of shape [B, N, D].
     """
     paddings = jnp.zeros(inputs.shape[:2])
-    inputs = self.tfms.fprop(self.tfms.local_theta(), inputs, paddings)
+    inputs = self.tfms.fprop(inputs, paddings)
 
     return inputs
 

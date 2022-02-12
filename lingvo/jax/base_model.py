@@ -414,7 +414,6 @@ class LanguageModel(BaseModel):
     else:
       packed_input_kwargs = {}
     return self.lm.fprop(
-        theta=self.lm.local_theta(),
         inputs=inputs,
         paddings=paddings,
         labels=labels,
@@ -461,7 +460,6 @@ class LanguageModel(BaseModel):
                                         [batch_size], minval, maxval + 1,
                                         input_batch.ids.dtype)
     decoder_state = self.lm.init_states(
-        self.lm.local_theta(),
         target_batch_size=batch_size,
         target_max_length=p.decoder.seqlen)
 
@@ -474,7 +472,7 @@ class LanguageModel(BaseModel):
           global_step=global_step) as jax_context:
         jax_context.bind(self.lm, self.lm.vars_to_flax_vars(lm_theta),
                          [base_layer.SCOPE_AUX_LOSS])
-        new_states, xent = self.lm.extend_step(lm_theta, states, ids)
+        new_states, xent = self.lm.extend_step(states, ids)
         return new_states, xent.logits
 
     result = greedy_decode(
@@ -588,7 +586,6 @@ class SequenceModel(BaseModel):
       labels.class_probabilities = class_probabilities
 
     return self.model.fprop(
-        theta=self.model.local_theta(),
         inputs=input_batch.src.ids,
         input_paddings=input_batch.src.paddings,
         targets=input_batch.tgt.ids,
@@ -632,7 +629,6 @@ class SequenceModel(BaseModel):
                        f'{p.decoder.seqlen}')
     batch_size = input_batch.tgt.ids.shape[0]
     decoder_state = self.model.init_states(
-        model_theta,
         inputs=input_batch.src.ids,
         input_paddings=input_batch.src.paddings,
         target_batch_size=batch_size,
@@ -646,7 +642,7 @@ class SequenceModel(BaseModel):
           global_step=global_step) as jax_context:
         jax_context.bind(self.model, self.model.vars_to_flax_vars(model_theta),
                          [base_layer.SCOPE_AUX_LOSS])
-        new_states, xent = self.model.extend_step(model_theta, states, ids)
+        new_states, xent = self.model.extend_step(states, ids)
         return new_states, xent.logits
 
     result = greedy_decode(
@@ -858,7 +854,6 @@ class BertModel(BaseModel):
       labels = NestedMap(class_ids=labels, class_weights=augmented_pos)
 
     lm_out = self.lm.fprop(
-        theta=self.lm.local_theta(),
         inputs=augmented_labels,
         paddings=paddings,
         labels=labels,

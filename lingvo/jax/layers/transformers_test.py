@@ -115,7 +115,6 @@ class TransformersTest(test_util.JaxTestCase):
         transformer_layer,
         initial_vars,
         transformer_layer.fprop,
-        initial_vars,
         inputs,
         paddings,
         context_p=None,
@@ -179,8 +178,7 @@ class TransformersTest(test_util.JaxTestCase):
     transformer_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = transformer_layer.instantiate_variables(prng_key)
-    initial_states = transformer_layer.init_states(initial_vars, batch_size,
-                                                   seq_len)
+    initial_states = transformer_layer.init_states(batch_size, seq_len)
     npy_inputs = np.random.normal(
         1.0, 0.5, [batch_size, seq_len, p.input_dims]).astype('float32')
     inputs = jnp.asarray(npy_inputs)
@@ -222,7 +220,6 @@ class TransformersTest(test_util.JaxTestCase):
       jax_context.bind(transformer_layer,
                        transformer_layer.vars_to_flax_vars(initial_vars))
       fprop_outputs, _ = transformer_layer.fprop(
-          initial_vars,
           inputs,
           paddings,
           attention_mask=attention_mask,
@@ -238,7 +235,6 @@ class TransformersTest(test_util.JaxTestCase):
           cross_attention_mask_t = np.expand_dims(
               cross_attention_mask_t, axis=2)
         atten_states, encoded = transformer_layer.extend_step(
-            initial_vars,
             atten_states,
             inputs=inputs[:, t, :],
             time_step=t,
@@ -439,7 +435,6 @@ class TransformersTest(test_util.JaxTestCase):
         transformer_block,
         block_initial_vars,
         transformer_block.fprop,
-        block_initial_vars,
         inputs,
         paddings,
         segment_mask=segment_mask,
@@ -451,7 +446,6 @@ class TransformersTest(test_util.JaxTestCase):
         transformer_stack,
         stack_initial_vars,
         transformer_stack.fprop,
-        stack_initial_vars,
         inputs,
         paddings,
         segment_mask=segment_mask,
@@ -533,7 +527,6 @@ class TransformersTest(test_util.JaxTestCase):
         stacked_transformer_layer,
         initial_vars,
         stacked_transformer_layer.fprop,
-        initial_vars,
         inputs,
         paddings,
         context_p=None,
@@ -651,7 +644,6 @@ class TransformersTest(test_util.JaxTestCase):
         stacked_transformer_layer,
         initial_vars,
         stacked_transformer_layer.fprop,
-        initial_vars,
         inputs,
         paddings,
         context_p=None,
@@ -664,7 +656,6 @@ class TransformersTest(test_util.JaxTestCase):
         repeated_transformer_layer,
         repeated_vars,
         repeated_transformer_layer.fprop,
-        repeated_vars,
         inputs,
         paddings,
         context_p=None,
@@ -756,7 +747,6 @@ class TransformersTest(test_util.JaxTestCase):
           stacked_transformer_layer,
           stacked_transformer_layer.vars_to_flax_vars(initial_vars))
       fprop_outputs = stacked_transformer_layer.fprop(
-          initial_vars,
           inputs,
           paddings,
           segment_mask=segment_mask,
@@ -765,7 +755,7 @@ class TransformersTest(test_util.JaxTestCase):
           cross_segment_mask=cross_segment_mask)
       decoder_outputs = jnp.zeros(shape=[seq_len, batch_size, model_dims])
       initial_states = stacked_transformer_layer.init_states(
-          initial_vars, batch_size, seq_len)
+          batch_size, seq_len)
       atten_states = initial_states
       for t in range(seq_len):
         segment_mask_t = attention_mask[:, :, t, :]
@@ -775,7 +765,6 @@ class TransformersTest(test_util.JaxTestCase):
         if cross_segment_mask is not None:
           cross_segment_mask_t = cross_segment_mask[:, :, t, :]
         atten_states, encoded = stacked_transformer_layer.extend_step(
-            initial_vars,
             atten_states,
             inputs=inputs[:, t, :],
             time_step=t,
@@ -830,7 +819,6 @@ class TransformersTest(test_util.JaxTestCase):
         bert_lm,
         initial_vars,
         bert_lm.fprop,
-        initial_vars,
         input_ids,
         input_paddings,
         labels=labels,
@@ -861,7 +849,7 @@ class TransformersTest(test_util.JaxTestCase):
         prng_key=jax.random.PRNGKey(seed=1234),
         global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
       jax_context.bind(ffwd, ffwd.vars_to_flax_vars(initial_vars))
-      outputs = ffwd.fprop(initial_vars, inputs, input_paddings)
+      outputs = ffwd.fprop(inputs, input_paddings)
       logging.info('outputs: %s', outputs)
 
     if activation_function.startswith('GATED_'):
@@ -937,8 +925,7 @@ class TransformersTest(test_util.JaxTestCase):
     transformer_lm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = transformer_lm.instantiate_variables(prng_key)
-    initial_states = transformer_lm.init_states(initial_vars, batch_size,
-                                                seq_len)
+    initial_states = transformer_lm.init_states(batch_size, seq_len)
     npy_inputs = np.random.randint(
         vocab_size, size=(batch_size, seq_len)).astype('int32')
     inputs = jnp.asarray(npy_inputs)
@@ -949,8 +936,7 @@ class TransformersTest(test_util.JaxTestCase):
         global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
       jax_context.bind(transformer_lm,
                        transformer_lm.vars_to_flax_vars(initial_vars))
-      fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
-                                           jnp.zeros_like(inputs))
+      fprop_outputs = transformer_lm.fprop(inputs, jnp.zeros_like(inputs))
       logits = fprop_outputs.logits
       cached_states = initial_states
       for t in range(seq_len):
@@ -959,7 +945,7 @@ class TransformersTest(test_util.JaxTestCase):
         else:
           inputs_prefix = inputs[:, t]
         cached_states, xent_output = transformer_lm.extend_step(
-            initial_vars, cached_states, inputs_prefix)
+            cached_states, inputs_prefix)
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=2)))
@@ -996,8 +982,7 @@ class TransformersTest(test_util.JaxTestCase):
     transformer_lm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = transformer_lm.instantiate_variables(prng_key)
-    initial_states = transformer_lm.init_states(initial_vars, batch_size,
-                                                seq_len)
+    initial_states = transformer_lm.init_states(batch_size, seq_len)
     npy_inputs = np.random.randint(
         vocab_size, size=(batch_size, seq_len)).astype('int32')
     inputs = jnp.asarray(npy_inputs)
@@ -1008,13 +993,12 @@ class TransformersTest(test_util.JaxTestCase):
         global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
       jax_context.bind(transformer_lm,
                        transformer_lm.vars_to_flax_vars(initial_vars))
-      fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
-                                           jnp.zeros_like(inputs))
+      fprop_outputs = transformer_lm.fprop(inputs, jnp.zeros_like(inputs))
       logits = fprop_outputs.logits
       cached_states = initial_states
       for t in range(seq_len):
         cached_states, xent_output = transformer_lm.extend_step(
-            initial_vars, cached_states, inputs[:, t])
+            cached_states, inputs[:, t])
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=3)))
@@ -1070,8 +1054,7 @@ class TransformersTest(test_util.JaxTestCase):
     transformer_lm = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=123)
     initial_vars = transformer_lm.instantiate_variables(prng_key)
-    initial_states = transformer_lm.init_states(initial_vars, batch_size,
-                                                seq_len)
+    initial_states = transformer_lm.init_states(batch_size, seq_len)
     npy_inputs = np.random.randint(
         vocab_size, size=(batch_size, seq_len)).astype('int32')
     inputs = jnp.asarray(npy_inputs)
@@ -1082,8 +1065,7 @@ class TransformersTest(test_util.JaxTestCase):
         global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
       jax_context.bind(transformer_lm,
                        transformer_lm.vars_to_flax_vars(initial_vars))
-      fprop_outputs = transformer_lm.fprop(initial_vars, inputs,
-                                           jnp.zeros_like(inputs))
+      fprop_outputs = transformer_lm.fprop(inputs, jnp.zeros_like(inputs))
       logits = fprop_outputs.logits
       cached_states = initial_states
       for t in range(seq_len):
@@ -1092,7 +1074,7 @@ class TransformersTest(test_util.JaxTestCase):
         else:
           inputs_prefix = inputs[:, t]
         cached_states, xent_output = transformer_lm.extend_step(
-            initial_vars, cached_states, inputs_prefix)
+            cached_states, inputs_prefix)
         self.assertAllClose(logits[:, t, :], xent_output.logits)
 
   @parameterized.parameters(*list(itertools.product([True, False], repeat=8)))
@@ -1245,11 +1227,9 @@ class TransformersTest(test_util.JaxTestCase):
         global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
       jax_context.bind(transformer_enc_dec,
                        transformer_enc_dec.vars_to_flax_vars(initial_vars))
-      initial_states = transformer_enc_dec.init_states(initial_vars, inputs,
-                                                       input_paddings,
+      initial_states = transformer_enc_dec.init_states(inputs, input_paddings,
                                                        batch_size, seq_len)
-      fprop_outputs = transformer_enc_dec.fprop(initial_vars, inputs,
-                                                input_paddings, targets,
+      fprop_outputs = transformer_enc_dec.fprop(inputs, input_paddings, targets,
                                                 jnp.zeros_like(targets))
       logits = fprop_outputs.logits
       cached_states = initial_states
@@ -1259,7 +1239,7 @@ class TransformersTest(test_util.JaxTestCase):
           if t > 0:
             targets_prefix = targets[:, t - 1:t + 1]
         cached_states, xent_output = transformer_enc_dec.extend_step(
-            initial_vars, cached_states, targets_prefix)
+            cached_states, targets_prefix)
         self.assertAllClose(logits[:, t, :], xent_output.logits, atol=2e-6)
 
   @parameterized.parameters(['pre', 'primer_hybrid'])
@@ -1297,7 +1277,7 @@ class TransformersTest(test_util.JaxTestCase):
       jax_context.bind(transformer_layer,
                        transformer_layer.vars_to_flax_vars(initial_vars))
       outputs, _ = transformer_layer.fprop(
-          initial_vars, inputs, paddings, attention_mask=attention_mask)
+          inputs, paddings, attention_mask=attention_mask)
     logging.info('initial_vars in transformer layer = %s', initial_vars)
 
     np_outputs = test_utils.to_np(outputs)
@@ -1348,7 +1328,6 @@ class TransformersTest(test_util.JaxTestCase):
       jax_context.bind(transformer_layer,
                        transformer_layer.vars_to_flax_vars(initial_vars))
       outputs, _ = transformer_layer.fprop(
-          initial_vars,
           inputs,
           paddings,
           attention_mask=attention_mask,
@@ -1451,7 +1430,6 @@ class TransformersTest(test_util.JaxTestCase):
         jax_layer,
         jax_vars,
         jax_layer.fprop,
-        jax_vars,
         jax_ids,
         jax_paddings,
         context_p=None,

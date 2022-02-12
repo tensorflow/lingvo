@@ -65,7 +65,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
         shifted_state = jnp.pad(state, [[1, 0], ...])[:-1]
         in_mask = jnp.equal(jnp.arange(num_stages), 0)
         stages_in = jnp.where(in_mask, padded_input[i],  shifted_state)
-        state = vmap(single_stage_body.fprop)(theta.body, stages_in)
+        state = vmap(single_stage_body.fprop)(stages_in)
   """
 
   @classmethod
@@ -125,8 +125,8 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
       else:
         base_layer.add_summary('{summary_key}', summary_value, summary_type)
 
-  def body_fprop(self, theta: NestedMap, per_stage_inputs: JTensor,
-                 *per_stage_args, **per_stage_kwargs) -> NestedJTensor:
+  def body_fprop(self, per_stage_inputs: JTensor, *per_stage_args,
+                 **per_stage_kwargs) -> NestedJTensor:
     """Runs the fprop function of the stages."""
     p = self.params
     if p.mesh_axis_names is not None:
@@ -153,7 +153,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
           prng_key=prng_key, global_step=global_step) as jax_ctx:
         jax_ctx.bind(self.body, self.body.vars_to_flax_vars(theta),
                      [base_layer.SCOPE_AUX_LOSS])
-        res = self.body.fprop(theta, per_stage_inputs, *per_stage_args,
+        res = self.body.fprop(per_stage_inputs, *per_stage_args,
                               **per_stage_kwargs)
         summaries = base_layer.all_summaries()
         return res, summaries
@@ -256,7 +256,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
                                       broadcast_kwargs)
 
       # Run through pipeline body.
-      out_state = self.body_fprop(theta, stages_in, *per_stage_args,
+      out_state = self.body_fprop(stages_in, *per_stage_args,
                                   **per_stage_kwargs)
       py_utils.assert_same_shape_and_dtype(stages_in, out_state)
 
