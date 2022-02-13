@@ -394,6 +394,15 @@ def init_var(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
     limit = scale * math.sqrt(6. / (fan_in + fan_out))
     return limit * jrandom.uniform(
         prng_key, final_shape, init_dtype, minval=-1.0, maxval=1.0)
+  elif method in ['uniform_unit_scaling']:
+    input_size = 1.0
+    for dim in shape[:-1]:
+      input_size *= float(dim)
+    # Avoid errors when initializing zero-size tensors.
+    input_size = max(input_size, 1.0)
+    max_val = math.sqrt(3 / input_size) * scale
+    return max_val * jrandom.uniform(
+        prng_key, final_shape, init_dtype, minval=-1.0, maxval=1.0)
   else:
     assert False, 'init_type %s not supported.' % method
 
