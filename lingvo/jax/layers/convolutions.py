@@ -59,6 +59,11 @@ class Conv2D(base_layer.BaseLayer):
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Bias initializer to use if bias is to be applied.')
     p.Define('padding', 'SAME', 'SAME|VALID')
+    p.Define(
+        'tf_equivalent_padding', False,
+        ' Whether to make it equivalent to tf. By default'
+        'we apply extra padding that is different than tf conv when stride > 1.'
+        'This is mainly used for multimodal which leads to better accuracy')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -110,19 +115,24 @@ class Conv2D(base_layer.BaseLayer):
     feature_group_count = inputs.shape[3] // p.filter_shape[2]
     # filter output dim must be a multiple of feature group count
     assert p.filter_shape[3] % feature_group_count == 0
-    if p.padding == 'SAME':
-      pad_height_total = p.filter_shape[0] - 1
-      pad_height_beg = pad_height_total // 2
-      pad_height_end = pad_height_total - pad_height_beg
-      pad_width_total = p.filter_shape[1] - 1
-      pad_width_beg = pad_width_total // 2
-      pad_width_end = pad_width_total - pad_width_beg
+    if not p.tf_equivalent_padding:
+      if p.padding == 'SAME':
+        pad_height_total = p.filter_shape[0] - 1
+        pad_height_beg = pad_height_total // 2
+        pad_height_end = pad_height_total - pad_height_beg
+        pad_width_total = p.filter_shape[1] - 1
+        pad_width_beg = pad_width_total // 2
+        pad_width_end = pad_width_total - pad_width_beg
+      else:
+        assert p.padding == 'VALID', p.padding
+        pad_height_beg = 0
+        pad_height_end = 0
+        pad_width_beg = 0
+        pad_width_end = 0
+      padding = [(pad_height_beg, pad_height_end),
+                 (pad_width_beg, pad_width_end)]
     else:
-      assert p.padding == 'VALID', p.padding
-      pad_height_beg = 0
-      pad_height_end = 0
-      pad_width_beg = 0
-      pad_width_end = 0
+      padding = p.padding
     # The `dimension_numbers=('NHWC', 'HWIO', 'NHWC')` is to be consistent
     # with tf.conv2d, see e.g., see
     # https://github.com/google/jax/blob/main/jax/_src/lax/lax.py#L622
@@ -130,8 +140,7 @@ class Conv2D(base_layer.BaseLayer):
         lhs=inputs,
         rhs=theta.w,
         window_strides=p.filter_stride,
-        padding=[(pad_height_beg, pad_height_end),
-                 (pad_width_beg, pad_width_end)],
+        padding=padding,
         rhs_dilation=p.dilations,
         dimension_numbers=('NHWC', 'HWIO', 'NHWC'),
         feature_group_count=feature_group_count)
