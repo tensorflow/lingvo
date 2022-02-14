@@ -122,6 +122,19 @@ def _create_checkpoint_manager(
       todelete_subdir=todelete_subdir)
 
 
+def _update_latest_model_step(train_input_p: InstantiableParams,
+                              initial_global_step: int,
+                              eval_interval_steps: int) -> None:
+  """Updates `train_input_p` in place its latest model step."""
+  if not hasattr(train_input_p, 'deterministic_input_start_index'):
+    return
+  dp = train_input_p.deterministic_input_start_index
+  # Every `eval_interval_steps` step, we take one extra example from the
+  # training input to run eval.
+  initial_global_step += initial_global_step // eval_interval_steps
+  dp._latest_model_step = initial_global_step  # pylint: disable=protected-access
+
+
 def train_and_evaluate(
     model_name: str,
     job_log_dir: Optional[str],
@@ -220,7 +233,6 @@ def train_and_evaluate_pmap(
         'jax.pmap does not yet support GlobalDeviceArray.')
   jax_task = task_p.Instantiate()
 
-  train_input_pipeline = train_input_p.Instantiate()
   if eval_input_p is not None:
     eval_input_pipelines = [input_p.Instantiate() for input_p in eval_input_p]
 
@@ -237,6 +249,14 @@ def train_and_evaluate_pmap(
       step=restore_checkpoint_step)
   total_num_params = jax_task.model.total_num_vars
   replicated_model_states = trainer_lib.replicate_model_state(model_states)
+
+  train_p = task_p.train
+  initial_global_step = int(jax.device_get(replicated_model_states.step)[0])
+  logging.info('Model initial global_step=%d', initial_global_step)
+  _update_latest_model_step(train_input_p, initial_global_step,
+                            train_p.eval_interval_steps)
+  train_input_pipeline = train_input_p.Instantiate()
+
   # Unreplicated model states are not needed anymore at that point.
   del model_states
 
@@ -279,8 +299,6 @@ def train_and_evaluate_pmap(
 
   p_train_step = jax.pmap(train_step, donate_argnums=(0,), axis_name='batch')
   p_eval_step = jax.pmap(eval_step, axis_name='batch')
-
-  train_p = task_p.train
 
   logging.info('Training loop starting...')
   summary_base_dir = os.path.join(job_log_dir, 'summaries')
@@ -441,7 +459,6 @@ def train_and_evaluate_spmd_model(
     eval_input_p: Optional list of params for the eval input pipelines.
   """
   logging.info('Using SPMD sharding for model parallelism.')
-  train_input_pipeline = train_input_p.Instantiate()
   model_p = task_p.model
 
   if eval_input_p is not None:
@@ -482,7 +499,8 @@ def train_and_evaluate_spmd_model(
     py_utils.sync_global_devices(f'checkpointer:makedirs:{checkpoint_dir}')
 
   logging.info('Retrieving model inputs for shape info.')
-  model_inputs_for_shape = train_input_pipeline.get_next()
+  train_input_for_shape = train_input_p.Instantiate()
+  model_inputs_for_shape = train_input_for_shape.get_next()
   inputs_shape = tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
                                        model_inputs_for_shape)
 
@@ -510,6 +528,15 @@ def train_and_evaluate_spmd_model(
     if multi_host_checkpointing:
       py_utils.sync_global_devices(f'checkpointer:restored:{checkpoint_dir}')
 
+    train_p = task_p.train
+    initial_global_step = int(
+        jax.device_get(
+            py_utils.maybe_unreplicate_gda(partitioned_train_state.step)))
+    logging.info('Model initial global_step=%d', initial_global_step)
+    _update_latest_model_step(train_input_p, initial_global_step,
+                              train_p.eval_interval_steps)
+    train_input_pipeline = train_input_p.Instantiate()
+
     # We do not fold in jax.process_index in contrast to the pmap version and
     # use a single global key instead to rely on pjit to split for different
     # replicas.
@@ -517,8 +544,6 @@ def train_and_evaluate_spmd_model(
     prng_key, train_key, eval_key = jax.random.split(prng_key, 3)
     logging.info('train prng_key: %s', train_key)
     logging.info('eval prng_key: %s', eval_key)
-
-    train_p = task_p.train
 
     logging.info('Training loop starting...')
     summary_base_dir = os.path.join(job_log_dir, 'summaries')
