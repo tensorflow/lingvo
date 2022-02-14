@@ -1342,7 +1342,7 @@ class TransformersTest(test_util.JaxTestCase):
     # Plumbing test.
     self.assertAllClose(np_outputs, np_outputs, atol=1e-5)
 
-  def testGlamUniTransformer(self):
+  def test_glam_unitransformer(self):
     batch = 2
     length = 3
     d_model = 6
@@ -1528,6 +1528,56 @@ class TransformersTest(test_util.JaxTestCase):
     self.assertAllClose(
         test_utils.to_np(jax_outputs.total_loss),
         test_utils.to_np(tf_out['loss'][0]))
+
+  @parameterized.parameters([True, False])
+  def test_glam_unitransformer_extendstep(self, moe):
+    batch = 1
+    length = 3
+    d_model = 6
+    num_heads = 2
+    vocab_size = 16
+    ff_dim = 8
+    c_dim = 3
+    e_dim = 4
+    num_layers = 4
+    # Build jax layer
+    transformer_lm = transformers.TransformerLm.GLaMUniTransformerParams(
+        name='model',
+        vocab_size=vocab_size,
+        num_transformer_layers=num_layers,
+        moe=moe,
+        model_dim=d_model,
+        ff_dim=ff_dim,
+        moe_hidden_dim=ff_dim,
+        attention_num_heads=num_heads,
+        attention_key_value_dim=d_model // num_heads,
+        attention_extra_logit=0.0,
+        use_tgt_labels_size_as_loss_denominator=True,
+        moe_load_balance_loss_weight=0.01,
+        num_groups=1,
+        z_loss_weight=1e-4,
+        c_dim=c_dim,
+        e_dim=e_dim).Instantiate()
+    prng_key = jax.random.PRNGKey(seed=123)
+    initial_vars = transformer_lm.instantiate_variables(prng_key)
+    npy_inputs = np.random.randint(
+        vocab_size, size=(batch, length)).astype('int32')
+    inputs = jnp.asarray(npy_inputs)
+    context_params = base_layer.JaxContext.Params().Set(do_eval=True)
+    with base_layer.JaxContext.new_context(
+        params=context_params,
+        prng_key=prng_key,
+        global_step=jnp.array(0, dtype=jnp.uint32)) as jax_context:
+      jax_context.bind(transformer_lm,
+                       transformer_lm.vars_to_flax_vars(initial_vars))
+      initial_states = transformer_lm.init_states(batch, length)
+      fprop_outputs = transformer_lm.fprop(inputs, jnp.zeros_like(inputs))
+      logits = fprop_outputs.logits
+      cached_states = initial_states
+      for t in range(length):
+        cached_states, xent_output = transformer_lm.extend_step(
+            cached_states, inputs[:, t])
+        self.assertAllClose(logits[:, t, :], xent_output.logits)
 
 
 if __name__ == '__main__':

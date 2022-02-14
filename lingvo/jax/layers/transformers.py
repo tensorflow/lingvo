@@ -635,13 +635,12 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     for ii in range(p.expert_weight_shards):
       self.create_variable('wo_%d' % ii, wo_pc)
 
-  # TODO(zhangqiaorjc): Allow paddings to be optional?
-  def fprop(self, inputs: JTensor, paddings: JTensor) -> JTensor:
+  def fprop(self, inputs: JTensor, paddings: JTensor = None) -> JTensor:
     """Layer-norm, route, feed-forward, combine, residual.
 
     Args:
       inputs: [batch, seq_len, model].
-      paddings: [batch, seq_len].
+      paddings: [batch, seq_len], optional when called by extend_step.
 
     Returns:
       Tensor of the same shape as inputs.
@@ -650,9 +649,10 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     theta = self.local_theta()
     # Assume output_dims == input_dims
     output_dims = p.input_dims
+    fprop_dtype = self.fprop_dtype
 
     # Consistent with gshard implementation.
-    if p.apply_padding_first:
+    if p.apply_padding_first and paddings is not None:
       inputs *= (1.0 - jnp.expand_dims(paddings, axis=-1))
 
     # TODO(zhangqiaorjc): Handle input of shape [batch, seq_len, g, model/g]?
@@ -663,21 +663,21 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     else:
       inputs_normalized = inputs
 
-    assert len(inputs_normalized.shape) == 3
-    bs, s_len, m_dim = inputs_normalized.shape
-    assert len(paddings.shape) == 2
-    assert paddings.shape == (bs, s_len)
+    assert len(inputs_normalized.shape) in [2, 3]
+    token_shape = inputs_normalized.shape[:-1]
+    num_tokens = np.prod(token_shape)
+    m_dim = inputs_normalized.shape[-1]
+    if paddings is not None:
+      assert paddings.shape == token_shape
 
     num_groups = p.num_groups
     assert num_groups
     if (p.min_group_size is not None and
-        bs * s_len / num_groups < p.min_group_size):
-      num_groups = (bs * s_len + p.min_group_size - 1) // p.min_group_size
+        num_tokens / num_groups < p.min_group_size):
+      num_groups = (num_tokens + p.min_group_size - 1) // p.min_group_size
       logging.info('num_groups adjusted to %s.', num_groups)
-    assert (bs * s_len) % num_groups == 0
-    g_len = (bs * s_len) // num_groups
-    reshaped_inputs = inputs_normalized.reshape([num_groups, g_len, m_dim])
-    reshaped_paddings = paddings.reshape([num_groups, g_len])
+    assert num_tokens % num_groups == 0
+    g_len = num_tokens // num_groups
 
     # Sharding annotation.
     ap = p.activation_split_dims_mapping
@@ -685,10 +685,15 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     def split(t_in, sharding):
       return base_layer.maybe_shard(t_in, sharding, p.mesh_axis_names)
 
+    reshaped_inputs = inputs_normalized.reshape([num_groups, g_len, m_dim])
     reshaped_inputs = split(reshaped_inputs, ap.gsm)
-    reshaped_paddings = split(reshaped_paddings, ap.gs)
+    if paddings is not None:
+      reshaped_paddings = paddings.reshape([num_groups, g_len])
+      reshaped_paddings = split(reshaped_paddings, ap.gs)
+      reshaped_paddings = reshaped_paddings.astype(fprop_dtype)
+    else:
+      reshaped_paddings = None
 
-    fprop_dtype = py_utils.fprop_dtype(p)
     logits = jnp.einsum('gsm,me->gse', reshaped_inputs, theta.gate)
 
     # Here and below, we assume num devices equals num groups.
@@ -700,7 +705,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     # TODO(lepikhin): Validate stability. mask_dtype=np.int32 and
     # logits.astype(np.float32) should generally be sufficient.
     gating = gshard_utils.top2_gating_on_logits(
-        paddings=reshaped_paddings.astype(fprop_dtype),
+        paddings=reshaped_paddings,
         logits=logits.astype(jnp.float32),
         experts_dim=p.num_experts,
         expert_capacity_dim=p.expert_capacity_dim,
@@ -774,9 +779,11 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
                                  combine_tensor)
     combined_output = split(combined_output, ap.gsm)
 
-    combined_output = combined_output.reshape((bs, s_len, output_dims))
+    combined_output = combined_output.reshape(token_shape + (output_dims,))
     # Apply padding.
-    combined_output *= (1.0 - jnp.expand_dims(paddings, -1)).astype(fprop_dtype)
+    if paddings is not None:
+      combined_output *= (1.0 -
+                          jnp.expand_dims(paddings, -1)).astype(fprop_dtype)
     # Primer normalization before dropout.
     if p.norm_policy == 'primer_hybrid':
       combined_output = self.post_layer_norm.fprop(combined_output)

@@ -189,7 +189,7 @@ def top2_gating_on_logits(paddings,
         importance_is_one.astype(density_1_proxy.dtype), -1)
   else:
     assert len(mask_1.shape) == 3
-    importance = jnp.ones_like(mask_1[:, :, 0])
+    importance = jnp.ones_like(mask_1[:, :, 0]).astype(fprop_dtype)
     if paddings is not None:
       nonpaddings = 1.0 - paddings
       mask_1 *= jnp.expand_dims(nonpaddings.astype(mask_1.dtype), -1)
