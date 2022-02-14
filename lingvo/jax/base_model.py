@@ -403,6 +403,7 @@ class LanguageModel(BaseModel):
     else:
       weights = 1.0 - paddings
       weights = weights.astype(self.fprop_dtype)
+      input_batch.weights = weights
 
     inputs = input_batch.ids
     labels = NestedMap(class_ids=input_batch.labels, class_weights=weights)
