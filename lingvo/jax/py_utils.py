@@ -112,7 +112,15 @@ def extract_keys(n, p, key_separator, left_separator, right_separator):
       right_separator=right_separator)
 
 
-def _handle_dict(node, prefix, key_separator, left_separator, right_separator):
+def _handle_dict(
+    node,
+    prefix,
+    key_separator,
+    left_separator,
+    right_separator,
+    node_type=None,
+):
+  """Handles dictionaries."""
   result = {}
   for key, value in node.items():
     if prefix:
@@ -121,7 +129,10 @@ def _handle_dict(node, prefix, key_separator, left_separator, right_separator):
       path = key
     result[key] = extract_keys(value, path, key_separator, left_separator,
                                right_separator)
-  return type(node)(result)
+  if node_type is not None:
+    return node_type(**result)
+  else:
+    return type(node)(result)
 
 
 def extract_prefixed_keys_from_nested_map(node: Any,
@@ -152,8 +163,14 @@ def extract_prefixed_keys_from_nested_map(node: Any,
   elif (dataclasses.is_dataclass(node) and
         node.__class__ in flax.serialization._STATE_DICT_REGISTRY):  # pylint: disable=protected-access
     node_dict = flax.serialization.to_state_dict(node)
-    return _handle_dict(node_dict, prefix, key_separator, left_separator,
-                        right_separator)
+    return _handle_dict(
+        node_dict,
+        prefix,
+        key_separator,
+        left_separator,
+        right_separator,
+        node_type=type(node),
+    )
   if not prefix:
     return None
   return prefix

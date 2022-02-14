@@ -18,9 +18,11 @@
 import collections
 
 from absl.testing import absltest
+from flax import struct
 import jax
 from jax import test_util
 from lingvo.jax import py_utils
+import numpy as np
 import tensorflow.compat.v2 as tf
 
 
@@ -48,6 +50,36 @@ class PyUtilsTest(test_util.JaxTestCase):
             ],
             'b': ('b[0]', 'b[1]')
         }, outputs)
+
+  def test_extract_prefixed_keys_from_dataclass(self):
+
+    @struct.dataclass
+    class GlobalShardedParameterStats:
+      statistics: np.ndarray  # Statistics
+      preconditioners: np.ndarray  # Preconditioners
+      exponents: np.ndarray  # exponents
+
+    stats0 = GlobalShardedParameterStats(
+        statistics=np.array([0], dtype=np.float32),
+        preconditioners=np.array([1, 1], dtype=np.float32),
+        exponents=np.array([2, 2, 2], dtype=np.float32),
+    )
+    # Even though the `preconditioners` is first here, the order is decided
+    # by the order in `GlobalShardedParameterStats` class.
+    stats1 = GlobalShardedParameterStats(
+        preconditioners=np.array([5, 5], dtype=np.float32),
+        statistics=np.array([4], dtype=np.float32),
+        exponents=np.array([6, 6, 6], dtype=np.float32),
+    )
+
+    nested_data = py_utils.NestedMap(stats0=stats0, stats1=stats1)
+    nested_names = py_utils.extract_prefixed_keys_from_nested_map(nested_data)
+    flattened_nested_names, _ = jax.tree_util.tree_flatten(nested_names)
+
+    self.assertListEqual([
+        'stats0/statistics', 'stats0/preconditioners', 'stats0/exponents',
+        'stats1/statistics', 'stats1/preconditioners', 'stats1/exponents'
+    ], flattened_nested_names)
 
   def test_sync_global_devices(self):
     py_utils.sync_global_devices('sync')

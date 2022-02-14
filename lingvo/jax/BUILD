@@ -528,7 +528,9 @@ py_strict_test(
     deps = [
         ":py_utils",
         # Implicit absl.testing.absltest dependency.
+        # Implicit flax's core dependency.
         # Implicit jax dependency.
+        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )
