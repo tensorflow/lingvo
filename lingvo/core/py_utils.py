@@ -4327,7 +4327,7 @@ def ShiftLeft(tensor, shift_size, pad_val=0, axis=1):
         tf.slice(tensor, begin, size=[-1] * rank), time, pad_val, axis=axis)
 
 
-def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2):
+def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2, trim=False):
   """Creates ids and labels to be used as decoder targets.
 
   Args:
@@ -4335,13 +4335,18 @@ def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2):
     paddings: float Tensor of shape [batch, maxlen].
     sos_id: ID for the sos special token.
     eos_id: ID for the eos special token.
+    trim: Whether to trim the last elements in the output Tensors, so that
+      the lenghts of the output Tensors are same as the input Tensors.
+      Otherwise, the output Tensors are longer than the input Tensors by one
+      because of the added sos / eos.
 
   Returns:
     A NestedMap with:
-     - ids: int Tensor of shape [batch, maxlen + 1], with sos prepended.
-     - labels: int Tensor of shape [batch, maxlen + 1], with eos appended.
-     - paddings: float Tensor of shape [batch, maxlen + 1].
-     - weights: float Tensor of shape [batch, maxlen + 1].
+     - ids: int Tensor of shape [batch, maxlen'], with sos prepended.
+     - labels: int Tensor of shape [batch, maxlen'], with eos appended.
+     - paddings: float Tensor of shape [batch, maxlen'].
+     - weights: float Tensor of shape [batch, maxlen'].
+    maxlen' equals maxlen when trim=True, otherwise maxlen + 1.
   """
   ids = tf.where(
       tf.equal(paddings, 0.0), ids, tf.broadcast_to([[eos_id]], GetShape(ids)))
@@ -4350,6 +4355,10 @@ def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2):
   targets.labels = tf.pad(ids, [[0, 0], [0, 1]], constant_values=eos_id)
   targets.paddings = tf.pad(paddings, [[0, 0], [1, 0]])
   targets.weights = 1.0 - targets.paddings
+
+  if trim:
+    targets = targets.Transform(lambda v: v[:, :-1])
+
   return targets
 
 
