@@ -325,6 +325,10 @@ def init_var(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
   else:
     final_shape = shape
   init_dtype = var_p.dtype
+  logging.info(
+      'Creating var %s with shape=%s, dtype=%s, init method=%s and scale=%s',
+      var_full_name, final_shape, init_dtype.dtype, var_p.init.method,
+      var_p.init.scale)
   if shape:
     assert all([dim_size > 0 for dim_size in shape]), shape
     dim0 = shape[0]
