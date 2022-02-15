@@ -26,12 +26,14 @@ from flax import jax_utils
 from flax.training import checkpoints
 import jax
 from jax.experimental import maps
+from jax.experimental import multihost_utils
 from jax.experimental.gda_serialization import serialization as gda_serialization
 # Internal import
 from lingvo.jax import asserts
 from lingvo.jax import checkpoint_pb2
 from lingvo.jax import py_utils
 from lingvo.jax import train_states
+import numpy as np
 import tensorflow.compat.v2 as tf
 
 CHECKPOINT_PREFIX = 'checkpoint_'
@@ -72,7 +74,9 @@ def _make_tmp_checkpoint_dir(checkpoint_dir: str,
                              sync_timestamp: bool = False) -> str:
   timestamp = _to_timestamp(datetime.datetime.utcnow())
   if sync_timestamp:
-    timestamp = py_utils.broadcast_scalar_global_devices(timestamp)
+    timestamp = multihost_utils.broadcast_one_to_all(np.array(timestamp))
+    multihost_utils.assert_equal(timestamp,
+                                 "Timestamps across hosts don't match.")
   tmp_prefix = f'{TMP_PREFIX}{timestamp}'
   return os.path.join(checkpoint_dir,
                       f'{tmp_prefix}.{CHECKPOINT_PREFIX}{step:08d}')

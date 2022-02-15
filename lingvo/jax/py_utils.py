@@ -18,13 +18,13 @@
 import dataclasses
 import functools
 from typing import Any
-import zlib
 
 from absl import logging
 import flax
 import jax
 from jax.experimental import global_device_array as gda_lib
 from jax.experimental import maps
+from jax.experimental import multihost_utils
 import jax.numpy as jnp
 from lingvo.core import cluster
 from lingvo.core import hyperparams
@@ -176,45 +176,14 @@ def extract_prefixed_keys_from_nested_map(node: Any,
   return prefix
 
 
-# Use top-level named function to avoid recompilation.
-def _sync_global_devices_f(x):
-  return jax.lax.psum(x, 'i')
-
-
 def sync_global_devices(name: str) -> None:
   """Sync across all hosts/devices."""
-  local_device_count = jax.local_device_count()
   global_device_count = jax.device_count()
-  logging.info('sync_global_devices %s across %s devices globally', name,
-               global_device_count)
-  h = np.int32(zlib.crc32(name.encode()))
-  # Round-down h to multiples of global_device_count.
-  expected = h // global_device_count * global_device_count
-  x = jnp.ones(
-      shape=(local_device_count), dtype=np.int32) * (
-          h // global_device_count)
-  actual = jax.device_get(jax.pmap(_sync_global_devices_f, 'i')(x))
-  if actual[0] != expected:
-    raise ValueError(f'Sync point {name} expected: {expected}; got: {actual}')
+  logging.info('Starting sync_global_devices %s across %s devices globally',
+               name, global_device_count)
+  multihost_utils.sync_global_devices(name)
   logging.info('Finished sync_global_devices %s across %s devices globally',
                name, global_device_count)
-
-
-def _broadcast_scalar_global_devices_f(x: jnp.ndarray) -> jnp.ndarray:
-  return jax.lax.psum(x, 'i')
-
-
-def broadcast_scalar_global_devices(value: Any, dtype=jnp.int32) -> Any:
-  """Broadcasts a scalar from host 0 to all other devices."""
-  if jax.process_index() == 0:
-    inputs = jnp.array(
-        [value] + [0] * (jax.local_device_count() - 1), dtype=dtype)
-  else:
-    inputs = jnp.zeros(shape=[jax.local_device_count()], dtype=dtype)
-  array = jax.device_get(
-      jax.pmap(_broadcast_scalar_global_devices_f, 'i')(inputs))
-  # The elements of `array` are all identical. Retrieve the first one.
-  return array.item(0)
 
 
 def create_gda(host_arrays: np.ndarray, global_shapes: jax.ShapeDtypeStruct,

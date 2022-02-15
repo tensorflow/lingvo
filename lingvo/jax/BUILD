@@ -102,6 +102,7 @@ pytype_strict_library(
         # Implicit jax dependency.
         # Implicit jax/experimental/gda_serialization:google_spec dependency.
         # Implicit jax/experimental/gda_serialization:serialization dependency.
+        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )
