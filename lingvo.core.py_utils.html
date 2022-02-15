@@ -2316,7 +2316,7 @@ right with pad_val.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.CreateIdsAndLabels">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">CreateIdsAndLabels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sos_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CreateIdsAndLabels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.CreateIdsAndLabels" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">CreateIdsAndLabels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sos_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">trim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CreateIdsAndLabels"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.CreateIdsAndLabels" title="Permalink to this definition"></a></dt>
 <dd><p>Creates ids and labels to be used as decoder targets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2325,15 +2325,24 @@ right with pad_val.</p>
 <li><p><strong>paddings</strong> – float Tensor of shape [batch, maxlen].</p></li>
 <li><p><strong>sos_id</strong> – ID for the sos special token.</p></li>
 <li><p><strong>eos_id</strong> – ID for the eos special token.</p></li>
+<li><p><strong>trim</strong> – Whether to trim the last elements in the output Tensors, so that
+the lenghts of the output Tensors are same as the input Tensors.
+Otherwise, the output Tensors are longer than the input Tensors by one
+because of the added sos / eos.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p>ids: int Tensor of shape [batch, maxlen + 1], with sos prepended.</p></li>
-<li><p>labels: int Tensor of shape [batch, maxlen + 1], with eos appended.</p></li>
-<li><p>paddings: float Tensor of shape [batch, maxlen + 1].</p></li>
-<li><p>weights: float Tensor of shape [batch, maxlen + 1].</p></li>
+<li><p>ids: int Tensor of shape [batch, maxlen’], with sos prepended.</p></li>
 </ul>
+<blockquote>
+<div><ul class="simple">
+<li><p>labels: int Tensor of shape [batch, maxlen’], with eos appended.</p></li>
+<li><p>paddings: float Tensor of shape [batch, maxlen’].</p></li>
+<li><p>weights: float Tensor of shape [batch, maxlen’].</p></li>
+</ul>
+</div></blockquote>
+<p>maxlen’ equals maxlen when trim=True, otherwise maxlen + 1.</p>
 </p>
 </dd>
 <dt class="field-odd">Return type</dt>
