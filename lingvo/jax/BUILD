@@ -62,6 +62,22 @@ pytype_strict_library(
 )
 
 pytype_strict_library(
+    name = "base_metrics",
+    srcs = ["base_metrics.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":py_utils",
+        ":pytypes",
+        # Implicit absl.flags dependency.
+        # Implicit absl.logging dependency.
+        # Implicit flax's core dependency.
+        # Implicit jax dependency.
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+pytype_strict_library(
     name = "base_model_params",
     srcs = ["base_model_params.py"],
     srcs_version = "PY3",
@@ -459,6 +475,22 @@ py_strict_test(
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+py_strict_test(
+    name = "base_metrics_test",
+    srcs = ["base_metrics_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_metrics",
+        ":py_utils",
+        # Implicit absl.flags dependency.
+        # Implicit absl.testing.absltest dependency.
+        # Implicit jax dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
