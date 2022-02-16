@@ -313,6 +313,7 @@ class VisionTransformer(base_layer.BaseLayer):
         'atten_logit_cap', 0,
         'If > 0, applies cap * tf.math.tanh(logits / cap) to attention '
         'logits to improve training stabilities.')
+    p.Define('exit_layers_tpl', VitExitLayers.Params(), 'Exit block of ViT.')
 
     return p
 
@@ -404,8 +405,8 @@ class VisionTransformer(base_layer.BaseLayer):
         pos_emb_dropout_prob=p.pos_emb_dropout_prob)
     self.create_child('entry_stack', p_entry)
 
-    p_mid = VitTransformerLayers.Params().Set(
-        name='mid',
+    p_tfm = VitTransformerLayers.Params().Set(
+        name='transformers',
         input_dims=p.hidden_dim,
         hidden_dims=p.mlp_dim,
         num_heads=p.num_heads,
@@ -415,15 +416,16 @@ class VisionTransformer(base_layer.BaseLayer):
         atten_dropout_prob=p.activation_dropout_prob,
         ff_activation=p.ff_activation,
         atten_logit_cap=p.atten_logit_cap)
-    self.create_child('mid_stack', p_mid)
+    self.create_child('transformers_stack', p_tfm)
 
-    p_exit = VitExitLayers.Params().Set(
-        name='exit',
-        hidden_dim=p.hidden_dim,
-        output_dim=p.hidden_dim,
-        output_dropout_prob=p.output_dropout_prob,
-    )
-    self.create_child('exit_stack', p_exit)
+    if p.exit_layers_tpl is not None:
+      p_exit = p.exit_layers_tpl.Copy().Set(
+          name='exit',
+          hidden_dim=p.hidden_dim,
+          output_dim=p.hidden_dim,
+          output_dropout_prob=p.output_dropout_prob,
+      )
+      self.create_child('exit_stack', p_exit)
 
   def fprop(self, inputs: JTensor) -> JTensor:
     """Applies the Vit model to the inputs.
@@ -432,9 +434,10 @@ class VisionTransformer(base_layer.BaseLayer):
       inputs: Input image tensor of shape [B, H, W, 3] (H == W).
 
     Returns:
-      Output tensor of shape [B, D].
+      Output tensor of shape [B, D] or [B, N, D].
     """
     features = self.entry_stack.fprop(inputs)  # [B, N, D]
-    features = self.mid_stack.fprop(features)  # [B, N, D]
-    features = self.exit_stack.fprop(features)  # [B, D]
+    features = self.transformers_stack.fprop(features)  # [B, N, D]
+    if 'exit_stack' in self.children:
+      features = self.exit_stack.fprop(features)  # [B, D]
     return features
