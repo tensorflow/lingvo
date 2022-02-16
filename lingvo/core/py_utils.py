@@ -4335,18 +4335,19 @@ def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2, trim=False):
     paddings: float Tensor of shape [batch, maxlen].
     sos_id: ID for the sos special token.
     eos_id: ID for the eos special token.
-    trim: Whether to trim the last elements in the output Tensors, so that
-      the lenghts of the output Tensors are same as the input Tensors.
-      Otherwise, the output Tensors are longer than the input Tensors by one
-      because of the added sos / eos.
+    trim: Whether to trim the last elements in the output Tensors, so that the
+      lenghts of the output Tensors are same as the input Tensors. Otherwise,
+      the output Tensors are longer than the input Tensors by one because of
+      the added sos / eos.
 
   Returns:
-    A NestedMap with:
-     - ids: int Tensor of shape [batch, maxlen'], with sos prepended.
-     - labels: int Tensor of shape [batch, maxlen'], with eos appended.
-     - paddings: float Tensor of shape [batch, maxlen'].
-     - weights: float Tensor of shape [batch, maxlen'].
-    maxlen' equals maxlen when trim=True, otherwise maxlen + 1.
+    A NestedMap with the following fields, where maxlen' equals maxlen when
+    trim=True, otherwise maxlen + 1:
+
+    - ids: int Tensor of shape [batch, maxlen'], with sos prepended.
+    - labels: int Tensor of shape [batch, maxlen'], with eos appended.
+    - paddings: float Tensor of shape [batch, maxlen'].
+    - weights: float Tensor of shape [batch, maxlen'].
   """
   ids = tf.where(
       tf.equal(paddings, 0.0), ids, tf.broadcast_to([[eos_id]], GetShape(ids)))
