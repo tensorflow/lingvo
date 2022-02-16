@@ -54,6 +54,10 @@ class BaseTokenizer(base_layer.BaseLayer):
     self.eos_id = p.target_eos_id  # </S>
     self.unk_id = p.target_unk_id  # <UNK>
 
+  def Initialize(self, sess):
+    """Run any tokenizer initialization that requires a session."""
+    pass
+
   def StringsToIds(self,
                    strs,
                    max_length,

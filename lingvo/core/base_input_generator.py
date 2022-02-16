@@ -1291,6 +1291,11 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
                 p.bucket_batch_limit))
     return infeed_bucket_batch_limit
 
+  def Initialize(self, sess: tf.Session = None):
+    super().Initialize(sess)
+    for tokenizer in self.tokenizer_dict.values():
+      tokenizer.Initialize(sess)
+
   def InfeedBatchSize(self):
     """Returns the batch size of one infeed pipeline.
 
