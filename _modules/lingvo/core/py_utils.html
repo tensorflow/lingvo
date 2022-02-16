@@ -4400,18 +4400,19 @@
 <span class="sd">    paddings: float Tensor of shape [batch, maxlen].</span>
 <span class="sd">    sos_id: ID for the sos special token.</span>
 <span class="sd">    eos_id: ID for the eos special token.</span>
-<span class="sd">    trim: Whether to trim the last elements in the output Tensors, so that</span>
-<span class="sd">      the lenghts of the output Tensors are same as the input Tensors.</span>
-<span class="sd">      Otherwise, the output Tensors are longer than the input Tensors by one</span>
-<span class="sd">      because of the added sos / eos.</span>
+<span class="sd">    trim: Whether to trim the last elements in the output Tensors, so that the</span>
+<span class="sd">      lenghts of the output Tensors are same as the input Tensors. Otherwise,</span>
+<span class="sd">      the output Tensors are longer than the input Tensors by one because of</span>
+<span class="sd">      the added sos / eos.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A NestedMap with:</span>
-<span class="sd">     - ids: int Tensor of shape [batch, maxlen&#39;], with sos prepended.</span>
-<span class="sd">     - labels: int Tensor of shape [batch, maxlen&#39;], with eos appended.</span>
-<span class="sd">     - paddings: float Tensor of shape [batch, maxlen&#39;].</span>
-<span class="sd">     - weights: float Tensor of shape [batch, maxlen&#39;].</span>
-<span class="sd">    maxlen&#39; equals maxlen when trim=True, otherwise maxlen + 1.</span>
+<span class="sd">    A NestedMap with the following fields, where maxlen&#39; equals maxlen when</span>
+<span class="sd">    trim=True, otherwise maxlen + 1:</span>
+
+<span class="sd">    - ids: int Tensor of shape [batch, maxlen&#39;], with sos prepended.</span>
+<span class="sd">    - labels: int Tensor of shape [batch, maxlen&#39;], with eos appended.</span>
+<span class="sd">    - paddings: float Tensor of shape [batch, maxlen&#39;].</span>
+<span class="sd">    - weights: float Tensor of shape [batch, maxlen&#39;].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">([[</span><span class="n">eos_id</span><span class="p">]],</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">ids</span><span class="p">)))</span>
