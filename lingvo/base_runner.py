@@ -121,10 +121,14 @@ class BaseRunner:
       self._cluster.InitDevices(self._GetSession())
 
     # Ensure global step tensor is created.
-    with tf.container(self._container_id), contextlib.ExitStack() as stack:
+    with contextlib.ExitStack() as stack:
       if not py_utils.IsEagerMode():
         stack.enter_context(self._graph.as_default())
         stack.enter_context(tf.device(self._cluster.GetPlacer()))
+      # It is important that we enter the tf.container scope *after*
+      # the graph scope. If we reverse the ordering, the tf.container
+      # basically has no-effect which is a tricky silent error.
+      stack.enter_context(tf.container(self._container_id))
       self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
 
   @property
