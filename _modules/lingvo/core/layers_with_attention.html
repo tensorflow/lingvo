@@ -621,6 +621,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_skip_connection&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;If True, add skip_connection from input to output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Pre or post layer norm&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;primer_hybrid_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Add an additional post layer norm, requires pre_layer_norm=True.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_droppath_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
              <span class="s1">&#39;Probability at which we drop the entire residual path.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -673,9 +676,18 @@
 
     <span class="c1"># Initialize feed-forward layer norm</span>
     <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;fflayer_ln&#39;</span>
     <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span>
+      <span class="n">pre_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">pre_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;pre_fflayer_ln&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="n">pre_params</span><span class="p">)</span>
+      <span class="n">post_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">post_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;post_fflayer_ln&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;post_layer_norm&#39;</span><span class="p">,</span> <span class="n">post_params</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;fflayer_ln&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
     <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">)</span>
@@ -712,17 +724,22 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
-        <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span><span class="p">:</span>
+          <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">,</span>
+                                                        <span class="n">inputs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="n">inputs</span>
       <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;res_proj_layer&#39;</span><span class="p">):</span>
         <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_proj_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">res_proj_layer</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-      <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">inputs_normalized</span><span class="p">,</span>
-                             <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
+      <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">inputs_normalized</span><span class="p">,</span>
+                             <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span><span class="p">:</span>
+        <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+      <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_droppath_prob</span><span class="p">:</span>
           <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_droppath</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
               <span class="n">theta</span><span class="o">.</span><span class="n">residual_droppath</span><span class="p">,</span>
@@ -730,8 +747,8 @@
               <span class="n">h</span><span class="p">,</span>
           <span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">h</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">residual_weight</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
+          <span class="n">h</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">h</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_weight</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">h</span></div></div>
 

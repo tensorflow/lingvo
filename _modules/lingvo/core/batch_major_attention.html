@@ -3987,6 +3987,9 @@
         <span class="s1">&#39;such that, residual(x, y) = (x + dropout(y)).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Pre or post layer norm.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;primer_hybrid_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Add an additional post layer norm, requires pre_layer_norm=True.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;add_unnormalized_input&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
         <span class="s1">&#39;If set, uses unnormalized input in the residual add. It is&#39;</span>
         <span class="s1">&#39;applicable only if pre_layer_norm is True.&#39;</span><span class="p">)</span>
@@ -4150,9 +4153,18 @@
     <span class="c1"># Initialize attention layer normalization.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
       <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_ln&#39;</span>
       <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">query_input_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span>
+        <span class="n">pre_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">pre_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;pre_atten_ln&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="n">pre_params</span><span class="p">)</span>
+        <span class="n">post_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">post_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;post_atten_ln&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;post_layer_norm&#39;</span><span class="p">,</span> <span class="n">post_params</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_ln&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
     <span class="c1"># Initialize residual dropout.</span>
     <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -4201,7 +4213,10 @@
 
     <span class="c1"># Layer normalization.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
-      <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span><span class="p">:</span>
+        <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
       <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
 
     <span class="c1"># For self-attention: keys = queries.</span>
@@ -4248,6 +4263,9 @@
         <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">_AttenFProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">)</span>
 
     <span class="c1"># Residual connection.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">)</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
     <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
@@ -4368,7 +4386,10 @@
 
     <span class="c1"># Layer normalization.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
-      <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span><span class="p">:</span>
+        <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
       <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)</span>
 
     <span class="c1"># Multiheaded masked/causal self-attention.</span>
@@ -4393,6 +4414,9 @@
                                                  <span class="n">cached_states</span><span class="p">)</span>
 
     <span class="c1"># Residual connection.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
+      <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">)</span>
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
     <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
@@ -4432,12 +4456,18 @@
       <span class="n">unnormalized_input_vec</span> <span class="o">=</span> <span class="n">input_vec</span>
 
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
-        <span class="n">input_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span><span class="p">:</span>
+          <span class="n">input_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">input_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">)</span>
         <span class="n">input_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">input_vec</span><span class="p">)</span>
 
       <span class="n">output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">atten_state1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">atten</span><span class="p">)</span>
 
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CastToFPropDtype</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
       <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
 
       <span class="c1"># Residual connection.</span>
