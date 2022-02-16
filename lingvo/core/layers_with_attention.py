@@ -556,6 +556,9 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p.Define('add_skip_connection', True,
              'If True, add skip_connection from input to output.')
     p.Define('pre_layer_norm', True, 'Pre or post layer norm')
+    p.Define(
+        'primer_hybrid_norm', False,
+        'Add an additional post layer norm, requires pre_layer_norm=True.')
     p.Define('residual_droppath_prob', 0.0,
              'Probability at which we drop the entire residual path.')
     p.Define(
@@ -608,9 +611,18 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
 
     # Initialize feed-forward layer norm
     params = p.ln_tpl.Copy()
-    params.name = 'fflayer_ln'
     params.input_dim = p.input_dim
-    self.CreateChild('layer_norm', params)
+    if p.primer_hybrid_norm:
+      assert p.pre_layer_norm
+      pre_params = params.Copy()
+      pre_params.name = 'pre_fflayer_ln'
+      self.CreateChild('pre_layer_norm', pre_params)
+      post_params = params.Copy()
+      post_params.name = 'post_fflayer_ln'
+      self.CreateChild('post_layer_norm', post_params)
+    else:
+      params.name = 'fflayer_ln'
+      self.CreateChild('layer_norm', params)
 
     dropout_tpl = p.residual_dropout_tpl.Copy()
     dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
@@ -647,17 +659,22 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p = self.params
     with tf.name_scope(p.name):
       inputs = self._CastToFPropDtype(inputs)
-      if self.params.pre_layer_norm:
-        inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+      if p.pre_layer_norm:
+        if p.primer_hybrid_norm:
+          inputs_normalized = self.pre_layer_norm.FProp(theta.pre_layer_norm,
+                                                        inputs)
+        else:
+          inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
       else:
         inputs_normalized = inputs
       if hasattr(self, 'res_proj_layer'):
         inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
-      h = self.residual_dropout.FProp(
-          theta.residual_dropout,
-          self.fflayer.FProp(theta.fflayer, inputs_normalized,
-                             tf.expand_dims(paddings, -1)))
-      if self.params.add_skip_connection:
+      h = self.fflayer.FProp(theta.fflayer, inputs_normalized,
+                             tf.expand_dims(paddings, -1))
+      if p.primer_hybrid_norm:
+        h = self.post_layer_norm.FProp(theta.post_layer_norm, h)
+      h = self.residual_dropout.FProp(theta.residual_dropout, h)
+      if p.add_skip_connection:
         if p.residual_droppath_prob:
           h = self.residual_droppath.FProp(
               theta.residual_droppath,
@@ -665,8 +682,8 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
               h,
           )
         else:
-          h = inputs + h * self.params.residual_weight
-      if not self.params.pre_layer_norm:
+          h = inputs + h * p.residual_weight
+      if not p.pre_layer_norm:
         h = self.layer_norm.FProp(theta.layer_norm, h)
       return h
 

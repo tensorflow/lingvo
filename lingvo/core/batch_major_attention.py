@@ -3922,6 +3922,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         'such that, residual(x, y) = (x + dropout(y)).')
     p.Define('pre_layer_norm', True, 'Pre or post layer norm.')
     p.Define(
+        'primer_hybrid_norm', False,
+        'Add an additional post layer norm, requires pre_layer_norm=True.')
+    p.Define(
         'add_unnormalized_input', True,
         'If set, uses unnormalized input in the residual add. It is'
         'applicable only if pre_layer_norm is True.')
@@ -4085,9 +4088,18 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     # Initialize attention layer normalization.
     if p.ln_tpl:
       params = p.ln_tpl.Copy()
-      params.name = 'atten_ln'
       params.input_dim = query_input_dim
-      self.CreateChild('layer_norm', params)
+      if p.primer_hybrid_norm:
+        assert p.pre_layer_norm
+        pre_params = params.Copy()
+        pre_params.name = 'pre_atten_ln'
+        self.CreateChild('pre_layer_norm', pre_params)
+        post_params = params.Copy()
+        post_params.name = 'post_atten_ln'
+        self.CreateChild('post_layer_norm', post_params)
+      else:
+        params.name = 'atten_ln'
+        self.CreateChild('layer_norm', params)
 
     # Initialize residual dropout.
     dropout_tpl = p.dropout_tpl.Copy()
@@ -4136,7 +4148,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     # Layer normalization.
     if p.pre_layer_norm and p.ln_tpl:
-      query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+      if p.primer_hybrid_norm:
+        query_vec = self.pre_layer_norm.FProp(theta.pre_layer_norm, query_vec)
+      else:
+        query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
       query_vec = self._CastToFPropDtype(query_vec)
 
     # For self-attention: keys = queries.
@@ -4183,6 +4198,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         ctx_vec, atten_probs = _AttenFProp(self.atten, theta.atten)
 
     # Residual connection.
+    if p.primer_hybrid_norm and p.ln_tpl:
+      ctx_vec = self.post_layer_norm.FProp(theta.post_layer_norm, ctx_vec)
+      ctx_vec = self._CastToFPropDtype(ctx_vec)
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
@@ -4303,7 +4321,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     # Layer normalization.
     if p.ln_tpl:
-      query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+      if p.primer_hybrid_norm:
+        query_vec = self.pre_layer_norm.FProp(theta.pre_layer_norm, query_vec)
+      else:
+        query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
       query_vec = self._CastToFPropDtype(query_vec)
 
     # Multiheaded masked/causal self-attention.
@@ -4328,6 +4349,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
                                                  cached_states)
 
     # Residual connection.
+    if p.primer_hybrid_norm and p.ln_tpl:
+      ctx_vec = self.post_layer_norm.FProp(theta.post_layer_norm, ctx_vec)
+      ctx_vec = self._CastToFPropDtype(ctx_vec)
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
@@ -4367,12 +4391,18 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       unnormalized_input_vec = input_vec
 
       if p.ln_tpl:
-        input_vec = self.layer_norm.FProp(theta.layer_norm, input_vec)
+        if p.primer_hybrid_norm:
+          input_vec = self.pre_layer_norm.FProp(theta.pre_layer_norm, input_vec)
+        else:
+          input_vec = self.layer_norm.FProp(theta.layer_norm, input_vec)
         input_vec = self._CastToFPropDtype(input_vec)
 
       output, paddings, atten_state1 = self.atten.StreamStep(
           theta.atten, input_vec, paddings, input_vec, paddings, state0.atten)
 
+      if p.primer_hybrid_norm and p.ln_tpl:
+        output = self.post_layer_norm.FProp(theta.post_layer_norm, output)
+        output = self._CastToFPropDtype(output)
       output = self.residual_dropout.FProp(theta.residual_dropout, output)
 
       # Residual connection.
