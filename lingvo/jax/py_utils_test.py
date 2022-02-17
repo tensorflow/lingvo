@@ -16,6 +16,7 @@
 """Tests for Python utils."""
 
 import collections
+from typing import Any
 
 from absl.testing import absltest
 from flax import struct
@@ -58,11 +59,15 @@ class PyUtilsTest(test_util.JaxTestCase):
       statistics: np.ndarray  # Statistics
       preconditioners: np.ndarray  # Preconditioners
       exponents: np.ndarray  # exponents
+      index_start: int = struct.field(pytree_node=False)
+      sizes: Any = struct.field(pytree_node=False)
 
     stats0 = GlobalShardedParameterStats(
         statistics=np.array([0], dtype=np.float32),
         preconditioners=np.array([1, 1], dtype=np.float32),
         exponents=np.array([2, 2, 2], dtype=np.float32),
+        index_start=0,
+        sizes=0,
     )
     # Even though the `preconditioners` is first here, the order is decided
     # by the order in `GlobalShardedParameterStats` class.
@@ -70,6 +75,8 @@ class PyUtilsTest(test_util.JaxTestCase):
         preconditioners=np.array([5, 5], dtype=np.float32),
         statistics=np.array([4], dtype=np.float32),
         exponents=np.array([6, 6, 6], dtype=np.float32),
+        index_start=1,
+        sizes=1,
     )
 
     nested_data = py_utils.NestedMap(stats0=stats0, stats1=stats1)
