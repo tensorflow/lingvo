@@ -285,6 +285,8 @@
                       <span class="n">feature_axis</span><span class="p">,</span>
                       <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span>
                       <span class="o">*</span><span class="p">,</span>
+                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                       <span class="n">legacy_aqt_w_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates Quantized weights for later use.</span>
 
@@ -296,6 +298,10 @@
 <span class="sd">      shape: Shape of the weight.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
 <span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39;).</span>
+<span class="sd">      tensor_split_dims_mapping: A list of integers that map each tensor axis</span>
+<span class="sd">        to the device mesh axis along which it is sharded.</span>
+<span class="sd">      device_mesh: A numpy.ndarray describing the topology of a device mesh to</span>
+<span class="sd">        partition the created variable onto.</span>
 <span class="sd">      legacy_aqt_w_name: Used for compatibility with old checkpoints.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
@@ -311,6 +317,7 @@
           <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildContext</span><span class="p">(</span><span class="n">qdchild_name</span><span class="p">):</span>
             <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">qd</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
               <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensorWithShape</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span>
+                                       <span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span>
                                        <span class="n">legacy_aqt_w_name</span><span class="p">)</span>
           <span class="k">break</span></div>
 
@@ -883,6 +890,8 @@
                             <span class="n">t_name</span><span class="p">,</span>
                             <span class="n">shape</span><span class="p">,</span>
                             <span class="n">feature_axis</span><span class="p">,</span>
+                            <span class="n">mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                            <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                             <span class="n">legacy_aqt_t_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates a QTensor with t_name and given shape.</span>
 
@@ -890,6 +899,10 @@
 <span class="sd">      t_name: Unique name (within layer) for this tensor.</span>
 <span class="sd">      shape: Expected shape of the tensor.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
+<span class="sd">      mesh_split: A list of integers that map each tensor axis</span>
+<span class="sd">        to the device mesh axis along which it is sharded.</span>
+<span class="sd">      device_mesh: A numpy.ndarray describing the topology of a device mesh to</span>
+<span class="sd">        partition the created variable onto.</span>
 <span class="sd">      legacy_aqt_t_name: Used for compatibility with old checkpoints.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">pass</span></div>
