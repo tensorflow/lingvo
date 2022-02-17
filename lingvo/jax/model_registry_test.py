@@ -50,6 +50,22 @@ class ModelRegistryTest(absltest.TestCase):
     self.assertEmpty(dummy_model.datasets())
     self.assertIsNotNone(dummy_model.task())
 
+  def test_unregister_register_model(self):
+    model_name = '__main__.DummyModel'
+    model_registry.unregister_model(model_name)
+
+    dummy_model_cls = model_registry.get_model(model_name)
+    self.assertIsNone(dummy_model_cls)
+
+    # Call unregister a second time: No op.
+    model_registry.unregister_model(model_name)
+
+    model_registry.register_model(DummyModel)
+
+    dummy_model_cls = model_registry.get_model(model_name)
+    dummy_model = dummy_model_cls()
+    self.assertIsInstance(dummy_model, DummyModel)
+
 
 if __name__ == '__main__':
   absltest.main()
