@@ -90,14 +90,17 @@ def set_default_adam(task_p: InstantiableParams, learning_rate: float,
           max=1.0))
 
 
-def set_default_adafactor(task_p: InstantiableParams, learning_rate: float,
-                          weight_decay: float) -> None:
+def set_default_adafactor(task_p: InstantiableParams,
+                          learning_rate: float,
+                          weight_decay: float,
+                          clip_gradient_norm_to_value: float = 5.0) -> None:
   """Sets the default AdaFactor optimizer settings in the task config.
 
   Args:
     task_p: The task parameters to update with optimizer specs.
     learning_rate: The learning rate to set.
     weight_decay: The weight_decay to set.
+    clip_gradient_norm_to_value: clip_gradient_norm_to_value.
   """
   lp = task_p.train.learner
   lp.loss_name = 'total_loss'
@@ -106,7 +109,7 @@ def set_default_adafactor(task_p: InstantiableParams, learning_rate: float,
       beta1=0.9,
       decay_adam=0.99,
       weight_decay=weight_decay,
-      clip_gradient_norm_to_value=5.0)
+      clip_gradient_norm_to_value=clip_gradient_norm_to_value)
   lp.optimizer.learning_rate = learning_rate
   lp.optimizer.lr_schedule = (
       schedules.LinearRampupExponentialDecay.Params().Set(
@@ -407,6 +410,7 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
   # optimizer related
   DROPOUT_PROB = 0.0
   LEARNING_RATE = 2.5e-4
+  CLIP_GRADIENT_NORM_TO_VALUE = 5.0
   WEIGHT_DECAY = 1e-3
   SOFTMAX_CAP_LOGITS = 30.0
   ATTEN_LOGIT_CAP = 50.0
@@ -490,7 +494,8 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
     # Enable bf16.
     model_p.fprop_dtype = self.FPROP_DTYPE
 
-    set_default_adafactor(task_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
+    set_default_adafactor(task_p, self.LEARNING_RATE, self.WEIGHT_DECAY,
+                          self.CLIP_GRADIENT_NORM_TO_VALUE)
 
     task_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
     task_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
