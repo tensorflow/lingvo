@@ -507,9 +507,9 @@ def train_and_evaluate_spmd_model(
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
-  # TODO(zhangqiaorjc): maps.mesh should yield Mesh.
+
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
-  with maps.mesh(device_mesh, model_p.mesh_axis_names):
+  with global_mesh:
     (partitioned_train_state, train_state_pspecs, inputs_pspecs, train_step,
      eval_step, total_num_params) = trainer_lib.partition_spmd_model(
          task_p, init_key, inputs_shape)

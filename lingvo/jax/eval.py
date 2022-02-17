@@ -233,7 +233,7 @@ def evaluate_spmd_model(
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
-  with maps.mesh(device_mesh, model_p.mesh_axis_names):
+  with global_mesh:
     partitioned_train_state, partitioned_specs, eval_inputs_partition_specs, _, eval_step, _ = (
         trainer_lib.partition_spmd_model(task_p, init_key, inputs_shape))
     partitioned_train_state = checkpoints.restore_checkpoint(
@@ -683,7 +683,7 @@ def decode_once_spmd_model(
   logging.info('device_mesh: %s', device_mesh)
   jax_task = task_p.Instantiate()
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
-  with maps.mesh(device_mesh, model_p.mesh_axis_names):
+  with global_mesh:
     (partitioned_train_state, inputs_partition_spec, partitioned_specs,
      decode_step_fn) = trainer_lib.partition_spmd_model_decode(
          task_p, init_key, inputs_shape)
