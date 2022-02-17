@@ -136,6 +136,9 @@ class DatasetsTest(test_utils.TestCase):
       def Dev(self):
         pass
 
+      def Search(self):
+        pass
+
     self.assertAllEqual(['Dev', 'Train'],
                         datasets.GetDatasets(
                             DummyDatasetHolder, warn_on_error=True))

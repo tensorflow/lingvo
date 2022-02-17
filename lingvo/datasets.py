@@ -23,7 +23,7 @@ from absl import logging
 
 # List of member functions that are not dataset functions.
 NON_DATASET_MEMBERS = [
-    'GetAllDatasetParams', 'GetDatasetParams', 'Model', 'Task',
+    'GetAllDatasetParams', 'GetDatasetParams', 'Model', 'Search', 'Task',
     'ProgramSchedule', 'UpdateParamsFromSpec', 'CreateDynamicDatasetMethods'
 ]
 
