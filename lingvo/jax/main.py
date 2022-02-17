@@ -34,6 +34,7 @@ from absl import logging
 # Required import to setup work units when running through XManager.
 from clu import platform
 import jax
+from jax import prng
 from lingvo.jax import eval as eval_lib
 from lingvo.jax import train
 import tensorflow.compat.v2 as tf
@@ -85,6 +86,17 @@ flags.DEFINE_integer(
 # Flags --jax_backend_target and --jax_xla_backend are available through JAX.
 
 
+def globally_use_rbg_prng_key() -> None:
+  logging.info('Globally use RngBitGenerator-based RNG: '
+               'Deterministic at the same compiler version and sharding;'
+               'Non-deterministic when compiler versions change')
+
+  def rbg_key(seed: int):
+    return prng.seed_with_impl(prng.rbg_prng_impl, seed)
+
+  jax.random.PRNGKey = rbg_key
+
+
 def setup_jax(globally_use_hardware_rng: bool, jax_use_gda: bool,
               jax_backend_target: Optional[str],
               jax_xla_backend: Optional[str]) -> None:
@@ -93,10 +105,8 @@ def setup_jax(globally_use_hardware_rng: bool, jax_use_gda: bool,
   # it unavailable to JAX.
   tf.config.experimental.set_visible_devices([], 'GPU')
   if globally_use_hardware_rng:
-    logging.info('Globally use RngBitGenerator-based RNG: '
-                 'Deterministic at the same compiler version and sharding;'
-                 'Non-deterministic when compiler versions change')
-    jax.config.update('jax_default_prng_impl', 'rbg')
+    jax.config.update('jax_enable_custom_prng', True)
+    globally_use_rbg_prng_key()
 
   if jax_use_gda:
     logging.info('Using JAX GSDA for pjit and checkpointing')
