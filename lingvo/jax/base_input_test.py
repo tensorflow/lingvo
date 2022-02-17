@@ -156,7 +156,7 @@ class InputTest(test_util.JaxTestCase):
     self.assertArraysEqual(np.array([0, 1], dtype=np.int32), batch.num)
 
   def test_lingvo_input_change_batch_size(self):
-    tmp = os.path.join(FLAGS.test_tmpdir, 'tmptest')
+    tmp = os.path.join(FLAGS.test_tmpdir, 'tmptest2')
     batch_size = 2
     num_batches = 6
     num_data = batch_size * num_batches
@@ -268,6 +268,26 @@ class InputTest(test_util.JaxTestCase):
       batch = test[i].get_next()
       self.assertEqual(batch.data[0, 0] % p.num_infeed_hosts, i)
 
+  def test_validate_batch_size(self):
+    tmp = os.path.join(FLAGS.test_tmpdir, 'tmptest3')
+    with tf.io.TFRecordWriter(tmp) as w:
+      for i in range(12):
+        w.write(('%04d' % i).encode('utf-8'))
+
+    p = base_input.LingvoInputAdaptorNewBatchSize.Params()
+    p.input = LingvoInput.Params().Set(
+        file_pattern='tfrecord:' + tmp, file_random_seed=0)
+    with self.assertRaisesRegex(ValueError, 'p.batch_size'):
+      p.Instantiate()
+
+    p2 = base_input.LingvoInputAdaptor.Params().Set(input=p.input)
+    p2.batch_size = 2
+    with self.assertRaisesRegex(ValueError, 'p.batch_size'):
+      p2.Instantiate()
+
+    p3 = TestInput.Params()
+    with self.assertRaisesRegex(ValueError, 'p.batch_size'):
+      p3.Instantiate()
 
 if __name__ == '__main__':
   absltest.main()

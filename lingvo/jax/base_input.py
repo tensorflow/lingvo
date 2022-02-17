@@ -97,6 +97,7 @@ class BaseInput:
   If there is already an Lingvo TF input generator that one would like to
   use directly, please use LingvoInputAdaptor below.
   """
+  _VALIDATE_BATCH_SIZE_NOT_NONE = True
 
   @classmethod
   def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
@@ -104,6 +105,8 @@ class BaseInput:
     return BaseInputParams(cls)
 
   def __init__(self, p: ParamsT) -> None:
+    if self._VALIDATE_BATCH_SIZE_NOT_NONE and (p.batch_size is None):
+      raise ValueError('Must specify p.batch_size.')
     self._params = p.Copy()
 
   @property
@@ -158,6 +161,8 @@ class LingvoInputAdaptor(BaseInput):
   one must avoid the failure case where each host emits identical training data.
   See also p.allow_fixed_file_random_seed below.
   """
+  _VALIDATE_BATCH_SIZE_NOT_NONE = False
+  _VALIDATE_BATCH_SIZE_NONE = True
 
   @classmethod
   def Params(cls) -> InstantiableParams:
@@ -180,18 +185,16 @@ class LingvoInputAdaptor(BaseInput):
         'Note that if set to True, this will change '
         'cluster.require_sequential_input_order to True as a result. '
         'Ignored  when p.is_training is True.')
-    # internal param. Users do not set.
-    p.Define('_batch_size_none', True, 'Whether p.batch_size is unused '
-             'and must be set to None.')
     return p
 
   def __init__(self, p):
-    if p._batch_size_none and p.batch_size is not None:
+    if self._VALIDATE_BATCH_SIZE_NONE and p.batch_size is not None:
       raise ValueError('LingvoInputAdaptor does not support p.batch_size. '
                        'Please specify batch size on p.input, e.g. with '
                        'p.input.bucket_batch_limit = [4] or '
                        'p.input.args.batch=4, depeding the Lingvo input '
-                       f'used. Currently: p.batch_size={p.batch_size}.')
+                       f'used. Currently: p.batch_size={p.batch_size}, '
+                       'it must be None.')
     super().__init__(p)
     self._cluster = copy.deepcopy(cluster_factory.Current())
     # For Lingvo's Cluster context that may impact the behavior of this input
@@ -296,11 +299,10 @@ class LingvoInputAdaptorNewBatchSize(LingvoInputAdaptor):
       p.input.bucket_batch_limit = [4096]
       p.batch_size = 4
   """
+  _VALIDATE_BATCH_SIZE_NOT_NONE = True
+  _VALIDATE_BATCH_SIZE_NONE = False
 
   def __init__(self, p):
-    if p.batch_size is None:
-      raise ValueError('Must specify p.batch_size.')
-    p._batch_size_none = False
     super().__init__(p)
     self._current_batch = super().get_next()
     self._inner_batch_size = next(iter(self._current_batch.values())).shape[0]
