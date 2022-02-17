@@ -453,6 +453,9 @@ def _restore_checkpoint_gda(
     logging.info(
         'GDA checkpoint restore did not find checkpoint_dir %s; '
         'Return train_state passed in', checkpoint_dir)
+    if step is not None:
+      raise FileNotFoundError(
+          f'No checkpoint found for restore in {checkpoint_dir}')
     return train_state
 
   if step is None:
