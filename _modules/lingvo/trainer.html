@@ -114,7 +114,6 @@
 
 <span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">text_format</span>
 
-
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;interactive&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;If True, enter interactive IPython for the controller job.&#39;</span><span class="p">)</span>
@@ -753,8 +752,8 @@
     <span class="sd">&quot;&quot;&quot;Generates the inference graphs for a given model.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      cfg: Full `~.hyperparams.Params` for the model class. If present,</span>
-<span class="sd">        this cfg will be used instead of retrieving from model_registry.</span>
+<span class="sd">      cfg: Full `~.hyperparams.Params` for the model class. If present, this cfg</span>
+<span class="sd">        will be used instead of retrieving from model_registry.</span>
 <span class="sd">      prune_graph: If true, prune the graph to just the parts we need.</span>
 
 <span class="sd">    Returns:</span>
@@ -918,6 +917,8 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">disable_v2_behavior</span><span class="p">()</span>
   <span class="n">py_utils</span><span class="o">.</span><span class="n">SetEagerMode</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">use_eager</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">config</span><span class="o">.</span><span class="n">run_functions_eagerly</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">run_functions_eagerly</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_tf_data_debug_mode</span><span class="p">:</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">enable_debug_mode</span><span class="p">()</span>
   <span class="n">model_imports</span><span class="o">.</span><span class="n">ImportParams</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
   <span class="n">FLAGS</span><span class="o">.</span><span class="n">unparse_flags</span><span class="p">()</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">main</span><span class="p">)</span>
