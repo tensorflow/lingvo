@@ -18,6 +18,7 @@
 import copy
 from typing import List, Optional
 
+from absl import logging
 from lingvo.core import cluster_factory
 from lingvo.core import datasource
 from lingvo.jax import py_utils
@@ -103,8 +104,6 @@ class BaseInput:
     return BaseInputParams(cls)
 
   def __init__(self, p: ParamsT) -> None:
-    if p.batch_size is None:
-      raise ValueError('Must specify p.batch_size')
     self._params = p.Copy()
 
   @property
@@ -181,10 +180,18 @@ class LingvoInputAdaptor(BaseInput):
         'Note that if set to True, this will change '
         'cluster.require_sequential_input_order to True as a result. '
         'Ignored  when p.is_training is True.')
+    # internal param. Users do not set.
+    p.Define('_batch_size_none', True, 'Whether p.batch_size is unused '
+             'and must be set to None.')
     return p
 
   def __init__(self, p):
-    p.batch_size = -1  # unused
+    if p._batch_size_none and p.batch_size is not None:
+      raise ValueError('LingvoInputAdaptor does not support p.batch_size. '
+                       'Please specify batch size on p.input, e.g. with '
+                       'p.input.bucket_batch_limit = [4] or '
+                       'p.input.args.batch=4, depeding the Lingvo input '
+                       f'used. Currently: p.batch_size={p.batch_size}.')
     super().__init__(p)
     self._cluster = copy.deepcopy(cluster_factory.Current())
     # For Lingvo's Cluster context that may impact the behavior of this input
@@ -266,3 +273,60 @@ class LingvoInputAdaptor(BaseInput):
     """Converts int ids into strings."""
     bytes_list = self.input.IdsToStrings(ids, lengths, key=key).numpy()
     return [b.decode('utf-8') for b in bytes_list]
+
+
+class LingvoInputAdaptorNewBatchSize(LingvoInputAdaptor):
+  """A similar adapter as LingvoInputAdaptor supporting a new batch size.
+
+  LingvoInputAdaptor uses the batch size specified by the underlying Lingvo
+  input. This class, however, allows specifying a smaller p.batch_size.
+  This can be useful when the Lingvo input expects a large batch size,
+  but the user wants a smaller batch size, e.g. when the Lingvo input uses
+  a fixed packing factor to do packing, which can more efficiently pack with
+  more data.
+
+  We require that the batch size of the underlying Lingvo input must divide
+  p.batch_size. Internally this class acts as a cache, retrieving the large
+  batches from the parent class size, and consuming it by slicing it to the
+  smaller batch size specified by the user.
+
+  Example usage:
+      p = ChangeBatchSizeInput.Params().Set(...)
+      p.input.packing_factor = 3.5
+      p.input.bucket_batch_limit = [4096]
+      p.batch_size = 4
+  """
+
+  def __init__(self, p):
+    if p.batch_size is None:
+      raise ValueError('Must specify p.batch_size.')
+    p._batch_size_none = False
+    super().__init__(p)
+    self._current_batch = super().get_next()
+    self._inner_batch_size = next(iter(self._current_batch.values())).shape[0]
+    logging.info(
+        'The wrapped Lingvo input has batch size %d, the actual input '
+        'has batch size %d.', self._inner_batch_size, p.batch_size)
+    if self._inner_batch_size % p.batch_size != 0:
+      raise ValueError(f'Lingvo input batch size {self._inner_batch_size} '
+                       'must be a multiple of p.batch_size={p.batch_size}.')
+    self._current_batch_index = 0
+
+  def get_next(self):
+    p = self.params
+    if self._current_batch_index >= self._inner_batch_size:
+      self._current_batch = super().get_next()
+      self._current_batch_index = 0
+
+    def _get_subrows(b):
+      start = self._current_batch_index
+      return b[start:start + p.batch_size]
+
+    ret = tf.nest.map_structure(_get_subrows, self._current_batch)
+    self._current_batch_index += p.batch_size
+    return ret
+
+  def reset(self):
+    super().reset()
+    self._current_batch = super().get_next()
+    self._current_batch_index = 0

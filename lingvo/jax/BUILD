@@ -39,6 +39,7 @@ pytype_strict_library(
     deps = [
         ":py_utils",
         ":pytypes",
+        # Implicit absl.logging dependency.
         "//lingvo/core:cluster_factory",
         "//lingvo/core:datasource",
         # Implicit tensorflow dependency.

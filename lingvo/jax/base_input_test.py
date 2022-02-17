@@ -155,6 +155,28 @@ class InputTest(test_util.JaxTestCase):
     batch = inp2.get_next()
     self.assertArraysEqual(np.array([0, 1], dtype=np.int32), batch.num)
 
+  def test_lingvo_input_change_batch_size(self):
+    tmp = os.path.join(FLAGS.test_tmpdir, 'tmptest')
+    batch_size = 2
+    num_batches = 6
+    num_data = batch_size * num_batches
+    with tf.io.TFRecordWriter(tmp) as w:
+      for i in range(num_data):
+        w.write(('%04d' % i).encode('utf-8'))
+
+    p = base_input.LingvoInputAdaptorNewBatchSize.Params()
+    p.input = LingvoInput.Params()
+    p.input.file_pattern = 'tfrecord:' + tmp
+    p.input.file_random_seed = 0
+    p.batch_size = 1
+    p.reset_for_eval = True
+    inp = p.Instantiate()
+    for i in range(num_batches * 2):
+      batch = inp.get_next()
+      self.assertArraysEqual(np.array([i], dtype=np.int32), batch.num)
+    with self.assertRaises(tf.errors.OutOfRangeError):
+      inp.get_next()
+
   def test_lingvo_tfdata_input(self):
     num_batches = 10
     input_p = TestDataset.Params()
