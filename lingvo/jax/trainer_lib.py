@@ -486,10 +486,8 @@ def initialize_partitioned_model_states(
 
   init_model_from_seed = functools.partial(initialize_model_state, jax_task)
 
-  in_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
-  out_shape = jax.eval_shape(init_model_from_seed, in_shape)
+  out_shape = jax.eval_shape(init_model_from_seed, prng_key)
 
-  logging.info('in_shape: %s', in_shape)
   logging.info('out_shape: %s', out_shape)
   logging.info('train_state_partition_specs: %s', train_state_partition_specs)
   tf.nest.assert_same_structure(train_state_partition_specs, out_shape)
@@ -620,7 +618,6 @@ def partition_spmd_model(
       initialize_partitioned_model_states(jax_task, init_key))
   total_num_params = model.total_num_vars
 
-  prng_key_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
   # TODO(bf-jax): prng_key is replicated. Would this be a problem?
   prng_key_partition_spec = base_layer.to_partition_spec((None,), mesh_names)
 
@@ -647,12 +644,11 @@ def partition_spmd_model(
         data_parallel_axis_name=None,
         fprop_dtype=model_p.fprop_dtype)
 
-  train_out_shapes = jax.eval_shape(_train_step, var_shapes, prng_key_shape,
+  train_out_shapes = jax.eval_shape(_train_step, var_shapes, init_key,
                                     inputs_shape)
 
-  eval_out_shapes = jax.eval_shape(_eval_step, var_shapes.mdl_vars,
-                                   prng_key_shape, var_shapes.step,
-                                   inputs_shape)
+  eval_out_shapes = jax.eval_shape(_eval_step, var_shapes.mdl_vars, init_key,
+                                   var_shapes.step, inputs_shape)
 
   def _partition_spec_from_shape(x_shape):
     # Currently, all the outputs are fully replicated.
@@ -739,7 +735,6 @@ def partition_spmd_model_decode(
   train_state_partition_specs, var_shapes, partitioned_train_state = (
       initialize_partitioned_model_states(jax_task, init_key))
 
-  prng_key_shape = jax.ShapeDtypeStruct((2,), jnp.uint32)
   # TODO(b/198356509): Fix this so that prng_key is no longer replicated, as
   # we want each core to not have identical random behavior.
   prng_key_partition_spec = base_layer.to_partition_spec((None,), mesh_names)
@@ -760,8 +755,7 @@ def partition_spmd_model_decode(
         fprop_dtype=model_p.fprop_dtype)
 
   decode_out_shapes = jax.eval_shape(_decode_step, var_shapes.mdl_vars,
-                                     prng_key_shape, var_shapes.step,
-                                     inputs_shape)
+                                     init_key, var_shapes.step, inputs_shape)
   # decoder output are always replicated at the moment.
   decode_fn_out_partition_specs = tf.nest.map_structure(lambda _: None,
                                                         decode_out_shapes)

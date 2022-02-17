@@ -23,6 +23,7 @@ pytype_strict_binary(
         # Implicit clu dependency.
         # Implicit jax dependency.
         "//lingvo/jax:model_imports",
+        "//lingvo/jax:py_utils",
         # Implicit tensorflow dependency.
     ],
 )

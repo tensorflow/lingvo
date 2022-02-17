@@ -232,3 +232,8 @@ def get_global_input_shape_dtype(x: jnp.ndarray) -> jax.ShapeDtypeStruct:
   # Assume fully sharded batch dim.
   x_shape = (x.shape[0] * jax.process_count(),) + x.shape[1:]
   return jax.ShapeDtypeStruct(x_shape, x.dtype)
+
+
+def set_globally_use_rbg_prng_key() -> None:
+  """Must call this before any JAX computation to set RBG PRNGKey globally."""
+  jax.config.update('jax_default_prng_impl', 'rbg')
