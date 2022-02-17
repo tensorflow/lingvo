@@ -49,7 +49,6 @@ from lingvo.core import summary_utils
 
 from google.protobuf import text_format
 
-
 tf.flags.DEFINE_bool(
     'interactive', False,
     'If True, enter interactive IPython for the controller job.')
@@ -688,8 +687,8 @@ class RunnerManager:
     """Generates the inference graphs for a given model.
 
     Args:
-      cfg: Full `~.hyperparams.Params` for the model class. If present,
-        this cfg will be used instead of retrieving from model_registry.
+      cfg: Full `~.hyperparams.Params` for the model class. If present, this cfg
+        will be used instead of retrieving from model_registry.
       prune_graph: If true, prune the graph to just the parts we need.
 
     Returns:
@@ -853,6 +852,8 @@ if __name__ == '__main__':
     tf.disable_v2_behavior()
   py_utils.SetEagerMode(FLAGS.use_eager)
   tf.config.run_functions_eagerly(FLAGS.run_functions_eagerly)
+  if FLAGS.enable_tf_data_debug_mode:
+    tf.data.experimental.enable_debug_mode()
   model_imports.ImportParams(FLAGS.model)
   FLAGS.unparse_flags()
   tf.app.run(main)
