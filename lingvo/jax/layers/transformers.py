@@ -36,7 +36,6 @@ from lingvo.jax.layers import repeats
 from lingvo.jax.layers import stats
 from lingvo.jax.layers import stochastics
 import numpy as np
-import tensorflow.compat.v2 as tf
 
 CreateLayerVariableStatus = base_layer.CreateLayerVariableStatus
 
@@ -1169,7 +1168,6 @@ class StackedTransformer(base_layer.BaseLayer):
 
     p = cls.Params()
     p.name = name
-    p.enable_while_loop = False
     p.packed_input = True
     p.num_layers_per_block = 2 if moe else 1
     p.num_blocks = 1
@@ -1266,11 +1264,6 @@ class StackedTransformer(base_layer.BaseLayer):
         'fold_padding_with_segment_mask', False, 'If True then segment'
         'mask is supposed to include the padding mask as well, i.e.'
         'treating PADs as one sequence and non-PADs as another.')
-    p.Define(
-        'enable_while_loop', False,
-        'Whether or not to use a while loop to unroll the transformer layer'
-        ' stack. Potential benefits: 1) reduce xla compilation time. '
-        ' 2) improve hbm usage due to explicit rematerialization.')
     p.Define(
         'checkpoint_policy', recurrent.AutodiffCheckpointType.SAVE_NOTHING,
         'How to checkpoint residuals for BProp: save nothing, dot only or '
@@ -1396,119 +1389,15 @@ class StackedTransformer(base_layer.BaseLayer):
         cross_segment_mask,
         fold_padding_with_segment_mask=p.fold_padding_with_segment_mask)
 
-    if p.enable_while_loop:
-      logging.warning('Enable_while_loop=True is no longer supported. '
-                      'Please use StackedTransformerRepeated instead.')
-      num_blocks = p.num_layers // p.num_layers_per_block
-
-      def _stack_vars(*args):
-        args = [x[jnp.newaxis, :] for x in args]
-        return jnp.vstack(args)
-
-      # We stack variables independently for each layer in the block, e.g.
-      # for each index i from 0 to num_layers_per_block - 1, in the
-      # trivial case num_layers_per_block=1 it's equivalent to
-      #
-      # stacked_vars = py_utils.NestedMap(layer_000=tf.nest.map_structure(
-      #     _stack_vars, *self.x_layers.local_theta()))
-      #
-      stacked_vars = []
-      for i in range(p.num_layers_per_block):
-        x_layers_i = self.x_layers[i::p.num_layers_per_block].local_theta()
-        stacked_vars_i = tf.nest.map_structure(_stack_vars, *x_layers_i)
-        stacked_vars.append(stacked_vars_i)
-
-      def _key(i):
-        # NestedMap requires string keys
-        return 'layer_%03d' % i
-
-      stacked_vars = py_utils.NestedMap(
-          {_key(i): v for i, v in enumerate(stacked_vars)})
-      # aux_loss is a cumulative aux_loss, we need ys to have per-layer
-      # aux_loss increments
-      carry = py_utils.NestedMap(
-          x_in=x_out, aux_loss=jnp.asarray(0., dtype=self.fprop_dtype))
-
-      # TODO(lepikhin): generalize this function to be a more generic one
-      def _scan_fn(carry, block_vars):
-        jax_context = base_layer.cur_jax_context()
-        flax_block_vars = self.vars_to_flax_vars(block_vars)
-        jax_context.bind(self, flax_block_vars, [base_layer.SCOPE_AUX_LOSS])
-        # TODO(b/199950567): Sharding propagation does not seem to handle scan
-        # boundary well. We need to annotate all parameters from within the scan
-        # body even though we already pass them to pjit invocation outside the
-        # scan at the top level once. Consider removing after bug fix.
-        def annotate_var_sharding_constraint(x, weight_param):
-          partition_spec = base_layer.var_partition_specs(
-              weight_param,
-              device_mesh=p.device_mesh,
-              device_axis_names=p.mesh_axis_names)
-          return base_layer.with_sharding_constraint(x, partition_spec)
-
-        aux_loss = carry.aux_loss
-        with py_utils.AuxLossContext(reentrant=True) as al_ctx:
-          assert al_ctx is not None
-          x_out = carry.x_in
-          for i in range(p.num_layers_per_block):
-            layer_vars_i = block_vars[_key(i)]
-            if p.device_mesh is not None:
-              assert p.mesh_axis_names is not None
-              layer_vars_i = tf.nest.map_structure(
-                  annotate_var_sharding_constraint, layer_vars_i,
-                  self.x_layers[i].vars)
-            x_out, _ = self.x_layers[i].fprop(
-                layer_vars_i,
-                x_out,
-                paddings,
-                attention_mask,
-                cross_inputs,
-                cross_attention_mask,
-                segment_pos=segment_pos,
-            )
-          if al_ctx.aux_losses:
-            assert isinstance(al_ctx.aux_losses, list)
-            aux_loss_inc = sum(al_ctx.aux_losses).astype(self.fprop_dtype)
-            base_layer.add_summary('aux_loss_inc', aux_loss_inc)
-            aux_loss = aux_loss + aux_loss_inc
-
-        return py_utils.NestedMap(
-            x_in=x_out, aux_loss=aux_loss), py_utils.NestedMap()
-
-      carry_final, _, summaries = recurrent.scan(
-          carry,
-          stacked_vars,
-          _scan_fn,
-          root_layer=self,
-          checkpoint_policy=p.checkpoint_policy)
-
-      # Now unpack summaries to the out-context.
-      # Q(yonghui): Shall we move summary handling to be within recurrent.scan?
-      for summary_key, summary_value in summaries.items():
-        # unstack summary_value
-        logging.info((summary_key, summary_value))
-        assert summary_value.shape[0] == num_blocks
-        unstacked_values = jnp.split(summary_value, num_blocks)
-        # Q(yonghui): shall we keep the summaries packed instead?
-        for i, v in enumerate(unstacked_values):
-          # TODO(yonghui): Here we assume summaries are all scalar values.
-          base_layer.add_summary(f'{summary_key}/{i}', v)
-
-      x_out = carry_final.x_in
-      aux_loss_ctx = py_utils.AuxLossContext.Current()
-      # Scan can not have sideeffects so we have to capture side effect
-      # "aux_loss" in the moe layer and propagate it explicitly.
-      if aux_loss_ctx is not None:
-        aux_loss_ctx.AddLoss(carry_final.aux_loss)
-    else:
-      for i in range(p.num_layers):
-        x_in = x_out
-        x_out, _ = self.x_layers[i].fprop(
-            x_in,
-            paddings,
-            attention_mask,
-            cross_inputs,
-            cross_attention_mask,
-            segment_pos=segment_pos)
+    for i in range(p.num_layers):
+      x_in = x_out
+      x_out, _ = self.x_layers[i].fprop(
+          x_in,
+          paddings,
+          attention_mask,
+          cross_inputs,
+          cross_attention_mask,
+          segment_pos=segment_pos)
     return x_out
 
   def extend_step(

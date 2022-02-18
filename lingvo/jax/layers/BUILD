@@ -432,7 +432,6 @@ pytype_strict_library(
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
         # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 

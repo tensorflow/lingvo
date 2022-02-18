@@ -374,7 +374,6 @@ class TransformersTest(test_util.JaxTestCase):
 
     stack_p = transformers.StackedTransformer.Params().Set(
         name='transformer_stack',
-        enable_while_loop=False,
         num_layers=2,  # moe + dense
         model_dims=block_p.model_dims,
         hidden_dims=block_p.hidden_dims,
