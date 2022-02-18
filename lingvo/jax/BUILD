@@ -70,6 +70,7 @@ pytype_strict_library(
     deps = [
         ":py_utils",
         ":pytypes",
+        ":summary_utils",
         # Implicit absl.flags dependency.
         # Implicit absl.logging dependency.
         # Implicit flax's core dependency.
@@ -144,6 +145,7 @@ pytype_strict_library(
     deps = [
         ":base_input",
         ":base_layer",
+        ":base_metrics",
         ":base_model",
         ":base_model_params",
         ":base_task",

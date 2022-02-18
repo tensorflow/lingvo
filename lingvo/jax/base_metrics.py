@@ -17,10 +17,13 @@
 
 import abc
 import collections
+import logging
+from typing import Optional
 
 import jax
 import jax.numpy as jnp
 from lingvo.jax import py_utils
+from lingvo.jax import summary_utils
 import numpy as np
 
 InstantiableParams = py_utils.InstantiableParams
@@ -33,14 +36,20 @@ class BaseMetrics(metaclass=abc.ABCMeta):
   def Params(cls):  # pylint:disable=invalid-name
     p = InstantiableParams(cls)
     p.Define('name', None, 'Name of the metric')
+    return p
 
   def __init__(self, params: InstantiableParams) -> None:
     self._params = params.Copy()
+    self._metrics = collections.defaultdict(list)
 
   @property
   def params(self) -> InstantiableParams:
     """Returns the params upon which this layer is built."""
     return self._params
+
+  def store(self, batch_metrics):
+    for k in batch_metrics:
+      self._metrics[k].append(batch_metrics[k])
 
   @abc.abstractmethod
   def update(self, *args, **kwargs):
@@ -50,10 +59,21 @@ class BaseMetrics(metaclass=abc.ABCMeta):
   def finalize(self):
     pass
 
+  def summarize(self, step_i, prefix):
+    metrics = self.finalize()
+    for k, v in metrics.items():
+      value, weight = v
+      logging.info('  %s=%f (weight=%f)', k, value, weight)
+      summary_utils.write_summary_tensor(step_i, f'{prefix}/{k}', value,
+                                         summary_utils.SummaryType.SCALAR)
+      summary_utils.write_summary_tensor(step_i, f'{prefix}/{k}-weight', weight,
+                                         summary_utils.SummaryType.SCALAR)
+
 
 def _pmap_aggregate_metrics(f,
                             batch_metrics,
-                            metric_keys=None,
+                            metric_keys,
+                            reshard: bool,
                             pmap_axis_name: str = 'batch'):
   """Aggregate a dict of metrics over all replicas.
 
@@ -67,6 +87,7 @@ def _pmap_aggregate_metrics(f,
     batch_metrics: dictionary of items to aggregate over.
     metric_keys: the set of keys to aggregate over. If None, will aggregate over
       all.
+    reshard: boolean to indicate whether to reshard before aggregation.
     pmap_axis_name: Data parallel axis name for jax.pmap,psum, etc operations.
 
   Returns:
@@ -74,30 +95,33 @@ def _pmap_aggregate_metrics(f,
   """
 
   # Reshard for sum over devices
-  reshard_metrics = type(batch_metrics)()
-  for k, v in batch_metrics.items():
-    if metric_keys and k not in metric_keys:
-      continue
-    value, weight = v
-    assert weight.ndim == 0
-
-    new_value = jnp.stack([jnp.array(value)] * jax.local_device_count())
-    new_weight = jnp.ones(
-        shape=(jax.local_device_count(),),
-        dtype=weight.dtype) * weight / jax.local_device_count()
-    reshard_metrics[k] = (new_value, new_weight)
+  def _reshard(batch_metrics):
+    reshard_metrics = type(batch_metrics)()
+    for k, v in batch_metrics.items():
+      value, weight = v
+      assert weight.ndim == 0
+      new_value = jnp.stack([jnp.array(value)] * jax.local_device_count())
+      new_weight = jnp.ones(
+          shape=(jax.local_device_count(),),
+          dtype=weight.dtype) * weight / jax.local_device_count()
+      reshard_metrics[k] = (new_value, new_weight)
+    return reshard_metrics
 
   # aggregate across replicas
-  def aggregate(metrics_dict):
+  def _aggregate(metrics_dict):
     metrics = type(metrics_dict)()
     for k, v in metrics_dict.items():
+      if metric_keys and k not in metric_keys:
+        continue
       value, weight = v
       metrics[k] = f(value, weight, pmap_axis_name)
     return metrics
 
-  pmap_aggregate = jax.pmap(aggregate, pmap_axis_name, out_axes=None)
-  pmap_metrics = pmap_aggregate(reshard_metrics)
-  return pmap_metrics
+  if reshard:
+    pmap_aggregate = jax.pmap(_aggregate, pmap_axis_name, out_axes=None)
+    return pmap_aggregate(_reshard(batch_metrics))
+  else:
+    return _aggregate(batch_metrics)
 
 
 def _vmap_aggregate_metrics(f, metrics_dict):
@@ -117,8 +141,8 @@ def _vmap_aggregate_metrics(f, metrics_dict):
   """
   metrics = {}
   for k in metrics_dict.keys():
-    values = np.stack([metric[0] for metric in metrics_dict[k]])
-    weights = np.stack([metric[1] for metric in metrics_dict[k]])
+    values = jnp.stack([metric[0] for metric in metrics_dict[k]])
+    weights = jnp.stack([metric[1] for metric in metrics_dict[k]])
     metrics[k] = f(values, weights)
   return metrics
 
@@ -134,9 +158,20 @@ class MeanMetrics(BaseMetrics):
              'List of metrics that will be aggregated and logged.')
     return p
 
-  def __init__(self, params: InstantiableParams) -> None:
-    super().__init__(params)
-    self._metrics = collections.defaultdict(list)
+  def aggregate(self, batch_metrics, reshard: Optional[bool] = False):
+    p = self.params
+
+    def _pmap_mean(value, weight, axis_name):
+      sum_value = jax.lax.psum(value * weight, axis_name)
+      sum_weight = jax.lax.psum(weight, axis_name)
+      return (sum_value / (sum_weight + 1e-8), sum_weight)
+
+    return _pmap_aggregate_metrics(
+        _pmap_mean,
+        batch_metrics,
+        p.metric_keys,
+        reshard,
+        pmap_axis_name='batch')
 
   def update(self, batch_metrics) -> None:
     """Add per batch metrics to the metrics dict.
@@ -147,26 +182,15 @@ class MeanMetrics(BaseMetrics):
       batch_metrics: per batch metrics (unsharded) - e.g. output of
         process_decode_out()
     """
-    p = self.params
-
-    def _pmap_mean(value, weight, axis_name):
-      sum_value = jax.lax.psum(value * weight, axis_name)
-      sum_weight = jax.lax.psum(weight, axis_name)
-      return (sum_value / (sum_weight + 1e-8), sum_weight)
-
-    batch_metrics = _pmap_aggregate_metrics(
-        _pmap_mean, batch_metrics, p.metric_keys, pmap_axis_name='batch')
-
-    # store
-    for k in batch_metrics:
-      self._metrics[k].append(batch_metrics[k])
+    batch_metrics = self.aggregate(batch_metrics, reshard=True)
+    self.store(batch_metrics)
 
   def finalize(self):
     """Finalize aggregation over all batches and returns the metrics."""
 
     def _vmap_mean(values, weights):
-      sum_metric_weights = np.sum(weights)
-      weighted_average = np.sum(values * weights, axis=0) / sum_metric_weights
+      sum_metric_weights = jnp.sum(weights)
+      weighted_average = jnp.sum(values * weights, axis=0) / sum_metric_weights
       return (weighted_average, sum_metric_weights)
 
     metrics = _vmap_aggregate_metrics(_vmap_mean, self._metrics)
@@ -185,9 +209,20 @@ class MaxMetrics(BaseMetrics):
              'List of metrics that will be aggregated and logged.')
     return p
 
-  def __init__(self, params: InstantiableParams) -> None:
-    super().__init__(params)
-    self._metrics = collections.defaultdict(list)
+  def aggregate(self, batch_metrics, reshard: Optional[bool] = False):
+    p = self.params
+
+    def _pmap_max(value, weight, axis_name):
+      max_value = jax.lax.pmax(value, axis_name)
+      sum_weight = jax.lax.psum(weight, axis_name)
+      return (max_value, sum_weight)
+
+    return _pmap_aggregate_metrics(
+        _pmap_max,
+        batch_metrics,
+        p.metric_keys,
+        reshard,
+        pmap_axis_name='batch')
 
   def update(self, batch_metrics) -> None:
     """Add per batch max metrics to the metrics dict.
@@ -196,19 +231,8 @@ class MaxMetrics(BaseMetrics):
       batch_metrics: per batch metrics (unsharded) - e.g. output of
         process_decode_out()
     """
-    p = self.params
-
-    def _pmap_max(value, weight, axis_name):
-      max_value = jax.lax.pmax(value, axis_name)
-      sum_weight = jax.lax.psum(weight, axis_name)
-      return (max_value, sum_weight)
-
-    batch_metrics = _pmap_aggregate_metrics(
-        _pmap_max, batch_metrics, p.metric_keys, pmap_axis_name='batch')
-
-    # store
-    for k in batch_metrics:
-      self._metrics[k].append(batch_metrics[k])
+    batch_metrics = self.aggregate(batch_metrics, reshard=True)
+    self.store(batch_metrics)
 
   def finalize(self):
     """Finalize aggregation over all batches and returns the metrics."""
@@ -233,9 +257,19 @@ class HistogramMetrics(BaseMetrics):
     p.Define('histogram_key', None, 'Key which contains the histogram data.')
     return p
 
-  def __init__(self, params: InstantiableParams) -> None:
-    super().__init__(params)
-    self._metrics = collections.defaultdict(list)
+  def aggregate(self, batch_metrics, reshard: Optional[bool] = False):
+    p = self.params
+
+    def _pmap_sum(value, weight, axis_name):
+      value = jax.lax.psum(value, axis_name)
+      weight = jax.lax.psum(weight, axis_name)
+      return (value, weight)
+
+    return _pmap_aggregate_metrics(
+        _pmap_sum,
+        batch_metrics, [p.histogram_key],
+        reshard,
+        pmap_axis_name='batch')
 
   def update(self, batch_metrics) -> None:
     """Add per batch metrics to the metrics dict.
@@ -246,19 +280,8 @@ class HistogramMetrics(BaseMetrics):
       batch_metrics: per batch metrics (unsharded) - e.g. output of
         process_decode_out()
     """
-    p = self.params
-
-    def _pmap_sum(value, weight, axis_name):
-      value = jax.lax.psum(value, axis_name)
-      weight = jax.lax.psum(weight, axis_name)
-      return (value, weight)
-
-    batch_metrics = _pmap_aggregate_metrics(
-        _pmap_sum, batch_metrics, [p.histogram_key], pmap_axis_name='batch')
-
-    # store
-    for k in batch_metrics:
-      self._metrics[k].append(batch_metrics[k])
+    batch_metrics = self.aggregate(batch_metrics, reshard=True)
+    self.store(batch_metrics)
 
   def finalize(self):
     """Finalize aggregation over all batches and returns the metrics."""
@@ -271,7 +294,7 @@ class HistogramMetrics(BaseMetrics):
       sum_metric_weights = np.sum(metric_weights)
       histogram = np.sum(metric_values, axis=0)
       num_groups = histogram.shape[0] if histogram.ndim > 0 else 1
-      normalizer = jnp.sum(histogram) / num_groups
+      normalizer = np.sum(histogram) / num_groups
 
       # [g, c]
       probs = histogram / jnp.maximum(normalizer, 1.0)
@@ -308,6 +331,14 @@ class CompositeMetrics(BaseMetrics):
     p = self.params
     self.metrics_calcs = [m.Instantiate() for m in p.metrics_p]
 
+  def aggregate(self, batch_metrics, reshard: Optional[bool] = False):
+    all_metrics = collections.defaultdict()
+    for m in self.metrics_calcs:
+      metrics = m.aggregate(batch_metrics, reshard)
+      for k, v in metrics.items():
+        all_metrics[k] = v
+    return all_metrics
+
   def update(self, batch_metrics) -> None:
     """Add per batch metrics to the metrics dict.
 
@@ -315,7 +346,7 @@ class CompositeMetrics(BaseMetrics):
 
     Args:
       batch_metrics: per batch metrics (unsharded) - e.g. output of
-        process_decode_out()
+                     process_decode_out()
     """
     for m in self.metrics_calcs:
       m.update(batch_metrics)
