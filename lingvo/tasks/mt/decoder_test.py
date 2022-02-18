@@ -456,7 +456,12 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
           stochastic_beam_search=py_utils.NestedMap(
               seed=tf.concat([seed, seed], axis=0),
               top_p_threshold=tf.concat([top_p_threshold, top_p_threshold],
-                                        axis=0)))
+                                        axis=0),
+              # IDs are all 1.
+              src_ids=tf.ones([batch_size * 2, src_seq_len], dtype=tf.int32),
+              # No paddings.
+              src_paddings=tf.zeros([batch_size * 2, src_seq_len],
+                                    dtype=tf.float32)))
 
       decode = dec.StochasticBeamSearchDecodeBiased(
           encoder_outputs, biased=True, stochastic=True)
@@ -519,7 +524,12 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
               # sampled at each time step, so the sampling becomes
               # deterministic. Note that stochastic beam search gets disabled if
               # top_p_threshold is actually 0.
-              top_p_threshold=tf.fill([batch_size], 0.001)))
+              top_p_threshold=tf.fill([batch_size], 0.001),
+              # IDs are all 1.
+              src_ids=tf.ones([batch_size, src_seq_len], dtype=tf.int32),
+              # No paddings.
+              src_paddings=tf.zeros([batch_size, src_seq_len],
+                                    dtype=tf.float32)))
 
       decode = dec.StochasticBeamSearchDecodeBiased(
           encoder_outputs, biased=True, stochastic=True)
@@ -569,7 +579,12 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
           stochastic_beam_search=py_utils.NestedMap(
               seed=tf.zeros([batch_size], dtype=tf.int32),
               # Stochastic beam search is disabled when top_p_threshold = 0.0.
-              top_p_threshold=tf.zeros([batch_size], dtype=dtype)))
+              top_p_threshold=tf.zeros([batch_size], dtype=dtype),
+              # IDs are all 1.
+              src_ids=tf.ones([batch_size, src_seq_len], dtype=tf.int32),
+              # No paddings.
+              src_paddings=tf.zeros([batch_size, src_seq_len],
+                                    dtype=tf.float32)))
 
       self.evaluate(tf.global_variables_initializer())
       decode_biased = dec.BeamSearchDecodeBiased(encoder_outputs.DeepCopy())

@@ -168,29 +168,47 @@ def _BatchLookup(keys, table_keys, table_values):
       axis=1)
 
 
-def _BatchSampleGumbel(batch_seed, time_step, shape, dtype):
+def _BatchSampleGumbel(batch_seed, time_step, src_ids, src_paddings, shape,
+                       dtype):
   """Samples (standard) Gumbel noises of a given shape for each batch item.
+
+  The random seed for the i-th batch item is determined by batch_seed[i],
+  time_step, and the sum of non-padding elements of src_ids[i].
 
   Args:
     batch_seed: An int tensor of shape [batch] that holds a seed for each batch
       item.
     time_step: An int tensor used as a secondary seed.
+    src_ids: An int tensor of shape [batch, src_seq] that represents source IDs.
+      Used for turning the random seed into a function of source IDs.
+    src_paddings: A 0/1 float tensor of shape [batch, src_seq] where 1 means
+      that the corresponding element of src_ids is a padding.
     shape: A shape of the Gumbel noises to sample.
     dtype: A type of the Gumbel noises.
 
   Returns:
     A `dtype` tensor of shape [batch, ...] that holds Gumbel noises.
   """
+  # Turn batch_seed into a function of the source IDs by adding the sum of the
+  # source IDs. Without doing this, the same pattern of random noises would be
+  # used no matter what the source sequence is, resulting in a systematic bias
+  # among the output for a given seed value.
+  # Mask padding IDs by 0.
+  src_ids = src_ids * tf.cast(1.0 - src_paddings, dtype=src_ids.dtype)
+  # Compute the sum of source IDs.
+  src_ids_sum = tf.math.reduce_sum(src_ids, axis=1)  # shape: [src_batch]
+  batch_seed_plus_src_ids_sum = batch_seed + src_ids_sum
 
   def SampleForBeam(seed):
     return -tf.math.log(-tf.math.log(
         tf.random.stateless_uniform(
             shape=shape, dtype=dtype, seed=tf.stack([seed, time_step]))))
 
-  return tf.map_fn(SampleForBeam, batch_seed, dtype=dtype)
+  return tf.map_fn(SampleForBeam, batch_seed_plus_src_ids_sum, dtype=dtype)
 
 
-def _SampleGumbelWithMax(phi, target_max, batch_seed, time_step):
+def _SampleGumbelWithMax(phi, target_max, batch_seed, time_step, src_ids,
+                         src_paddings):
   """Samples a set of Gumbel noises with a specified maximum value.
 
   A set of values are sampled from Gumbel distributions with location parameters
@@ -209,6 +227,10 @@ def _SampleGumbelWithMax(phi, target_max, batch_seed, time_step):
       The same seed is used within each consecutive num_hyps_per_beam items
       along the tgt_batch axis.
     time_step: A float tensor used as a secondary seed.
+    src_ids: An int tensor of shape [src_batch, src_seq] that represents source
+      IDs. Used for turning the random seed into a function of source IDs.
+    src_paddings: A 0/1 float tensor of shape [src_batch, src_seq] where 1 means
+      that the corresponding element of src_ids is a padding.
 
   Returns:
     A float tensor like `phi` where their maximum values along the second axis
@@ -222,8 +244,9 @@ def _SampleGumbelWithMax(phi, target_max, batch_seed, time_step):
 
   # Sample noises from Gumbel distributions with location parameters `phi`.
   # shape: [src_batch, num_hyps_per_beam, k]
-  gumbel_noises = _BatchSampleGumbel(batch_seed, time_step,
-                                     [num_hyps_per_beam, k], dtype)
+  gumbel_noises = _BatchSampleGumbel(batch_seed, time_step, src_ids,
+                                     src_paddings, [num_hyps_per_beam, k],
+                                     dtype)
   # shape: [num_hyps_per_beam, src_batch, k]
   gumbel_noises = tf.transpose(gumbel_noises, perm=[1, 0, 2])
   # shape: [tgt_batch, k]
@@ -487,7 +510,13 @@ class BaseBeamSearchDecoder(BaseDecoder):
       of samples will be low but the diversity will be high. Stochastic beam
       search is performed only if top_p_threshold > 0 for some batch items.
     - stochastic_beam_search.seed: An int tensor of shape [batch] the represents
-      the seeds. If the seeds are the same, the same samples are drawn.
+      the random seeds. If the seeds are the same, the same samples are drawn.
+    - stochastic_beam_search.src_ids: An int tensor of shape [batch, src_seq]
+      that represents source IDs. Used for turning the random seed into a
+      function of source IDs.
+    - stochastic_beam_search.src_paddings: A 0/1 float tensor of shape [batch,
+      src_seq] where 1 means that the corresponding element of
+      stochastic_beam_search.src_ids is a padding.
 
     Args:
       encoder_outputs: a NestedMap computed by encoder.
@@ -733,7 +762,9 @@ class BaseBeamSearchDecoder(BaseDecoder):
           # shape: [tgt_batch, k]
           new_perturbed_cumulative_log_probs = _SampleGumbelWithMax(
               cumulative_log_probs, last_perturbed_cumulative_log_probs,
-              encoder_outputs.stochastic_beam_search.seed, time_step)
+              encoder_outputs.stochastic_beam_search.seed, time_step,
+              encoder_outputs.stochastic_beam_search.src_ids,
+              encoder_outputs.stochastic_beam_search.src_paddings)
 
           # STEP 4: Compute updated log_probs. This step is necessary because
           # the output of PreBeamSearchStepCallback must be "per-step"

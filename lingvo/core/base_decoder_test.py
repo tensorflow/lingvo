@@ -99,46 +99,133 @@ class BaseDecoderTest(test_utils.TestCase):
       self.assertAllClose(expected, result)
 
   def testBatchSampleGumbel(self):
-    batch_seed = tf.constant([0, 1, 1, 0])
+    batch_seed = tf.constant([
+        # seed = 0
+        0,
+        0,
+        0,
+        0,
+        # seed = 1
+        1,
+        1,
+        1,
+        1,
+    ])
+
+    src_ids_pattern_a = [0, 1, 2, 3, 4]
+    src_ids_pattern_b = [7, 2, 5, 8, 1, 3]
+    # src_ids with alternating Pattern A and B. The three-digit elements
+    # correspond to paddings, which shouldn't affect the results.
+    src_ids = tf.constant([
+        # seed = 0
+        src_ids_pattern_a + [111, 111, 111],  # Pattern A.
+        src_ids_pattern_b + [222, 222],  # Pattern B.
+        src_ids_pattern_a + [333, 333, 333],  # Pattern A.
+        src_ids_pattern_b + [444, 444],  # Pattern B.
+        # seed = 1
+        src_ids_pattern_a + [555, 555, 555],  # Pattern A.
+        src_ids_pattern_b + [666, 666],  # Pattern B.
+        src_ids_pattern_a + [777, 777, 777],  # Pattern A.
+        src_ids_pattern_b + [888, 888],  # Pattern B.
+    ])
+    src_paddings = tf.cast(src_ids >= 100, tf.float32)
+
     shape = [2, 3]
     with self.session(use_gpu=False) as sess:
       # Test time_step=0 and time_step=1.
-      result0 = sess.run(
-          base_decoder._BatchSampleGumbel(batch_seed, 0, shape, tf.float32))
-      result1 = sess.run(
-          base_decoder._BatchSampleGumbel(batch_seed, 1, shape, tf.float32))
+      result_time_0 = sess.run(
+          base_decoder._BatchSampleGumbel(batch_seed, 0, src_ids, src_paddings,
+                                          shape, tf.float32))
+      result_time_1 = sess.run(
+          base_decoder._BatchSampleGumbel(batch_seed, 1, src_ids, src_paddings,
+                                          shape, tf.float32))
 
-      # The results should be the same if the seeds are the same.
-      expected0 = [
-          # seed=0
-          [[-0.4420052, 1.055191, 1.500295], [1.3457806, 0.05632289,
-                                              1.9743681]],
-          # seed=1
-          [[2.0436666, 0.25286624, 0.67267746],
-           [0.06724094, -0.3174366, 0.20917037]],
-          # seed=1
-          [[2.0436666, 0.25286624, 0.67267746],
-           [0.06724094, -0.3174366, 0.20917037]],
-          # seed=0
-          [[-0.4420052, 1.055191, 1.500295], [1.3457806, 0.05632289,
-                                              1.9743681]],
-      ]
-      expected1 = [
-          # seed=0
-          [[-0.91589576, 0.11277056, 0.06884012],
-           [-0.14081508, -0.05630323, 1.1648132]],
-          # seed=1
-          [[-0.84155184, -0.67374235, 0.2399045],
-           [-0.805948, -0.45244274, -0.162385]],
-          # seed=1
-          [[-0.84155184, -0.67374235, 0.2399045],
-           [-0.805948, -0.45244274, -0.162385]],
-          # seed=0
-          [[-0.91589576, 0.11277056, 0.06884012],
-           [-0.14081508, -0.05630323, 1.1648132]],
-      ]
-      self.assertAllClose(expected0, result0)
-      self.assertAllClose(expected1, result1)
+      # time_step=0, seed=0, src_ids="Pattern A"
+      expected_time_0_seed_0_src_ids_a = [[-0.8168449, 1.2931604, -1.1208376],
+                                          [0.5848354, 2.465711, -0.21484822]]
+      # time_step=0, seed=0, src_ids="Pattern B"
+      expected_time_0_seed_0_src_ids_b = [[-0.2371598, -1.5676343, -0.5775582],
+                                          [0.16091877, 0.4489609, -0.5339234]]
+      # time_step=0, seed=1, src_ids="Pattern A"
+      expected_time_0_seed_1_src_ids_a = [[1.8465917, -0.38307178, 2.9526122],
+                                          [3.151248, 0.4383798, -1.0428888]]
+      # time_step=0, seed=1, src_ids="Pattern B"
+      expected_time_0_seed_1_src_ids_b = [[0.2466429, 0.8616346, -0.43274638],
+                                          [0.03198622, -0.16034941, 0.5214975]]
+      # Expectation: #0-#2, #1-#3, #4-#6, #5-#7 items are the same.
+      self.assertAllClose(
+          result_time_0,
+          [
+              # seed = 0
+              expected_time_0_seed_0_src_ids_a,
+              expected_time_0_seed_0_src_ids_b,
+              expected_time_0_seed_0_src_ids_a,
+              expected_time_0_seed_0_src_ids_b,
+              # seed = 1
+              expected_time_0_seed_1_src_ids_a,
+              expected_time_0_seed_1_src_ids_b,
+              expected_time_0_seed_1_src_ids_a,
+              expected_time_0_seed_1_src_ids_b,
+          ])
+
+      # time_step=1, seed=0, src_ids="Pattern A"
+      expected_time_1_seed_0_src_ids_a = [[1.7323364, -1.0477272, 0.01648759],
+                                          [0.11775304, -1.1763966, 0.46151116]]
+      # time_step=1, seed=0, src_ids="Pattern B"
+      expected_time_1_seed_0_src_ids_b = [[-1.0528497, 1.0473464, 2.8928924],
+                                          [-1.2340496, 2.741108, -0.8313949]]
+      # time_step=1, seed=1, src_ids="Pattern A"
+      expected_time_1_seed_1_src_ids_a = [[-0.80684525, -0.3300631, -0.4008211],
+                                          [1.1481359, -0.5537453, 1.6473633]]
+      # time_step=1, seed=1, src_ids="Pattern B"
+      expected_time_1_seed_1_src_ids_b = [[-0.635313, 0.6546277, -1.1632406],
+                                          [-0.0557764, 0.60781074, -0.4813231]]
+      # Expectation: #0-#2, #1-#3, #4-#6, #5-#7 items are the same.
+      self.assertAllClose(
+          result_time_1,
+          [
+              # seed = 0
+              expected_time_1_seed_0_src_ids_a,
+              expected_time_1_seed_0_src_ids_b,
+              expected_time_1_seed_0_src_ids_a,
+              expected_time_1_seed_0_src_ids_b,
+              # seed = 1
+              expected_time_1_seed_1_src_ids_a,
+              expected_time_1_seed_1_src_ids_b,
+              expected_time_1_seed_1_src_ids_a,
+              expected_time_1_seed_1_src_ids_b,
+          ])
+
+  def testBatchSampleGumbel_SameResultsForSameSrcIdsWithDifferentPaddings(self):
+    batch_seed = tf.constant([0, 1])
+    shape = [2, 3]
+
+    # src_ids1 and src_ids2 represent the same ID sequences though the number of
+    # paddings are different.
+    x = 999  # Padding.
+    src_ids1 = tf.constant([
+        [2, 5, 8, 1, x],  # seed = 0
+        [3, 8, x, x, x],  # seed = 1
+    ])
+    src_ids2 = tf.constant([
+        [2, 5, 8, 1, x, x, x, x],  # seed = 0
+        [3, 8, x, x, x, x, x, x],  # seed = 1
+    ])
+    src_paddings1 = tf.cast(tf.equal(src_ids1, x), tf.float32)
+    src_paddings2 = tf.cast(tf.equal(src_ids2, x), tf.float32)
+
+    with self.session(use_gpu=False) as sess:
+      # Run twice with the same batch_seed and time_step (= 0).
+      result1 = sess.run(
+          base_decoder._BatchSampleGumbel(batch_seed, 0, src_ids1,
+                                          src_paddings1, shape, tf.float32))
+      result2 = sess.run(
+          base_decoder._BatchSampleGumbel(batch_seed, 0, src_ids2,
+                                          src_paddings2, shape, tf.float32))
+
+      # Expectation: Both runs have the same result, because src_ids1 and
+      # src_ids2 represent the same ID sequence.
+      self.assertAllClose(result1, result2)
 
   def testSampleGumbelWithMax(self):
     batch_size = 2
@@ -150,10 +237,16 @@ class BaseDecoderTest(test_utils.TestCase):
     batch_seed = tf.constant([0, 1])
     time_step = 0
 
+    vocab_size = 10
+    src_len = 11
+    src_ids = np.random.randint(
+        low=1, high=vocab_size, size=[batch_size, src_len], dtype=np.int32)
+    src_paddings = np.zeros([batch_size, src_len])  # No padding.
+
     with self.session(use_gpu=False) as sess:
       result = sess.run(
           base_decoder._SampleGumbelWithMax(phi, target_max, batch_seed,
-                                            time_step))
+                                            time_step, src_ids, src_paddings))
 
       # The maximum values of the samples must be equal to `target_max`.
       self.assertAllClose(target_max, np.max(result, axis=1, keepdims=True))
