@@ -26,9 +26,9 @@ from absl import logging
 import jax
 from jax.experimental import maps
 from jax.experimental import mesh_utils
-import jax.numpy as jnp
 from lingvo.jax import base_input
 from lingvo.jax import base_layer
+from lingvo.jax import base_metrics
 from lingvo.jax import base_model_params
 from lingvo.jax import base_task
 from lingvo.jax import checkpoint_pb2
@@ -38,7 +38,6 @@ from lingvo.jax import pytypes
 from lingvo.jax import summary_utils
 from lingvo.jax import train_states
 from lingvo.jax import trainer_lib
-import numpy as np
 import tensorflow.compat.v2 as tf
 
 from lingvo.jax import checkpoints
@@ -477,17 +476,6 @@ def decode_pmap_model(
       last_checkpoint = new_checkpoint
 
 
-def _aggregate_metrics(metrics_dict, pmap_axis_name):
-  """Aggregate a dict of metrics over all replicas."""
-  mean_metrics = type(metrics_dict)()
-  for k, v in metrics_dict.items():
-    value, weight = v
-    sum_value = jax.lax.psum(value * weight, axis_name=pmap_axis_name)
-    sum_weight = jax.lax.psum(weight, axis_name=pmap_axis_name)
-    mean_metrics[k] = (sum_value / (sum_weight + 1e-8), sum_weight)
-  return mean_metrics
-
-
 def _decode_once_pmap_model(
     jax_task: base_task.SingleTask,
     task_p: InstantiableParams,
@@ -512,19 +500,21 @@ def _decode_once_pmap_model(
   """
   model = jax_task.model
   model_p = task_p.model
+  metrics_p = task_p.metrics
+  if not metrics_p:
+    metrics_p = base_metrics.MeanMetrics.Params()
+  decode_metrics = metrics_p.Instantiate()
+  process_decode_metrics = metrics_p.Instantiate()
+
   step_i = _get_step(replicated_model_states.step)
   pmap_axis_name = 'batch'
-  aggregate_metrics = functools.partial(
-      _aggregate_metrics, pmap_axis_name=pmap_axis_name)
-  pmap_aggregate_metrics = jax.pmap(
-      aggregate_metrics, axis_name=pmap_axis_name, out_axes=None)
 
   def decode_step(mdl_vars, prng_key, global_step, inputs):
     metrics, out = trainer_lib.decode_step(model, mdl_vars, prng_key,
                                            global_step, inputs,
                                            model_p.fprop_dtype)
-    mean_metrics = aggregate_metrics(metrics)
-    return mean_metrics, out
+    metrics = decode_metrics.aggregate(metrics)
+    return metrics, out
 
   # As an example, suppose the output leaf from trainer_lib.decoder_step()
   # for each core has shape: [per_core_batch_size, decoding_length].
@@ -556,7 +546,6 @@ def _decode_once_pmap_model(
   for split, num_split_steps in enumerate(num_steps):
     logging.info('Start decoding on input %s', input_p[split].name)
     step_num = 0
-    metrics = {}
     while num_split_steps < 0 or step_num < num_split_steps:
       step_num += 1
       try:
@@ -566,51 +555,22 @@ def _decode_once_pmap_model(
         break
       batch = tf.nest.map_structure(py_utils.reshard, batch)
       batch_metrics, out = decode_step_func(batch)
+      # we store the metric directly as it has already been aggregated in
+      # side decode_step_fun
+      decode_metrics.store(batch_metrics)
       logging.info('Finished decoding input batch %d', step_num)
+
       out = tf.nest.map_structure(py_utils.unshard, out)
       process_metrics, processed = model.process_decode_out(inputs[split], out)
       decodes[split].extend(processed)
       logging.info('Finished processing decoded input batch %d', step_num)
 
       # Reshard the metrics for pmap.
-      reshard_process_metrics = type(process_metrics)()
-      for k, v in process_metrics.items():
-        value, weight = v
-        new_value = jnp.ones(
-            shape=(jax.local_device_count(),), dtype=value.dtype) * value
-        new_weight = jnp.ones(
-            shape=(jax.local_device_count(),),
-            dtype=weight.dtype) * weight / jax.local_device_count()
-        reshard_process_metrics[k] = (new_value, new_weight)
-      process_metrics = pmap_aggregate_metrics(reshard_process_metrics)
-      batch_metrics.update(process_metrics)
-      batch_metrics = py_utils.maybe_unreplicate_gda(batch_metrics)
-      for k in batch_metrics:
-        if k in metrics:
-          metrics[k] += [batch_metrics[k]]
-        else:
-          metrics[k] = [batch_metrics[k]]
-
-    for k in metrics:
-      metric_values = np.stack([metric[0] for metric in metrics[k]])
-      metric_weights = np.stack([metric[1] for metric in metrics[k]])
-      sum_metric_weights = np.sum(
-          np.stack([metric[1] for metric in metrics[k]]))
-      weighted_average = np.sum(
-          metric_values * metric_weights) / sum_metric_weights
-      metrics[k] = (weighted_average, sum_metric_weights)
+      process_decode_metrics.update(process_metrics)
 
     with summary_writers[split].as_default():
-      for key, value in metrics.items():
-        weighted_average, sum_metric_weights = value
-        logging.info('  %s=%f (weight=%f)', key, weighted_average.item(),
-                     sum_metric_weights.item())
-        summary_utils.write_summary_tensor(step_i, f'Metrics/{key}',
-                                           weighted_average.item(),
-                                           summary_utils.SummaryType.SCALAR)
-        summary_utils.write_summary_tensor(step_i, f'Metrics/{key}-weight',
-                                           sum_metric_weights.item(),
-                                           summary_utils.SummaryType.SCALAR)
+      decode_metrics.summarize(step_i, 'decode_metrics')
+      process_decode_metrics.summarize(step_i, 'process_decode_metrics')
 
   basedir = os.path.join(job_log_dir, 'decoder_out')
   dirnames = _get_dir_names(input_p)

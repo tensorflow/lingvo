@@ -68,6 +68,7 @@ class SingleTask(BaseTask):
              'The underlying JAX model encapsulating all the layers.')
     p.Define('train', py_utils.Params(),
              'Params to control how this task should be trained.')
+    p.Define('metrics', None, 'How metrics are computed.')
     tp = p.train
     tp.Define('learner', learners_lib.Learner.Params(),
               'One or a list of learners.')

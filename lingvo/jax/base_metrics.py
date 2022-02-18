@@ -153,7 +153,7 @@ class MeanMetrics(BaseMetrics):
   @classmethod
   def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     """Task parameters."""
-    p = InstantiableParams(cls)
+    p = super().Params()
     p.Define('metric_keys', None,
              'List of metrics that will be aggregated and logged.')
     return p
@@ -204,7 +204,7 @@ class MaxMetrics(BaseMetrics):
   @classmethod
   def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     """Task parameters."""
-    p = InstantiableParams(cls)
+    p = super().Params()
     p.Define('metric_keys', None,
              'List of metrics that will be aggregated and logged.')
     return p
@@ -253,7 +253,7 @@ class HistogramMetrics(BaseMetrics):
   @classmethod
   def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     """Task parameters."""
-    p = InstantiableParams(cls)
+    p = super().Params()
     p.Define('histogram_key', None, 'Key which contains the histogram data.')
     return p
 
@@ -285,10 +285,8 @@ class HistogramMetrics(BaseMetrics):
 
   def finalize(self):
     """Finalize aggregation over all batches and returns the metrics."""
-    p = self.params
-
     metrics = {}
-    for k in [p.histogram_key]:
+    for k in self._metrics.keys():
       metric_values = np.stack([metric[0] for metric in self._metrics[k]])
       metric_weights = np.stack([metric[1] for metric in self._metrics[k]])
       sum_metric_weights = np.sum(metric_weights)
@@ -321,7 +319,7 @@ class CompositeMetrics(BaseMetrics):
   @classmethod
   def Params(cls) -> InstantiableParams:  # pylint:disable=invalid-name
     """Task parameters."""
-    p = InstantiableParams(cls)
+    p = super().Params()
     p.Define('metrics_p', None,
              'List of metrics that will be aggregated and logged.')
     return p
