@@ -328,8 +328,14 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bias_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
              <span class="s1">&#39;Initialization parameters for bias&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning related hyperparameters. A dict &#39;</span>
-        <span class="s1">&#39;with hyperparameter: value pairs. See google-research.model_pruning.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning and compression related &#39;</span>
+        <span class="s1">&#39;hyperparameters. A dict with hyperparameter: value pairs. See &#39;</span>
+        <span class="s1">&#39;google-research.model_pruning. Does not support variational noise.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;no_wm_if_compress&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If turned on, the uncompressed wm tensor &#39;</span>
+        <span class="s1">&#39;will not be created. To be used in conjunction with certain &#39;</span>
+        <span class="s1">&#39;compression methods only. This helps save training HBM &#39;</span>
+        <span class="s1">&#39;in some situations.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;deterministic&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use stateless random functions &#39;</span>
         <span class="s1">&#39;or not (for the Zoneout functionality). Setting this to True &#39;</span>
@@ -353,6 +359,14 @@
 
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="kc">None</span>
 
+    <span class="c1"># no_wm_if_compress flag only works with compression methods currently and</span>
+    <span class="c1"># should not be used with any pruning methods. The asserts below verify that</span>
+    <span class="c1"># the appropriate flags are set properly if no_wm_if_compress is turned on.</span>
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">apply_pruning</span>
+      <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">pruning_hparams_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">[</span><span class="s1">&#39;prune_option&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;compression&#39;</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_timestep</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">compression_op</span> <span class="o">=</span> <span class="kc">None</span>
@@ -368,7 +382,7 @@
         <span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
       <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">ApplyPruning</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;wm&#39;</span><span class="p">,</span>
                                            <span class="n">wm_pc</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -391,6 +405,9 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gradient&#39;</span><span class="p">,</span> <span class="n">grad_pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;old_weight&#39;</span><span class="p">,</span> <span class="n">grad_pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;old_old_weight&#39;</span><span class="p">,</span> <span class="n">grad_pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
       <span class="n">w_proj</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -466,19 +483,20 @@
         <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;c_state&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;add_bias&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
 
-    <span class="c1"># Collect some stats.</span>
-    <span class="n">scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
-    <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
-      <span class="n">i_i</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-          <span class="n">value</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-          <span class="n">value</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_i_g&#39;</span><span class="p">,</span> <span class="n">i_g</span><span class="p">)</span>
-    <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_i_i&#39;</span><span class="p">,</span> <span class="n">i_i</span><span class="p">)</span>
-    <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_f_g&#39;</span><span class="p">,</span> <span class="n">f_g</span><span class="p">)</span>
-    <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_o_g&#39;</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span>
+    <span class="c1"># Collect some stats if wm exists.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="n">scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_input_forget_gates</span><span class="p">:</span>
+        <span class="n">i_i</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+            <span class="n">value</span><span class="o">=</span><span class="n">w</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_i_g&#39;</span><span class="p">,</span> <span class="n">i_g</span><span class="p">)</span>
+      <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_i_i&#39;</span><span class="p">,</span> <span class="n">i_i</span><span class="p">)</span>
+      <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_f_g&#39;</span><span class="p">,</span> <span class="n">f_g</span><span class="p">)</span>
+      <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_o_g&#39;</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
@@ -548,7 +566,8 @@
 <div class="viewcode-block" id="LSTMCellSimple.AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellSimple.AddGlobalVN">[docs]</a>  <span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-    <span class="n">theta</span><span class="o">.</span><span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_lstm_bias</span><span class="p">:</span>
       <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
@@ -1074,9 +1093,15 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;pruning_hparams_dict&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Pruning related hyperparameters. A dict &#39;</span>
-        <span class="s1">&#39;with hyperparameter: value pairs. See google-research.model_pruning.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;with hyperparameter: value pairs. See google-research.model_pruning.&#39;</span>
+        <span class="s1">&#39;Does not support variational noise.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_pruning&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to prune the weights while&#39;</span>
              <span class="s1">&#39;training&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;no_wm_if_compress&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Used in conjunction with pruning or &#39;</span>
+        <span class="s1">&#39;compression sometimes. If turned on, the uncompressed &#39;</span>
+        <span class="s1">&#39;wm tensor will not be created. This helps save memory &#39;</span>
+        <span class="s1">&#39;while training in some situations.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@tf_deprecation</span><span class="o">.</span><span class="n">deprecated</span><span class="p">(</span>
@@ -1087,10 +1112,18 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cell value cap must of type int or float!&#39;</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cell value cap must be of type int or float!&#39;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
+
+    <span class="c1"># no_wm_if_compress flag only works with compression methods currently and</span>
+    <span class="c1"># should not be used with any pruning methods. The asserts below verify that</span>
+    <span class="c1"># the appropriate flags are set properly if no_wm_if_compress is turned on.</span>
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">apply_pruning</span>
+      <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">pruning_hparams_dict</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">[</span><span class="s1">&#39;prune_option&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;compression&#39;</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_timestep</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
@@ -1111,7 +1144,7 @@
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
       <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">ApplyPruning</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;wm&#39;</span><span class="p">,</span>
                                            <span class="n">wm_pc</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -1125,6 +1158,9 @@
                                            <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="n">mask_pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="n">threshold_pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">)</span>
     <span class="c1"># This bias variable actually packs the initial lstm bias variables as</span>
     <span class="c1"># well as various layer norm scale and bias variables. We pack multiple</span>
     <span class="c1"># variables into one so that we can still unroll this lstm using the FRNN</span>
@@ -1135,15 +1171,16 @@
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">)</span>
 
-    <span class="c1"># Collect some stats</span>
-    <span class="n">scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
-    <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
-        <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_i_i&#39;</span><span class="p">,</span> <span class="n">i_i</span><span class="p">)</span>
-    <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_i_g&#39;</span><span class="p">,</span> <span class="n">i_g</span><span class="p">)</span>
-    <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_f_g&#39;</span><span class="p">,</span> <span class="n">f_g</span><span class="p">)</span>
-    <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_o_g&#39;</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span></div>
-    <span class="c1"># TODO(yonghui): Add more summaries here.</span>
+    <span class="c1"># Collect some stats if wm exists</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="n">scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span>
+      <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+          <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_i_i&#39;</span><span class="p">,</span> <span class="n">i_i</span><span class="p">)</span>
+      <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_i_g&#39;</span><span class="p">,</span> <span class="n">i_g</span><span class="p">)</span>
+      <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_f_g&#39;</span><span class="p">,</span> <span class="n">f_g</span><span class="p">)</span>
+      <span class="n">_HistogramSummary</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/wm_o_g&#39;</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span></div>
+      <span class="c1"># TODO(yonghui): Add more summaries here.</span>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCell.batch_size"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.batch_size">[docs]</a>  <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span></div>
@@ -1177,27 +1214,35 @@
     <span class="k">return</span> <span class="n">state</span></div>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCell.AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell.AddGlobalVN">[docs]</a>  <span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
-    <span class="n">theta</span><span class="o">.</span><span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
     <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddVN</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">theta</span></div>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCell._Mix"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell._Mix">[docs]</a>  <span class="k">def</span> <span class="nf">_Mix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Input activations must be of list type!&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(b/172580007): Support weight quantization for RNN. Right now we do</span>
     <span class="c1"># not support checkpointing vars for Recurrent cell, and setting AqtQDomain</span>
     <span class="c1"># for LayerNormalizedLSTM cell might run into errors.</span>
-    <span class="n">act</span><span class="p">,</span> <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtInputs</span><span class="p">(</span>
-        <span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">act</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="n">w_feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">act</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">act</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="n">act</span><span class="p">,</span> <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtInputs</span><span class="p">(</span>
+          <span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">act</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="n">w_feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">act</span> <span class="o">+</span> <span class="p">[</span><span class="n">state0</span><span class="o">.</span><span class="n">m</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
       <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">wm</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s1">&#39;masked_weights&#39;</span><span class="p">))</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pruning_hparams_dict</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">PruningOp</span><span class="o">.</span><span class="n">GetMixResult</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">concat</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">concat</span><span class="p">,</span> <span class="n">wm</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">out</span></div>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCell._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCell._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the new state.&quot;&quot;&quot;</span>
