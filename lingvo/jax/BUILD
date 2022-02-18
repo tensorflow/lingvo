@@ -451,6 +451,7 @@ pytype_strict_library(
         ":train_states",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
+        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )

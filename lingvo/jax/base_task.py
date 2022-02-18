@@ -23,6 +23,7 @@ import abc
 import itertools
 from typing import Optional, Sequence
 
+import jax
 from jax import numpy as jnp
 from jax.experimental import pjit
 from lingvo.jax import base_layer
@@ -134,6 +135,34 @@ class SingleTask(BaseTask):
   @property
   def model(self) -> base_model.BaseModel:
     return self._model
+
+  def create_train_state_unpadded_shapes(self, var_weight_params) -> TrainState:
+    """Creates shapes for all variables used in training without padding...
+
+    due to uneven sharding.
+
+    Args:
+      var_weight_params: a nested map of variable params for all the forward
+        variables.
+
+    Returns:
+      A TrainState contains shapes for all the forward and backward variables.
+    """
+    grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
+    opt_var_weight_params = []
+    for grad_tx in grad_txs:
+      assert isinstance(grad_tx, optimizers.ShardedGradientTransformation)
+      opt_var_weight_params.append(
+          grad_tx.init_partition_spec(var_weight_params))
+
+    def _get_shape(var_param):
+      return tuple(var_param.repeat_prefix or ()) + tuple(var_param.shape)
+
+    var_shapes = jax.tree_map(_get_shape, var_weight_params)
+    opt_shapes = jax.tree_map(_get_shape, opt_var_weight_params)
+    step_shapes = ()
+    return TrainState(
+        step=step_shapes, mdl_vars=var_shapes, opt_states=opt_shapes)
 
   def create_train_state_partition_specs(
       self, var_weight_params) -> Optional[TrainState]:
