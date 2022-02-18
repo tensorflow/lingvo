@@ -3497,6 +3497,8 @@
     <span class="k">if</span> <span class="n">abs_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
       <span class="n">abs_min</span> <span class="o">=</span> <span class="o">-</span><span class="n">abs_max</span>  <span class="c1"># pylint: disable=invalid-unary-operand-type</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">abs_min</span><span class="p">,</span> <span class="n">abs_max</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_soft_max</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeSoftCapLogits</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_soft_max</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">logits</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._LogitsUsingConcatenatedWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -3735,6 +3737,15 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;focal_loss_gamma&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;The modulating factor scalar gamma for focal loss.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether or not to use a bias variable.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;logits_abs_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;If not None, logits are clipped to be within&#39;</span>
+        <span class="s1">&#39; [-logits_abs_max, logits_abs_max]. This can be a scalar&#39;</span>
+        <span class="s1">&#39; or a scalar tensor. Applies back pressure at training time; ignored&#39;</span>
+        <span class="s1">&#39; for inference.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;logits_soft_max&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;If positive, soft cap logits to be within (-x, x) where x is&#39;</span>
+        <span class="s1">&#39; this value.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="EinsumSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3801,6 +3812,16 @@
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+    <span class="c1"># Clip logits by range.</span>
+    <span class="c1"># Note that this is generally not used in conjunction with quantization and</span>
+    <span class="c1"># shouldn&#39;t be needed at inference time as the quantized matmul above will</span>
+    <span class="c1"># take care of clipping naturally based on the data type and qparams.</span>
+    <span class="n">abs_max</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_abs_max</span>
+    <span class="k">if</span> <span class="n">abs_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
+      <span class="n">abs_min</span> <span class="o">=</span> <span class="o">-</span><span class="n">abs_max</span>  <span class="c1"># pylint: disable=invalid-unary-operand-type</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">abs_min</span><span class="p">,</span> <span class="n">abs_max</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_soft_max</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MaybeSoftCapLogits</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_soft_max</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">logits</span></div>
 
 <div class="viewcode-block" id="EinsumSoftmax.XentLossFromLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.XentLossFromLogits">[docs]</a>  <span class="k">def</span> <span class="nf">XentLossFromLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
