@@ -263,14 +263,20 @@ whose corresponding elements of <code class="xref py py-obj docutils literal not
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.base_decoder._BatchSampleGumbel">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.base_decoder.</span></span><span class="sig-name descname"><span class="pre">_BatchSampleGumbel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#_BatchSampleGumbel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder._BatchSampleGumbel" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.base_decoder.</span></span><span class="sig-name descname"><span class="pre">_BatchSampleGumbel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">batch_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#_BatchSampleGumbel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder._BatchSampleGumbel" title="Permalink to this definition"></a></dt>
 <dd><p>Samples (standard) Gumbel noises of a given shape for each batch item.</p>
+<p>The random seed for the i-th batch item is determined by batch_seed[i],
+time_step, and the sum of non-padding elements of src_ids[i].</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>batch_seed</strong> – An int tensor of shape [batch] that holds a seed for each batch
 item.</p></li>
 <li><p><strong>time_step</strong> – An int tensor used as a secondary seed.</p></li>
+<li><p><strong>src_ids</strong> – An int tensor of shape [batch, src_seq] that represents source IDs.
+Used for turning the random seed into a function of source IDs.</p></li>
+<li><p><strong>src_paddings</strong> – A 0/1 float tensor of shape [batch, src_seq] where 1 means
+that the corresponding element of src_ids is a padding.</p></li>
 <li><p><strong>shape</strong> – A shape of the Gumbel noises to sample.</p></li>
 <li><p><strong>dtype</strong> – A type of the Gumbel noises.</p></li>
 </ul>
@@ -283,7 +289,7 @@ item.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.base_decoder._SampleGumbelWithMax">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.base_decoder.</span></span><span class="sig-name descname"><span class="pre">_SampleGumbelWithMax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#_SampleGumbelWithMax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder._SampleGumbelWithMax" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.base_decoder.</span></span><span class="sig-name descname"><span class="pre">_SampleGumbelWithMax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">phi</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">target_max</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">src_paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#_SampleGumbelWithMax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_decoder._SampleGumbelWithMax" title="Permalink to this definition"></a></dt>
 <dd><p>Samples a set of Gumbel noises with a specified maximum value.</p>
 <p>A set of values are sampled from Gumbel distributions with location parameters
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">phi</span></code> under the condition that their maximum is equal to <code class="xref py py-obj docutils literal notranslate"><span class="pre">target_max</span></code>.</p>
@@ -301,6 +307,10 @@ each batch item. src_batch must be equal to tgt_batch / num_hyps_per_beam.
 The same seed is used within each consecutive num_hyps_per_beam items
 along the tgt_batch axis.</p></li>
 <li><p><strong>time_step</strong> – A float tensor used as a secondary seed.</p></li>
+<li><p><strong>src_ids</strong> – An int tensor of shape [src_batch, src_seq] that represents source
+IDs. Used for turning the random seed into a function of source IDs.</p></li>
+<li><p><strong>src_paddings</strong> – A 0/1 float tensor of shape [src_batch, src_seq] where 1 means
+that the corresponding element of src_ids is a padding.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -495,7 +505,13 @@ be high but the diversity will be low. If the value is high, the quality
 of samples will be low but the diversity will be high. Stochastic beam
 search is performed only if top_p_threshold &gt; 0 for some batch items.</p></li>
 <li><p>stochastic_beam_search.seed: An int tensor of shape [batch] the represents
-the seeds. If the seeds are the same, the same samples are drawn.</p></li>
+the random seeds. If the seeds are the same, the same samples are drawn.</p></li>
+<li><p>stochastic_beam_search.src_ids: An int tensor of shape [batch, src_seq]
+that represents source IDs. Used for turning the random seed into a
+function of source IDs.</p></li>
+<li><p>stochastic_beam_search.src_paddings: A 0/1 float tensor of shape [batch,
+src_seq] where 1 means that the corresponding element of
+stochastic_beam_search.src_ids is a padding.</p></li>
 </ul>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

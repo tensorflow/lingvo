@@ -233,29 +233,47 @@
       <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_BatchSampleGumbel"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._BatchSampleGumbel">[docs]</a><span class="k">def</span> <span class="nf">_BatchSampleGumbel</span><span class="p">(</span><span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+<div class="viewcode-block" id="_BatchSampleGumbel"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._BatchSampleGumbel">[docs]</a><span class="k">def</span> <span class="nf">_BatchSampleGumbel</span><span class="p">(</span><span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">src_ids</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span>
+                       <span class="n">dtype</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Samples (standard) Gumbel noises of a given shape for each batch item.</span>
+
+<span class="sd">  The random seed for the i-th batch item is determined by batch_seed[i],</span>
+<span class="sd">  time_step, and the sum of non-padding elements of src_ids[i].</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    batch_seed: An int tensor of shape [batch] that holds a seed for each batch</span>
 <span class="sd">      item.</span>
 <span class="sd">    time_step: An int tensor used as a secondary seed.</span>
+<span class="sd">    src_ids: An int tensor of shape [batch, src_seq] that represents source IDs.</span>
+<span class="sd">      Used for turning the random seed into a function of source IDs.</span>
+<span class="sd">    src_paddings: A 0/1 float tensor of shape [batch, src_seq] where 1 means</span>
+<span class="sd">      that the corresponding element of src_ids is a padding.</span>
 <span class="sd">    shape: A shape of the Gumbel noises to sample.</span>
 <span class="sd">    dtype: A type of the Gumbel noises.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A `dtype` tensor of shape [batch, ...] that holds Gumbel noises.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Turn batch_seed into a function of the source IDs by adding the sum of the</span>
+  <span class="c1"># source IDs. Without doing this, the same pattern of random noises would be</span>
+  <span class="c1"># used no matter what the source sequence is, resulting in a systematic bias</span>
+  <span class="c1"># among the output for a given seed value.</span>
+  <span class="c1"># Mask padding IDs by 0.</span>
+  <span class="n">src_ids</span> <span class="o">=</span> <span class="n">src_ids</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">src_ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="c1"># Compute the sum of source IDs.</span>
+  <span class="n">src_ids_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">src_ids</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># shape: [src_batch]</span>
+  <span class="n">batch_seed_plus_src_ids_sum</span> <span class="o">=</span> <span class="n">batch_seed</span> <span class="o">+</span> <span class="n">src_ids_sum</span>
 
   <span class="k">def</span> <span class="nf">SampleForBeam</span><span class="p">(</span><span class="n">seed</span><span class="p">):</span>
     <span class="k">return</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_uniform</span><span class="p">(</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">]))))</span>
 
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span><span class="n">SampleForBeam</span><span class="p">,</span> <span class="n">batch_seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span><span class="n">SampleForBeam</span><span class="p">,</span> <span class="n">batch_seed_plus_src_ids_sum</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_SampleGumbelWithMax"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._SampleGumbelWithMax">[docs]</a><span class="k">def</span> <span class="nf">_SampleGumbelWithMax</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">target_max</span><span class="p">,</span> <span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">):</span>
+<div class="viewcode-block" id="_SampleGumbelWithMax"><a class="viewcode-back" href="../../../lingvo.core.base_decoder.html#lingvo.core.base_decoder._SampleGumbelWithMax">[docs]</a><span class="k">def</span> <span class="nf">_SampleGumbelWithMax</span><span class="p">(</span><span class="n">phi</span><span class="p">,</span> <span class="n">target_max</span><span class="p">,</span> <span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">src_ids</span><span class="p">,</span>
+                         <span class="n">src_paddings</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Samples a set of Gumbel noises with a specified maximum value.</span>
 
 <span class="sd">  A set of values are sampled from Gumbel distributions with location parameters</span>
@@ -274,6 +292,10 @@
 <span class="sd">      The same seed is used within each consecutive num_hyps_per_beam items</span>
 <span class="sd">      along the tgt_batch axis.</span>
 <span class="sd">    time_step: A float tensor used as a secondary seed.</span>
+<span class="sd">    src_ids: An int tensor of shape [src_batch, src_seq] that represents source</span>
+<span class="sd">      IDs. Used for turning the random seed into a function of source IDs.</span>
+<span class="sd">    src_paddings: A 0/1 float tensor of shape [src_batch, src_seq] where 1 means</span>
+<span class="sd">      that the corresponding element of src_ids is a padding.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A float tensor like `phi` where their maximum values along the second axis</span>
@@ -287,8 +309,9 @@
 
   <span class="c1"># Sample noises from Gumbel distributions with location parameters `phi`.</span>
   <span class="c1"># shape: [src_batch, num_hyps_per_beam, k]</span>
-  <span class="n">gumbel_noises</span> <span class="o">=</span> <span class="n">_BatchSampleGumbel</span><span class="p">(</span><span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span>
-                                     <span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span> <span class="n">dtype</span><span class="p">)</span>
+  <span class="n">gumbel_noises</span> <span class="o">=</span> <span class="n">_BatchSampleGumbel</span><span class="p">(</span><span class="n">batch_seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">src_ids</span><span class="p">,</span>
+                                     <span class="n">src_paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="n">k</span><span class="p">],</span>
+                                     <span class="n">dtype</span><span class="p">)</span>
   <span class="c1"># shape: [num_hyps_per_beam, src_batch, k]</span>
   <span class="n">gumbel_noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">gumbel_noises</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
   <span class="c1"># shape: [tgt_batch, k]</span>
@@ -552,7 +575,13 @@
 <span class="sd">      of samples will be low but the diversity will be high. Stochastic beam</span>
 <span class="sd">      search is performed only if top_p_threshold &gt; 0 for some batch items.</span>
 <span class="sd">    - stochastic_beam_search.seed: An int tensor of shape [batch] the represents</span>
-<span class="sd">      the seeds. If the seeds are the same, the same samples are drawn.</span>
+<span class="sd">      the random seeds. If the seeds are the same, the same samples are drawn.</span>
+<span class="sd">    - stochastic_beam_search.src_ids: An int tensor of shape [batch, src_seq]</span>
+<span class="sd">      that represents source IDs. Used for turning the random seed into a</span>
+<span class="sd">      function of source IDs.</span>
+<span class="sd">    - stochastic_beam_search.src_paddings: A 0/1 float tensor of shape [batch,</span>
+<span class="sd">      src_seq] where 1 means that the corresponding element of</span>
+<span class="sd">      stochastic_beam_search.src_ids is a padding.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
@@ -798,7 +827,9 @@
           <span class="c1"># shape: [tgt_batch, k]</span>
           <span class="n">new_perturbed_cumulative_log_probs</span> <span class="o">=</span> <span class="n">_SampleGumbelWithMax</span><span class="p">(</span>
               <span class="n">cumulative_log_probs</span><span class="p">,</span> <span class="n">last_perturbed_cumulative_log_probs</span><span class="p">,</span>
-              <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">)</span>
+              <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">seed</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span>
+              <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">src_ids</span><span class="p">,</span>
+              <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">stochastic_beam_search</span><span class="o">.</span><span class="n">src_paddings</span><span class="p">)</span>
 
           <span class="c1"># STEP 4: Compute updated log_probs. This step is necessary because</span>
           <span class="c1"># the output of PreBeamSearchStepCallback must be &quot;per-step&quot;</span>
