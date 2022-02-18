@@ -112,6 +112,8 @@ class VitEntryLayers(base_layer.BaseLayer):
 
     num_patches = (p.image_size // p.patch_size)**2
 
+    # TODO(zhangzd): Support cls-token and other heads.
+
     p_emb = embedding_softmax.TrainablePositionalEmbedding.Params().Set(
         name='emb',
         max_seq_length=num_patches,
