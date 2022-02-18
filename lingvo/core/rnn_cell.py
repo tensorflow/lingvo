@@ -263,8 +263,14 @@ class LSTMCellSimple(RNNCell):
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Initialization parameters for bias')
     p.Define(
-        'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
-        'with hyperparameter: value pairs. See google-research.model_pruning.')
+        'pruning_hparams_dict', None, 'Pruning and compression related '
+        'hyperparameters. A dict with hyperparameter: value pairs. See '
+        'google-research.model_pruning. Does not support variational noise.')
+    p.Define(
+        'no_wm_if_compress', False, 'If turned on, the uncompressed wm tensor '
+        'will not be created. To be used in conjunction with certain '
+        'compression methods only. This helps save training HBM '
+        'in some situations.')
     p.Define(
         'deterministic', False, 'Whether to use stateless random functions '
         'or not (for the Zoneout functionality). Setting this to True '
@@ -288,6 +294,14 @@ class LSTMCellSimple(RNNCell):
 
     assert p.cell_value_cap is None or p.qdomain.default is None
 
+    # no_wm_if_compress flag only works with compression methods currently and
+    # should not be used with any pruning methods. The asserts below verify that
+    # the appropriate flags are set properly if no_wm_if_compress is turned on.
+    if params.no_wm_if_compress:
+      assert not params.apply_pruning
+      assert params.pruning_hparams_dict is not None
+      assert params.pruning_hparams_dict['prune_option'] == 'compression'
+
     self._timestep = -1
     if p.pruning_hparams_dict:
       self.compression_op = None
@@ -303,7 +317,7 @@ class LSTMCellSimple(RNNCell):
         ],
         init=p.params_init,
         dtype=p.dtype)
-    self.CreateVariable('wm', wm_pc)
+
     if not p.apply_pruning and p.pruning_hparams_dict:
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
                                            wm_pc, p.dtype, p.name)
@@ -326,6 +340,9 @@ class LSTMCellSimple(RNNCell):
         self.CreateVariable('gradient', grad_pc, trainable=False)
         self.CreateVariable('old_weight', grad_pc, trainable=False)
         self.CreateVariable('old_old_weight', grad_pc, trainable=False)
+
+    if not p.no_wm_if_compress:
+      self.CreateVariable('wm', wm_pc)
 
     if p.num_hidden_nodes:
       w_proj = py_utils.WeightParams(
@@ -401,19 +418,20 @@ class LSTMCellSimple(RNNCell):
         domain='c_state')
     self.TrackQTensor('add_bias', domain='fullyconnected')
 
-    # Collect some stats.
-    scope = tf.get_variable_scope()
-    w = self.vars.wm
-    if p.couple_input_forget_gates:
-      i_i, f_g, o_g = tf.split(
-          value=w, num_or_size_splits=self.num_gates, axis=1)
-    else:
-      i_i, i_g, f_g, o_g = tf.split(
-          value=w, num_or_size_splits=self.num_gates, axis=1)
-      _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
-    _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
-    _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
-    _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
+    # Collect some stats if wm exists.
+    if not p.no_wm_if_compress:
+      scope = tf.get_variable_scope()
+      w = self.vars.wm
+      if p.couple_input_forget_gates:
+        i_i, f_g, o_g = tf.split(
+            value=w, num_or_size_splits=self.num_gates, axis=1)
+      else:
+        i_i, i_g, f_g, o_g = tf.split(
+            value=w, num_or_size_splits=self.num_gates, axis=1)
+        _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
+      _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
+      _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
+      _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
 
     if p.deterministic:
       self.CreateVariable(
@@ -483,7 +501,8 @@ class LSTMCellSimple(RNNCell):
   def AddGlobalVN(self, theta):
     p = self.params
     theta = super().AddGlobalVN(theta)
-    theta.wm = self.AddVN(theta.wm)
+    if not p.no_wm_if_compress:
+      theta.wm = self.AddVN(theta.wm)
     if p.enable_lstm_bias:
       theta.b = self.AddVN(theta.b)
     if p.num_hidden_nodes:
@@ -1009,9 +1028,15 @@ class LayerNormalizedLSTMCell(RNNCell):
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     p.Define(
         'pruning_hparams_dict', None, 'Pruning related hyperparameters. A dict '
-        'with hyperparameter: value pairs. See google-research.model_pruning.')
+        'with hyperparameter: value pairs. See google-research.model_pruning.'
+        'Does not support variational noise.')
     p.Define('apply_pruning', False, 'Whether to prune the weights while'
              'training')
+    p.Define(
+        'no_wm_if_compress', False, 'Used in conjunction with pruning or '
+        'compression sometimes. If turned on, the uncompressed '
+        'wm tensor will not be created. This helps save memory '
+        'while training in some situations.')
     return p
 
   @tf_deprecation.deprecated(
@@ -1022,10 +1047,18 @@ class LayerNormalizedLSTMCell(RNNCell):
     super().__init__(params)
     params = self.params
     if not isinstance(params.cell_value_cap, (int, float)):
-      raise ValueError('Cell value cap must of type int or float!')
+      raise ValueError('Cell value cap must be of type int or float!')
 
     if params.cc_schedule:
       self.CreateChild('cc_schedule', params.cc_schedule)
+
+    # no_wm_if_compress flag only works with compression methods currently and
+    # should not be used with any pruning methods. The asserts below verify that
+    # the appropriate flags are set properly if no_wm_if_compress is turned on.
+    if params.no_wm_if_compress:
+      assert not params.apply_pruning
+      assert params.pruning_hparams_dict is not None
+      assert params.pruning_hparams_dict['prune_option'] == 'compression'
 
     self._timestep = -1
     self.CreateAqtWeight(
@@ -1046,7 +1079,7 @@ class LayerNormalizedLSTMCell(RNNCell):
         shape=[p.num_input_nodes + p.num_output_nodes, 4 * p.num_output_nodes],
         init=p.params_init,
         dtype=p.dtype)
-    self.CreateVariable('wm', wm_pc)
+
     if not p.apply_pruning and p.pruning_hparams_dict:
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
                                            wm_pc, p.dtype, p.name)
@@ -1060,6 +1093,9 @@ class LayerNormalizedLSTMCell(RNNCell):
                                            tf.float32)
       self.CreateVariable('mask', mask_pc, trainable=False)
       self.CreateVariable('threshold', threshold_pc, trainable=False)
+
+    if not p.no_wm_if_compress:
+      self.CreateVariable('wm', wm_pc)
     # This bias variable actually packs the initial lstm bias variables as
     # well as various layer norm scale and bias variables. We pack multiple
     # variables into one so that we can still unroll this lstm using the FRNN
@@ -1070,15 +1106,16 @@ class LayerNormalizedLSTMCell(RNNCell):
         dtype=p.dtype)
     self.CreateVariable('b', bias_pc)
 
-    # Collect some stats
-    scope = tf.get_variable_scope()
-    i_i, i_g, f_g, o_g = tf.split(
-        value=self.vars.wm, num_or_size_splits=4, axis=1)
-    _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
-    _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
-    _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
-    _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
-    # TODO(yonghui): Add more summaries here.
+    # Collect some stats if wm exists
+    if not p.no_wm_if_compress:
+      scope = tf.get_variable_scope()
+      i_i, i_g, f_g, o_g = tf.split(
+          value=self.vars.wm, num_or_size_splits=4, axis=1)
+      _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
+      _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
+      _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
+      _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
+      # TODO(yonghui): Add more summaries here.
 
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
@@ -1112,27 +1149,35 @@ class LayerNormalizedLSTMCell(RNNCell):
     return state
 
   def AddGlobalVN(self, theta):
+    p = self.params
     theta = super().AddGlobalVN(theta)
-    theta.wm = self.AddVN(theta.wm)
+    if not p.no_wm_if_compress:
+      theta.wm = self.AddVN(theta.wm)
     theta.b = self.AddVN(theta.b)
     return theta
 
   def _Mix(self, theta, state0, inputs):
+    p = self.params
     if not isinstance(inputs.act, list):
       raise ValueError('Input activations must be of list type!')
     # TODO(b/172580007): Support weight quantization for RNN. Right now we do
     # not support checkpointing vars for Recurrent cell, and setting AqtQDomain
     # for LayerNormalizedLSTM cell might run into errors.
-    act, wm = self.ToAqtInputs(
-        'wm', act=inputs.act, weight=theta.wm, w_feature_axis=-1)
+    act = inputs.act
+    if not p.no_wm_if_compress:
+      act, wm = self.ToAqtInputs(
+          'wm', act=inputs.act, weight=theta.wm, w_feature_axis=-1)
     concat = tf.concat(act + [state0.m], 1)
-    if self.params.apply_pruning:
+    if p.apply_pruning:
       wm = self.QWeight(tf.multiply(wm, theta.mask, 'masked_weights'))
     if self.params.pruning_hparams_dict and not self.params.apply_pruning:
       out = pruning_utils.PruningOp.GetMixResult(theta, concat, self)
     else:
       out = py_utils.Matmul(concat, wm)
-    return self.FromAqtMatmul('wm', out)
+    if not p.no_wm_if_compress:
+      return self.FromAqtMatmul('wm', out)
+    else:
+      return out
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
