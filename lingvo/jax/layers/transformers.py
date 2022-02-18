@@ -218,10 +218,13 @@ class TransformerFeedForward(base_layer.BaseLayer):
         'residual_dropout_tpl', stochastics.Dropout.Params(),
         'Residual dropout params template. keep_prop will be reset to '
         '(1.0 - residual_dropout_prob).')
+
     p.Define('add_skip_connection', True, 'Whether to add residual connection')
     p.Define(
         'residual_weight', 1.0, 'Weight of the residual connection. '
         'Output = fn(x) * residual_weight + x.')
+    p.Define('residual_droppath_prob', 0.0,
+             'Probability at which we drop the entire residual path.')
     p.Define(
         'norm_policy', 'pre',
         'Policy for applying normaliztion wrt. transformations. '
@@ -344,6 +347,13 @@ class TransformerFeedForward(base_layer.BaseLayer):
     residual_dropout_p.keep_prob = 1.0 - p.residual_dropout_prob
     self.create_child('residual_dropout', residual_dropout_p)
 
+    if p.residual_droppath_prob > 0:
+      assert p.add_skip_connection
+      droppath_p = stochastics.StochasticResidual.Params().Set(
+          name='residual_droppath',
+          survival_prob=1.0 - p.residual_droppath_prob)
+      self.create_child('residual_droppath', droppath_p)
+
   def fprop(self,
             inputs: JTensor,
             paddings: Optional[JTensor] = None) -> JTensor:
@@ -399,7 +409,11 @@ class TransformerFeedForward(base_layer.BaseLayer):
 
     # Apply skip connection
     if p.add_skip_connection:
-      projected_inputs = projected_inputs * p.residual_weight + inputs
+      if p.residual_droppath_prob:
+        projected_inputs = self.residual_droppath.fprop(inputs,
+                                                        projected_inputs)
+      else:
+        projected_inputs = inputs + projected_inputs * p.residual_weight
 
     return projected_inputs
 
@@ -832,6 +846,8 @@ class Transformer(base_layer.BaseLayer):
         'such that, residual(x, y) = (x + dropout(y)).')
     p.Define('relu_dropout_prob', 0.0,
              'Probability at which we apply dropout to the FFN layers.')
+    p.Define('residual_droppath_prob', 0.0,
+             'Probability at which we drop the entire residual path.')
     p.Define('mask_self_attention', False, 'If True, use causal mask.')
     p.Define('cross_attention', False, 'If True, perform cross'
              'encoder-decoder attention.')
@@ -915,6 +931,13 @@ class Transformer(base_layer.BaseLayer):
                          'cross attention.')
       self.create_child('cross_attention', params)
 
+    # Initialize residual droppath
+    if p.residual_droppath_prob > 0:
+      droppath_p = stochastics.StochasticResidual.Params().Set(
+          name='residual_droppath',
+          survival_prob=1.0 - p.residual_droppath_prob)
+      self.create_child('residual_droppath', droppath_p)
+
     # Initialize feed-forward layer
     if p.tr_fflayer_tpl:
       params = p.tr_fflayer_tpl.Copy()
@@ -923,6 +946,7 @@ class Transformer(base_layer.BaseLayer):
       params.hidden_dims = p.hidden_dims
       params.relu_dropout_prob = p.relu_dropout_prob
       params.residual_dropout_prob = p.residual_dropout_prob
+      params.residual_droppath_prob = p.residual_droppath_prob
       params.norm_policy = p.norm_policy
       self.create_child('ff_layer', params)
 
@@ -998,7 +1022,12 @@ class Transformer(base_layer.BaseLayer):
 
     # Residual dropout and connection
     atten_output = self.residual_dropout.fprop(atten_output)
-    atten_output += inputs
+
+    # Apply skip connection
+    if p.residual_droppath_prob > 0.0:
+      atten_output = self.residual_droppath.fprop(inputs, atten_output)
+    else:
+      atten_output += inputs
 
     # Apply cross attention if applicable
     if self.params.cross_attention:
@@ -1017,7 +1046,12 @@ class Transformer(base_layer.BaseLayer):
 
       # Residual dropout and connection
       cross_atten_output = self.residual_dropout.fprop(cross_atten_output)
-      atten_output += cross_atten_output
+
+      if p.residual_droppath_prob > 0.0:
+        atten_output = self.residual_droppath.fprop(atten_output,
+                                                    cross_atten_output)
+      else:
+        atten_output += cross_atten_output
 
     # Apply FFN layer
     output = self.ff_layer.fprop(atten_output, paddings=paddings)
@@ -1253,6 +1287,8 @@ class StackedTransformer(base_layer.BaseLayer):
         'dim_per_head == hidden_dim // num_heads.')
     p.Define('dropout_prob', 0.0,
              'Apply dropout at this prob at various places.')
+    p.Define('residual_droppath_prob', 0.0,
+             'Probability at which we drop the entire residual path.')
     p.Define(
         'transformer_layer_params_tpl', Transformer.Params(),
         'A template of Transformer.params, can be a list of params '
@@ -1317,6 +1353,11 @@ class StackedTransformer(base_layer.BaseLayer):
       p_i.residual_dropout_prob = p.dropout_prob
       p_i.relu_dropout_prob = p.dropout_prob
       p_i.hidden_dims = p.hidden_dims
+
+      if p.residual_droppath_prob > 0.0:
+        p_i.residual_droppath_prob = (
+            p.residual_droppath_prob * i / max(1, p.num_layers))
+
       if p.moe_layers and i in p.moe_layers:
         assert p.num_experts > 0
         moe_p = p.moe_layer_tpl.Copy()
@@ -2199,10 +2240,7 @@ class TransformerLm(base_layer.BaseLayer):
         segment_mask = attentions.causal_segment_mask(segment_ids, inputs.dtype)
 
       output = self.transformer.fprop(
-          inputs,
-          paddings,
-          segment_mask=segment_mask,
-          segment_pos=segment_pos)
+          inputs, paddings, segment_mask=segment_mask, segment_pos=segment_pos)
 
       # Final layer norm
       if p.final_ln_tpl is not None:
@@ -2266,9 +2304,7 @@ class TransformerLm(base_layer.BaseLayer):
       inputs = input_emb
 
     updated_cache, outputs = self.transformer.extend_step(
-        cached_states.transformer,
-        inputs[:, 0, :],
-        time_step=time_step)
+        cached_states.transformer, inputs[:, 0, :], time_step=time_step)
     cached_states.transformer = updated_cache
     cached_states.step += 1
     if p.final_ln_tpl is not None:
@@ -2504,9 +2540,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     inputs_segment_mask = attentions.segment_mask(
         input_segment_ids, dtype=input_emb.dtype)
     encoder_output = self.encoder.fprop(
-        input_emb,
-        input_paddings,
-        segment_mask=inputs_segment_mask)
+        input_emb, input_paddings, segment_mask=inputs_segment_mask)
 
     # Final layer norm for encoder output.
     encoder_output = self.encoder_ln.fprop(encoder_output)
@@ -2631,8 +2665,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
 
     if p.position_emb_tpl is not None:
       targets_position_emb = self.position_emb.fprop(
-          seq_length=target_seq_length,
-          position=target_segment_pos)
+          seq_length=target_seq_length, position=target_segment_pos)
       target_emb += targets_position_emb
 
     if input_segment_ids is None:
@@ -2686,10 +2719,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
         step=jnp.array(0, dtype=jnp.uint32),
         decoder=self.decoder.init_states(*args, **kwargs))
     encoder_output = self._encode(
-        inputs,
-        input_paddings,
-        input_segment_ids=None,
-        input_segment_pos=None)
+        inputs, input_paddings, input_segment_ids=None, input_segment_pos=None)
     cache.encoder_output = encoder_output
     cache.input_paddings = input_paddings
     return cache
@@ -2739,10 +2769,7 @@ class TransformerEncoderDecoder(base_layer.BaseLayer):
     time_step = cached_states.step
     if p.decoder_ngrammer_tpl is not None:
       target_emb = self.decoder_ngrammer.fprop(
-          targets,
-          target_emb,
-          paddings=None,
-          segment_pos=None)
+          targets, target_emb, paddings=None, segment_pos=None)
 
     targets = targets[:, -1][:, jnp.newaxis]
     target_emb = target_emb[:, -1, :][:, jnp.newaxis, :]

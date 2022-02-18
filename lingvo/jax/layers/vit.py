@@ -166,6 +166,8 @@ class VitTransformerLayers(base_layer.BaseLayer):
              'Probability at which we apply dropout to the FFN layers.')
     p.Define('atten_dropout_prob', 0.0,
              'Probability at which we apply dropout to the attention weights.')
+    p.Define('stochastic_depth_dropout_prob', 0.0,
+             'A float as the stochastic depth dropout probability.')
     p.Define('ff_activation', 'GELU', 'Activation used in the FFN layers.')
     p.Define('num_layers', 12, 'Number of transformer layers.')
     p.Define('atten_logit_cap', 0.0,
@@ -192,6 +194,7 @@ class VitTransformerLayers(base_layer.BaseLayer):
         packed_input=False,
         num_layers=p.num_layers,
         dropout_prob=p.atten_dropout_prob,
+        residual_droppath_prob=p.stochastic_depth_dropout_prob,
     )
     p_tfm = p_stacked_tfm.transformer_layer_params_tpl
     p_tfm.norm_policy = 'pre'
@@ -309,6 +312,8 @@ class VisionTransformer(base_layer.BaseLayer):
              'A float as the residual dropout probability in transformers.')
     p.Define('output_dropout_prob', 0.0,
              'A float as the output dropout probability.')
+    p.Define('stochastic_depth_dropout_prob', 0.0,
+             'A float as the stochastic depth dropout probability.')
 
     # Architecture details
     p.Define(
@@ -416,6 +421,7 @@ class VisionTransformer(base_layer.BaseLayer):
         residual_dropout_prob=p.residual_dropout_prob,
         activation_dropout_prob=p.activation_dropout_prob,
         atten_dropout_prob=p.activation_dropout_prob,
+        stochastic_depth_dropout_prob=p.stochastic_depth_dropout_prob,
         ff_activation=p.ff_activation,
         atten_logit_cap=p.atten_logit_cap)
     self.create_child('transformers_stack', p_tfm)
