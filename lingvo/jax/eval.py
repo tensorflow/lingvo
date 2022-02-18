@@ -53,6 +53,14 @@ TrainState = train_states.TrainState
 SummaryWriter = tf.summary.SummaryWriter
 
 
+def maybe_ema(model_states):
+  """Finds the ema state from optimizer states."""
+  for i in range(len(model_states.opt_states[0])):
+    if 'ema' in model_states.opt_states[0][i]:
+      return model_states.opt_states[0][i].ema
+  return model_states.mdl_vars
+
+
 def evaluate(
     model_name: str,
     job_log_dir: Optional[str],
@@ -153,7 +161,7 @@ def evaluate_pmap_model(
     while True:
       step_i = int(jax.device_get(replicated_model_states.step)[0])
       eval_step = functools.partial(p_eval_step,
-                                    replicated_model_states.mdl_vars,
+                                    maybe_ema(replicated_model_states),
                                     eval_prng_seed,
                                     replicated_model_states.step)
       # Run the eval loop.
@@ -536,7 +544,7 @@ def _decode_once_pmap_model(
   pmap_decode_step = jax.pmap(
       decode_step, axis_name=pmap_axis_name, out_axes=(None, 0))
   decode_step_func = functools.partial(pmap_decode_step,
-                                       replicated_model_states.mdl_vars,
+                                       maybe_ema(replicated_model_states),
                                        prng_seed, replicated_model_states.step)
 
   num_steps = [

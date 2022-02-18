@@ -480,6 +480,51 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
       init_partition_spec=init_partition_spec_fn)
 
 
+def apply_ema_weights(decay: float,
+                      debias: bool) -> optax.GradientTransformation:
+  """Applies exponential moving average on weights.
+
+  Note, this implementation averages the weight before optimization because
+  trainable and non-trainable variables are handled separately. In such case
+  the updates on non-trainable variables like bn stats are not available in
+  updates.
+
+  This differs from optax.ema which applies ema on gradients so it changes
+  training process.
+
+  ema = ema * decay + new_weight * (1.0 - decay)
+  debias reduces the bias from the initialization as introduced in Section
+  3 of https://arxiv.org/pdf/1412.6980.pdf
+
+  Args:
+    decay: A float number represents the weight on the moving average.
+    debias: whether reduces the bias on the zero initialization
+
+  Returns:
+    A GradientTransformation applying ema.
+  """
+
+  def init_fn(params):
+    return NestedMap(
+        count=jnp.array(0, dtype=jnp.int32),
+        ema=jax.tree_map(jnp.zeros_like, params))
+
+  def update_fn(updates, state, params):
+    if params is None:
+      raise ValueError('Params required for the EMA')
+    new_ema = jax.tree_multimap(
+        lambda old_v, new_v: (1.0 - decay) * new_v + decay * old_v, state.ema,
+        params)
+    count_inc = state.count + jnp.array(1, jnp.int32)
+
+    if debias:
+      bias_correction = 1 - decay**count_inc
+      new_ema = jax.tree_map(lambda v: v / (1e-8 + bias_correction), new_ema)
+    return updates, NestedMap(count=count_inc, ema=new_ema)
+
+  return optax.GradientTransformation(init=init_fn, update=update_fn)
+
+
 class BaseOptimizer:
   """Base class for all optimizers."""
 
@@ -521,6 +566,17 @@ class BaseOptimizer:
         'exclusive to using clip_gradient_norm_to_value.')
     p.Define('learning_rate', 0.0, 'learning rate to use.')
     p.Define('lr_schedule', None, 'Learning rate decay schedule.')
+
+    # Exponential moving average
+    p.Define(
+        'ema_decay', 0.0,
+        'If > 0, enable ExponentialMovingAverage during training '
+        'with the give decay. '
+        'Must be < 1. Disabled if <= 0. ')
+    p.Define(
+        'ema_zero_debias', False,
+        'If True, apply zero-debiasing as described in Section 3 '
+        'of https://arxiv.org/pdf/1412.6980.pdf.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -554,7 +610,8 @@ class BaseOptimizer:
     """
     # TODO(yonghui): respect gradient clipping, etc transformations.
     p = self.params
-    return sharded_chain(
+
+    optax_list = [
         apply_lp_regularizer(
             self.get_learning_rate,
             regularizer_weight=p.l1_regularizer_weight,
@@ -571,7 +628,13 @@ class BaseOptimizer:
         apply_decoupled_weight_decay(
             self.get_learning_rate,
             regularizer_weight=p.decoupled_weight_decay),
-    )
+    ]
+    if p.ema_decay > 0.0:
+      # EMA adds new optimizer states that is not compatible
+      asserts.lt(p.ema_decay, 1.)
+      optax_list.append(
+          apply_ema_weights(decay=p.ema_decay, debias=p.ema_zero_debias))
+    return sharded_chain(*optax_list)
 
   def _get_raw_grad_transformation(
       self, lr: optax.Schedule) -> GeneralGradientTransformation:
