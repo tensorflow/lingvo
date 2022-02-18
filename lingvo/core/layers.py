@@ -3432,6 +3432,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
     if abs_max is not None and not p.is_inference:
       abs_min = -abs_max  # pylint: disable=invalid-unary-operand-type
       logits = py_utils.clip_by_value(logits, abs_min, abs_max)
+    if p.logits_soft_max > 0.0:
+      logits = py_utils.MaybeSoftCapLogits(logits, p.logits_soft_max)
     return logits
 
   def _LogitsUsingConcatenatedWeights(self, theta, inputs):
@@ -3670,6 +3672,15 @@ class EinsumSoftmax(base_layer.BaseLayer):
     p.Define('focal_loss_gamma', None,
              'The modulating factor scalar gamma for focal loss.')
     p.Define('use_bias', True, 'Whether or not to use a bias variable.')
+    p.Define(
+        'logits_abs_max', None, 'If not None, logits are clipped to be within'
+        ' [-logits_abs_max, logits_abs_max]. This can be a scalar'
+        ' or a scalar tensor. Applies back pressure at training time; ignored'
+        ' for inference.')
+    p.Define(
+        'logits_soft_max', 0.0,
+        'If positive, soft cap logits to be within (-x, x) where x is'
+        ' this value.')
     return p
 
   def _CreateLayerVariables(self):
@@ -3736,6 +3747,16 @@ class EinsumSoftmax(base_layer.BaseLayer):
         tensor_split_dims_mapping=p.activation_split_dims_mapping)
     if p.use_bias:
       logits = tf.nn.bias_add(logits, theta.b)
+    # Clip logits by range.
+    # Note that this is generally not used in conjunction with quantization and
+    # shouldn't be needed at inference time as the quantized matmul above will
+    # take care of clipping naturally based on the data type and qparams.
+    abs_max = p.logits_abs_max
+    if abs_max is not None and not p.is_inference:
+      abs_min = -abs_max  # pylint: disable=invalid-unary-operand-type
+      logits = py_utils.clip_by_value(logits, abs_min, abs_max)
+    if p.logits_soft_max > 0.0:
+      logits = py_utils.MaybeSoftCapLogits(logits, p.logits_soft_max)
     return logits
 
   def XentLossFromLogits(self,
