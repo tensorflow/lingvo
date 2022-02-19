@@ -494,9 +494,13 @@ def _restore_checkpoint_gda(
       for x in flattened_nested_names
   ]
   tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
+  global_shapes = jax.tree_map(lambda x: x.shape, leaves)
 
   train_state_gda = gda_serialization.run_deserialization(
-      [global_mesh] * len(leaves), partition_spec_leaves, tspecs)
+      [global_mesh] * len(tspecs),
+      partition_spec_leaves,
+      tspecs,
+      global_shapes=global_shapes)
 
   restored_train_state = jax.tree_util.tree_unflatten(treedef, train_state_gda)
   # Barrier across all processes to ensure all restore finish.
