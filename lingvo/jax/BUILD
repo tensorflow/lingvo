@@ -564,7 +564,9 @@ py_strict_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":base_layer",
         ":py_utils",
+        ":train_states",
         # Implicit absl.testing.absltest dependency.
         # Implicit flax's core dependency.
         # Implicit jax dependency.

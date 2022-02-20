@@ -25,6 +25,7 @@ import jax
 from jax.experimental import global_device_array as gda_lib
 from jax.experimental import maps
 from jax.experimental import multihost_utils
+from jax.experimental import pjit
 import jax.numpy as jnp
 from lingvo.core import cluster
 from lingvo.core import hyperparams
@@ -141,10 +142,12 @@ def extract_prefixed_keys_from_nested_map(node: Any,
                                           left_separator: str = '[',
                                           right_separator: str = ']') -> Any:
   """Extracts a NestedMap with the nested prefix keys from its NestedMap node."""
-
   if isinstance(node, dict):  # NestedMap inherits from dict.
     return _handle_dict(node, prefix, key_separator, left_separator,
                         right_separator)
+  # PartitionSpec is subclass of tuple.
+  elif isinstance(node, pjit.PartitionSpec):
+    return prefix
   elif isinstance(node, (list, tuple)):
     # Check if it is a NamedTuple.
     if hasattr(node, '_fields'):

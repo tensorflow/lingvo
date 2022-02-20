@@ -22,7 +22,10 @@ from absl.testing import absltest
 from flax import struct
 import jax
 from jax import test_util
+from jax.experimental import pjit
+from lingvo.jax import base_layer
 from lingvo.jax import py_utils
+from lingvo.jax import train_states
 import numpy as np
 import tensorflow.compat.v2 as tf
 
@@ -37,6 +40,18 @@ class PyUtilsTest(test_util.JaxTestCase):
     num_devices = jax.local_device_count()
     self.assertEqual(sharded_inputs.shape,
                      (num_devices, batch_size // num_devices, 0))
+
+  def test_extract_prefixed_keys_from_state_specs(self):
+    w_sepc = base_layer.var_partition_specs(
+        {'w': py_utils.weight_params(shape=(4, 8))},
+        device_mesh=np.arange(1).reshape([1, 1]),
+        device_axis_names=['a', 'b'])
+    train_state_partition_specs = train_states.TrainState(
+        step=pjit.PartitionSpec(), mdl_vars=w_sepc, opt_states={})
+    nested_names = py_utils.extract_prefixed_keys_from_nested_map(
+        train_state_partition_specs)
+    flattened_names, _ = jax.tree_util.tree_flatten(nested_names)
+    self.assertListEqual(['step', 'mdl_vars/w'], flattened_names)
 
   def test_extract_prefixed_keys_from_nested_map(self):
     Point = collections.namedtuple('Point', ['x', 'y'])
