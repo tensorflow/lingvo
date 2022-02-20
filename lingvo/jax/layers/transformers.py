@@ -1203,9 +1203,8 @@ class StackedTransformer(base_layer.BaseLayer):
     p = cls.Params()
     p.name = name
     p.packed_input = True
-    p.num_layers_per_block = 2 if moe else 1
-    p.num_blocks = 1
     p.moe_layers = [0] if moe else None
+    p.num_layers = 2 if moe else 1
     p.model_dims = model_dim
     p.hidden_dims = ff_dim
     p.num_heads = attention_num_heads
@@ -1260,24 +1259,13 @@ class StackedTransformer(base_layer.BaseLayer):
     moe_p.moe_load_balance_loss_weight = moe_load_balance_loss_weight
     return p
 
-  @staticmethod
-  def DefineParams(p):
+  @classmethod
+  def Params(cls) -> InstantiableParams:
+    p = super().Params()
     p.Define('cross_attention', False,
              'If set, introduces cross encoder-decoder attention layer.')
     p.Define('mask_self_attention', False, 'Use masked self-attention.')
     p.Define('num_layers', 0, 'Num of layers in this stack.')
-    # TODO(lepikhin): consider adding explicit block scope for blocks of layers
-    # so checkpoint has
-    # transformer/block_{0...num_blocks-1}/layer_{0...num_layers_per_block-1}
-    # p.Define('block_scope', False, 'Explicit block scope.')
-    #
-    # You must specify:
-    #   p.num_layers or
-    #   p.num_blocks and p.num_layers_per_block,
-    # so that p.num_layers == p.num_blocks * p.num_layers_per_block.
-    p.Define('num_blocks', None, 'Number of blocks.')
-    p.Define('num_layers_per_block', None, 'Block size.')
-    # TODO(pax): clean up num_blocks and num_layers_per_block
     p.Define('model_dims', 0, 'Model dimension in Transformer layers.')
     p.Define('hidden_dims', 0,
              'The hidden layer dimension of FFN in Transformer layers.')
@@ -1300,10 +1288,6 @@ class StackedTransformer(base_layer.BaseLayer):
         'fold_padding_with_segment_mask', False, 'If True then segment'
         'mask is supposed to include the padding mask as well, i.e.'
         'treating PADs as one sequence and non-PADs as another.')
-    p.Define(
-        'checkpoint_policy', recurrent.AutodiffCheckpointType.SAVE_NOTHING,
-        'How to checkpoint residuals for BProp: save nothing, dot only or '
-        'dot with no batch dimensions.')
     # MoE related params.
     p.Define('moe_layer_tpl', TransformerFeedForwardMoe.Params(),
              'Template configuration for the moe feedforward layer.')
@@ -1316,24 +1300,11 @@ class StackedTransformer(base_layer.BaseLayer):
     p.Define('moe_layers', [], 'List of MoE layer indices, e.g. [0, 2, 4].')
     return p
 
-  @classmethod
-  def Params(cls) -> InstantiableParams:
-    p = super().Params()
-    p = StackedTransformer.DefineParams(p)
-    return p
-
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     p = self.params
 
-    if p.num_blocks:
-      assert p.num_layers_per_block > 0
-      assert not p.num_layers
-      p.num_layers = p.num_blocks * p.num_layers_per_block
-    else:
-      assert p.num_layers > 0
-      p.num_blocks = p.num_layers
-      p.num_layers_per_block = 1
+    assert p.num_layers > 0
     assert p.model_dims > 0
     assert p.hidden_dims > 0
     assert p.num_heads > 0

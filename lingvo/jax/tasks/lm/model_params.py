@@ -215,7 +215,6 @@ class TransformerBertPmapAdam(base_model_params.BaseModelParams):
     stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
     stacked_transformer_tpl.num_layers = self.NUM_LAYERS
     stacked_transformer_tpl.num_heads = self.NUM_HEADS
-    stacked_transformer_tpl.checkpoint_policy = (self.CHECKPOINT_POLICY)
     stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
     transformer_layer_p = (stacked_transformer_tpl.transformer_layer_params_tpl)
     transformer_layer_p.tr_atten_tpl.atten_logit_cap = 50.0
@@ -291,7 +290,6 @@ class TransformerBertSpmdAdafactor(base_model_params.BaseModelParams):
     stacked_transformer_tpl.hidden_dims = self.HIDDEN_DIMS
     stacked_transformer_tpl.num_layers = self.NUM_LAYERS
     stacked_transformer_tpl.num_heads = self.NUM_HEADS
-    stacked_transformer_tpl.checkpoint_policy = (self.CHECKPOINT_POLICY)
     stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
     transformer_layer_p = (stacked_transformer_tpl.transformer_layer_params_tpl)
     transformer_layer_p.tr_atten_tpl.atten_logit_cap = 50.0
@@ -460,8 +458,6 @@ class TransformerLmSpmdAdafactor(base_model_params.BaseModelParams):
     stacked_transformer_tpl.num_layers = self.NUM_LAYERS
     stacked_transformer_tpl.num_heads = num_heads
     stacked_transformer_tpl.dim_per_head = self.DIMS_PER_HEAD
-
-    stacked_transformer_tpl.checkpoint_policy = self.CHECKPOINT_POLICY
 
     stacked_transformer_tpl.dropout_prob = self.DROPOUT_PROB
     transformer_layer_p = stacked_transformer_tpl.transformer_layer_params_tpl

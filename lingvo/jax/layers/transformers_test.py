@@ -354,9 +354,7 @@ class TransformersTest(test_util.JaxTestCase):
     # Comparing scan over blocks of layers and regular loop
     block_p = transformers.StackedTransformer.Params().Set(
         name='transformer_block',
-        num_layers=0,
-        num_blocks=1,
-        num_layers_per_block=2,
+        num_layers=2,
         model_dims=3,
         hidden_dims=6,
         num_heads=1,
