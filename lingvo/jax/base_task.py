@@ -21,7 +21,7 @@ models with one or several learners/optimizers.
 
 import abc
 import itertools
-from typing import Optional, Sequence
+from typing import Sequence
 
 import jax
 from jax import numpy as jnp
@@ -137,7 +137,9 @@ class SingleTask(BaseTask):
   def model(self) -> base_model.BaseModel:
     return self._model
 
-  def create_train_state_unpadded_shapes(self, var_weight_params) -> TrainState:
+  def create_train_state_unpadded_shapes(self,
+                                         var_weight_params,
+                                         is_eval=False) -> TrainState:
     """Creates shapes for all variables used in training without padding...
 
     due to uneven sharding.
@@ -145,64 +147,77 @@ class SingleTask(BaseTask):
     Args:
       var_weight_params: a nested map of variable params for all the forward
         variables.
+      is_eval: bool, indicating if it's a eval/decode task or not. When true,
+        only model vars are initialized. Optimizer slot variables are skipped.
 
     Returns:
       A TrainState contains shapes for all the forward and backward variables.
     """
-    grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
-    opt_var_weight_params = []
-    for grad_tx in grad_txs:
-      assert isinstance(grad_tx, optimizers.ShardedGradientTransformation)
-      opt_var_weight_params.append(
-          grad_tx.init_partition_spec(var_weight_params))
-
     def _get_shape(var_param):
       return tuple(var_param.repeat_prefix or ()) + tuple(var_param.shape)
 
     var_shapes = jax.tree_map(_get_shape, var_weight_params)
-    opt_shapes = jax.tree_map(_get_shape, opt_var_weight_params)
+    if is_eval:
+      opt_shapes = {}
+    else:
+      grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
+      opt_var_weight_params = []
+      for grad_tx in grad_txs:
+        assert isinstance(grad_tx, optimizers.ShardedGradientTransformation)
+        opt_var_weight_params.append(
+            grad_tx.init_partition_spec(var_weight_params))
+        opt_shapes = jax.tree_map(_get_shape, opt_var_weight_params)
     step_shapes = ()
     return TrainState(
         step=step_shapes, mdl_vars=var_shapes, opt_states=opt_shapes)
 
-  def create_train_state_partition_specs(
-      self, var_weight_params) -> Optional[TrainState]:
+  def create_train_state_partition_specs(self,
+                                         var_weight_params,
+                                         is_eval=False):
     """Creates partition specs for all variables used in training.
 
     Args:
       var_weight_params: a nested map of variable params for all the forward
         variables.
+      is_eval: bool, indicating if it's a eval/decode task or not. When true,
+        only model vars are initialized. Optimizer slot variables are skipped.
 
     Returns:
-      A TrainState contains PartitionSpecs for all the forward and backward
-        variables, or None.
+      A TrainState contains PartitionSpecs for all the forward and/or backward
+        variables depending on the value of is_eval, or None.
     """
     p = self.params
     device_mesh = p.model.device_mesh
     if device_mesh is None:
       return None
-    grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
-    opt_var_weight_params = []
-    for grad_tx in grad_txs:
-      assert isinstance(grad_tx, optimizers.ShardedGradientTransformation)
-      opt_var_weight_params.append(
-          grad_tx.init_partition_spec(var_weight_params))
+    step_partition_spec = PartitionSpec()
     var_partition_specs = base_layer.var_partition_specs(
         var_weight_params,
         device_mesh=device_mesh,
         device_axis_names=p.model.mesh_axis_names)
-    opt_var_partition_specs = base_layer.var_partition_specs(
-        opt_var_weight_params,
-        device_mesh=device_mesh,
-        device_axis_names=p.model.mesh_axis_names)
-    step_partition_spec = PartitionSpec()
+    if is_eval:
+      opt_var_partition_specs = {}
+    else:
+      grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
+      opt_var_weight_params = []
+      for grad_tx in grad_txs:
+        assert isinstance(grad_tx, optimizers.ShardedGradientTransformation)
+        opt_var_weight_params.append(
+            grad_tx.init_partition_spec(var_weight_params))
+
+      opt_var_partition_specs = base_layer.var_partition_specs(
+          opt_var_weight_params,
+          device_mesh=device_mesh,
+          device_axis_names=p.model.mesh_axis_names)
     return TrainState(
         step=step_partition_spec,
         mdl_vars=var_partition_specs,
         opt_states=opt_var_partition_specs)
 
-  def create_train_state(self, mdl_vars: NestedJTensor,
-                         var_weight_params: NestedJTensor) -> TrainState:
+  def create_train_state(self,
+                         mdl_vars: NestedJTensor,
+                         var_weight_params: NestedJTensor,
+                         is_eval=False) -> TrainState:
     """Creates train states that holds all the forward/backward variables.
 
     Args:
@@ -212,6 +227,8 @@ class SingleTask(BaseTask):
         var_weight_params must be of the same structure as mdl_vars. Each model
         weight variable is associated with some WeightParams which contains all
         the meta information about the weight variable.
+      is_eval: bool, indicating if it's a eval/decode task or not. When true,
+        only model vars are initialized. Optimizer slot variables are skipped.
 
     Returns:
       a TrainState.
@@ -220,9 +237,12 @@ class SingleTask(BaseTask):
     # not shared with the caller.
     mdl_vars = tf.nest.map_structure(lambda x: x, mdl_vars)
     var_weight_params = tf.nest.map_structure(lambda x: x, var_weight_params)
-    grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
-    tf.nest.assert_same_structure(mdl_vars, var_weight_params)
-    opt_states = [x.init(mdl_vars) for x in grad_txs]
+    if is_eval:
+      opt_states = {}
+    else:
+      grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
+      tf.nest.assert_same_structure(mdl_vars, var_weight_params)
+      opt_states = [x.init(mdl_vars) for x in grad_txs]
     return TrainState(
         # The global step for the model.
         step=jnp.array(0, dtype=jnp.uint32),

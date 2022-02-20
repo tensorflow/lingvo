@@ -652,12 +652,15 @@ def decode_once_spmd_model(
   jax_task = task_p.Instantiate()
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
   with global_mesh:
-    (partitioned_train_state, inputs_partition_spec, partitioned_specs,
-     decode_step_fn) = trainer_lib.partition_spmd_model_decode(
-         task_p, init_key, inputs_shape)
     if restore_checkpoint_dir:
+      model = jax_task.model
+      model.instantiate_variable_configs()
+      # Get the metadata from variables instead of actually instantiating them.
+      partitioned_specs = jax_task.create_train_state_partition_specs(
+          model.vars, is_eval=True)
+      # Instantiate the TrainState directly from the checkpoint.
       partitioned_train_state = checkpoints.restore_checkpoint(
-          partitioned_train_state,
+          None,
           restore_checkpoint_dir,
           global_mesh=global_mesh,
           checkpoint_type=checkpoint_type,
@@ -666,9 +669,17 @@ def decode_once_spmd_model(
       if multi_host_checkpointing:
         py_utils.sync_global_devices(
             f'checkpointer:restored:{restore_checkpoint_parent_dir}')
+      decode_step_fn, inputs_partition_spec = (
+          trainer_lib.get_partitioned_spmd_model_decode_fn(
+              jax_task, init_key, partitioned_train_state, partitioned_specs,
+              inputs_shape))
+    else:
+      # When restore is not specified, randomly initiate the train_state.
+      (partitioned_train_state, inputs_partition_spec, partitioned_specs,
+       decode_step_fn) = trainer_lib.partition_spmd_model_decode(
+           task_p, init_key, inputs_shape)
     logging.info('partitioned_train_state: %s',
                  jax.tree_map(lambda x: x.shape, partitioned_train_state))
-
     # We do not fold in jax.process_index in contrast to the pmap version and
     # use a single global key instead to rely on pjit to split for different
     # replicas.
@@ -703,10 +714,11 @@ def decode_once_spmd_model(
         # Output is fully replicated now, so it's ok to unreplicate it by
         # retrieving from device 0 only.
         out = py_utils.maybe_unreplicate_gda(out)
-        logging.info('Finished decoding input batch %d', step_num)
+        global_batch_size = next(iter(out.values())).shape[0]
+        logging.info('Finished decoding input batch %d with %d examples',
+                     step_num, global_batch_size)
         # Manually shard the output per each jax process.
         # We require that all fields in the output is batch major.
-        global_batch_size = next(iter(out.values())).shape[0]
         if global_batch_size % jax.process_count() != 0:
           raise ValueError(f'Global batch size {global_batch_size} must divide '
                            f'jax process count {jax.process_count()}')

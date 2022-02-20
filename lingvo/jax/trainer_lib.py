@@ -50,7 +50,8 @@ DecodeFn = Callable[[NestedJTensor, JTensor, JTensor, NestedJTensor],
 
 
 def initialize_model_state(jax_task: base_task.SingleTask,
-                           prng_key: PRNGKey) -> TrainState:
+                           prng_key: PRNGKey,
+                           is_eval: bool = False) -> TrainState:
   """Initializes the model states."""
   model = jax_task.model
   logging.info('init_var prng_seed: %s', prng_key)
@@ -59,7 +60,7 @@ def initialize_model_state(jax_task: base_task.SingleTask,
   learnable_vars = tf.nest.map_structure(
       lambda v: not base_layer.var_not_trainable(v), model.vars)
   tf.nest.assert_same_structure(initial_vars, learnable_vars)
-  return jax_task.create_train_state(initial_vars, model.vars)
+  return jax_task.create_train_state(initial_vars, model.vars, is_eval)
 
 
 def replicate_model_state(model_states: TrainState) -> TrainState:
@@ -68,9 +69,10 @@ def replicate_model_state(model_states: TrainState) -> TrainState:
 
 
 def initialize_replicate_model_state(jax_task: base_task.SingleTask,
-                                     prng_key: PRNGKey) -> TrainState:
+                                     prng_key: PRNGKey,
+                                     is_eval: bool = False) -> TrainState:
   """Initializes and replicates the model states."""
-  model_states = initialize_model_state(jax_task, prng_key)
+  model_states = initialize_model_state(jax_task, prng_key, is_eval)
   return replicate_model_state(model_states)
 
 
@@ -505,6 +507,7 @@ def decode_step(
 def initialize_partitioned_model_states(
     jax_task: base_task.SingleTask,
     prng_key: PRNGKey,
+    is_eval: bool = False,
 ) -> Tuple[TrainState, NestedShape, TrainState, TrainState]:
   """Initializes model vars that are partitioned over TPU devices.
 
@@ -514,6 +517,8 @@ def initialize_partitioned_model_states(
   Args:
     jax_task: The task which is an instance of base_task.SingleTask.
     prng_key: A PRNGKey.
+    is_eval: bool, indicating if it's a eval/decode task or not. When true,
+      only model vars are initialized. Optimizer slot variables are skipped.
 
   Returns:
     The partitioned specs, the padded shapes of the vars (to avoid uneven
@@ -525,9 +530,9 @@ def initialize_partitioned_model_states(
   # At this point, variable specs are already known.
   var_specs = model.vars
   train_state_partition_specs = jax_task.create_train_state_partition_specs(
-      var_specs)
+      var_specs, is_eval)
   train_state_unpadded_shapes = jax_task.create_train_state_unpadded_shapes(
-      var_specs)
+      var_specs, is_eval)
   assert train_state_partition_specs is not None
 
   def _maybe_pad(x, pspec, shape):
@@ -536,7 +541,7 @@ def initialize_partitioned_model_states(
                                       model.params.mesh_axis_names)
 
   def init_model_from_seed(prng_key):
-    outs = initialize_model_state(jax_task, prng_key)
+    outs = initialize_model_state(jax_task, prng_key, is_eval)
     return jax.tree_map(_maybe_pad, outs, train_state_partition_specs,
                         train_state_unpadded_shapes)
 
@@ -775,6 +780,78 @@ def partition_spmd_model(
           inputs_partition_spec, train_step, eval_step, total_num_params)
 
 
+def get_partitioned_spmd_model_decode_fn(jax_task, init_key,
+                                         partitioned_train_state,
+                                         train_state_partition_specs,
+                                         inputs_shape: NestedShapeDtypeStruct):
+  """Return sharded decode step function and input partition spec.
+
+  Args:
+    jax_task: Task instance.
+    init_key: PRNGKey for initializing the model variables.
+    partitioned_train_state: TrainState that holds all the variables.
+    train_state_partition_specs: A TrainState contains PartitionSpecs for all
+      the variables.
+    inputs_shape: Shape of the inputs for use in pjit sharding.
+
+  Returns:
+    (decode_step_fn, inputs_partition_spec):
+    The decode step function, and input partition spec.
+  """
+  task_p = jax_task.params
+  mesh_names = task_p.model.mesh_axis_names
+  model = jax_task.model
+
+  # Compute inputs PartitionSpec from inputs_shape
+  inputs_partition_spec_fn = functools.partial(
+      shard_on_batch_dim_partition_spec, mesh_names)
+  reshard_inputs_fn = functools.partial(reshard_input_based_on_rank_fn,
+                                        task_p.train.inputs_split_mapping,
+                                        mesh_names)
+
+  inputs_partition_spec = tf.nest.map_structure(inputs_partition_spec_fn,
+                                                inputs_shape)
+
+  # TODO(b/198356509): Fix this so that prng_key is no longer replicated, as
+  # we want each core to not have identical random behavior.
+  prng_key_partition_spec = base_layer.to_partition_spec((None,), mesh_names)
+
+  eval_fn_in_partition_specs = (train_state_partition_specs.mdl_vars,
+                                prng_key_partition_spec,
+                                train_state_partition_specs.step,
+                                inputs_partition_spec)
+  train_state_unpadded_shapes = jax_task.create_train_state_unpadded_shapes(
+      model.vars, is_eval=True)
+  def _decode_step(mdl_vars, prng_key, global_step, inputs):
+    inputs = jax.tree_map(reshard_inputs_fn, inputs)
+    mdl_vars = jax.tree_map(_maybe_slice_uneven_sharding, mdl_vars,
+                            train_state_partition_specs.mdl_vars,
+                            train_state_unpadded_shapes.mdl_vars)
+    # Right now we only pad the vars, and decode doesn't output vars so we do
+    # not need to pad at the end.
+    return decode_step(
+        model,
+        mdl_vars,
+        prng_key,
+        global_step,
+        inputs,
+        fprop_dtype=task_p.model.fprop_dtype)
+
+  decode_out_shapes = jax.eval_shape(_decode_step,
+                                     partitioned_train_state.mdl_vars, init_key,
+                                     partitioned_train_state.step, inputs_shape)
+
+  # decoder output are always replicated at the moment.
+  decode_fn_out_partition_specs = tf.nest.map_structure(lambda _: None,
+                                                        decode_out_shapes)
+  decode_step_fn = pjit.pjit(
+      _decode_step,
+      in_axis_resources=eval_fn_in_partition_specs,
+      out_axis_resources=decode_fn_out_partition_specs)
+
+  return decode_step_fn, inputs_partition_spec
+
+
 def partition_spmd_model_decode(
     task_p: InstantiableParams,
     init_key: PRNGKey,
@@ -798,60 +875,14 @@ def partition_spmd_model_decode(
     partitioned TrainState
     specs, the decode step function.
   """
-  model_p = task_p.model
-  mesh_names = model_p.mesh_axis_names
   jax_task = task_p.Instantiate()
-  model = jax_task.model
-
-  # Compute inputs PartitionSpec from inputs_shape
-  inputs_partition_spec_fn = functools.partial(
-      shard_on_batch_dim_partition_spec, model_p.mesh_axis_names)
-  reshard_inputs_fn = functools.partial(reshard_input_based_on_rank_fn,
-                                        task_p.train.inputs_split_mapping,
-                                        model_p.mesh_axis_names)
-
-  inputs_partition_spec = tf.nest.map_structure(inputs_partition_spec_fn,
-                                                inputs_shape)
-
   # Initialize the partitioned vars.
-  (train_state_partition_specs, var_padded_shapes, var_shapes,
-   partitioned_train_state) = (
-       initialize_partitioned_model_states(jax_task, init_key))
+  train_state_partition_specs, _, _, partitioned_train_state = (
+      initialize_partitioned_model_states(jax_task, init_key, is_eval=True))
 
-  # TODO(b/198356509): Fix this so that prng_key is no longer replicated, as
-  # we want each core to not have identical random behavior.
-  prng_key_partition_spec = base_layer.to_partition_spec((None,), mesh_names)
-
-  eval_fn_in_partition_specs = (train_state_partition_specs.mdl_vars,
-                                prng_key_partition_spec,
-                                train_state_partition_specs.step,
-                                inputs_partition_spec)
-
-  def _decode_step(mdl_vars, prng_key, global_step, inputs):
-    inputs = jax.tree_map(reshard_inputs_fn, inputs)
-    mdl_vars = jax.tree_map(_maybe_slice_uneven_sharding, mdl_vars,
-                            train_state_partition_specs.mdl_vars,
-                            var_shapes.mdl_vars)
-    # Right now we only pad the vars, and decode doesn't output vars so we do
-    # not need to pad at the end.
-    return decode_step(
-        model,
-        mdl_vars,
-        prng_key,
-        global_step,
-        inputs,
-        fprop_dtype=model_p.fprop_dtype)
-
-  decode_out_shapes = jax.eval_shape(_decode_step, var_padded_shapes.mdl_vars,
-                                     init_key, var_padded_shapes.step,
-                                     inputs_shape)
-  # decoder output are always replicated at the moment.
-  decode_fn_out_partition_specs = tf.nest.map_structure(lambda _: None,
-                                                        decode_out_shapes)
-  decode_step_fn = pjit.pjit(
-      _decode_step,
-      in_axis_resources=eval_fn_in_partition_specs,
-      out_axis_resources=decode_fn_out_partition_specs)
+  decode_step_fn, inputs_partition_spec = get_partitioned_spmd_model_decode_fn(
+      jax_task, init_key, partitioned_train_state, train_state_partition_specs,
+      inputs_shape)
 
   return (partitioned_train_state, inputs_partition_spec,
           train_state_partition_specs, decode_step_fn)
