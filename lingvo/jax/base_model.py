@@ -273,8 +273,9 @@ class BaseModel(base_layer.BaseLayer):
         training example, where the first dimension of each tensor is the batch
         index.
     """
-    predictions = self.compute_predictions(input_batch)
-    return self.compute_loss(predictions, input_batch)
+    with py_utils.AuxLossContext():
+      predictions = self.compute_predictions(input_batch)
+      return self.compute_loss(predictions, input_batch)
 
   def decode(self, input_batch: NestedMap) -> Tuple[NestedMap, NestedMap]:
     """Decodes input_batch.
