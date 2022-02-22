@@ -65,6 +65,11 @@ class LargeMlp(model_params.ClassificationModelAdam, SyntheticDataset):
   OUTPUT_DIM = 4096
   HIDDEN_DIM = 7168
 
+  NUM_DEVICES = 8
+  MESH_SHAPE = [8, 1, 1]
+  MLP_WEIGHT_SHARDING = [-1, -1]
+  SOFTMAX_WEIGHT_SHARDING = [-1, -1]
+
 
 @model_registry.register_model
 class SmallMlp(model_params.ClassificationModelAdam, SyntheticDataset):
@@ -73,6 +78,11 @@ class SmallMlp(model_params.ClassificationModelAdam, SyntheticDataset):
   INPUT_DIM = 1024
   OUTPUT_DIM = 1024
   HIDDEN_DIM = 1024
+
+  NUM_DEVICES = 8
+  MESH_SHAPE = [8, 1, 1]
+  MLP_WEIGHT_SHARDING = [-1, -1]
+  SOFTMAX_WEIGHT_SHARDING = [-1, -1]
 
 
 ## Data parallel training.

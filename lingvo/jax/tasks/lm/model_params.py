@@ -55,13 +55,14 @@ def set_sharding_annotations_v1(task_p: InstantiableParams,
       map_1d=((replica_axis, data_axis),),
       map_2d=((replica_axis, data_axis), None))
   model_p.mesh_axis_names = mesh_axis_names
-  model_p.lm = model_p.lm.cls.set_sharding_params_v1(
-      model_p.lm,
-      replica_axis=replica_axis,
-      data_axis=data_axis,
-      mdl_axis=mdl_axis,
-      device_ids_mesh=device_ids_mesh,
-      mesh_axis_names=mesh_axis_names)
+  if hasattr(model_p, 'lm'):
+    model_p.lm = model_p.lm.cls.set_sharding_params_v1(
+        model_p.lm,
+        replica_axis=replica_axis,
+        data_axis=data_axis,
+        mdl_axis=mdl_axis,
+        device_ids_mesh=device_ids_mesh,
+        mesh_axis_names=mesh_axis_names)
 
 
 def set_default_adam(task_p: InstantiableParams, learning_rate: float,
@@ -158,6 +159,12 @@ class ClassificationModelAdam(base_model_params.BaseModelParams):
   CHECKPOINT_EVERY_N_STEPS = 5
   SUMMARY_INTERVAL_STEPS = 5
   NUM_TRAIN_STEPS = 10
+  MLP_WEIGHT_SHARDING = None
+  SOFTMAX_WEIGHT_SHARDING = None
+
+  # sub-class specify a mesh to use SPMD
+  MESH_SHAPE = None
+  NUM_DEVICES = None
 
   def task(self) -> InstantiableParams:
     task_p = base_task.SingleTask.Params().Set(name='classification_task')
@@ -172,7 +179,12 @@ class ClassificationModelAdam(base_model_params.BaseModelParams):
     model_p.softmax_tpl.num_classes = self.INPUT_DIM
     task_p.train.save_interval_steps = self.CHECKPOINT_EVERY_N_STEPS
     task_p.train.summary_interval_steps = self.SUMMARY_INTERVAL_STEPS
-
+    model_p.device_mesh = np.arange(self.NUM_DEVICES).reshape(self.MESH_SHAPE)
+    model_p.mesh_axis_names = ['x', 'y', 'z']
+    model_p.softmax_tpl.weight_split_dims_mapping.wt = self.SOFTMAX_WEIGHT_SHARDING
+    model_p.mlp_tpl.device_mesh = model_p.device_mesh
+    model_p.mlp_tpl.weight_split_dims_mapping.wt = self.MLP_WEIGHT_SHARDING
+    set_sharding_annotations_v1(task_p, self.MESH_SHAPE)
     set_default_adam(task_p, self.LEARNING_RATE, self.WEIGHT_DECAY)
     task_p.train.num_train_steps = self.NUM_TRAIN_STEPS
     return task_p
