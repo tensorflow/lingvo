@@ -132,7 +132,8 @@ def evaluate_pmap_model(
         prng_key,
         global_step,
         inputs,
-        data_parallel_axis_name='batch')
+        data_parallel_axis_name='batch',
+        fprop_dtype=jax_task.model.fprop_dtype)
 
   num_devices = jax.local_device_count()
   prng_key, eval_key = jax.random.split(prng_key)
