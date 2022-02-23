@@ -17,12 +17,17 @@
 
 import re
 import time
+
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import cluster_factory
 from lingvo.core import plot
 from lingvo.core import py_utils
 import numpy as np
+
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.distribute import tpu_values as tpu_values_lib
+# pylint: enable=g-direct-tensorflow-import
 
 
 def _ShouldAddSummary():
@@ -447,7 +452,8 @@ def ModelAnalysis(model, topn=0, part_pattern=None):
       self.variable_size_table = {}
 
     def __call__(self, v):
-      assert isinstance(v, tf.Variable)
+      assert isinstance(v, (tf.Variable, tpu_values_lib.TPUDistributedVariable
+                           )), 'v is of type: %s' % type(v).__name__
       # pylint: disable=protected-access
       if not v.shape.is_fully_defined():
         # Only Cudnn RNN params lack static shapes.

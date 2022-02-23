@@ -33,11 +33,21 @@ from lingvo.core import tpu_embedding_layers
 import numpy as np
 
 from lingvo import base_runner
-from tensorflow.python.tpu import device_assignment as device_assignment_lib  # pylint: disable=g-direct-tensorflow-import
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.distribute import tpu_strategy
+from tensorflow.python.tpu import device_assignment as device_assignment_lib
+# pylint: enable=g-direct-tensorflow-import
 
 tf.flags.DEFINE_bool(
     'disable_meta_optimizer_in_executor', False,
     'Disabling the grappler meta_optimizer improves start-up time.')
+tf.flags.DEFINE_bool(
+    'use_tpu_mirrored_vars', False,
+    'If set, use TPUStrategy / TPU mirrored variables to eliminate weight transfers. '
+    'The trade-off here is that the Graph is larger. Disabling the meta optimizer '
+    'might be needed for larger TPU slice topologies')
+
+
 FLAGS = tf.flags.FLAGS
 
 
@@ -250,21 +260,21 @@ class ExecutorTpu(base_runner.BaseRunner):
           assert num_devices_per_split == np.prod(computation_shape)
 
         if train_cfg.train.tpu_device_order_mode is None:
-          device_assignment = device_assignment_lib.device_assignment(
+          self.device_assignment = device_assignment_lib.device_assignment(
               topology,
               computation_shape=computation_shape,
               num_replicas=data_parallelism)
         else:
-          device_assignment = device_assignment_lib.device_assignment(
+          self.device_assignment = device_assignment_lib.device_assignment(
               topology,
               computation_shape=computation_shape,
               num_replicas=data_parallelism,
               device_order_mode=train_cfg.train.tpu_device_order_mode)
-        py_utils.SetTpuDeviceAssignment(device_assignment, job)
+        py_utils.SetTpuDeviceAssignment(self.device_assignment, job)
         tf.logging.info('device_assignment.core_assignment: %s',
-                        str(device_assignment.core_assignment))
+                        str(self.device_assignment.core_assignment))
         tf.logging.info('device_assignment.topology.device_coordinates: %s',
-                        str(device_assignment.topology.device_coordinates))
+                        str(self.device_assignment.topology.device_coordinates))
       except py_utils.transient_tf_errors as e:
         tf.logging.info('TPU initialization failed: %s', e)
         raise
@@ -331,7 +341,18 @@ class ExecutorTpu(base_runner.BaseRunner):
         self._container_id), contextlib.ExitStack() as stack:
       if not py_utils.IsEagerMode():
         stack.enter_context(self._graph.as_default())
-        stack.enter_context(tf.device(self._cluster.GetPlacer()))
+
+        if FLAGS.use_tpu_mirrored_vars:
+          resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+              FLAGS.tf_master, job_name=FLAGS.worker_job[len('/job:'):])
+          self._tpu_strategy = tf.distribute.experimental.TPUStrategy(
+              resolver, device_assignment=self.device_assignment)
+          stack.enter_context(self._tpu_strategy.scope())
+          stack.enter_context(
+              tpu_strategy._TPUReplicaContext(self._tpu_strategy))
+        else:
+          stack.enter_context(tf.device(self._cluster.GetPlacer()))
+
       if FLAGS.pdb_on_exception:
         stack.enter_context(pdb_wrapper.catch_post_mortem())
       with py_utils.VariableStore(), py_utils.VariableRenameScope(
