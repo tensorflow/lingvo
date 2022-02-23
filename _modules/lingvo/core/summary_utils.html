@@ -82,12 +82,17 @@
 
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">time</span>
+
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.distribute</span> <span class="kn">import</span> <span class="n">tpu_values</span> <span class="k">as</span> <span class="n">tpu_values_lib</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
 <div class="viewcode-block" id="_ShouldAddSummary"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils._ShouldAddSummary">[docs]</a><span class="k">def</span> <span class="nf">_ShouldAddSummary</span><span class="p">():</span>
@@ -512,7 +517,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">variable_size_table</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">,</span> <span class="n">tpu_values_lib</span><span class="o">.</span><span class="n">TPUDistributedVariable</span>
+                           <span class="p">)),</span> <span class="s1">&#39;v is of type: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
       <span class="c1"># pylint: disable=protected-access</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">():</span>
         <span class="c1"># Only Cudnn RNN params lack static shapes.</span>

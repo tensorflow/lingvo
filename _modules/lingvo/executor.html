@@ -98,11 +98,21 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_runner</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.distribute</span> <span class="kn">import</span> <span class="n">tpu_strategy</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;disable_meta_optimizer_in_executor&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Disabling the grappler meta_optimizer improves start-up time.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;use_tpu_mirrored_vars&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;If set, use TPUStrategy / TPU mirrored variables to eliminate weight transfers. &#39;</span>
+    <span class="s1">&#39;The trade-off here is that the Graph is larger. Disabling the meta optimizer &#39;</span>
+    <span class="s1">&#39;might be needed for larger TPU slice topologies&#39;</span><span class="p">)</span>
+
+
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
@@ -315,21 +325,21 @@
           <span class="k">assert</span> <span class="n">num_devices_per_split</span> <span class="o">==</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">computation_shape</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
               <span class="n">topology</span><span class="p">,</span>
               <span class="n">computation_shape</span><span class="o">=</span><span class="n">computation_shape</span><span class="p">,</span>
               <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
               <span class="n">topology</span><span class="p">,</span>
               <span class="n">computation_shape</span><span class="o">=</span><span class="n">computation_shape</span><span class="p">,</span>
               <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
               <span class="n">device_order_mode</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_device_order_mode</span><span class="p">)</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">,</span> <span class="n">job</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.core_assignment: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                        <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">core_assignment</span><span class="p">))</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">core_assignment</span><span class="p">))</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.topology.device_coordinates: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                        <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">device_coordinates</span><span class="p">))</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">device_coordinates</span><span class="p">))</span>
       <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TPU initialization failed: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
         <span class="k">raise</span>
@@ -396,7 +406,18 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">())</span>
-        <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()))</span>
+
+        <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_tpu_mirrored_vars</span><span class="p">:</span>
+          <span class="n">resolver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">distribute</span><span class="o">.</span><span class="n">cluster_resolver</span><span class="o">.</span><span class="n">TPUClusterResolver</span><span class="p">(</span>
+              <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="n">job_name</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="s1">&#39;/job:&#39;</span><span class="p">):])</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_strategy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">distribute</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">TPUStrategy</span><span class="p">(</span>
+              <span class="n">resolver</span><span class="p">,</span> <span class="n">device_assignment</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">)</span>
+          <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_strategy</span><span class="o">.</span><span class="n">scope</span><span class="p">())</span>
+          <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span>
+              <span class="n">tpu_strategy</span><span class="o">.</span><span class="n">_TPUReplicaContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_strategy</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()))</span>
+
       <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">pdb_on_exception</span><span class="p">:</span>
         <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">pdb_wrapper</span><span class="o">.</span><span class="n">catch_post_mortem</span><span class="p">())</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableStore</span><span class="p">(),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span>
