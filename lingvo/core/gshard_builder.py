@@ -229,6 +229,8 @@ class MoEBuilder(builder.Base):
     p.Define('model_dim_reshape_segments', None,
              'Size of N when reshaping model dimension M to Nm')
     p.Define('use_xla_dynamic_update_slice', True, 'internal optimization')
+    p.Define('decoder_skip_causal_mask', False,
+             'Skip applying the decoder causal mask')
 
     return p
 
@@ -1064,9 +1066,10 @@ class MoEBuilder(builder.Base):
     ret = tf.logical_and(ret, tf.equal(b, 0))
     ret = tf.logical_or(ret, tf.not_equal(a, b))
     # position (~row) is less that memory position(~column)
-    causal = tf.less(
-        tf.expand_dims(segment_pos, -1), tf.expand_dims(segment_pos, -2))
-    ret = tf.math.logical_or(causal, ret)
+    if not self.params.decoder_skip_causal_mask:
+      causal = tf.less(
+          tf.expand_dims(segment_pos, -1), tf.expand_dims(segment_pos, -2))
+      ret = tf.math.logical_or(causal, ret)
     return tf.cast(ret, py_utils.FPropDtype(self.params))
 
   def _DecComputeBiasGraphEdge(self):
