@@ -95,6 +95,7 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
     p.Define('soft_cap_logits', 0.,
              'If not None logits are soft capped to this value.')
     p.Define('bi_tempered_loss', None, 'If not None applies bi-tempered loss.')
+    p.Define('label_smoothing_prob', 0.0, 'Label smoothing probability.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -174,6 +175,15 @@ class SingleShardFullSoftmax(base_layer.BaseLayer):
     if class_probabilities is None:
       class_probabilities = jax.nn.one_hot(
           jnp.squeeze(class_ids, axis=-1), p.num_classes)
+      if p.label_smoothing_prob > 0.0:
+        # Label smoothing reduce the probability of the label from 1 to
+        # 1 - label_smoothing_prob, and redistribute label_smoothing_prob to the
+        # rest of num_classes - 1 classes where each class has a probability of
+        # label_smoothing_prob / (num_classes - 1).
+        other_prob = p.label_smoothing_prob / (p.num_classes - 1)
+        class_probabilities = (
+            (1.0 - p.label_smoothing_prob) * class_probabilities + other_prob *
+            (1.0 - class_probabilities)).astype(self.fprop_dtype)
       class_probabilities = jax.lax.stop_gradient(class_probabilities)
 
     if p.bi_tempered_loss is None:

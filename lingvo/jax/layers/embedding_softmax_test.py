@@ -68,10 +68,11 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     tf_np_outputs = to_np(tf_output)
     self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-6)
 
-  @parameterized.parameters((0., True, False), (0., False, True),
-                            (1.0, True, False), (1.0, False, True))
+  @parameterized.parameters((0., True, False, 0), (0., False, True, 0),
+                            (1.0, True, False, 0.1), (1.0, False, True, 0.1))
   def test_single_sharded_softmax_layer(self, soft_cap_logits, use_class_ids,
-                                        use_class_probabilities):
+                                        use_class_probabilities,
+                                        label_smoothing_prob):
     if use_class_ids:
       class_ids = np.random.randint(0, 50, [8, 10, 1])
     else:
@@ -84,7 +85,8 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
         name='jax_softmax',
         num_classes=50,
         input_dims=40,
-        soft_cap_logits=soft_cap_logits)
+        soft_cap_logits=soft_cap_logits,
+        label_smoothing_prob=label_smoothing_prob)
     softmax_layer = p.Instantiate()
     prng_key = jax.random.PRNGKey(seed=1234)
     initial_vars = softmax_layer.instantiate_variables(prng_key)
@@ -118,6 +120,15 @@ class EmbeddingSoftmaxTest(test_util.JaxTestCase):
     tf_softmax_layer = tf_p.Instantiate()
     tf_logits = tf_softmax_layer.Logits(tf_initial_vars,
                                         tf.constant(inputs, dtype=tf.float32))
+    if use_class_ids and label_smoothing_prob > 0:
+      class_probabilities = np.zeros([8, 10, 50])
+      index = np.indices([8, 10])
+      class_probabilities[index[0], index[1], np.squeeze(class_ids, 2)] = 1
+      class_probabilities = (
+          class_probabilities * (1 - label_smoothing_prob) +
+          (1 - class_probabilities) * label_smoothing_prob /
+          (p.num_classes - 1))
+      class_ids = None
     tf_output = tf_softmax_layer.FProp(
         tf_initial_vars,
         tf.constant(inputs, dtype=tf.float32),
