@@ -82,6 +82,7 @@
 
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
@@ -89,6 +90,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">tensorboard.backend.event_processing</span> <span class="kn">import</span> <span class="n">event_file_inspector</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;enable_eager_execution&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                      <span class="s1">&#39;Whether to enable eager execution.&#39;</span><span class="p">)</span>
@@ -136,7 +139,44 @@
         <span class="k">yield</span> <span class="n">sess</span></div>
 
 <div class="viewcode-block" id="TestCase.SetEval"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.SetEval">[docs]</a>  <span class="k">def</span> <span class="nf">SetEval</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="n">mode</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TestCase.GetScalarSummaryValues"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.GetScalarSummaryValues">[docs]</a>  <span class="k">def</span> <span class="nf">GetScalarSummaryValues</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">is_tf2_writer</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get scalar TF summary values from TF event files.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      logdir: The directory where the TF event files are stored.</span>
+<span class="sd">      names: Names of the scalar summaries to get.</span>
+<span class="sd">      is_tf2_writer: Whether the summary was written using tf2 summary writer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A dict like name -&gt; value_dict, where value_dict is a dict of</span>
+<span class="sd">      step_number -&gt; value.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">event_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;events.out.tfevents.*&#39;</span><span class="p">))</span>
+    <span class="n">name_to_step_values</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">event_file</span> <span class="ow">in</span> <span class="n">event_files</span><span class="p">:</span>
+      <span class="n">event_generator</span> <span class="o">=</span> <span class="n">event_file_inspector</span><span class="o">.</span><span class="n">generator_from_event_file</span><span class="p">(</span>
+          <span class="n">event_file</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">event_generator</span><span class="p">:</span>
+        <span class="n">step</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">event</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">value_proto</span> <span class="ow">in</span> <span class="n">event</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">value_proto</span><span class="o">.</span><span class="n">tag</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value_proto</span><span class="o">.</span><span class="n">tag</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">name_to_step_values</span><span class="p">:</span>
+              <span class="n">name_to_step_values</span><span class="p">[</span><span class="n">value_proto</span><span class="o">.</span><span class="n">tag</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">if</span> <span class="n">is_tf2_writer</span><span class="p">:</span>
+              <span class="c1"># TF2 summary writer writes scalar summary values as a</span>
+              <span class="c1"># TensorProto, and we need to read it as a Tensor here.</span>
+              <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_tensor</span><span class="p">(</span>
+                  <span class="n">value_proto</span><span class="o">.</span><span class="n">tensor</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">(),</span>
+                  <span class="n">out_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+              <span class="n">value</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">value_proto</span><span class="o">.</span><span class="n">simple_value</span><span class="p">)</span>
+            <span class="n">name_to_step_values</span><span class="p">[</span><span class="n">value_proto</span><span class="o">.</span><span class="n">tag</span><span class="p">][</span><span class="n">step</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertIn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">name_to_step_values</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">name_to_step_values</span></div></div>
 
 
 <div class="viewcode-block" id="_ReplaceOneLineInFile"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils._ReplaceOneLineInFile">[docs]</a><span class="k">def</span> <span class="nf">_ReplaceOneLineInFile</span><span class="p">(</span><span class="n">fpath</span><span class="p">,</span> <span class="n">linenum</span><span class="p">,</span> <span class="n">old</span><span class="p">,</span> <span class="n">new</span><span class="p">):</span>

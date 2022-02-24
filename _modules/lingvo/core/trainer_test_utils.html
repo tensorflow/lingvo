@@ -80,11 +80,17 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Toy models and input generation tools for testing trainer code.&quot;&quot;&quot;</span>
 
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_registry</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model_params</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span> <span class="k">as</span> <span class="n">metrics_lib</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">program</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
 <div class="viewcode-block" id="CountingInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.CountingInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">CountingInputGenerator</span><span class="p">(</span><span class="n">base_input_generator</span><span class="o">.</span><span class="n">BaseInputGenerator</span><span class="p">):</span>
@@ -130,6 +136,13 @@
 <div class="viewcode-block" id="IdentityRegressionTask"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionTask">[docs]</a><span class="k">class</span> <span class="nc">IdentityRegressionTask</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A simple regression task for testing.&quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="IdentityRegressionTask.Params"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionTask.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_init_value&#39;</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s1">&#39;Initial value of the model weights.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;identity_regression_task&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">global_steps</span> <span class="o">=</span> <span class="p">[]</span>
@@ -138,12 +151,15 @@
 
 <div class="viewcode-block" id="IdentityRegressionTask._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionTask._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
         <span class="s1">&#39;m&#39;</span><span class="p">,</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">()))</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_init_value</span><span class="p">)))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
         <span class="s1">&#39;b&#39;</span><span class="p">,</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">()))</span></div>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_init_value</span><span class="p">)))</span></div>
 
 <div class="viewcode-block" id="IdentityRegressionTask.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;sum(m * x) + b.&quot;&quot;&quot;</span>
@@ -175,11 +191,27 @@
                           <span class="n">per_example_tensors</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">global_steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">result_per_example_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">)</span></div></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">result_per_example_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="IdentityRegressionTask.CreateDecoderMetrics"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionTask.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">:</span> <span class="n">metrics_lib</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
+        <span class="s1">&#39;diff&#39;</span><span class="p">:</span> <span class="n">metrics_lib</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">(),</span>
+    <span class="p">}</span></div>
+
+<div class="viewcode-block" id="IdentityRegressionTask.DecodeWithTheta"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionTask.DecodeWithTheta">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeWithTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputePredictions</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span> <span class="o">-</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt_ids</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;diff&#39;</span><span class="p">:</span> <span class="n">diff</span><span class="p">}</span></div>
+
+<div class="viewcode-block" id="IdentityRegressionTask.PostProcessDecodeOut"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionTask.PostProcessDecodeOut">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="p">):</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;diff&#39;</span><span class="p">]</span>
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;diff&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">diff</span><span class="p">))</span>
+    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">diff</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">[]</span></div></div>
 
 
-<div class="viewcode-block" id="IdentityRegressionModel"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionModel">[docs]</a><span class="k">class</span> <span class="nc">IdentityRegressionModel</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Simple regression model for testing.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="ModelTrackingFPropResults"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.ModelTrackingFPropResults">[docs]</a><span class="k">class</span> <span class="nc">ModelTrackingFPropResults</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Simple regression model.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
@@ -187,19 +219,72 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">result_per_example_tensors</span> <span class="o">=</span> <span class="p">[]</span>
 
-<div class="viewcode-block" id="IdentityRegressionModel.Params"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">task</span> <span class="o">=</span> <span class="n">IdentityRegressionTask</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">task</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;IdentityRegressionModel&#39;</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">CountingInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
-<div class="viewcode-block" id="IdentityRegressionModel.ProcessFPropResults"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.IdentityRegressionModel.ProcessFPropResults">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFPropResults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span>
+<div class="viewcode-block" id="ModelTrackingFPropResults.ProcessFPropResults"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.ModelTrackingFPropResults.ProcessFPropResults">[docs]</a>  <span class="k">def</span> <span class="nf">ProcessFPropResults</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span>
                           <span class="n">per_example_tensors</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">global_steps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">result_per_example_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">per_example_tensors</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="RegisterIdentityRegressionModel"><a class="viewcode-back" href="../../../lingvo.core.trainer_test_utils.html#lingvo.core.trainer_test_utils.RegisterIdentityRegressionModel">[docs]</a><span class="k">def</span> <span class="nf">RegisterIdentityRegressionModel</span><span class="p">(</span>  <span class="c1"># pylint: disable=invalid-name</span>
+    <span class="n">batch_size</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">weight_init_value</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+    <span class="n">optimizer</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">learning_rate</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+    <span class="n">max_train_steps</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+    <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">eval_decode_steps_per_loop</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">eval_decode_samples_per_summary</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Register an IdentityRegressionTask model with given configuration.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    batch_size: batch size of CountingInputGenerator.</span>
+<span class="sd">    weight_init_value: constant init value for the model varialbes.</span>
+<span class="sd">    optimizer: if set, the optimizer params to use.</span>
+<span class="sd">    learning_rate: the learning rate to use.</span>
+<span class="sd">    max_train_steps: maximum training steps.</span>
+<span class="sd">    train_steps_per_loop: number of training steps per TPU loop.</span>
+<span class="sd">    eval_decode_steps_per_loop: number of evaluation/decode steps per TPU loop.</span>
+<span class="sd">    eval_decode_samples_per_summary: number of samples to eval/decode for each</span>
+<span class="sd">      checkpoint.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">class</span> <span class="nc">IdentityRegressionModel</span><span class="p">(</span><span class="n">base_model_params</span><span class="o">.</span><span class="n">SingleTaskModelParams</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Model params for IdentityRegressionTask.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">Train</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">CountingInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">Test</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">CountingInputGenerator</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="n">batch_size</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">IdentityRegressionTask</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">weight_init_value</span><span class="o">=</span><span class="n">weight_init_value</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">optimizer</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="n">learning_rate</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">max_train_steps</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">=</span> <span class="n">train_steps_per_loop</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="n">eval_decode_samples_per_summary</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">decoder_samples_per_summary</span> <span class="o">=</span> <span class="n">eval_decode_samples_per_summary</span>
+      <span class="k">return</span> <span class="n">p</span>
+
+    <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">ModelTrackingFPropResults</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">Task</span><span class="p">())</span>
+
+    <span class="k">def</span> <span class="nf">ProgramSchedule</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="n">program</span><span class="o">.</span><span class="n">SimpleProgramScheduleForTask</span><span class="p">(</span>
+          <span class="n">train_dataset_name</span><span class="o">=</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span>
+          <span class="n">train_steps_per_loop</span><span class="o">=</span><span class="n">train_steps_per_loop</span><span class="p">,</span>
+          <span class="n">eval_dataset_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Test&#39;</span><span class="p">],</span>
+          <span class="n">eval_steps_per_loop</span><span class="o">=</span><span class="n">eval_decode_steps_per_loop</span><span class="p">,</span>
+          <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="n">eval_decode_steps_per_loop</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">max_train_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">return</span> <span class="n">p</span>
+
+  <span class="n">model_registry</span><span class="o">.</span><span class="n">RegisterSingleTaskModel</span><span class="p">(</span><span class="n">IdentityRegressionModel</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
