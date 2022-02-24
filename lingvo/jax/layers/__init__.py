@@ -68,16 +68,16 @@ from lingvo.jax.layers.rnn_cell import LSTMCellSimple
 from lingvo.jax.layers.spectrum_augmenter import SpectrumAugmenter
 from lingvo.jax.layers.stochastics import Dropout
 from lingvo.jax.layers.stochastics import StochasticResidual
+from lingvo.jax.layers.transformer_models import TransformerEncoderDecoder
+from lingvo.jax.layers.transformer_models import TransformerLm
 from lingvo.jax.layers.transformers import compute_attention_masks_for_extend_step
 from lingvo.jax.layers.transformers import compute_attention_masks_for_fprop
 from lingvo.jax.layers.transformers import PipelinedTransformer
 from lingvo.jax.layers.transformers import StackedTransformer
 from lingvo.jax.layers.transformers import StackedTransformerRepeated
 from lingvo.jax.layers.transformers import Transformer
-from lingvo.jax.layers.transformers import TransformerEncoderDecoder
 from lingvo.jax.layers.transformers import TransformerFeedForward
 from lingvo.jax.layers.transformers import TransformerFeedForwardMoe
-from lingvo.jax.layers.transformers import TransformerLm
 from lingvo.jax.layers.vanillanets import VanillaBlock
 from lingvo.jax.layers.vanillanets import VanillaNet
 

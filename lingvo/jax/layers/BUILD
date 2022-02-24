@@ -34,6 +34,7 @@ pytype_strict_library(
         ":rnn_cell",
         ":spectrum_augmenter",
         ":stochastics",
+        ":transformer_models",
         ":transformers",
         ":vanillanets",
         ":vit",
@@ -416,7 +417,6 @@ pytype_strict_library(
     deps = [
         ":activations",
         ":attentions",
-        ":embedding_softmax",
         ":linears",
         ":normalizations",
         ":pipeline",
@@ -426,7 +426,6 @@ pytype_strict_library(
         ":stochastics",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
-        "//lingvo/jax:asserts",
         "//lingvo/jax:base_layer",
         "//lingvo/jax:gshard_utils",
         "//lingvo/jax:py_utils",
@@ -450,6 +449,31 @@ pytype_strict_library(
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:pytypes",
+    ],
+)
+
+pytype_strict_library(
+    name = "transformer_models",
+    srcs = ["transformer_models.py"],
+    deps = [
+        ":activations",
+        ":attentions",
+        ":embedding_softmax",
+        ":linears",
+        ":normalizations",
+        ":pipeline",
+        ":recurrent",
+        ":repeats",
+        ":stats",
+        ":stochastics",
+        ":transformers",
+        # Implicit absl.logging dependency.
+        # Implicit jax dependency.
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:gshard_utils",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:pytypes",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -699,10 +723,7 @@ py_strict_test(
     size = "large",
     srcs = ["transformers_test.py"],
     python_version = "PY3",
-    # TODO(BF-JAX): Consider splitting this module into
-    # transformers and transformers_models since this is growing
-    # too big.
-    shard_count = 29,
+    shard_count = 20,
     srcs_version = "PY3",
     deps = [
         ":attentions",
@@ -721,5 +742,30 @@ py_strict_test(
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
+        "//third_party/py/tensorflow:tensorflow_no_contrib",
+    ],
+)
+
+py_strict_test(
+    name = "transformer_models_test",
+    srcs = ["transformer_models_test.py"],
+    python_version = "PY3",
+    shard_count = 25,
+    srcs_version = "PY3",
+    deps = [
+        ":embedding_softmax",
+        ":ngrammer",
+        ":transformer_models",
+        ":transformers",
+        # Implicit absl.logging dependency.
+        # Implicit absl.testing.absltest dependency.
+        # Implicit absl.testing.parameterized dependency.
+        # Implicit jax dependency.
+        "//lingvo/core:gshard_builder",
+        "//lingvo/jax:base_layer",
+        "//lingvo/jax:py_utils",
+        "//lingvo/jax:test_utils",
+        # Implicit numpy dependency.
+        "//third_party/py/tensorflow:tensorflow_no_contrib",
     ],
 )
