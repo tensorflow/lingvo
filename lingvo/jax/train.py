@@ -280,12 +280,12 @@ def train_and_evaluate_pmap(
         data_parallel_axis_name='batch',
         fprop_dtype=fprop_dtype)
 
-  def eval_step(mdl_vars, prng_key, global_step, inputs):
+  def eval_step(states, prng_key, inputs):
+    eval_states = trainer_lib.train_state_for_eval_step(states)
     return trainer_lib.eval_step_single_learner(
         jax_task,
-        mdl_vars,
+        eval_states,
         prng_key,
-        global_step,
         inputs,
         data_parallel_axis_name='batch',
         fprop_dtype=fprop_dtype)
@@ -400,10 +400,8 @@ def train_and_evaluate_pmap(
         eval_inputs = train_input_pipeline.get_next()
         logging.debug('  Retrieved eval model_inputs.')
         logging.debug('  Performing eval_step() runs on training split.')
-        eval_step_fn = functools.partial(p_eval_step,
-                                         replicated_model_states.mdl_vars,
-                                         eval_prng_seed,
-                                         replicated_model_states.step)
+        eval_step_fn = functools.partial(p_eval_step, replicated_model_states,
+                                         eval_prng_seed)
         loss, mean_metrics, summary_tensors = model_utils.run_eval_one_step(
             eval_inputs, eval_step_fn, reshard_inputs=True)
         logging.debug('  Completed eval_step() runs on training split.')
@@ -688,10 +686,10 @@ def train_and_evaluate_spmd_model(
           logging.debug('  Retrieved eval model_inputs.')
           logging.debug('  Performing eval_step() runs on training split.')
 
-          eval_step_fn = functools.partial(eval_step,
-                                           partitioned_train_state.mdl_vars,
-                                           eval_key,
-                                           partitioned_train_state.step)
+          eval_step_fn = functools.partial(
+              eval_step,
+              trainer_lib.train_state_for_eval_step(partitioned_train_state),
+              eval_key)
           loss, mean_metrics, summary_tensors = model_utils.run_eval_one_step(
               eval_inputs, eval_step_fn, reshard_inputs=False)
           logging.debug('  Completed eval_step() runs on training split.')

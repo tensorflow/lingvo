@@ -55,10 +55,14 @@ SummaryWriter = tf.summary.SummaryWriter
 
 def maybe_ema(model_states):
   """Finds the ema state from optimizer states."""
+  if not model_states.opt_states:
+    return model_states
   for i in range(len(model_states.opt_states[0])):
     if 'ema' in model_states.opt_states[0][i]:
-      return model_states.opt_states[0][i].ema
-  return model_states.mdl_vars
+      model_states.mdl_vars = model_states.opt_states[0][i].ema
+      model_states.opt_states = {}
+      return model_states
+  return model_states
 
 
 def evaluate(
@@ -112,6 +116,8 @@ def evaluate_pmap_model(
   prng_key, init_key = jax.random.split(prng_key)
 
   checkpoint_dir = os.path.join(job_log_dir, 'checkpoints')
+  # Restore flax checkpoints still required bak variables in TrainState
+  # TODO(pax): add is_eval=True to initialize_model_state
   model_states = trainer_lib.initialize_model_state(jax_task, init_key)
   # Pmap does not use GDA, and so global_mesh and mesh_axes are None.
   model_states = checkpoints.restore_checkpoint(model_states, checkpoint_dir)
@@ -125,12 +131,12 @@ def evaluate_pmap_model(
   prng_key = jax.random.fold_in(prng_key, jax.process_index())
   logging.info('root prng_key: %s', prng_key)
 
-  def eval_step(mdl_vars, prng_key, global_step, inputs):
+  def eval_step(mdl_states, prng_key, inputs):
+    mdl_states = trainer_lib.train_state_for_eval_step(mdl_states)
     return trainer_lib.eval_step_single_learner(
         jax_task,
-        mdl_vars,
+        mdl_states,
         prng_key,
-        global_step,
         inputs,
         data_parallel_axis_name='batch',
         fprop_dtype=jax_task.model.fprop_dtype)
@@ -163,8 +169,7 @@ def evaluate_pmap_model(
       step_i = int(jax.device_get(replicated_model_states.step)[0])
       eval_step = functools.partial(p_eval_step,
                                     maybe_ema(replicated_model_states),
-                                    eval_prng_seed,
-                                    replicated_model_states.step)
+                                    eval_prng_seed)
       # Run the eval loop.
       model_utils.run_eval_loop_over_test_splits(
           num_steps,
@@ -236,20 +241,45 @@ def evaluate_spmd_model(
   sample_model_inputs = eval_input_p[0].Instantiate().get_next()
   inputs_shape = tf.nest.map_structure(get_shape_dtype, sample_model_inputs)
 
+  jax_task = task_p.Instantiate()
   model_p = task_p.model
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
+  use_gda_checkpoint = jax.config.jax_parallel_functions_output_gda
   with global_mesh:
-    partitioned_train_state, partitioned_specs, eval_inputs_partition_specs, _, eval_step, _ = (
-        trainer_lib.partition_spmd_model(task_p, init_key, inputs_shape))
-    partitioned_train_state = checkpoints.restore_checkpoint(
-        partitioned_train_state,
-        checkpoint_task_dir,
-        global_mesh=global_mesh,
-        checkpoint_type=checkpoint_type,
-        state_specs=partitioned_specs)
+    jax_task.model.instantiate_variable_configs()
+    # Restore flax checkpoints still required backward variables in TrainState
+    # TODO(pax): set is_eval=True for all ckpt types.
+    if use_gda_checkpoint:
+      partitioned_specs = jax_task.create_train_state_partition_specs(
+          jax_task.model.vars, is_eval=True)
+      partitioned_train_state = checkpoints.restore_checkpoint(
+          None,
+          checkpoint_task_dir,
+          global_mesh=global_mesh,
+          checkpoint_type=checkpoint_type,
+          state_specs=partitioned_specs)
+      eval_step, inputs_partition_specs = (
+          trainer_lib.get_partitioned_spmd_model_step_fn(
+              jax_task,
+              init_key,
+              partitioned_train_state,
+              partitioned_specs,
+              inputs_shape,
+              is_eval=True))
+    else:
+      (partitioned_train_state, partitioned_specs, inputs_partition_specs, _,
+       eval_step, _) = trainer_lib.partition_spmd_model(task_p, init_key,
+                                                        inputs_shape)
+      partitioned_train_state = checkpoints.restore_checkpoint(
+          partitioned_train_state,
+          checkpoint_task_dir,
+          global_mesh=global_mesh,
+          checkpoint_type=checkpoint_type,
+          state_specs=partitioned_specs)
+
     logging.info('partitioned_train_state: %s',
                  jax.tree_map(lambda x: x.shape, partitioned_train_state))
     if multi_host_checkpointing:
@@ -278,9 +308,10 @@ def evaluate_spmd_model(
       ]
       while True:
         step_i = int(jax.device_get(partitioned_train_state.step))
-        eval_step_fn = functools.partial(eval_step,
-                                         partitioned_train_state.mdl_vars,
-                                         eval_key, partitioned_train_state.step)
+        eval_step_fn = functools.partial(
+            eval_step,
+            trainer_lib.train_state_for_eval_step(partitioned_train_state),
+            eval_key)
         # Run the eval loop.
         model_utils.run_eval_loop_over_test_splits(
             num_steps,
@@ -288,7 +319,7 @@ def evaluate_spmd_model(
             eval_summary_writers,
             step_i,
             eval_input_pipelines,
-            eval_inputs_partition_specs,
+            inputs_partition_specs,
             inputs_shape,
             global_mesh,
             reshard_inputs=False)
@@ -307,7 +338,7 @@ def evaluate_spmd_model(
         # There must be a new checkpoint here.
         logging.info('Found new checkpoint: %s', new_checkpoint)
         partitioned_train_state = checkpoints.restore_checkpoint(
-            partitioned_train_state,
+            None if use_gda_checkpoint else partitioned_train_state,
             checkpoint_task_dir,
             global_mesh=global_mesh,
             checkpoint_type=checkpoint_type,
@@ -453,6 +484,8 @@ def decode_pmap_model(
     ]
 
     jax_task = task_p.Instantiate()
+    # Restore flax checkpoints still required bak variables in TrainState
+    # TODO(pax): add is_eval=True to initialize_model_state
     model_states = trainer_lib.initialize_model_state(jax_task, init_key)
     model_states = checkpoints.restore_checkpoint(
         model_states, restore_checkpoint_dir, step=restore_checkpoint_step)
@@ -518,9 +551,9 @@ def _decode_once_pmap_model(
   step_i = _get_step(replicated_model_states.step)
   pmap_axis_name = 'batch'
 
-  def decode_step(mdl_vars, prng_key, global_step, inputs):
-    metrics, out = trainer_lib.decode_step(model, mdl_vars, prng_key,
-                                           global_step, inputs,
+  def decode_step(mdl_states, prng_key, inputs):
+    mdl_states = trainer_lib.train_state_for_eval_step(mdl_states)
+    metrics, out = trainer_lib.decode_step(model, mdl_states, prng_key, inputs,
                                            model_p.fprop_dtype)
     metrics = decode_metrics.aggregate(metrics)
     return metrics, out
@@ -546,7 +579,7 @@ def _decode_once_pmap_model(
       decode_step, axis_name=pmap_axis_name, out_axes=(None, 0))
   decode_step_func = functools.partial(pmap_decode_step,
                                        maybe_ema(replicated_model_states),
-                                       prng_seed, replicated_model_states.step)
+                                       prng_seed)
 
   num_steps = [
       -1 if p.reset_for_eval else p.eval_loop_num_batches for p in input_p
@@ -687,10 +720,10 @@ def decode_once_spmd_model(
     logging.info('root prng_key: %s', prng_key)
     prng_key, decode_key = jax.random.split(prng_key)
     logging.info('eval prng_key: %s', decode_key)
-    spmd_decode_step_fn = functools.partial(decode_step_fn,
-                                            partitioned_train_state.mdl_vars,
-                                            decode_key,
-                                            partitioned_train_state.step)
+    spmd_decode_step_fn = functools.partial(
+        decode_step_fn,
+        trainer_lib.train_state_for_eval_step(partitioned_train_state),
+        decode_key)
 
     num_steps = [
         -1 if p.reset_for_eval else p.eval_loop_num_batches for p in input_p

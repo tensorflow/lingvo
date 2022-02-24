@@ -137,6 +137,11 @@ class SingleTask(BaseTask):
   def model(self) -> base_model.BaseModel:
     return self._model
 
+  @property
+  def _has_ema_decay(self):
+    return (self.learners[0].params.optimizer and
+            self.learners[0].params.optimizer.ema_decay > 0)
+
   def create_train_state_unpadded_shapes(self,
                                          var_weight_params,
                                          is_eval=False) -> TrainState:
@@ -148,7 +153,8 @@ class SingleTask(BaseTask):
       var_weight_params: a nested map of variable params for all the forward
         variables.
       is_eval: bool, indicating if it's a eval/decode task or not. When true,
-        only model vars are initialized. Optimizer slot variables are skipped.
+        only model vars or the ema vars are initialized. Optimizer slot
+        variables are skipped.
 
     Returns:
       A TrainState contains shapes for all the forward and backward variables.
@@ -157,7 +163,7 @@ class SingleTask(BaseTask):
       return tuple(var_param.repeat_prefix or ()) + tuple(var_param.shape)
 
     var_shapes = jax.tree_map(_get_shape, var_weight_params)
-    if is_eval:
+    if is_eval and not self._has_ema_decay:
       opt_shapes = {}
     else:
       grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
@@ -180,7 +186,8 @@ class SingleTask(BaseTask):
       var_weight_params: a nested map of variable params for all the forward
         variables.
       is_eval: bool, indicating if it's a eval/decode task or not. When true,
-        only model vars are initialized. Optimizer slot variables are skipped.
+        only model vars or the ema vars are initialized. Optimizer slot
+        variables are skipped.
 
     Returns:
       A TrainState contains PartitionSpecs for all the forward and/or backward
@@ -195,7 +202,7 @@ class SingleTask(BaseTask):
         var_weight_params,
         device_mesh=device_mesh,
         device_axis_names=p.model.mesh_axis_names)
-    if is_eval:
+    if is_eval and not self._has_ema_decay:
       opt_var_partition_specs = {}
     else:
       grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
@@ -228,7 +235,8 @@ class SingleTask(BaseTask):
         weight variable is associated with some WeightParams which contains all
         the meta information about the weight variable.
       is_eval: bool, indicating if it's a eval/decode task or not. When true,
-        only model vars are initialized. Optimizer slot variables are skipped.
+        only model vars or the ema vars are initialized. Optimizer slot
+        variables are skipped.
 
     Returns:
       a TrainState.
@@ -237,7 +245,7 @@ class SingleTask(BaseTask):
     # not shared with the caller.
     mdl_vars = tf.nest.map_structure(lambda x: x, mdl_vars)
     var_weight_params = tf.nest.map_structure(lambda x: x, var_weight_params)
-    if is_eval:
+    if is_eval and not self._has_ema_decay:
       opt_states = {}
     else:
       grad_txs = [x.get_grad_tx(var_weight_params) for x in self.learners]
