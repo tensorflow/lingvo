@@ -68,7 +68,7 @@ py_library(
         "//lingvo/core:py_utils",
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.
-        # Implicit Tensorboard dependency.
+        # Implicit tensorboard/plugins/mesh:summary dependency.
     ],
 )
 

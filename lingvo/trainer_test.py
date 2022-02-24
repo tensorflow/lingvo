@@ -42,6 +42,11 @@ import numpy as np
 FLAGS = tf.flags.FLAGS
 
 
+def setUpModule():
+  trainer_test_utils.RegisterIdentityRegressionModel(
+      learning_rate=0.025, max_train_steps=100)
+
+
 class BaseTrainerTest(test_utils.TestCase):
   """Base class for the test cases."""
 
@@ -420,8 +425,8 @@ class ProcessFPropResultsTest(BaseTrainerTest):
                           'identity_regression_test' + str(random.random()))
     FLAGS.logdir = logdir
 
-    steps = 100
-    cfg = trainer_test_utils.IdentityRegressionModel.Params()
+    cfg = model_registry.GetParams(
+        'lingvo.core.trainer_test_utils.IdentityRegressionModel', 'Train')
     cfg.cluster.task = 0
     cfg.cluster.mode = 'sync'
     cfg.cluster.job = 'trainer_client'
@@ -431,8 +436,7 @@ class ProcessFPropResultsTest(BaseTrainerTest):
     cfg.cluster.ps.name = '/job:localhost'
     cfg.cluster.ps.replicas = 1
     cfg.cluster.ps.gpus_per_replica = 0
-    cfg.train.max_steps = steps
-    cfg.task.train.learning_rate = 0.025
+    steps = cfg.train.max_steps
 
     all_runners = [self._CreateController(cfg), self._CreateTrainer(cfg)]
 

@@ -1839,6 +1839,7 @@ py_library(
         ":py_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
+        # Implicit tensorboard/backend/event_processing:event_file_inspector dependency.
     ],
 )
 
@@ -1860,9 +1861,13 @@ py_library(
     deps = [
         ":base_input_generator",
         ":base_model",
+        ":base_model_params",
+        ":metrics",
         ":py_utils",
         ":summary_utils",
         "//lingvo:compat",
+        "//lingvo:model_registry",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -2656,6 +2661,7 @@ py_strict_test(
         ":cluster_factory",
         ":learner",
         ":optimizer",
+        ":program_lib",
         ":py_utils",
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
