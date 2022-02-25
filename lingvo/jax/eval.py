@@ -59,9 +59,10 @@ def maybe_ema(model_states):
     return model_states
   for i in range(len(model_states.opt_states[0])):
     if 'ema' in model_states.opt_states[0][i]:
-      model_states.mdl_vars = model_states.opt_states[0][i].ema
-      model_states.opt_states = {}
-      return model_states
+      return TrainState(
+          step=model_states.step,
+          mdl_vars=model_states.opt_states[0][i].ema,
+          opt_states={})
   return model_states
 
 
