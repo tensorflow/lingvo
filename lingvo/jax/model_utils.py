@@ -65,7 +65,7 @@ def run_eval_one_step(eval_inputs: NestedJTensor,
   """
   if reshard_inputs:
     eval_inputs = tf.nest.map_structure(py_utils.reshard, eval_inputs)
-  loss, mean_metrics, _, summary_tensors = eval_step(eval_inputs)
+  _, loss, mean_metrics, _, summary_tensors = eval_step(eval_inputs)
   return loss, mean_metrics, summary_tensors
 
 

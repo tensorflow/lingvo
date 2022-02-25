@@ -266,7 +266,6 @@ def evaluate_spmd_model(
           trainer_lib.get_partitioned_spmd_model_step_fn(
               jax_task,
               init_key,
-              partitioned_train_state,
               partitioned_specs,
               inputs_shape,
               is_eval=True))
@@ -706,8 +705,7 @@ def decode_once_spmd_model(
             f'checkpointer:restored:{restore_checkpoint_parent_dir}')
       decode_step_fn, inputs_partition_spec = (
           trainer_lib.get_partitioned_spmd_model_decode_fn(
-              jax_task, init_key, partitioned_train_state, partitioned_specs,
-              inputs_shape))
+              jax_task, init_key, partitioned_specs, inputs_shape))
     else:
       # When restore is not specified, randomly initiate the train_state.
       (partitioned_train_state, inputs_partition_spec, partitioned_specs,
