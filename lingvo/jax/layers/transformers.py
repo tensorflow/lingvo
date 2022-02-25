@@ -1651,6 +1651,8 @@ class PipelinedTransformer(base_layer.BaseLayer):
              'Size of each pipeline microbatch.')
     wp = p.weight_split_dims_mapping
     wp.Define('stages', [-1], 'How the num_stages dimension should be sharded.')
+    ap = p.activation_split_dims_mapping
+    ap.Define('final_out', None, 'How the final output should be sharded.')
     return p
 
   def __init__(self, params: InstantiableParams) -> None:
@@ -1677,7 +1679,8 @@ class PipelinedTransformer(base_layer.BaseLayer):
             segment_mask: Optional[JTensor] = None,
             cross_inputs: Optional[JTensor] = None,
             cross_paddings: Optional[JTensor] = None,
-            cross_segment_mask: Optional[JTensor] = None) -> JTensor:
+            cross_segment_mask: Optional[JTensor] = None,
+            segment_pos: Optional[JTensor] = None) -> JTensor:
     """Pipelined Transformer layer.
 
     Args:
@@ -1690,17 +1693,64 @@ class PipelinedTransformer(base_layer.BaseLayer):
       cross_paddings: Paddings for cross atention of shape [B, S].
       cross_segment_mask: Segment mask for encoder-decoder in packed input case
         of shape [B, 1, T, S].
+      segment_pos: Segment position of shape [B, T].
 
     Returns:
       Output vector with shape [B, T, D].
     """
-    return self.pipeline.fprop(
+    p = self.params
+    if p.pipeline_stage.cls == StackedTransformer:
+      xformer_layer_p = p.pipeline_stage.transformer_layer_params_tpl
+    else:
+      assert p.pipeline_stage.cls == StackedTransformerRepeated
+      xformer_layer_p = p.pipeline_stage.block.transformer_layer_params_tpl
+    bld_mapping = xformer_layer_p.tr_atten_tpl.activation_split_dims_mapping.bld
+    # Annotate the inputs before the pipeline to prevent unexpected propagation
+    # from earlier layers.
+    inputs = base_layer.maybe_shard(inputs, bld_mapping, p.mesh_axis_names)
+    if bld_mapping is not None:
+      # Annotate other inputs.
+      paddings = base_layer.maybe_shard(paddings, bld_mapping[:-1],
+                                        p.mesh_axis_names)
+      # For cross inputs, we only specify the batch dim sharding.
+      if segment_mask is not None:
+        segment_mask = base_layer.maybe_shard(
+            segment_mask, [bld_mapping[0], -1, -1, -1],
+            p.mesh_axis_names,
+            unconstrained_dims=[1, 2, 3])
+      if cross_inputs is not None:
+        cross_inputs = base_layer.maybe_shard(
+            cross_inputs, [bld_mapping[0], -1, -1],
+            p.mesh_axis_names,
+            unconstrained_dims=[1, 2])
+      if cross_paddings is not None:
+        cross_paddings = base_layer.maybe_shard(
+            cross_paddings, [bld_mapping[0], -1],
+            p.mesh_axis_names,
+            unconstrained_dims=[1])
+      if cross_segment_mask is not None:
+        cross_segment_mask = base_layer.maybe_shard(
+            cross_segment_mask, [bld_mapping[0], -1, -1, -1],
+            p.mesh_axis_names,
+            unconstrained_dims=[1, 2, 3])
+      if segment_pos is not None:
+        segment_pos = base_layer.maybe_shard(segment_pos, bld_mapping[:-1],
+                                             p.mesh_axis_names)
+    outputs = self.pipeline.fprop(
         inputs,
         paddings,
         segment_mask=segment_mask,
         cross_inputs=cross_inputs,
         cross_paddings=cross_paddings,
-        cross_segment_mask=cross_segment_mask)
+        cross_segment_mask=cross_segment_mask,
+        segment_pos=segment_pos)
+    # Annotate the output to match input sharding.
+    outputs = base_layer.maybe_shard(outputs, bld_mapping, p.mesh_axis_names)
+    # Re-annotate the final output.
+    outputs = base_layer.maybe_shard(outputs,
+                                     p.activation_split_dims_mapping.final_out,
+                                     p.mesh_axis_names)
+    return outputs
 
   def init_states(self, *args, **kwargs) -> NestedMap:
     raise NotImplementedError(type(self))

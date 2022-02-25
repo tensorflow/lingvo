@@ -262,13 +262,17 @@ class TransformerLm(base_layer.BaseLayer):
         batch_split, None, mdl_axis
     ]
 
-    if lm_p.stacked_transformer_tpl.cls == transformers.StackedTransformer:
-      xformer_p = lm_p.stacked_transformer_tpl.transformer_layer_params_tpl
-    elif lm_p.stacked_transformer_tpl.cls == transformers.StackedTransformerRepeated:
-      xformer_p = (
-          lm_p.stacked_transformer_tpl.block.transformer_layer_params_tpl)
+    if lm_p.stacked_transformer_tpl.cls == transformers.PipelinedTransformer:
+      stacked_transformer_tpl = lm_p.stacked_transformer_tpl.pipeline_stage
     else:
-      assert False, f'{lm_p.stacked_transformer_tpl.cls} not supported.'
+      stacked_transformer_tpl = lm_p.stacked_transformer_tpl
+
+    if stacked_transformer_tpl.cls == transformers.StackedTransformer:
+      xformer_p = stacked_transformer_tpl.transformer_layer_params_tpl
+    elif stacked_transformer_tpl.cls == transformers.StackedTransformerRepeated:
+      xformer_p = stacked_transformer_tpl.block.transformer_layer_params_tpl
+    else:
+      assert False, f'{stacked_transformer_tpl.cls} not supported.'
 
     xformer_p.tr_atten_tpl.activation_split_dims_mapping.blnh = [
         batch_split, None, mdl_axis, None
@@ -312,12 +316,12 @@ class TransformerLm(base_layer.BaseLayer):
     #   gecm_split=[0, -1, -1, 1],
     #   gsec_split=[0, -1, -1, -1],
     # for mesh with 2 dimensions.
-    if lm_p.stacked_transformer_tpl.cls == transformers.StackedTransformer:
-      moe_p = lm_p.stacked_transformer_tpl.moe_layer_tpl
-    elif lm_p.stacked_transformer_tpl.cls == transformers.StackedTransformerRepeated:
-      moe_p = lm_p.stacked_transformer_tpl.block.moe_layer_tpl
+    if stacked_transformer_tpl.cls == transformers.StackedTransformer:
+      moe_p = stacked_transformer_tpl.moe_layer_tpl
+    elif stacked_transformer_tpl.cls == transformers.StackedTransformerRepeated:
+      moe_p = stacked_transformer_tpl.block.moe_layer_tpl
     else:
-      assert False, f'{lm_p.stacked_transformer_tpl.cls} not supported.'
+      assert False, f'{stacked_transformer_tpl.cls} not supported.'
     # Weights
     moe_wp = moe_p.weight_split_dims_mapping
     # TODO(lepikhin): RET_CHECK with [data_axis, None] http://b/209481545
@@ -358,12 +362,13 @@ class TransformerLm(base_layer.BaseLayer):
       self.create_child('ngrammer', p.ngrammer_tpl)
 
     # Transformer layers
-    if p.stacked_transformer_tpl.cls == transformers.StackedTransformer:
-      xformer_params = p.stacked_transformer_tpl
-    elif p.stacked_transformer_tpl.cls == transformers.StackedTransformerRepeated:
-      xformer_params = p.stacked_transformer_tpl.block
-    else:
-      assert False, f'{p.stacked_transformer_tpl.cls} not supported.'
+    xformer_params = p.stacked_transformer_tpl
+    if xformer_params.cls == transformers.PipelinedTransformer:
+      xformer_params = xformer_params.pipeline_stage
+    if xformer_params.cls == transformers.StackedTransformerRepeated:
+      xformer_params = xformer_params.block
+    if xformer_params.cls != transformers.StackedTransformer:
+      assert False, f'{xformer_params.cls} not supported.'
     assert (xformer_params.model_dims == 0 or
             xformer_params.model_dims == p.model_dims)
     xformer_params.model_dims = p.model_dims

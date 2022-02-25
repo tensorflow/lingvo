@@ -18,6 +18,7 @@
 from absl import logging
 import jax
 from jax import numpy as jnp
+from jax.experimental import maps
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -250,10 +251,32 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
       # Different stages need args from different microbatches.
       microbatch_ids = (loop_iter - jnp.arange(L) +
                         num_microbatches) % num_microbatches
-      per_stage_args = jax.tree_map(lambda x: x[microbatch_ids],
-                                    broadcast_inputs)
-      per_stage_kwargs = jax.tree_map(lambda x: x[microbatch_ids],
-                                      broadcast_kwargs)
+
+      def _gather(xs):
+
+        def _gather_one(x, i):
+          return x[i]
+
+        if p.mesh_axis_names is not None:
+          # When the stage dim is partitioned, we use xmap (with manual sharding
+          # implementation) to make sure it's trivially partitioned on the stage
+          # dim and work around some potential optimization problems in XLA.
+          # TODO(yuanzx): Use xmap on the whole body fprop.
+          mesh_axis = base_layer.to_partition_spec(
+              p.weight_split_dims_mapping.stages, p.mesh_axis_names)[0]
+          if mesh_axis is not None:
+            axis_resources = {'num_stages': mesh_axis}
+            return maps.xmap(
+                _gather_one,
+                # broadcast_inputs are replicated across stages, but IDs are
+                # per-stage.
+                in_axes=([...], ['num_stages', ...]),
+                out_axes=['num_stages', ...],
+                axis_resources=axis_resources)(xs, microbatch_ids)
+        return xs[microbatch_ids]
+
+      per_stage_args = jax.tree_map(_gather, broadcast_inputs)
+      per_stage_kwargs = jax.tree_map(_gather, broadcast_kwargs)
 
       # Run through pipeline body.
       out_state = self.body_fprop(stages_in, *per_stage_args,
@@ -262,8 +285,9 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
 
       # Shift state to the right by 1.
       def _shift_right(x):
-        padding = [[1, 0]] + [[0, 0]] * (len(x.shape) - 1)
-        return jnp.pad(x, padding)[0:L, ...]
+        padding = [[1, 0]] + [[0, 0]] * (x.ndim - 1)
+        # Use lax.slice to guarantee the gradient is a pad.
+        return jax.lax.slice(jnp.pad(x, padding), [0] * x.ndim, x.shape)
 
       shifted_out_state = jax.tree_map(_shift_right, out_state)
       # Accumulator saves out_state for final output retrieval.
@@ -282,7 +306,13 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     del summaries
 
     # Extract output from the last stage after num_stages-1 bubbles.
-    output = jax.tree_map(lambda x: x[L - 1:, -1, ...], accum.data)
+    def _extract_out(x):
+      # Use lax.slice to guarantee the gradient is a pad.
+      return jnp.squeeze(
+          jax.lax.slice(x, [L - 1, x.shape[1] - 1] + [0] * (x.ndim - 2),
+                        x.shape), 1)
+
+    output = jax.tree_map(_extract_out, accum.data)
 
     if needs_microbatching:
 

@@ -17,6 +17,7 @@
 from typing import List
 
 import jax
+from jax import numpy as jnp
 from lingvo.jax import base_input
 from lingvo.jax import base_model_params
 from lingvo.jax import layers
@@ -258,3 +259,49 @@ class LmCloudSpmd1024B(LmCloudSpmd):
 
   CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
   MESH_SHAPE = [1, 256, 8]
+
+
+class LmCloudSpmdPipeline(model_params.TransformerLmSpmdPipelineAdafactor,
+                          SyntheticDataset):
+  """Base config for a pipelined SPMD model."""
+
+  NUM_LAYERS = 10
+  MODEL_DIMS = 2048
+  HIDDEN_DIMS = MODEL_DIMS * 4
+  ACTIVATION = 'GELU'
+
+  # Autodiff remat.
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+
+  # Sub-class has to specify a mesh.
+  MESH_SHAPE = None
+
+  MICROBATCH_SIZE = None
+  NUM_STAGES = None
+
+  def task(self) -> InstantiableParams:
+    """Returns the task parameters."""
+    model_p = super().task()
+    model_params.set_default_adam(model_p, self.LEARNING_RATE,
+                                  self.WEIGHT_DECAY)
+    return model_p
+
+
+@model_registry.register_model
+class LmCloudSpmdPipeline9B(LmCloudSpmdPipeline):
+  """SPMD-pipelined model with 9B params.
+
+  Global batch size = 4 * 16 * 8 = 512
+  """
+  MICROBATCH_SIZE = 4
+  PERCORE_BATCH_SIZE = 8
+
+  NUM_STAGES = 16
+  NUM_LAYERS = 48
+  MODEL_DIMS = 4096
+  HIDDEN_DIMS = MODEL_DIMS * 4
+  FPROP_DTYPE = jnp.float32
+
+  CHECKPOINT_POLICY = layers.AutodiffCheckpointType.SAVE_NOTHING
+  # 16-way pipeline and 4-way data parallelism.
+  MESH_SHAPE = [16, 4, 1, 1]
