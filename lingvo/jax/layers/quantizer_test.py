@@ -16,6 +16,7 @@
 """Tests for quantizer."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 
 import jax
 from jax import test_util
@@ -93,6 +94,29 @@ class SeqVectorQuantizerTest(test_util.JaxTestCase):
       self.assertEqual((b, t, num_groups), out.z_codes.shape)
       self.assertEqual((b, t, num_groups, num_classes), out.z_onehot.shape)
 
+
+class RandomVectorQuantizerTest(test_util.JaxTestCase):
+
+  @parameterized.parameters(
+      (2, 4, 20, 16, 4),
+      (3, 7, 16, 16, 20),
+  )
+  def testBase(self, b, t, latent_dim, projection_dim, num_classes):
+    np.random.seed(2022)
+    z = np.random.rand(b, t, latent_dim).astype(np.float32)
+    paddings = np.zeros((b, t)).astype(np.float32)
+
+    rq = quantizer.RandomVectorQuantizer.Params().Set(
+        name='vq',
+        num_latent_classes=num_classes,
+        latent_dim=latent_dim,
+        projection_dim=projection_dim)
+    rq = rq.Instantiate()
+    rq_theta = rq.instantiate_variables(jax.random.PRNGKey(1))
+    out = test_utils.apply(rq, rq_theta, rq.fprop, z, paddings)
+    self.assertEqual((b, t, projection_dim), out.z_q.shape)
+    self.assertEqual((b, t), out.z_codes.shape)
+    self.assertEqual((b, t, num_classes), out.z_onehot.shape)
 
 if __name__ == '__main__':
   absltest.main()

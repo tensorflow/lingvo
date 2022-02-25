@@ -30,14 +30,14 @@ InstantiableParams = py_utils.InstantiableParams
 JTensor = pytypes.JTensor
 
 
-def VectorQuantize(latent: JTensor, codebook: JTensor):
+# TODO(nanxinchen): merge this with ngrammer.VectorQuantization
+def quantize_vector(latent: JTensor, codebook: JTensor):
   """Vector quantization.
 
   (port from TF impl of ... speech/quantizer/layers.py)
 
   Symbols in comments:
   B: batch_size.
-  T: sequence length.
   D: latent_dim.
   C: num_latent_classes per group
   G: num of codebook groups.
@@ -78,6 +78,51 @@ def VectorQuantize(latent: JTensor, codebook: JTensor):
   quantized = jnp.einsum('bgc,cgd->bgd', one_hot, codebook)
   quantized = jnp.reshape(quantized, [b, d])
   return quantized, codes, one_hot
+
+
+class RandomVectorQuantizer(base_layer.BaseLayer):
+  """Random quantization for BEST-RQ: https://arxiv.org/pdf/2202.01855.pdf."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('latent_dim', None, 'Input dimension.')
+    p.Define('projection_dim', 16, 'Projection dimension.')
+    p.Define('num_latent_classes', None, 'Number of random quantized classes.')
+    return p
+
+  def create_layer_variables(self) -> None:
+    super().create_layer_variables()
+    p = self.params
+
+    self.create_variable(
+        'random_proj',
+        WeightParams(
+            shape=[p.latent_dim, p.projection_dim],
+            init=p.params_init,
+            dtype=jnp.float32))
+    self.create_variable(
+        'random_codebook',
+        WeightParams(
+            shape=[p.num_latent_classes, 1, p.projection_dim],
+            init=p.params_init,
+            dtype=jnp.float32))
+
+  def fprop(self, z: JTensor, paddings: JTensor) -> NestedMap:
+    del paddings
+
+    p = self.params
+    theta = self.local_theta()
+
+    proj_vec = jnp.einsum('dh,btd->bth', theta.random_proj, z)
+
+    batch_size, time_steps, dim = proj_vec.shape
+    proj_vec = jnp.reshape(proj_vec, [batch_size * time_steps, dim])
+    q, c, onehot = quantize_vector(proj_vec, theta.random_codebook)
+    q = jnp.reshape(q, [batch_size, time_steps, dim])
+    c = jnp.reshape(c, [batch_size, time_steps])
+    onehot = jnp.reshape(onehot, [batch_size, time_steps, p.num_latent_classes])
+    return NestedMap(z_q=q, z_codes=c, z_onehot=onehot)
 
 
 class SeqVectorQuantizer(base_layer.BaseLayer):
@@ -184,7 +229,7 @@ class SeqVectorQuantizer(base_layer.BaseLayer):
       z = self._l2_normalize(z, axis=-1)
 
     # [b * t, d], [b * t, g], [b * t, g, c]
-    z_q, z_codes, z_onehot = VectorQuantize(
+    z_q, z_codes, z_onehot = quantize_vector(
         jnp.reshape(z, [b * t, d]), self._get_latent_embedding(theta))
 
     z_q = jnp.reshape(z_q, [b, t, d])
