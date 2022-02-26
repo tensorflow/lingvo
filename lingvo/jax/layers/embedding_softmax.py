@@ -393,12 +393,16 @@ class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
     # Compute total softmax for the entire sequence
     total_xent = jnp.sum(
         jnp.expand_dims(per_example_xent, axis=-1) * class_weights)
-    if p.use_tgt_labels_size_as_loss_denominator:
-      total_weight = jnp.sum(jnp.ones_like(class_weights))
-    else:
-      total_weight = jnp.sum(class_weights)
 
-    z_loss = jnp.sum(self.compute_z_loss(logits) * class_weights) / total_weight
+    total_weight = jnp.sum(class_weights)
+
+    if p.use_tgt_labels_size_as_loss_denominator:
+      loss_denominator = jnp.sum(jnp.ones_like(class_weights))
+    else:
+      loss_denominator = total_weight
+    avg_xent = (total_xent / loss_denominator).astype(inputs_dtype)
+    z_loss = (
+        jnp.sum(self.compute_z_loss(logits) * class_weights) / loss_denominator)
     z_loss *= p.z_loss_weight
     base_layer.add_summary('aux_z_loss', z_loss)
     aux_loss_ctx = py_utils.AuxLossContext.Current()
@@ -412,8 +416,12 @@ class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
         per_example_argmax=per_example_argmax.astype(inputs_dtype),
         per_example_xent=per_example_xent.astype(inputs_dtype),
         total_xent=total_xent.astype(inputs_dtype),
-        total_weight=total_weight,
-        avg_xent=(total_xent / total_weight).astype(inputs_dtype))
+        # base_model.py _compute_xent_loss_helper uses avg_xent_weight if set,
+        # this helper is currently used by LanguageModel only, if we have
+        # EncoderDecoder model we will have to adjust weighting as well.
+        avg_xent_weight=loss_denominator,
+        avg_xent=avg_xent,
+        total_weight=total_weight)
 
     return output_nmap
 

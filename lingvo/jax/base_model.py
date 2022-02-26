@@ -75,12 +75,18 @@ def _compute_xent_loss_helper(
   mean_acc = jnp.sum(
       (labels == predicted_labels) * weights) / jnp.maximum(num_preds, 1)
   metric_weight = jnp.array(num_preds, predictions.avg_xent.dtype)
+
+  if hasattr(predictions, 'avg_xent_weight'):
+    avg_xent_weight = predictions.avg_xent_weight
+  else:
+    avg_xent_weight = metric_weight
+
   metrics = NestedMap(
       total_loss=(predictions.total_loss, metric_weight),
-      avg_xent=(predictions.avg_xent, metric_weight),
+      avg_xent=(predictions.avg_xent, avg_xent_weight),
       aux_loss=(predictions.aux_loss, jnp.array(1.0,
                                                 predictions.aux_loss.dtype)),
-      log_pplx=(predictions.avg_xent, metric_weight),
+      log_pplx=(predictions.avg_xent, avg_xent_weight),
       fraction_of_correct_next_step_preds=(mean_acc, metric_weight),
       num_predictions=(num_preds, jnp.array(1.0, num_preds.dtype)),
   )
