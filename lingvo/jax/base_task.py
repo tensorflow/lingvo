@@ -189,7 +189,7 @@ class SingleTask(BaseTask):
 
     Returns:
       A TrainState contains PartitionSpecs for all the forward and/or backward
-        variables depending on the value of is_eval, or None.
+        variables depending on the value of discard_opt_states, or None.
     """
     p = self.params
     device_mesh = p.model.device_mesh
