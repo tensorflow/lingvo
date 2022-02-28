@@ -548,6 +548,32 @@ class MoEBuilder(builder.Base):
              self._Dropout('y_dropout', 1 - self.params.dropout_rate)),
             ('x,y_dropout->o.vec', self._Add('add')),
         )
+    if norm_policy == 'primer_hybrid':
+      if conv_kernel_size is not None:
+        if norm_type != 'ln':
+          raise ValueError('Only ln supports conv. %s does not support conv.' %
+                           norm_type)
+        post_norm_layer = self._LNConv('post_ln', conv_kernel_size)
+      elif norm_type == 'ln':
+        post_norm_layer = self._LN('post_ln')
+      elif norm_type == 'true_ln':
+        post_norm_layer = self._TrueLN('post_true_ln')
+      elif norm_type == 'pn':
+        post_norm_layer = self._PN('post_pn')
+      else:
+        raise ValueError('Norm type %s not supported.' % norm_type)
+      return self._Graph(
+          name,
+          ['i'],
+          ['o'],
+          ('i.vec,i.segment_id->input_masked', self.Mask()),
+          ('input_masked->x', norm_layer),
+          (layer_inputs + '->y,o.aux_loss', layer),
+          ('y->y_norm', post_norm_layer),
+          ('y_norm->y_dropout',
+           self._Dropout('y_dropout', 1 - self.params.dropout_rate)),
+          ('input_masked,y_dropout->o.vec', self._Add('add')),
+      )
     raise ValueError('Unsupported norm policy: %s' % norm_policy)
 
   @property
@@ -3172,7 +3198,7 @@ class UniTransformer(base_model.BaseTask):
              '[ln, pn, true_ln].')
     p.Define(
         'norm_policy', 'pre', 'Policy for applying normalization. '
-        'Options are: [pre, primer].')
+        'Options are: [pre, primer, primer_hybrid].')
     p.Define('multi_dconv_head_att', False,
              "Whether or not to use Primer's Mutli-Dconv-Head attention.")
     # TODO(krikun): add a separate params class for decoder options
