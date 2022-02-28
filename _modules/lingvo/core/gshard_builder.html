@@ -613,6 +613,32 @@
              <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
             <span class="p">(</span><span class="s1">&#39;x,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
         <span class="p">)</span>
+    <span class="k">if</span> <span class="n">norm_policy</span> <span class="o">==</span> <span class="s1">&#39;primer_hybrid&#39;</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">conv_kernel_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">norm_type</span> <span class="o">!=</span> <span class="s1">&#39;ln&#39;</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only ln supports conv. </span><span class="si">%s</span><span class="s1"> does not support conv.&#39;</span> <span class="o">%</span>
+                           <span class="n">norm_type</span><span class="p">)</span>
+        <span class="n">post_norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LNConv</span><span class="p">(</span><span class="s1">&#39;post_ln&#39;</span><span class="p">,</span> <span class="n">conv_kernel_size</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;ln&#39;</span><span class="p">:</span>
+        <span class="n">post_norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;post_ln&#39;</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;true_ln&#39;</span><span class="p">:</span>
+        <span class="n">post_norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TrueLN</span><span class="p">(</span><span class="s1">&#39;post_true_ln&#39;</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="n">norm_type</span> <span class="o">==</span> <span class="s1">&#39;pn&#39;</span><span class="p">:</span>
+        <span class="n">post_norm_layer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PN</span><span class="p">(</span><span class="s1">&#39;post_pn&#39;</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Norm type </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">norm_type</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+          <span class="n">name</span><span class="p">,</span>
+          <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>
+          <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>
+          <span class="p">(</span><span class="s1">&#39;i.vec,i.segment_id-&gt;input_masked&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
+          <span class="p">(</span><span class="s1">&#39;input_masked-&gt;x&#39;</span><span class="p">,</span> <span class="n">norm_layer</span><span class="p">),</span>
+          <span class="p">(</span><span class="n">layer_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;y,o.aux_loss&#39;</span><span class="p">,</span> <span class="n">layer</span><span class="p">),</span>
+          <span class="p">(</span><span class="s1">&#39;y-&gt;y_norm&#39;</span><span class="p">,</span> <span class="n">post_norm_layer</span><span class="p">),</span>
+          <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;y_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;input_masked,y_dropout-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">)),</span>
+      <span class="p">)</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported norm policy: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">norm_policy</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
@@ -3237,7 +3263,7 @@
              <span class="s1">&#39;[ln, pn, true_ln].&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;norm_policy&#39;</span><span class="p">,</span> <span class="s1">&#39;pre&#39;</span><span class="p">,</span> <span class="s1">&#39;Policy for applying normalization. &#39;</span>
-        <span class="s1">&#39;Options are: [pre, primer].&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;Options are: [pre, primer, primer_hybrid].&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;multi_dconv_head_att&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s2">&quot;Whether or not to use Primer&#39;s Mutli-Dconv-Head attention.&quot;</span><span class="p">)</span>
     <span class="c1"># TODO(krikun): add a separate params class for decoder options</span>
