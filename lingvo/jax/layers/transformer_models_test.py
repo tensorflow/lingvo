@@ -687,7 +687,8 @@ class TransformerModelsTest(test_util.JaxTestCase):
       for t in range(length):
         cached_states, xent_output = transformer_lm.extend_step(
             cached_states, inputs[:, t])
-        self.assertAllClose(logits[:, t, :], xent_output.logits)
+        self.assertAllClose(logits[:, t, :], xent_output.logits, atol=1e-5,
+                            rtol=1e-5)
 
 
 if __name__ == '__main__':
