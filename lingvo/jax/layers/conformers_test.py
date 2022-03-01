@@ -20,7 +20,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.core import cluster_factory
 from lingvo.core import conformer_layer
 from lingvo.jax import base_layer
@@ -34,8 +33,7 @@ to_np = test_utils.to_np
 NestedMap = py_utils.NestedMap
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class ConformerTest(test_util.JaxTestCase):
+class ConformerTest(test_utils.TestCase):
 
   @parameterized.parameters(
       (2, 10, 3, 8, 8, 4, 0.0),
@@ -108,8 +106,7 @@ class ConformerTest(test_util.JaxTestCase):
     self.assertAllClose(tf_np_output, np_output, atol=1e-5)
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class StackedConformerTest(test_util.JaxTestCase):
+class StackedConformerTest(test_utils.TestCase):
 
   @parameterized.parameters(
       (2, 1, 10, 3, 8, 8, 4, 0.0),

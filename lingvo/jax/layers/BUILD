@@ -198,11 +198,9 @@ py_strict_test(
     srcs_version = "PY3",
     deps = [
         ":stats",
-        # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
-        # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.
-        "//lingvo/jax:py_utils",
+        "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
     ],
 )
@@ -308,11 +306,11 @@ py_strict_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":spectrum_augmenter",
         # Implicit absl.testing.absltest dependency.
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:test_utils",
-        "//lingvo/jax/layers:spectrum_augmenter",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
@@ -380,6 +378,7 @@ py_strict_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":conformers",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.
@@ -388,7 +387,6 @@ py_strict_test(
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
         "//lingvo/jax:test_utils",
-        "//lingvo/jax/layers:conformers",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
@@ -536,6 +534,7 @@ py_strict_test(
         # Implicit jax dependency.
         "//third_party/py/jax/experimental/jax2tf",
         "//lingvo/jax:pytypes",
+        "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
@@ -640,12 +639,10 @@ py_strict_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
-        ":objectives",
         ":quantizer",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.
-        "//lingvo/core:layers",
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
@@ -659,9 +656,7 @@ py_strict_test(
     srcs_version = "PY3",
     deps = [
         ":objectives",
-        # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
-        # Implicit jax dependency.
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
     ],
@@ -680,6 +675,7 @@ py_strict_test(
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
+        "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
@@ -727,15 +723,12 @@ py_strict_test(
     srcs_version = "PY3",
     deps = [
         ":attentions",
-        ":embedding_softmax",
-        ":ngrammer",
         ":transformers",
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.
         "//lingvo/core:batch_major_attention",
-        "//lingvo/core:gshard_builder",
         "//lingvo/core:layers_with_attention",
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",

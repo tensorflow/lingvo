@@ -18,20 +18,20 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.jax import base_layer
 from lingvo.jax import learners
 from lingvo.jax import optimizer_prefix_vectorization as opt_vec
 from lingvo.jax import optimizers
 from lingvo.jax import py_utils
 from lingvo.jax import schedules
+from lingvo.jax import test_utils
 import numpy as np
 import tensorflow.compat.v2 as tf
 
 NestedMap = py_utils.NestedMap
 
 
-class LearnersTest(test_util.JaxTestCase):
+class LearnersTest(test_utils.TestCase):
 
   @parameterized.parameters(
       (0.5, 0.5, 1.5, 1., 0.),

@@ -19,13 +19,13 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.core import py_utils as tf_py_utils
 from lingvo.core import schedule as tf_schedule
 from lingvo.jax import schedules
+from lingvo.jax import test_utils
 
 
-class SchedulesTest(test_util.JaxTestCase):
+class SchedulesTest(test_utils.TestCase):
 
   @parameterized.parameters((0,), (10,), (100,), (1000000,))
   def test_constant_schedule(self, count):

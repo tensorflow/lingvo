@@ -20,7 +20,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.core import layers as lingvo_layers
 from lingvo.jax import py_utils
 from lingvo.jax import test_utils
@@ -32,8 +31,7 @@ to_np = test_utils.to_np
 to_tf_nmap = test_utils.to_tf_nmap
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class LinearsTest(test_util.JaxTestCase):
+class LinearsTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -110,8 +108,7 @@ class LinearsTest(test_util.JaxTestCase):
     self.assertAllClose(tf_np_outputs, np_outputs, atol=1e-6)
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class StackingOverTimeLayerTest(test_util.JaxTestCase, parameterized.TestCase):
+class StackingOverTimeLayerTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()

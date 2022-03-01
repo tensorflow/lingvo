@@ -19,8 +19,8 @@ from absl.testing import absltest
 import jax
 from jax.experimental import jax2tf
 import jax.numpy as jnp
-import jax.test_util
 from lingvo.jax import pytypes
+from lingvo.jax import test_utils
 from lingvo.jax.layers import ctc_objectives
 import numpy as np
 import tensorflow as tf
@@ -66,7 +66,7 @@ def lengths_to_paddings(lengths: JTensor, maxlength: int) -> JTensor:
   return np.logical_not(elem_valid).astype(np.float32)
 
 
-class CtcTest(jax.test_util.JaxTestCase):
+class CtcTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()
@@ -234,7 +234,7 @@ class CtcTest(jax.test_util.JaxTestCase):
           jnp.array(expected_loss), jax_per_seq[n], rtol=0.01, atol=0.05)
 
 
-class CollapseRemoveBlankLabelTest(jax.test_util.JaxTestCase):
+class CollapseRemoveBlankLabelTest(test_utils.TestCase):
 
   def test_collapse_repeated(self):
     collapsed, new_seq_lengths = ctc_objectives.collapse_and_remove_blanks(

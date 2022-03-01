@@ -17,12 +17,12 @@
 
 from absl.testing import absltest
 from jax import numpy as jnp
-from jax import test_util
+from lingvo.jax import test_utils
 from lingvo.jax.layers import stats
 import numpy as np
 
 
-class StatsTest(test_util.JaxTestCase):
+class StatsTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()

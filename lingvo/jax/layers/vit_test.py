@@ -18,15 +18,13 @@
 from absl.testing import absltest
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.jax import test_utils
 from lingvo.jax.layers import vit
 
 import numpy as np
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class VitTest(test_util.JaxTestCase):
+class VitTest(test_utils.TestCase):
 
   def test_vit_entry_layers(self):
     batch_size, height, width = 3, 48, 48

@@ -22,7 +22,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.core import gshard_builder
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
@@ -35,8 +34,7 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class TransformerModelsTest(test_util.JaxTestCase):
+class TransformerModelsTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()

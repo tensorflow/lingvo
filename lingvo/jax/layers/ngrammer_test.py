@@ -18,7 +18,6 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 import jax
-from jax import test_util
 import jax.numpy as jnp
 from lingvo.core import attention_util
 from lingvo.jax import base_layer
@@ -30,8 +29,7 @@ import tensorflow as tf
 to_np = test_utils.to_np
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class NgrammerTest(test_util.JaxTestCase):
+class NgrammerTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()

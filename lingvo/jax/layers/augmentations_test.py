@@ -19,7 +19,6 @@ from absl import logging
 from absl.testing import absltest
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.jax import base_layer
 from lingvo.jax import test_utils
 from lingvo.jax.layers import augmentations
@@ -28,7 +27,7 @@ import numpy as np
 to_np = test_utils.to_np
 
 
-class AugmentationsTest(test_util.JaxTestCase):
+class AugmentationsTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()

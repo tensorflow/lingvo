@@ -20,7 +20,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.core import batch_major_attention
 from lingvo.jax import base_layer
 from lingvo.jax import test_utils
@@ -53,8 +52,7 @@ def assert_var_stats_close(map01, map02, test_case):
     have_similar_stats(x[1], y[1])
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class AttentionsTest(test_util.JaxTestCase):
+class AttentionsTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()

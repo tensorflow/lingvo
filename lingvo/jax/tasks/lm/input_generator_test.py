@@ -17,14 +17,14 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from jax import test_util
 from lingvo.core import test_helper
+from lingvo.jax import test_utils
 from lingvo.jax.tasks.lm import input_generator
 import numpy as np
 import tensorflow.compat.v2 as tf
 
 
-class InputTest(test_util.JaxTestCase):
+class InputTest(test_utils.TestCase):
 
   # We use first id and seq length as fingerprint to identify each shard
   # has the right elements.

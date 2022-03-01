@@ -18,6 +18,7 @@
 from typing import Any, Optional
 
 from absl import flags
+from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
 from lingvo.jax import base_layer
@@ -28,6 +29,40 @@ import tensorflow.compat.v2 as tf
 FLAGS = flags.FLAGS
 JTensor = jnp.ndarray
 NestedMap = py_utils.NestedMap
+
+
+_dtype = lambda x: getattr(x, 'dtype', None) or np.asarray(x).dtype
+
+
+class TestCase(parameterized.TestCase):
+  """Test method for lingvo tests."""
+
+  def assertAllClose(self,
+                     x,
+                     y,
+                     check_dtypes=True,
+                     rtol=1E-5,
+                     atol=1E-5,
+                     **kwargs):
+    """Wrapper for np.testing.assert_allclose()."""
+    x = np.asarray(x)
+    y = np.asarray(y)
+    if check_dtypes:
+      self.assertDtypesMatch(x, y)
+    np.testing.assert_allclose(x, y, rtol=rtol, atol=atol, **kwargs)
+
+  def assertArraysEqual(self, x, y, check_dtypes=True, **kwargs):
+    """Wrapper for np.testing.assert_array_equal()."""
+    x = np.asarray(x)
+    y = np.asarray(y)
+    if check_dtypes:
+      self.assertDtypesMatch(x, y)
+    np.testing.assert_array_equal(x, y, **kwargs)
+
+  def assertDtypesMatch(self, x, y):
+    self.assertEqual(
+        jax.dtypes.canonicalize_dtype(_dtype(x)),
+        jax.dtypes.canonicalize_dtype(_dtype(y)))
 
 
 def to_np(x: JTensor) -> np.ndarray:

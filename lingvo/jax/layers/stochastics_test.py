@@ -19,13 +19,12 @@ from absl import logging
 from absl.testing import absltest
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.jax import base_layer
+from lingvo.jax import test_utils
 from lingvo.jax.layers import stochastics
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class StochaticsTest(test_util.JaxTestCase):
+class StochaticsTest(test_utils.TestCase):
 
   def test_dropout_layer01(self):
     test_layer_p = stochastics.Dropout.Params().Set(

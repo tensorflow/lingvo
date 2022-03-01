@@ -16,13 +16,12 @@
 """Tests for quantizer_objectives."""
 
 from absl.testing import absltest
-from jax import test_util
+from lingvo.jax import test_utils
 from lingvo.jax.layers import quantizer_objectives
 import numpy as np
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class CodebookObjectivesTest(test_util.JaxTestCase):
+class CodebookObjectivesTest(test_utils.TestCase):
   codes = np.array([[[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [0, 0]],
                     [[1, 2], [3, 4], [5, 6], [7, 8], [9, 10], [0, 0]]])
 

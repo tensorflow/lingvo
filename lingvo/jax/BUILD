@@ -396,6 +396,7 @@ pytype_strict_library(
         ":base_layer",
         ":py_utils",
         # Implicit absl.flags dependency.
+        # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
@@ -474,9 +475,9 @@ py_strict_test(
     deps = [
         ":base_input",
         ":py_utils",
+        ":test_utils",
         # Implicit absl.flags dependency.
         # Implicit absl.testing.absltest dependency.
-        # Implicit jax dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
@@ -493,10 +494,9 @@ py_strict_test(
     deps = [
         ":base_metrics",
         ":py_utils",
-        # Implicit absl.flags dependency.
+        ":test_utils",
         # Implicit absl.testing.absltest dependency.
         # Implicit jax dependency.
-        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -524,6 +524,7 @@ py_strict_test(
         ":optimizers",
         ":py_utils",
         ":schedules",
+        ":test_utils",
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
@@ -566,6 +567,7 @@ py_strict_test(
     deps = [
         ":base_layer",
         ":py_utils",
+        ":test_utils",
         ":train_states",
         # Implicit absl.testing.absltest dependency.
         # Implicit flax's core dependency.
@@ -582,6 +584,7 @@ py_strict_test(
     srcs_version = "PY3",
     deps = [
         ":schedules",
+        ":test_utils",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
         # Implicit jax dependency.

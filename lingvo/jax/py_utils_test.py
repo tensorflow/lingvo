@@ -21,16 +21,16 @@ from typing import Any
 from absl.testing import absltest
 from flax import struct
 import jax
-from jax import test_util
 from jax.experimental import pjit
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
+from lingvo.jax import test_utils
 from lingvo.jax import train_states
 import numpy as np
 import tensorflow.compat.v2 as tf
 
 
-class PyUtilsTest(test_util.JaxTestCase):
+class PyUtilsTest(test_utils.TestCase):
 
   def test_reshard_empty_array(self):
     batch_size = 128

@@ -16,17 +16,16 @@
 """Tests for base_metrics."""
 
 from absl.testing import absltest
-
 import jax
-from jax import test_util
 import jax.numpy as jnp
 from lingvo.jax import base_metrics
 from lingvo.jax import py_utils
+from lingvo.jax import test_utils
 
 NestedMap = py_utils.NestedMap
 
 
-class BaseMetricsTest(test_util.JaxTestCase):
+class BaseMetricsTest(test_utils.TestCase):
 
   def _decode(self, feats):
     b, t, d = feats.shape

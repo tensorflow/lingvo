@@ -19,7 +19,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.core import layers as lingvo_layers
 from lingvo.jax import py_utils
 from lingvo.jax import test_utils
@@ -30,8 +29,7 @@ import tensorflow.compat.v2 as tf
 to_np = test_utils.to_np
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class EmbeddingSoftmaxTest(test_util.JaxTestCase):
+class EmbeddingSoftmaxTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()

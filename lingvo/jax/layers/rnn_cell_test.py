@@ -19,7 +19,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.core import rnn_cell
 from lingvo.jax import py_utils
 from lingvo.jax import test_utils
@@ -33,7 +32,7 @@ _INIT_RANDOM_SEED = 429891685
 _NUMPY_RANDOM_SEED = 12345
 
 
-class RnnCellTest(test_util.JaxTestCase):
+class RnnCellTest(test_utils.TestCase):
 
   @parameterized.parameters(
       (jax_rnn_cell.LSTMCellSimple, False, False),

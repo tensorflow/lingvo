@@ -16,14 +16,15 @@
 """Tests for base_input."""
 
 import os
+
 from absl import flags
 from absl.testing import absltest
-from jax import test_util
 from lingvo.core import base_input_generator
 from lingvo.core import generic_input
 from lingvo.core import py_utils as tf_py_utils
 from lingvo.jax import base_input
 from lingvo.jax import py_utils
+from lingvo.jax import test_utils
 import numpy as np
 import tensorflow.compat.v2 as tf
 
@@ -109,7 +110,7 @@ class TestDatasetOverride(TestDataset):
     return batch
 
 
-class InputTest(test_util.JaxTestCase):
+class InputTest(test_utils.TestCase):
 
   def test_lingvo_input(self):
     tmp = os.path.join(FLAGS.test_tmpdir, 'tmptest')

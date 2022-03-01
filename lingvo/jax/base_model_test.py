@@ -19,7 +19,6 @@ from typing import Any, Tuple
 
 from absl.testing import absltest
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.jax import base_layer
 from lingvo.jax import base_model
 from lingvo.jax import py_utils
@@ -60,7 +59,7 @@ class MockLM(base_layer.BaseLayer):
     return states, ret
 
 
-class LanguageModelTest(test_util.JaxTestCase):
+class LanguageModelTest(test_utils.TestCase):
 
   def _run_decode(self, decoder_p, logits, input_batch):
     p = base_model.LanguageModel.Params()

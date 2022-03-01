@@ -20,7 +20,6 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
-from jax import test_util
 from lingvo.core import bn_layers
 from lingvo.core import layers as lingvo_layers
 from lingvo.jax import base_layer
@@ -41,8 +40,7 @@ def _JaxToTfDtype(jax_dtype):
     return tf.dtypes.as_dtype(jax_dtype)
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class NormalizationsTest(test_util.JaxTestCase):
+class NormalizationsTest(test_utils.TestCase):
 
   def setUp(self):
     super().setUp()

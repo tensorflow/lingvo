@@ -19,15 +19,13 @@ from absl.testing import absltest
 from absl.testing import parameterized
 
 import jax
-from jax import test_util
 import jax.numpy as jnp
 from lingvo.jax import test_utils
 from lingvo.jax.layers import quantizer
 import numpy as np
 
 
-@test_util.with_config(jax_numpy_rank_promotion='allow')
-class SeqVectorQuantizerTest(test_util.JaxTestCase):
+class SeqVectorQuantizerTest(test_utils.TestCase):
 
   w = np.array([[0.116230249, 0.0104732513, -0.409445882, -0.153374314],
                 [-0.0672334433, -0.430877686, -0.280010223, 0.394074917],
@@ -95,7 +93,7 @@ class SeqVectorQuantizerTest(test_util.JaxTestCase):
       self.assertEqual((b, t, num_groups, num_classes), out.z_onehot.shape)
 
 
-class RandomVectorQuantizerTest(test_util.JaxTestCase):
+class RandomVectorQuantizerTest(test_utils.TestCase):
 
   @parameterized.parameters(
       (2, 4, 20, 16, 4),
