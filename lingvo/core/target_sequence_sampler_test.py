@@ -139,6 +139,27 @@ class TargetSequenceSamplerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 
+      p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
+          name='bsh',
+          target_seq_len=tgt_len,
+          use_recurrent=use_recurrent,
+          nucleus_p=0.5)
+      seq_sampler = p.Instantiate()
+      decoder_output = seq_sampler.Sample(theta, encoder_outputs, random_seed,
+                                          InitBeamSearchCallBack,
+                                          PreBeamSearchStepCallback,
+                                          PostBeamSearchStepCallback)
+      ids, lens = self.evaluate([
+          decoder_output.ids,
+          tf.reduce_sum(1 - decoder_output.paddings, 1),
+      ])
+      print(np.array_repr(ids))
+      print(np.array_repr(lens))
+      expected_ids = [[9, 0, 0, 0, 9, 0, 9], [0, 0, 11, 10, 1, 0, 10]]
+      expected_lens = [7, 7]
+      self.assertAllEqual(expected_ids, ids)
+      self.assertAllEqual(expected_lens, lens)
+
   @parameterized.named_parameters(('UseRecurrent', True),
                                   ('NoUseRecurrent', False))
   def testTargetSequenceSamplerWithEOC(self, use_recurrent):
@@ -432,6 +453,32 @@ class TargetSequenceSamplerTest(test_utils.TestCase, parameterized.TestCase):
                       [7, 7, 7, 7, 7, 6, 7], [0, 0, 3, 0, 0, 0, 0],
                       [9, 8, 8, 8, 8, 8, 9], [2, 2, 2, 2, 2, 2, 2],
                       [2, 2, 2, 2, 2, 2, 2], [6, 5, 6, 6, 6, 1, 6]]
+      expected_lens = [7, 7, 7, 7, 7, 1, 1, 7]
+      self.assertAllEqual(expected_ids, ids)
+      self.assertAllEqual(expected_lens, lens)
+
+      p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
+          name='bsh',
+          target_seq_len=tgt_len,
+          num_hyps_per_beam=4,
+          use_recurrent=use_recurrent,
+          nucleus_p=0.24)
+      seq_sampler = p.Instantiate()
+      decoder_output = seq_sampler.Sample(theta, encoder_outputs, random_seed,
+                                          InitBeamSearchCallBack,
+                                          PreBeamSearchStepCallback,
+                                          PostBeamSearchStepCallback)
+
+      ids, lens = self.evaluate([
+          decoder_output.ids,
+          tf.reduce_sum(1 - decoder_output.paddings, 1),
+      ])
+      print(np.array_repr(ids))
+      print(np.array_repr(lens))
+      expected_ids = [[0, 0, 0, 0, 0, 0, 0], [1, 1, 7, 7, 1, 1, 7],
+                      [7, 6, 7, 6, 7, 6, 7], [0, 0, 0, 0, 0, 0, 0],
+                      [9, 9, 8, 9, 8, 8, 9], [2, 2, 2, 2, 2, 2, 2],
+                      [2, 2, 2, 2, 2, 2, 2], [6, 6, 6, 6, 6, 6, 6]]
       expected_lens = [7, 7, 7, 7, 7, 1, 1, 7]
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)

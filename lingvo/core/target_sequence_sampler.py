@@ -45,6 +45,11 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     p.Define('target_seq_len', 0, 'Maximum allowed target seq length.')
     p.Define('top_k', 0, 'If > 0, use top-k sampling.')
     p.Define('top_k_renormalize', True, 'Renormalize top-k probabilities.')
+    # If both top_k and nucleus_p are enabled, the most stringent of the two
+    # will be applied.
+    p.Define(
+        'nucleus_p', 1.0,
+        'If < 1.0, use Nucleus Sampling (https://arxiv.org/abs/1904.09751)')
     p.Define(
         'temperature', 1., 'If > 1, a smoother distribution than logits; '
         'if < 1, a sharper distribution than logits. '
@@ -96,6 +101,8 @@ class TargetSequenceSampler(base_layer.BaseLayer):
     assert p.temperature > 0
     assert p.top_k >= 0
     assert p.num_hyps_per_beam >= 1
+    assert p.nucleus_p <= 1.0
+    assert p.nucleus_p >= 0.0
     if getattr(encoder_outputs, 'segment_id', 1) is None:
       # Remove None values, which are not supported by recurrent.
       del encoder_outputs['segment_id']
@@ -141,13 +148,27 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         batch = tf.shape(bs_result.log_probs)[0]
         state1 = py_utils.NestedMap(timestep=state0.timestep + 1)
         state1.logits = bs_result.log_probs
-
+        sample_logits = state1.logits
+        # Perform Nucleus Sampling. Assumes logits are in (-1e10, 1e3).
+        if p.nucleus_p < 1.0:
+          max_logit = 1e3
+          min_logit = -1e10
+          sorted_logits = tf.sort(
+              sample_logits, direction='DESCENDING', axis=-1)
+          sorted_probs = tf.nn.softmax(sorted_logits)
+          cumsum_probs = tf.math.cumsum(sorted_probs, axis=-1, exclusive=True)
+          masked_logits = tf.where(cumsum_probs < p.nucleus_p, sorted_logits,
+                                   tf.ones_like(sorted_logits) * max_logit)
+          threshold = tf.math.reduce_min(masked_logits, axis=-1, keepdims=True)
+          sample_logits = tf.where(sample_logits < threshold,
+                                   tf.ones_like(sorted_logits) * min_logit,
+                                   sample_logits)
+        # Note that here, we retain the possibility of applying both top_k
+        # and nucleus filtering.
         if p.top_k > 0:
-          topk_logits, topk_ids = tf.math.top_k(state1.logits, k=p.top_k)
+          topk_logits, topk_ids = tf.math.top_k(sample_logits, k=p.top_k)
           sample_logits = tf.nn.log_softmax(
               topk_logits) if p.top_k_renormalize else topk_logits
-        else:
-          sample_logits = state1.logits
 
         # Sample ids from logits. [batch].
         ids = tf.reshape(
