@@ -124,6 +124,7 @@ class RepeatLayer(base_layer.BaseLayer):
     p.Define('body', None, 'The param for the main network layer.')
     p.Define('repeat', 1,
              'Repeat layers specified in \'body\' this many times.')
+    p.Define('start_layer_id', 0, 'Start layer id in the graph.')
     p.Define('per_layer_vars', False, 'Use separate variables for each layer')
     p.Define('unroll', 'never', 'Unroll the layers: never, eval_only, always.')
     return p
@@ -134,7 +135,7 @@ class RepeatLayer(base_layer.BaseLayer):
     assert p.repeat > 0
     assert p.unroll in ('never', 'eval_only', 'always')
     if p.per_layer_vars:
-      for i in range(p.repeat):
+      for i in range(p.start_layer_id, p.start_layer_id + p.repeat):
         self.CreateChild('body_iter_%05d' % i, p.body)
     else:
       with py_utils.VariableShapePrefixContext(self.params.repeat):
@@ -144,7 +145,7 @@ class RepeatLayer(base_layer.BaseLayer):
     p = self.params
     res = super()._child_variable_scope_override()
     if p.per_layer_vars:
-      for i in range(p.repeat):
+      for i in range(p.start_layer_id, p.start_layer_id + p.repeat):
         res['body_iter_%05d' % i] = [p.name, 'iter_%05d' % i]
     return res
 
@@ -161,7 +162,7 @@ class RepeatLayer(base_layer.BaseLayer):
     p = self.params
     fprop_inputs = args
     with tf.name_scope(p.name):
-      for layer_idx in range(p.repeat):
+      for layer_idx in range(p.start_layer_id, p.repeat + p.start_layer_id):
         if p.per_layer_vars:
           layer_theta = theta['body_iter_%05d' % layer_idx]
           body_instance = self.children['body_iter_%05d' % layer_idx]
@@ -190,7 +191,10 @@ class RepeatLayer(base_layer.BaseLayer):
     saved_args = tf.nest.map_structure(lambda x: x, args)
 
     if p.per_layer_vars:
-      all_iters = [theta['body_iter_%05d' % i] for i in range(p.repeat)]
+      all_iters = [
+          theta['body_iter_%05d' % i]
+          for i in range(p.start_layer_id, p.repeat + p.start_layer_id)
+      ]
       theta_stack = tf.nest.map_structure(lambda *t: tf.stack(list(t)),
                                           *all_iters)
     else:

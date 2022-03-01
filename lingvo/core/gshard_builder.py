@@ -610,14 +610,15 @@ class MoEBuilder(builder.Base):
                             self._DecoderLayerInMapKeys, _DecoderLayer,
                             start_layer_id, has_final_layer)
 
-  def Repeat(self, name, body, repeat=1, per_layer_vars=True):
+  def Repeat(self, name, body, repeat=1, per_layer_vars=True, start_layer_id=0):
     """Wrapper to call builder_layers.RepeatLayer."""
     return builder_layers.RepeatLayer.Params().Set(
         name=name,
         body=body,
         repeat=repeat,
         per_layer_vars=per_layer_vars,
-        unroll='eval_only')
+        unroll='eval_only',
+        start_layer_id=start_layer_id)
 
   def ShardablePipeline(self, name, body, stages):
     """Wrapper to call gshard_layers.LayerwiseShardablePipelinedLayer."""
@@ -644,11 +645,12 @@ class MoEBuilder(builder.Base):
       stack.append(
           ('i.' + key + '->' + key + '_split', self.Split(key + '_split')))
 
+    loss_start_layer_id = 0 if use_repeat_layer else start_layer_id
     stack += [
-        (imap_keys[0] + '_split->x_%03d' % start_layer_id,
+        (imap_keys[0] + '_split->x_%03d' % loss_start_layer_id,
          self._Dropout('input_dropout', 1 - self.params.dropout_rate)),
-        ('i.aux_loss->loss_%03d' % start_layer_id,
-         self._Identity('loss_%03d' % start_layer_id)),
+        ('i.aux_loss->loss_%03d' % loss_start_layer_id,
+         self._Identity('loss_%03d' % loss_start_layer_id)),
     ]
 
     def _SubLayersBlock(l, idx):
@@ -663,29 +665,33 @@ class MoEBuilder(builder.Base):
               ('loss_%03d,omap_%03d.aux_loss->loss_%03d' % (idx, idx, idx + 1),
                self._Add('loss_%03d' % (idx + 1)))]
 
-    i = start_layer_id
     assert num % spmd_pipeline_stages == 0
     layers_per_stage = num // spmd_pipeline_stages
     main_stack = []
     if use_repeat_layer:
       blocks = []
+      i = 0
       for l in sub_layers:
         blocks += _SubLayersBlock(l, i)
         i += 1
       body_inputs = 'x_%03d,loss_%03d,' % (
-          start_layer_id, start_layer_id) + ','.join(
+          loss_start_layer_id, loss_start_layer_id) + ','.join(
               [key + '_split' for key in imap_keys[1:]])
       body_outputs = 'x_%03d,loss_%03d,' % (i, i) + ','.join(
           [key + '_split' for key in imap_keys[1:]])
       body_p = self._Graph('blocks_body', body_inputs.split(','),
                            body_outputs.split(','), *blocks)
       repeat_p = self.Repeat(
-          name='blocks', body=body_p, repeat=layers_per_stage)
+          name='blocks',
+          body=body_p,
+          repeat=layers_per_stage,
+          start_layer_id=start_layer_id)
       main_stack = [
           (body_inputs + '->' + body_outputs.replace('_split', '_split_out'),
            repeat_p)
       ]
     else:
+      i = start_layer_id
       for _ in range(layers_per_stage):
         for l in sub_layers:
           # x_i, loss_i => x_{i+1}, loss_{i+1}
