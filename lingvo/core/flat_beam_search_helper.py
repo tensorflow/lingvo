@@ -116,8 +116,9 @@ def flat_beam_search(batch_size,
 
   if prefix is None:
     assert prefix_len is None
+    # Create prefix of start tokens.
     prefix = tf.zeros([batch_size, beam_size], dtype=tf.int32)
-    prefix += tf.one_hot(0, beam_size, dtype=tf.int32) * bos_id
+    prefix += tf.one_hot(beam_size - 1, beam_size, dtype=tf.int32) * bos_id
     prefix_len = tf.ones([batch_size], dtype=tf.int32)
   else:
     assert int(prefix.shape[0]) == batch_size, (batch_size, prefix.shape)
@@ -180,9 +181,9 @@ def flat_beam_search(batch_size,
     # Before the first call to dec_callback() the prefix shall be packed into
     # the tgt_id buffer as follows:
     #
-    # [ P P P P P P - - - - - - P* - - - ]   ^
-    # [ P P P P P P P P P P - - P* - - - ]   | batch
-    # [ P - - - - - - - - - - - P* - - - ]   V
+    # [ - - - - - - P P P P P P P* - - - ]   ^
+    # [ - - P P P P P P P P P P P* - - - ]   | batch
+    # [ - - - - - - - - - - - P P* - - - ]   V
     # |<---- prefix len ---->  |<-- beam -->
     #
     # The last meaningful token in the prefix (P*)
@@ -197,12 +198,11 @@ def flat_beam_search(batch_size,
     pfx_mul = pfx_max // beam_size
     assert pfx_max == pfx_mul * beam_size, (pfx_max, pfx_mul, beam_size)
     pfx_time = tf.range(pfx_max)
-    pfx_pad = tf.cast(
-        tf.less(tf.expand_dims(pfx_time, 0), tf.expand_dims(pfx_len - 1, 1)),
-        tf.int32)
-    pfx_id = pfx * pfx_pad
-    pfx_last = einsum_i32('BT,BT->B', pfx,
-                          tf.one_hot(pfx_len - 1, pfx_max, dtype=fprop_dtype))
+    pfx_indexes = pfx_time - pfx_max + tf.expand_dims(pfx_len - 1, 1)
+    pfx_pad = tf.cast(tf.greater_equal(pfx_indexes, 0),
+                      tf.int32)  # Exclude final pfx token.
+    pfx_id = tf.roll(pfx, shift=1, axis=-1) * pfx_pad
+    pfx_last = pfx[:, -1]
 
     buf_time = tf.range(buf_size)
     pfx_time_mask = tf.cast(
@@ -210,8 +210,13 @@ def flat_beam_search(batch_size,
         fprop_dtype)
     pfx_mask = tf.einsum('BQ,QK->BQK', tf.cast(pfx_pad, fprop_dtype),
                          pfx_time_mask)
+    # Remove padding.
+    assert buf_size > pfx_max
+    pfx_pad_long = tf.pad(
+        pfx_pad, [(0, 0), (0, buf_size - pfx_max)], constant_values=1)
+    pfx_mask *= tf.cast(tf.expand_dims(pfx_pad_long, axis=1), tf.float32)
     pfx_segment_id = pfx_pad
-    pfx_pos = pfx_time * pfx_pad
+    pfx_pos = pfx_indexes * pfx_pad
 
     if debug:
       tpu_summary.tensor('pfx_id', pfx_id)

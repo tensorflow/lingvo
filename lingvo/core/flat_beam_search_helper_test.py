@@ -203,11 +203,11 @@ class FlatBeamSearchTest(test_utils.TestCase, parameterized.TestCase):
     prefix_size = 4
 
     prefix_len = np.zeros([batch_size])
-    prefix_len[0] = 2
-    prefix_len[1] = 3
+    prefix_len[-2] = 2
+    prefix_len[-1] = 3
     prefix_id = np.zeros([batch_size, prefix_size])
-    prefix_id[0, :2] = [11, 12]
-    prefix_id[1, :3] = [21, 22, 23]
+    prefix_id[0, -2:] = [11, 12]
+    prefix_id[1, -3:] = [21, 22, 23]
 
     decoder = TestDecoder(batch_size, beam_size, max_steps, vocab_size, rule)
     dec_state = decoder.new_state()
