@@ -110,6 +110,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_seq_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Maximum allowed target seq length.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;top_k&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If &gt; 0, use top-k sampling.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;top_k_renormalize&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Renormalize top-k probabilities.&#39;</span><span class="p">)</span>
+    <span class="c1"># If both top_k and nucleus_p are enabled, the most stringent of the two</span>
+    <span class="c1"># will be applied.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;nucleus_p&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;If &lt; 1.0, use Nucleus Sampling (https://arxiv.org/abs/1904.09751)&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;temperature&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;If &gt; 1, a smoother distribution than logits; &#39;</span>
         <span class="s1">&#39;if &lt; 1, a sharper distribution than logits. &#39;</span>
@@ -161,6 +166,8 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">temperature</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">top_k</span> <span class="o">&gt;=</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hyps_per_beam</span> <span class="o">&gt;=</span> <span class="mi">1</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">nucleus_p</span> <span class="o">&lt;=</span> <span class="mf">1.0</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">nucleus_p</span> <span class="o">&gt;=</span> <span class="mf">0.0</span>
     <span class="k">if</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;segment_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># Remove None values, which are not supported by recurrent.</span>
       <span class="k">del</span> <span class="n">encoder_outputs</span><span class="p">[</span><span class="s1">&#39;segment_id&#39;</span><span class="p">]</span>
@@ -206,13 +213,27 @@
         <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">timestep</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">timestep</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">logits</span> <span class="o">=</span> <span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span>
-
+        <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">logits</span>
+        <span class="c1"># Perform Nucleus Sampling. Assumes logits are in (-1e10, 1e3).</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">nucleus_p</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">:</span>
+          <span class="n">max_logit</span> <span class="o">=</span> <span class="mf">1e3</span>
+          <span class="n">min_logit</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e10</span>
+          <span class="n">sorted_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span>
+              <span class="n">sample_logits</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s1">&#39;DESCENDING&#39;</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+          <span class="n">sorted_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">)</span>
+          <span class="n">cumsum_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">sorted_probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+          <span class="n">masked_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cumsum_probs</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">nucleus_p</span><span class="p">,</span> <span class="n">sorted_logits</span><span class="p">,</span>
+                                   <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">max_logit</span><span class="p">)</span>
+          <span class="n">threshold</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">masked_logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+          <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sample_logits</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">,</span>
+                                   <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">min_logit</span><span class="p">,</span>
+                                   <span class="n">sample_logits</span><span class="p">)</span>
+        <span class="c1"># Note that here, we retain the possibility of applying both top_k</span>
+        <span class="c1"># and nucleus filtering.</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">top_k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="n">topk_logits</span><span class="p">,</span> <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="n">state1</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">top_k</span><span class="p">)</span>
+          <span class="n">topk_logits</span><span class="p">,</span> <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="n">sample_logits</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">top_k</span><span class="p">)</span>
           <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span>
               <span class="n">topk_logits</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">top_k_renormalize</span> <span class="k">else</span> <span class="n">topk_logits</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">state1</span><span class="o">.</span><span class="n">logits</span>
 
         <span class="c1"># Sample ids from logits. [batch].</span>
         <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
