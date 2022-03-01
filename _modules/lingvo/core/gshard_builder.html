@@ -675,14 +675,15 @@
                             <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="n">_DecoderLayer</span><span class="p">,</span>
                             <span class="n">start_layer_id</span><span class="p">,</span> <span class="n">has_final_layer</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="MoEBuilder.Repeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Repeat">[docs]</a>  <span class="k">def</span> <span class="nf">Repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">per_layer_vars</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<div class="viewcode-block" id="MoEBuilder.Repeat"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.Repeat">[docs]</a>  <span class="k">def</span> <span class="nf">Repeat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">per_layer_vars</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">start_layer_id</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper to call builder_layers.RepeatLayer.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">RepeatLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span>
         <span class="n">repeat</span><span class="o">=</span><span class="n">repeat</span><span class="p">,</span>
         <span class="n">per_layer_vars</span><span class="o">=</span><span class="n">per_layer_vars</span><span class="p">,</span>
-        <span class="n">unroll</span><span class="o">=</span><span class="s1">&#39;eval_only&#39;</span><span class="p">)</span></div>
+        <span class="n">unroll</span><span class="o">=</span><span class="s1">&#39;eval_only&#39;</span><span class="p">,</span>
+        <span class="n">start_layer_id</span><span class="o">=</span><span class="n">start_layer_id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.ShardablePipeline"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.ShardablePipeline">[docs]</a>  <span class="k">def</span> <span class="nf">ShardablePipeline</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">stages</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrapper to call gshard_layers.LayerwiseShardablePipelinedLayer.&quot;&quot;&quot;</span>
@@ -709,11 +710,12 @@
       <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
           <span class="p">(</span><span class="s1">&#39;i.&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span><span class="p">)))</span>
 
+    <span class="n">loss_start_layer_id</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">use_repeat_layer</span> <span class="k">else</span> <span class="n">start_layer_id</span>
     <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
-        <span class="p">(</span><span class="n">imap_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_split-&gt;x_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">start_layer_id</span><span class="p">,</span>
+        <span class="p">(</span><span class="n">imap_keys</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="s1">&#39;_split-&gt;x_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">loss_start_layer_id</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.aux_loss-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">start_layer_id</span><span class="p">,</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">start_layer_id</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.aux_loss-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">loss_start_layer_id</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">loss_start_layer_id</span><span class="p">)),</span>
     <span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">_SubLayersBlock</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
@@ -728,29 +730,33 @@
               <span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">,omap_</span><span class="si">%03d</span><span class="s1">.aux_loss-&gt;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">idx</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
                <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)))]</span>
 
-    <span class="n">i</span> <span class="o">=</span> <span class="n">start_layer_id</span>
     <span class="k">assert</span> <span class="n">num</span> <span class="o">%</span> <span class="n">spmd_pipeline_stages</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="n">layers_per_stage</span> <span class="o">=</span> <span class="n">num</span> <span class="o">//</span> <span class="n">spmd_pipeline_stages</span>
     <span class="n">main_stack</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">if</span> <span class="n">use_repeat_layer</span><span class="p">:</span>
       <span class="n">blocks</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
         <span class="n">blocks</span> <span class="o">+=</span> <span class="n">_SubLayersBlock</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
       <span class="n">body_inputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,loss_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">%</span> <span class="p">(</span>
-          <span class="n">start_layer_id</span><span class="p">,</span> <span class="n">start_layer_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+          <span class="n">loss_start_layer_id</span><span class="p">,</span> <span class="n">loss_start_layer_id</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
               <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
       <span class="n">body_outputs</span> <span class="o">=</span> <span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">,loss_</span><span class="si">%03d</span><span class="s1">,&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
           <span class="p">[</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;_split&#39;</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">imap_keys</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
       <span class="n">body_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span><span class="s1">&#39;blocks_body&#39;</span><span class="p">,</span> <span class="n">body_inputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span>
                            <span class="n">body_outputs</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">),</span> <span class="o">*</span><span class="n">blocks</span><span class="p">)</span>
       <span class="n">repeat_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Repeat</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body_p</span><span class="p">,</span> <span class="n">repeat</span><span class="o">=</span><span class="n">layers_per_stage</span><span class="p">)</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;blocks&#39;</span><span class="p">,</span>
+          <span class="n">body</span><span class="o">=</span><span class="n">body_p</span><span class="p">,</span>
+          <span class="n">repeat</span><span class="o">=</span><span class="n">layers_per_stage</span><span class="p">,</span>
+          <span class="n">start_layer_id</span><span class="o">=</span><span class="n">start_layer_id</span><span class="p">)</span>
       <span class="n">main_stack</span> <span class="o">=</span> <span class="p">[</span>
           <span class="p">(</span><span class="n">body_inputs</span> <span class="o">+</span> <span class="s1">&#39;-&gt;&#39;</span> <span class="o">+</span> <span class="n">body_outputs</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;_split&#39;</span><span class="p">,</span> <span class="s1">&#39;_split_out&#39;</span><span class="p">),</span>
            <span class="n">repeat_p</span><span class="p">)</span>
       <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="n">i</span> <span class="o">=</span> <span class="n">start_layer_id</span>
       <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">layers_per_stage</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">sub_layers</span><span class="p">:</span>
           <span class="c1"># x_i, loss_i =&gt; x_{i+1}, loss_{i+1}</span>
