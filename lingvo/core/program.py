@@ -539,9 +539,9 @@ class TrainProgram(BaseProgram):
           summed_metrics.append(x + y)
       return summed_metrics + [self._task.train_op]
 
-  def InfeedFunc(self):
-    """Infeed function. Only needed in TF2."""
-    self._task.input.DeviceLoopSetupInTF2()
+  def InfeedTFFunc(self):
+    """Infeed function. Only needed in tf.function."""
+    self._task.input.DeviceLoopSetupEager()
 
     def InfeedBody(i):
       self._task.input.CreateTpuEnqueueOps()
@@ -567,7 +567,10 @@ class TrainProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
-    self._task.input.TpuSetup()
+    # In Graph mode `InfeedSetupGraph` is called once to build the infeed ops.
+    # In tf.function the relevant methods will be called in `InfeedTFFunc`.
+    if not py_utils.IsEagerMode():
+      self._task.input.InfeedSetupGraph()
 
     @tpu_function.on_device_training_loop
     def TpuTrainLoop():
@@ -610,7 +613,7 @@ class TrainProgram(BaseProgram):
     if py_utils.IsEagerMode():
       with self._summary_writer.as_default():
         self.infeed_fn = tf.function(autograph=False)(
-            self.InfeedFunc).get_concrete_function()
+            self.InfeedTFFunc).get_concrete_function()
         self.tpu_outs = (
             tf.function(autograph=False)(TrainFunc).get_concrete_function())
     else:
@@ -753,9 +756,9 @@ class EvalProgram(BaseProgram):
         summed_metrics.append(x + y)
       return summed_metrics
 
-  def InfeedFunc(self):
-    """Infeed function. Only needed in TF2."""
-    self._task.input.DeviceLoopSetupInTF2()
+  def InfeedTFFunc(self):
+    """Infeed function. Only needed in tf.function."""
+    self._task.input.DeviceLoopSetupEager()
 
     def InfeedBody(i):
       self._task.input.CreateTpuEnqueueOps()
@@ -801,12 +804,15 @@ class EvalProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
-      self._task.input.TpuSetup()
+      # In Graph mode `InfeedSetupGraph` is called once to build the infeed ops.
+      # In tf.function the relevant methods will be called in `InfeedTFFunc`.
+      if not py_utils.IsEagerMode():
+        self._task.input.InfeedSetupGraph()
 
       if py_utils.IsEagerMode():
         with self._summary_writer.as_default():
           self.infeed_fn = tf.function(autograph=False)(
-              self.InfeedFunc).get_concrete_function()
+              self.InfeedTFFunc).get_concrete_function()
           self.tpu_outs = (
               tf.function(autograph=False)(
                   self.EvalFunc).get_concrete_function())
@@ -833,7 +839,7 @@ class EvalProgram(BaseProgram):
           # In eager mode, after resetting the input generator, we need to
           # re-trace the infeed tf.function to ensure it uses the new iterator.
           self.infeed_fn = tf.function(autograph=False)(
-              self.InfeedFunc).get_concrete_function()
+              self.InfeedTFFunc).get_concrete_function()
 
     if py_utils.IsEagerMode():
       async_executor = executor.new_executor(enable_async=True)
@@ -971,9 +977,9 @@ class DecodeProgram(BaseProgram):
     self._program_name = 'DecodeProgram'
     self._decode_out_dict_lst = []
 
-  def InfeedFunc(self):
-    """Infeed function. Only needed in TF2."""
-    self._task.input.DeviceLoopSetupInTF2()
+  def InfeedTFFunc(self):
+    """Infeed function. Only needed in tf.function."""
+    self._task.input.DeviceLoopSetupEager()
     self._task.input.CreateTpuEnqueueOps()
     # `CreateTpuEnqueueOps` and `CreateCpuPassthroughEnqueueOps` must be in the
     # same place, because the former enqueues `_per_host_passthrough_batches`,
@@ -1051,14 +1057,15 @@ class DecodeProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
-      # We likely still need to initialize them, otherwise there is no way to
-      # know the tensor_spec of the iterators for capturing
-      self._task.input.TpuSetup(cpu_passthrough=True)
+      # In Graph mode `InfeedSetupGraph` is called once to build the infeed ops.
+      # In tf.function the relevant methods will be called in `InfeedTFFunc`.
+      if not py_utils.IsEagerMode():
+        self._task.input.InfeedSetupGraph(cpu_passthrough=True)
 
       if py_utils.IsEagerMode():
         with self._summary_writer.as_default():
           self.infeed_fn = tf.function(autograph=False)(
-              self.InfeedFunc).get_concrete_function()
+              self.InfeedTFFunc).get_concrete_function()
           self.tpu_outs = (
               tf.function(autograph=False)(
                   self.DecodeFunc).get_concrete_function())
@@ -1204,7 +1211,7 @@ class DecodeProgram(BaseProgram):
           # In eager mode, after resetting the input generator, we need to
           # re-trace the infeed tf.function to ensure it uses the new iterator.
           self.infeed_fn = tf.function(autograph=False)(
-              self.InfeedFunc).get_concrete_function()
+              self.InfeedTFFunc).get_concrete_function()
 
     # The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop
     # (that runs _DecodeStep). As an input batch is successfully fed through
@@ -1341,7 +1348,10 @@ class ExperimentalDecodeProgram(DecodeProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
-      self._task.input.TpuSetup(cpu_passthrough=True)
+      # In Graph mode `InfeedSetupGraph` is called once to build the infeed ops.
+      # In tf.function the relevant methods will be called in `InfeedTFFunc`.
+      if not py_utils.IsEagerMode():
+        self._task.input.InfeedSetupGraph(cpu_passthrough=True)
 
       self.tpu_outs = self.DecodeFunc()
 
@@ -1470,7 +1480,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       self._train_model = self._train_task_params.Instantiate(
           executor_ema=self._ema)
     self._train_task = self._train_model.GetTask()
-    self._train_task.input.TpuSetup()
+    self._train_task.input.InfeedSetupGraph()
     self._model = self._train_model
     self._task = self._model.GetTask()
 
@@ -1499,7 +1509,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._decode_model = self._InstantiateTaskModel(self._decode_task_params)
     self._decode_task = self._decode_model.GetTask()
-    self._decode_task.input.TpuSetup(cpu_passthrough=True)
+    self._decode_task.input.InfeedSetupGraph(cpu_passthrough=True)
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""

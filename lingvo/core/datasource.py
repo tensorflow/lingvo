@@ -400,7 +400,11 @@ class TFDatasetSource(DataSource):
 
   def GetNext(self):
     """Returns the next element from the dataset."""
-    self._InitIterator()
+    # Use `init_scope()` to ensure that the datasets and iterators are created
+    # outside of the function-building graph. This ensures that these creation
+    # operations are not repeated in subsequent `tf.function` calls.
+    with tf.init_scope():
+      self._InitIterator()
     if py_utils.GetUnitTestSession():
       self.Initialize(py_utils.GetUnitTestSession())
     return self._iterator[self.host_id].get_next()
@@ -529,7 +533,11 @@ class RepeatableCustomTFDatasetTransform(CustomTFDatasetTransform):
 
   def GetNext(self):
     """Override of the root's GetNext to support checking repeat sentinel."""
-    self._InitIterator()
+    # Use `init_scope()` to ensure that the datasets and iterators are created
+    # outside of the function-building graph. This ensures that these creation
+    # operations are not repeated in subsequent `tf.function` calls.
+    with tf.init_scope():
+      self._InitIterator()
     if py_utils.GetUnitTestSession():
       self.Initialize(py_utils.GetUnitTestSession())
     batch = self._iterator[self.host_id].get_next()

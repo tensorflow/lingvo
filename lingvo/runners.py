@@ -431,7 +431,7 @@ class TrainerTpu(base_runner.BaseRunner):
           self._cluster.GetPlacer()), self._TF2SummaryContext():
         self._model = self.params.Instantiate()
         self._task = self._model.GetTask()
-        self._task.input.TpuSetup()
+        self._task.input.InfeedSetupGraph()
         self._eval_metrics = metrics.TpuEvalMetrics()
         # Needed due to the AddExtraTheta() reference to global_step when
         # instantiating the InputGenerator.

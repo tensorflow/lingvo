@@ -338,7 +338,6 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
   def CreateTpuEnqueueOps(self,
                           job_name=None,
-                          skip_enqueue=False,
                           benchmark_only=False):
     """Create the host-side enqueue ops.
 
@@ -346,8 +345,6 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     Args:
       job_name: the name of the job on which the enqueue operations run.
-      skip_enqueue: if True, only create the tpu queues, but skip the enqueue
-        call. To be used in eager mode to setup tpu queues.
       benchmark_only: If true, don't wire it up to the TPU infeed.
     """
     if not py_utils.IsEagerMode():
@@ -514,41 +511,40 @@ class BaseInputGenerator(base_layer.BaseLayer):
           q.set_number_of_shards(shards)
 
         self._tpu_queues.append(q)
+        if p.use_partitioned_infeed_queue:
+          assert len(batch) == 1
+          input_ops = q.generate_enqueue_ops([batch[0].Flatten()])
+        elif p.use_per_host_infeed:
 
-        if not skip_enqueue:
-          if p.use_partitioned_infeed_queue:
-            assert len(batch) == 1
-            input_ops = q.generate_enqueue_ops([batch[0].Flatten()])
-          elif p.use_per_host_infeed:
-            def HostPlacementFunction(host_device, x):
-              del x  # Unused.
-              return host_device
+          def HostPlacementFunction(host_device, x):
+            del x  # Unused.
+            return host_device
 
-            if len(batch) > 1:
-              # In this case, the `shard_index_in_host` argument of
-              # `_PerHostInfeedTPUOrdinalFunction` is the index of a sharded
-              # batch in the `batch` list.
-              input_ops = q.generate_enqueue_ops(
-                  [b.Flatten() for b in batch],
-                  placement_function=functools.partial(HostPlacementFunction,
-                                                       host_device),
-                  tpu_ordinal_function=functools.partial(
-                      _PerHostInfeedTPUOrdinalFunction, p.use_per_core_infeed,
-                      task_id))
-            else:
-              input_ops = q.split_inputs_and_generate_enqueue_ops(
-                  batch[0].Flatten(),
-                  placement_function=functools.partial(HostPlacementFunction,
-                                                       host_device),
-                  tpu_ordinal_function=functools.partial(
-                      _PerHostInfeedTPUOrdinalFunction, p.use_per_core_infeed,
-                      task_id))
+          if len(batch) > 1:
+            # In this case, the `shard_index_in_host` argument of
+            # `_PerHostInfeedTPUOrdinalFunction` is the index of a sharded
+            # batch in the `batch` list.
+            input_ops = q.generate_enqueue_ops(
+                [b.Flatten() for b in batch],
+                placement_function=functools.partial(HostPlacementFunction,
+                                                     host_device),
+                tpu_ordinal_function=functools.partial(
+                    _PerHostInfeedTPUOrdinalFunction, p.use_per_core_infeed,
+                    task_id))
           else:
-            assert len(batch) == 1
             input_ops = q.split_inputs_and_generate_enqueue_ops(
                 batch[0].Flatten(),
-                device_assignment=py_utils.GetTpuDeviceAssignment(job_name))
-          input_ops_list += input_ops
+                placement_function=functools.partial(HostPlacementFunction,
+                                                     host_device),
+                tpu_ordinal_function=functools.partial(
+                    _PerHostInfeedTPUOrdinalFunction, p.use_per_core_infeed,
+                    task_id))
+        else:
+          assert len(batch) == 1
+          input_ops = q.split_inputs_and_generate_enqueue_ops(
+              batch[0].Flatten(),
+              device_assignment=py_utils.GetTpuDeviceAssignment(job_name))
+        input_ops_list += input_ops
 
     if benchmark_only:
       grouped_infeed_op = tf.group(*self._per_host_batches)
@@ -721,27 +717,19 @@ class BaseInputGenerator(base_layer.BaseLayer):
               embedding_indices, sample_indices)
     return enqueue_data
 
-  def TpuSetup(self, cpu_passthrough=False):
-    """Set up the input pipeline for TPU."""
+  def InfeedSetupGraph(self, cpu_passthrough=False):
+    """Set up the input pipeline for TPU in Graph mode."""
     if py_utils.IsEagerMode():
-      # In eager mode, we run CreateTpuEnqueueOps once at the start to
-      # initialize the datasets and iterators before `tf.function` because
-      # `tf.function` does not trace python side effects.
-      # https://www.tensorflow.org/guide/function#executing_python_side_effects
-      self.CreateTpuEnqueueOps(skip_enqueue=True)
-      if cpu_passthrough:
-        self.CreateCpuPassthroughEnqueueOps(skip_enqueue=True)
-    else:
-      # In graph mode, the calls create ops but don't execute them.
-      self.CreateTpuEnqueueOps()
-      if cpu_passthrough:
-        self.CreateCpuPassthroughEnqueueOps()
-      self.CreateTpuEmbeddingEnqueueOps()
+      raise RuntimeError('The method should not be called in eager mode.')
+    self.CreateTpuEnqueueOps()
+    if cpu_passthrough:
+      self.CreateCpuPassthroughEnqueueOps()
+    self.CreateTpuEmbeddingEnqueueOps()
 
-  def DeviceLoopSetupInTF2(self):
+  def DeviceLoopSetupEager(self):
     """Set up device-loop-level params."""
     assert py_utils.IsEagerMode(
-    ), 'This function can only be called in TF2 mode.'
+    ), 'This function should only be called in pure Eager/tf.function.'
 
   def PreprocessTpuEmbeddingInputBatch(self, input_batch):
     """Hook to manipulate the TPU embedding input batch.
@@ -777,7 +765,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """
     return self.params.cpu_passthrough_keys
 
-  def CreateCpuPassthroughEnqueueOps(self, skip_enqueue=False):
+  def CreateCpuPassthroughEnqueueOps(self):
     """Creates enqueue ops to pass through CPU inputs to the output."""
     p = self.params
     num_tpu_hosts = self.cluster.num_tpu_hosts
@@ -809,8 +797,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
         # blocking further enqueues.
         host_queue = tf.queue.FIFOQueue(capacity=10000, dtypes=cpu_dtypes)
         self._host_queues[task_id] = host_queue
-        if not skip_enqueue:
-          enqueue_ops += [host_queue.enqueue(py_utils.Flatten(batch))]
+        enqueue_ops += [host_queue.enqueue(py_utils.Flatten(batch))]
 
     if p.tpu_infeed_parallelism > 1:
       raise ValueError(
