@@ -401,6 +401,7 @@ class BaseBeamSearchDecoder(BaseDecoder):
     p = self.params
     bs = tf.shape(sample.ids)[0]
     num_hyps_per_beam = p.target_sequence_sampler.num_hyps_per_beam
+    vocab_size = tf.shape(sample.logits)[2]
 
     # tf.string is not supported on tpu.
     sample.topk_hyps = tf.zeros([bs], dtype=tf.int32 if is_tpu else tf.string)
@@ -409,11 +410,12 @@ class BaseBeamSearchDecoder(BaseDecoder):
     sample.topk_ids = sample.ids
     weights = 1 - sample.paddings
     sample.topk_lens = tf.cast(tf.reduce_sum(weights, axis=1), dtype=tf.int32)
-    sample.topk_scores = tf.reduce_sum(
-        tf.math.log(tf.reduce_max(tf.nn.softmax(sample.logits), axis=2)) *
-        weights,
-        axis=1)
-
+    # Computing the hypothesis scores based on the returned ids
+    mask = tf.one_hot(
+        sample.topk_ids, depth=vocab_size, axis=-1, dtype=sample.logits.dtype)
+    token_log_probs = tf.einsum('ijk,ijk->ij', tf.nn.log_softmax(sample.logits),
+                                mask)
+    sample.topk_scores = tf.reduce_sum(token_log_probs * weights, axis=1)
     # At this point batch dimension is (batch_size*num_hyps_per_beam),
     # interleaved as [num_hyps_per_beam, batch_size].
     # This does not match the order expected by beam search post-processing.
