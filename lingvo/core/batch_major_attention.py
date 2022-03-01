@@ -2814,7 +2814,8 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       _, q = py_utils.GetShape(query_vec, 2)
       # Rel pos emb expects the seq length of key is `q.length + left - 1`.
       assert q == p.inference_step_max_length, (
-          'inference_step_max_length must be same to the seq length of query.')
+          f'inference_step_max_length `{p.inference_step_max_length}` '
+          f'must be same to the seq length of query `{q}` ')
     return super().StreamStep(theta, query_vec, query_paddings, key_vec,
                               key_paddings, state0)
 
