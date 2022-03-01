@@ -403,7 +403,6 @@
 
 <div class="viewcode-block" id="BaseInputGenerator.CreateTpuEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                           <span class="n">job_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                          <span class="n">skip_enqueue</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                           <span class="n">benchmark_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create the host-side enqueue ops.</span>
 
@@ -411,8 +410,6 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      job_name: the name of the job on which the enqueue operations run.</span>
-<span class="sd">      skip_enqueue: if True, only create the tpu queues, but skip the enqueue</span>
-<span class="sd">        call. To be used in eager mode to setup tpu queues.</span>
 <span class="sd">      benchmark_only: If true, don&#39;t wire it up to the TPU infeed.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
@@ -579,41 +576,40 @@
           <span class="n">q</span><span class="o">.</span><span class="n">set_number_of_shards</span><span class="p">(</span><span class="n">shards</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_queues</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span><span class="p">:</span>
+          <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+          <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">([</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
+        <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
 
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_enqueue</span><span class="p">:</span>
-          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-            <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">([</span><span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
-          <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
-            <span class="k">def</span> <span class="nf">HostPlacementFunction</span><span class="p">(</span><span class="n">host_device</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-              <span class="k">del</span> <span class="n">x</span>  <span class="c1"># Unused.</span>
-              <span class="k">return</span> <span class="n">host_device</span>
+          <span class="k">def</span> <span class="nf">HostPlacementFunction</span><span class="p">(</span><span class="n">host_device</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+            <span class="k">del</span> <span class="n">x</span>  <span class="c1"># Unused.</span>
+            <span class="k">return</span> <span class="n">host_device</span>
 
-            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-              <span class="c1"># In this case, the `shard_index_in_host` argument of</span>
-              <span class="c1"># `_PerHostInfeedTPUOrdinalFunction` is the index of a sharded</span>
-              <span class="c1"># batch in the `batch` list.</span>
-              <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span>
-                  <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
-                  <span class="n">placement_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">HostPlacementFunction</span><span class="p">,</span>
-                                                       <span class="n">host_device</span><span class="p">),</span>
-                  <span class="n">tpu_ordinal_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-                      <span class="n">_PerHostInfeedTPUOrdinalFunction</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">,</span>
-                      <span class="n">task_id</span><span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-              <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">split_inputs_and_generate_enqueue_ops</span><span class="p">(</span>
-                  <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
-                  <span class="n">placement_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">HostPlacementFunction</span><span class="p">,</span>
-                                                       <span class="n">host_device</span><span class="p">),</span>
-                  <span class="n">tpu_ordinal_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-                      <span class="n">_PerHostInfeedTPUOrdinalFunction</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">,</span>
-                      <span class="n">task_id</span><span class="p">))</span>
+          <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># In this case, the `shard_index_in_host` argument of</span>
+            <span class="c1"># `_PerHostInfeedTPUOrdinalFunction` is the index of a sharded</span>
+            <span class="c1"># batch in the `batch` list.</span>
+            <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">generate_enqueue_ops</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">b</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">batch</span><span class="p">],</span>
+                <span class="n">placement_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">HostPlacementFunction</span><span class="p">,</span>
+                                                     <span class="n">host_device</span><span class="p">),</span>
+                <span class="n">tpu_ordinal_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                    <span class="n">_PerHostInfeedTPUOrdinalFunction</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">,</span>
+                    <span class="n">task_id</span><span class="p">))</span>
           <span class="k">else</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
             <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">split_inputs_and_generate_enqueue_ops</span><span class="p">(</span>
                 <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
-                <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">(</span><span class="n">job_name</span><span class="p">))</span>
-          <span class="n">input_ops_list</span> <span class="o">+=</span> <span class="n">input_ops</span>
+                <span class="n">placement_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">HostPlacementFunction</span><span class="p">,</span>
+                                                     <span class="n">host_device</span><span class="p">),</span>
+                <span class="n">tpu_ordinal_function</span><span class="o">=</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                    <span class="n">_PerHostInfeedTPUOrdinalFunction</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">,</span>
+                    <span class="n">task_id</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">batch</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+          <span class="n">input_ops</span> <span class="o">=</span> <span class="n">q</span><span class="o">.</span><span class="n">split_inputs_and_generate_enqueue_ops</span><span class="p">(</span>
+              <span class="n">batch</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+              <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">(</span><span class="n">job_name</span><span class="p">))</span>
+        <span class="n">input_ops_list</span> <span class="o">+=</span> <span class="n">input_ops</span>
 
     <span class="k">if</span> <span class="n">benchmark_only</span><span class="p">:</span>
       <span class="n">grouped_infeed_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_per_host_batches</span><span class="p">)</span>
@@ -786,27 +782,19 @@
               <span class="n">embedding_indices</span><span class="p">,</span> <span class="n">sample_indices</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">enqueue_data</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.TpuSetup"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.TpuSetup">[docs]</a>  <span class="k">def</span> <span class="nf">TpuSetup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_passthrough</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Set up the input pipeline for TPU.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BaseInputGenerator.InfeedSetupGraph"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.InfeedSetupGraph">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedSetupGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cpu_passthrough</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set up the input pipeline for TPU in Graph mode.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="c1"># In eager mode, we run CreateTpuEnqueueOps once at the start to</span>
-      <span class="c1"># initialize the datasets and iterators before `tf.function` because</span>
-      <span class="c1"># `tf.function` does not trace python side effects.</span>
-      <span class="c1"># https://www.tensorflow.org/guide/function#executing_python_side_effects</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">(</span><span class="n">skip_enqueue</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">cpu_passthrough</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">(</span><span class="n">skip_enqueue</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="c1"># In graph mode, the calls create ops but don&#39;t execute them.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="k">if</span> <span class="n">cpu_passthrough</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span></div>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s1">&#39;The method should not be called in eager mode.&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">cpu_passthrough</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateTpuEmbeddingEnqueueOps</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.DeviceLoopSetupInTF2"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.DeviceLoopSetupInTF2">[docs]</a>  <span class="k">def</span> <span class="nf">DeviceLoopSetupInTF2</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGenerator.DeviceLoopSetupEager"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.DeviceLoopSetupEager">[docs]</a>  <span class="k">def</span> <span class="nf">DeviceLoopSetupEager</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set up device-loop-level params.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">(</span>
-    <span class="p">),</span> <span class="s1">&#39;This function can only be called in TF2 mode.&#39;</span></div>
+    <span class="p">),</span> <span class="s1">&#39;This function should only be called in pure Eager/tf.function.&#39;</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator.PreprocessTpuEmbeddingInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.PreprocessTpuEmbeddingInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">PreprocessTpuEmbeddingInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Hook to manipulate the TPU embedding input batch.</span>
@@ -842,7 +830,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cpu_passthrough_keys</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.CreateCpuPassthroughEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateCpuPassthroughEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip_enqueue</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGenerator.CreateCpuPassthroughEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateCpuPassthroughEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateCpuPassthroughEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates enqueue ops to pass through CPU inputs to the output.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
@@ -874,8 +862,7 @@
         <span class="c1"># blocking further enqueues.</span>
         <span class="n">host_queue</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">FIFOQueue</span><span class="p">(</span><span class="n">capacity</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">dtypes</span><span class="o">=</span><span class="n">cpu_dtypes</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_host_queues</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span> <span class="o">=</span> <span class="n">host_queue</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_enqueue</span><span class="p">:</span>
-          <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="p">[</span><span class="n">host_queue</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">batch</span><span class="p">))]</span>
+        <span class="n">enqueue_ops</span> <span class="o">+=</span> <span class="p">[</span><span class="n">host_queue</span><span class="o">.</span><span class="n">enqueue</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">batch</span><span class="p">))]</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
