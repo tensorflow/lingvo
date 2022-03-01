@@ -235,7 +235,7 @@ class AssertsTest(parameterized.TestCase):
     left_strict = True
     right_strict = True
     with self.assertRaisesRegex(ValueError,
-                                f'`.*={value}` must be in the range `.*`.$'):
+                                f'`.*=?{value}` must be in the range `.*`.$'):
       asserts.between(
           value,
           min_value,
