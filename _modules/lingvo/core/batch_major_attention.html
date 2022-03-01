@@ -2879,7 +2879,8 @@
       <span class="n">_</span><span class="p">,</span> <span class="n">q</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
       <span class="c1"># Rel pos emb expects the seq length of key is `q.length + left - 1`.</span>
       <span class="k">assert</span> <span class="n">q</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;inference_step_max_length must be same to the seq length of query.&#39;</span><span class="p">)</span>
+          <span class="sa">f</span><span class="s1">&#39;inference_step_max_length `</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">inference_step_max_length</span><span class="si">}</span><span class="s1">` &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;must be same to the seq length of query `</span><span class="si">{</span><span class="n">q</span><span class="si">}</span><span class="s1">` &#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">StreamStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span>
                               <span class="n">key_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span></div></div>
 
