@@ -855,6 +855,15 @@
                                      <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
 
+<div class="viewcode-block" id="MultiHeadedAttention._MaybeScaleQuery"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._MaybeScaleQuery">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeScaleQuery</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_query_scale</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">query</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
+    <span class="k">return</span> <span class="n">query</span></div>
+
 <div class="viewcode-block" id="MultiHeadedAttention._DotAttenOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._DotAttenOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAttenOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">theta</span><span class="p">,</span>
                        <span class="n">query</span><span class="p">,</span>
@@ -888,11 +897,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Scale the query projection.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_query_scale</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">:</span>
-        <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">per_dim_scale</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">query</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
+    <span class="n">query</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeScaleQuery</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">)</span>
 
     <span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
 
@@ -986,35 +991,8 @@
 
     <span class="k">return</span> <span class="n">_ShortSeq</span><span class="p">()</span> <span class="k">if</span> <span class="n">use_short_seq_opt</span> <span class="k">else</span> <span class="n">_LongSeq</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="MultiHeadedAttention.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-            <span class="n">theta</span><span class="p">,</span>
-            <span class="n">query_vec</span><span class="p">,</span>
-            <span class="n">key_vec</span><span class="p">,</span>
-            <span class="n">value_vec</span><span class="p">,</span>
-            <span class="n">paddings</span><span class="p">,</span>
-            <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Computes the value vector given the current query output.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
-<span class="sd">        its children layers.</span>
-<span class="sd">      query_vec: [B, T, D].</span>
-<span class="sd">      key_vec:   [B, S, D].</span>
-<span class="sd">      value_vec: [B, S, D].</span>
-<span class="sd">      paddings:  [B, S].</span>
-<span class="sd">      segment_mask: [B, 1, T, S]. A mask only applied if packed_input=True.</span>
-<span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
-<span class="sd">        information flow from future (causal padding). It has shape [B, T, T] if</span>
-<span class="sd">        not None.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      encoded: [B, T, D].</span>
-<span class="sd">      atten_probs: [B, N, T, S].</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: If value projection is disabled.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
+<div class="viewcode-block" id="MultiHeadedAttention._HeadsProj"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._HeadsProj">[docs]</a>  <span class="k">def</span> <span class="nf">_HeadsProj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">key_vec</span><span class="p">,</span> <span class="n">value_vec</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Perform attention heads projections.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># Project inputs to key, value and query, respectively has shape</span>
@@ -1048,17 +1026,61 @@
     <span class="n">value_proj</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">value_proj</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                                         <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span><span class="p">)</span>
 
+    <span class="k">return</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key_proj</span><span class="p">,</span> <span class="n">value_proj</span></div>
+
+<div class="viewcode-block" id="MultiHeadedAttention._PostProj"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._PostProj">[docs]</a>  <span class="k">def</span> <span class="nf">_PostProj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoded</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Post-attention projection.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Post projection</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">encoded</span><span class="p">)</span>
+    <span class="c1"># Shard the output</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                                     <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">encoded</span></div>
+
+<div class="viewcode-block" id="MultiHeadedAttention.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">query_vec</span><span class="p">,</span>
+            <span class="n">key_vec</span><span class="p">,</span>
+            <span class="n">value_vec</span><span class="p">,</span>
+            <span class="n">paddings</span><span class="p">,</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the value vector given the current query output.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query_vec: [B, T, D].</span>
+<span class="sd">      key_vec:   [B, S, D].</span>
+<span class="sd">      value_vec: [B, S, D].</span>
+<span class="sd">      paddings:  [B, S].</span>
+<span class="sd">      segment_mask: [B, 1, T, S]. A mask only applied if packed_input=True.</span>
+<span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
+<span class="sd">        information flow from future (causal padding). It has shape [B, T, T] if</span>
+<span class="sd">        not None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoded: [B, T, D].</span>
+<span class="sd">      atten_probs: [B, N, T, S].</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If value projection is disabled.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># Heads projection</span>
+    <span class="n">query_proj</span><span class="p">,</span> <span class="n">key_proj</span><span class="p">,</span> <span class="n">value_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_HeadsProj</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span>
+                                                       <span class="n">key_vec</span><span class="p">,</span> <span class="n">value_vec</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">segment_mask</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="n">encoded</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAtten</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key_proj</span><span class="p">,</span>
                                           <span class="n">value_proj</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_mask</span><span class="p">,</span>
                                           <span class="n">per_step_padding</span><span class="p">)</span>
     <span class="c1"># Post projection</span>
-    <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post</span><span class="p">,</span> <span class="n">encoded</span><span class="p">)</span>
+    <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostProj</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoded</span><span class="p">)</span>
 
-    <span class="c1"># Shard the output</span>
-    <span class="n">encoded</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">encoded</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
-                                     <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">target_batch_size</span><span class="p">,</span> <span class="n">target_max_length</span><span class="p">):</span>
@@ -6870,7 +6892,7 @@
         <span class="n">activation_fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="Builder.GatedFeedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.GatedFeedforward">[docs]</a>  <span class="k">def</span> <span class="nf">GatedFeedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                       <span class="n">activation_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">):</span>
+                       <span class="n">activation_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span> <span class="n">use_paddings</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">is_causal</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -6891,9 +6913,16 @@
         <span class="p">(</span><span class="s1">&#39;after_gelu-&gt;y&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;i.vec,y-&gt;added&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_residual_weight</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_apply_residual</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;added,i.paddings-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pad</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)),</span>
     <span class="p">]</span>
+    <span class="k">if</span> <span class="n">use_paddings</span><span class="p">:</span>
+      <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;added,i.paddings-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pad</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">))</span>
+      <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">sub_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="p">(</span><span class="s1">&#39;added-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id_vec&#39;</span><span class="p">)),</span>
+      <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="n">sub_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;i.segment_mask-&gt;o.segment_mask&#39;</span><span class="p">,</span>
@@ -6906,7 +6935,7 @@
         <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                  <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                  <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">use_paddings</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">is_causal</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -6947,9 +6976,17 @@
              <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;i.vec,after_feedforward-&gt;added&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_residual_weight</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_apply_residual</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;added,i.paddings-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pad</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)),</span>
     <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">use_paddings</span><span class="p">:</span>
+      <span class="n">sub_list</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;added,i.paddings-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pad</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">))</span>
+      <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">sub_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="p">(</span><span class="s1">&#39;added-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id_vec&#39;</span><span class="p">)),</span>
+      <span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="n">sub_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="s1">&#39;i.segment_mask-&gt;o.segment_mask&#39;</span><span class="p">,</span>
