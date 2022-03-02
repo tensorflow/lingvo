@@ -3405,6 +3405,163 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></span><span class="sig-name descname"><span class="pre">LSHMemoryRankKOneHotTaskLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHMemoryRankKOneHotTaskLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>LSH memory layer with rank k and one hot lookups.</p>
+<p>Sketch based memory for neural networks,
+<a class="reference external" href="https://proceedings.mlr.press/v130/panigrahy21a.html">https://proceedings.mlr.press/v130/panigrahy21a.html</a>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHMemoryRankKOneHotTaskLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer._CreateLayerVariables">
+<span class="sig-name descname"><span class="pre">_CreateLayerVariables</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHMemoryRankKOneHotTaskLayer._CreateLayerVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer._CreateLayerVariables" title="Permalink to this definition"></a></dt>
+<dd><p>Create variables for this layer.</p>
+<p>This is a legacy method. Variables can be created directly in the layer
+__init__ method.</p>
+<p>Variables are created inside of self._SelfVariableScope() which is usually
+tf.variable_scope(self.params.name).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer._ComputeGridLSHBucketIds">
+<span class="sig-name descname"><span class="pre">_ComputeGridLSHBucketIds</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHMemoryRankKOneHotTaskLayer._ComputeGridLSHBucketIds"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer._ComputeGridLSHBucketIds" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHMemoryRankKOneHotTaskLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Apply deconvolution to inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor. It is expected to be of shape [batch, height,
+width, channel].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>outputs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FPropMeta">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FPropMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHMemoryRankKOneHotTaskLayer.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FPropMeta" title="Permalink to this definition"></a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FProp" title="lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FProp" title="lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – The param of a layer of this layer type.</p></li>
+<li><p><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li><p>flops - The estimated number of floating point operations incurred by
+this fprop.</p></li>
+<li><p>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHTaskWithMultiplierLayer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></span><span class="sig-name descname"><span class="pre">LSHTaskWithMultiplierLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHTaskWithMultiplierLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHTaskWithMultiplierLayer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>LSH Memory layer with multiplier.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHTaskWithMultiplierLayer.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHTaskWithMultiplierLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHTaskWithMultiplierLayer.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHTaskWithMultiplierLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHTaskWithMultiplierLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHTaskWithMultiplierLayer.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Apply LSH memory layer with multiplier.</p>
+<p>The operation is
+outputs = self.multiplier(theta, inputs) * self.lsh(theta, inputs).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor.  Shaped […, input_dim].</p></li>
+<li><p><strong>paddings</strong> – The paddings tensor.  Shaped […, 1], where all but the last
+dimension match.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output after applying projection, and optionally batch normalization and
+relu non-linearity.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.LSHTaskWithMultiplierLayer.FPropMeta">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FPropMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LSHTaskWithMultiplierLayer.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.LSHTaskWithMultiplierLayer.FPropMeta" title="Permalink to this definition"></a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.layers.LSHTaskWithMultiplierLayer.FProp" title="lingvo.core.layers.LSHTaskWithMultiplierLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.layers.LSHTaskWithMultiplierLayer.FProp" title="lingvo.core.layers.LSHTaskWithMultiplierLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – The param of a layer of this layer type.</p></li>
+<li><p><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li><p>flops - The estimated number of floating point operations incurred by
+this fprop.</p></li>
+<li><p>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.layers.PerFrameStatisticalPoolingLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></span><span class="sig-name descname"><span class="pre">PerFrameStatisticalPoolingLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#PerFrameStatisticalPoolingLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.PerFrameStatisticalPoolingLayer" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>

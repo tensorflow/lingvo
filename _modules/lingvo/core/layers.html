@@ -1541,6 +1541,12 @@
         <span class="s1">&#39;whether to use block diagonal matmul in the projection layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_blocks_pl&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Int array for number of blocks for input &#39;</span>
              <span class="s1">&#39;and output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;memory_augmentation&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Augment FeedForwardNet with memory if True.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;memory&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Parameters for memory augmentation, currently only support &#39;</span>
+        <span class="s1">&#39;layers.LSHTaskWithMultiplierLayer.Params().&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -1648,6 +1654,13 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;fc&#39;</span><span class="p">,</span> <span class="n">params_fc_layers</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">params_dropout_layers</span><span class="p">)</span>
 
+    <span class="n">memory_params</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">memory_augmentation</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">memory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">memory_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">memory_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">emb_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lsh_mem&#39;</span><span class="p">,</span> <span class="n">memory_params</span><span class="p">)</span>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns output dimension of the FeedForwardNet.&quot;&quot;&quot;</span>
@@ -1690,7 +1703,11 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Output after applying all layers.  Shaped [..., p.hidden_layer_dims[-1]].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropAllLayers</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">ff_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropAllLayers</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">memory_augmentation</span><span class="p">:</span>
+      <span class="n">ff_output</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lsh_mem</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lsh_mem</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ff_output</span></div>
 
 <div class="viewcode-block" id="FeedForwardNet.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FeedForwardNet.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1704,6 +1721,15 @@
         <span class="n">proj_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">proj_params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
         <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">proj_params</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">proj_params</span><span class="p">,</span> <span class="n">proj_shape</span><span class="p">)</span>
         <span class="n">flops</span> <span class="o">+=</span> <span class="n">proj_meta</span><span class="o">.</span><span class="n">flops</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">memory_augmentation</span><span class="p">:</span>
+        <span class="n">lsh_mem</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">lsh_mem</span>
+        <span class="n">lsh_mem_params</span> <span class="o">=</span> <span class="n">lsh_mem</span><span class="o">.</span><span class="n">params</span>
+        <span class="n">lsh_mem_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">lsh_mem_params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+        <span class="n">lsh_mem_meta</span> <span class="o">=</span> <span class="n">lsh_mem_params</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">lsh_mem_params</span><span class="p">,</span>
+                                                    <span class="n">lsh_mem_shape</span><span class="p">)</span>
+        <span class="n">flops</span> <span class="o">+=</span> <span class="n">lsh_mem_meta</span><span class="o">.</span><span class="n">flops</span>
+
     <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
 
@@ -6104,6 +6130,257 @@
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">mean</span><span class="p">,</span> <span class="n">stddev</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">mean</span></div></div>
+
+
+<div class="viewcode-block" id="LSHMemoryRankKOneHotTaskLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer">[docs]</a><span class="k">class</span> <span class="nc">LSHMemoryRankKOneHotTaskLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;LSH memory layer with rank k and one hot lookups.</span>
+
+<span class="sd">  Sketch based memory for neural networks,</span>
+<span class="sd">  https://proceedings.mlr.press/v130/panigrahy21a.html.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LSHMemoryRankKOneHotTaskLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Input dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Output dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;log_num_buckets&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Log of number of buckets.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_hash_fn&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of hash functions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grid_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rank&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;memory_act&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Activation function for memory.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to add bias.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lsh_u_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">(),</span>
+             <span class="s1">&#39;Initializer for memory U variable.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lsh_v_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">(),</span>
+             <span class="s1">&#39;Initializer for memory V variable.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lsh_b_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+             <span class="s1">&#39;Initializer for memory bias variable.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shuffle_before_rehash&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to shuffle bucket bits before rehash.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Seed for the random hyperplanes.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+
+<div class="viewcode-block" id="LSHMemoryRankKOneHotTaskLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
+    <span class="k">if</span> <span class="n">output_dim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">output_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">output_dim</span> <span class="o">=</span> <span class="n">input_dim</span>
+
+    <span class="c1"># Weights for bucket id computation.</span>
+    <span class="n">hp_coef_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hash_fn</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">seed</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;hp_coef&#39;</span><span class="p">,</span> <span class="n">hp_coef_pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="c1"># Create trainable memory tables.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">mem_u_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="o">**</span><span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">rank</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lsh_u_init</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+      <span class="n">mem_v_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="o">**</span><span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lsh_v_init</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;lsh_u_emb&#39;</span><span class="p">,</span> <span class="n">mem_u_pc</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;lsh_v_emb&#39;</span><span class="p">,</span> <span class="n">mem_v_pc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_bias</span><span class="p">:</span>
+      <span class="n">mem_b_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="o">**</span><span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lsh_b_init</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;lsh_b_emb&#39;</span><span class="p">,</span> <span class="n">mem_b_pc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LSHMemoryRankKOneHotTaskLayer._ComputeGridLSHBucketIds"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer._ComputeGridLSHBucketIds">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeGridLSHBucketIds</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">bucket_vectors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...i,inm-&gt;...nm&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">hp_coef</span><span class="p">)</span>
+    <span class="n">bucket_binaries</span> <span class="o">=</span> <span class="p">[</span><span class="n">bucket_vectors</span> <span class="o">&gt;</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">grid_size</span><span class="p">)]</span>
+    <span class="n">bucket_binary</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">bucket_binaries</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">powers_of_two</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">grid_size</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shuffle_before_rehash</span><span class="p">:</span>
+      <span class="n">powers_of_two</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">powers_of_two</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">bucket_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...n,n-&gt;...&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bucket_binary</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                           <span class="n">powers_of_two</span><span class="p">)</span>
+    <span class="n">bucket_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="n">bucket_ids</span><span class="p">,</span> <span class="mi">2</span><span class="o">**</span><span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span><span class="p">)</span>
+    <span class="n">bucket_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bucket_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">bucket_ids</span></div>
+
+<div class="viewcode-block" id="LSHMemoryRankKOneHotTaskLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply deconvolution to inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
+<span class="sd">        children layers.</span>
+<span class="sd">      inputs: The inputs tensor. It is expected to be of shape [batch, height,</span>
+<span class="sd">        width, channel].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      outputs.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">num_buckets</span> <span class="o">=</span> <span class="mi">2</span><span class="o">**</span><span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span>
+    <span class="c1"># inputs = py_utils.HasShape(inputs, [-1, -1, ])</span>
+    <span class="n">bucket_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeGridLSHBucketIds</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="c1"># shape: (B, seq, num_hash, num_buckets)</span>
+    <span class="c1"># * shape: (B, seq, num_heads, num_hash, num_buckets)</span>
+    <span class="n">bucket_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">bucket_ids</span><span class="p">,</span> <span class="n">num_buckets</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">summed_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">bucket_one_hot</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">3</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">u_mat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...n,nir-&gt;...ir&#39;</span><span class="p">,</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">summed_one_hot</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">lsh_u_emb</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                        <span class="n">theta</span><span class="o">.</span><span class="n">lsh_u_emb</span><span class="p">)</span>
+      <span class="n">v_mat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...n,nro-&gt;...ro&#39;</span><span class="p">,</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">summed_one_hot</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">lsh_v_emb</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                        <span class="n">theta</span><span class="o">.</span><span class="n">lsh_v_emb</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_bias</span><span class="p">:</span>
+      <span class="n">bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...n,nd-&gt;...d&#39;</span><span class="p">,</span>
+                       <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">summed_one_hot</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">lsh_b_emb</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+                       <span class="n">theta</span><span class="o">.</span><span class="n">lsh_b_emb</span><span class="p">)</span>
+
+    <span class="n">outputs</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">rank</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...si,...kir-&gt;...skr&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">u_mat</span><span class="p">)</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">memory_act</span><span class="p">)(</span><span class="n">outputs</span><span class="p">)</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...skr,...kro-&gt;...so&#39;</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">v_mat</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_bias</span><span class="p">:</span>
+      <span class="n">outputs</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">2</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">outputs</span></div>
+
+<div class="viewcode-block" id="LSHMemoryRankKOneHotTaskLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHMemoryRankKOneHotTaskLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="k">assert</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+
+    <span class="n">flops</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">in_dim</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">other_dims</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">/</span> <span class="n">in_dim</span>
+
+    <span class="c1"># Matmul with hyperplane coef.</span>
+    <span class="n">flops</span> <span class="o">+=</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hash_fn</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="c1"># Raise to powers of two.</span>
+    <span class="n">flops</span> <span class="o">+=</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hash_fn</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="c1"># Reduce to output dim.</span>
+    <span class="n">flops</span> <span class="o">+=</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hash_fn</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
+
+    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
+
+
+<div class="viewcode-block" id="LSHTaskWithMultiplierLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHTaskWithMultiplierLayer">[docs]</a><span class="k">class</span> <span class="nc">LSHTaskWithMultiplierLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;LSH Memory layer with multiplier.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LSHTaskWithMultiplierLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHTaskWithMultiplierLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Input dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Output dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;log_num_buckets&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Log of number of buckets.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_hash_fn&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of hash functions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grid_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rank&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;memory_act&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Activation function for memory.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to add bias.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lsh_u_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">(),</span>
+             <span class="s1">&#39;Initializer for memory U variable.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lsh_v_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">(),</span>
+             <span class="s1">&#39;Initializer for memory V variable.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lsh_b_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+             <span class="s1">&#39;Initializer for memory bias variable.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Seed for the random hyperplanes.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
+
+    <span class="n">lsh_params</span> <span class="o">=</span> <span class="n">LSHMemoryRankKOneHotTaskLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span>
+        <span class="n">log_num_buckets</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span><span class="p">,</span>
+        <span class="n">num_hash_fn</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_hash_fn</span><span class="p">,</span>
+        <span class="n">grid_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">grid_size</span><span class="p">,</span>
+        <span class="n">rank</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span>
+        <span class="n">memory_act</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">memory_act</span><span class="p">,</span>
+        <span class="n">add_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">add_bias</span><span class="p">,</span>
+        <span class="n">lsh_u_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lsh_u_init</span><span class="p">,</span>
+        <span class="n">lsh_v_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lsh_v_init</span><span class="p">,</span>
+        <span class="n">lsh_b_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lsh_b_init</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">lsh_params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="n">multiplier_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span>
+        <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">use_einsum</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">batch_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">multiplier_params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lsh&#39;</span><span class="p">,</span> <span class="n">lsh_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;multiplier&#39;</span><span class="p">,</span> <span class="n">multiplier_params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LSHTaskWithMultiplierLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHTaskWithMultiplierLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply LSH memory layer with multiplier.</span>
+
+<span class="sd">    The operation is</span>
+<span class="sd">    outputs = self.multiplier(theta, inputs) * self.lsh(theta, inputs).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: The inputs tensor.  Shaped [..., input_dim].</span>
+<span class="sd">      paddings: The paddings tensor.  Shaped [..., 1], where all but the last</span>
+<span class="sd">        dimension match.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Output after applying projection, and optionally batch normalization and</span>
+<span class="sd">      relu non-linearity.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">multiplier</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">lsh</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">lsh</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">outputs</span></div>
+
+<div class="viewcode-block" id="LSHTaskWithMultiplierLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LSHTaskWithMultiplierLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="k">assert</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">flops</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">input_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">emb_dim</span><span class="p">])</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>  <span class="c1"># throw-away graph.</span>
+      <span class="n">instance</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+
+      <span class="n">lsh</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">lsh</span>
+      <span class="n">lsh_params</span> <span class="o">=</span> <span class="n">lsh</span><span class="o">.</span><span class="n">params</span>
+      <span class="n">lsh_meta</span> <span class="o">=</span> <span class="n">lsh_params</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">lsh_params</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
+      <span class="n">flops</span> <span class="o">+=</span> <span class="n">lsh_meta</span><span class="o">.</span><span class="n">flops</span>
+
+      <span class="n">multiplier</span> <span class="o">=</span> <span class="n">instance</span><span class="o">.</span><span class="n">multiplier</span>
+      <span class="n">multiplier_params</span> <span class="o">=</span> <span class="n">multiplier</span><span class="o">.</span><span class="n">params</span>
+      <span class="n">multiplier_meta</span> <span class="o">=</span> <span class="n">multiplier_params</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">multiplier_params</span><span class="p">,</span>
+                                                        <span class="n">input_shape</span><span class="p">)</span>
+      <span class="n">flops</span> <span class="o">+=</span> <span class="n">multiplier_meta</span><span class="o">.</span><span class="n">flops</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
 
 
 <div class="viewcode-block" id="PerFrameStatisticalPoolingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PerFrameStatisticalPoolingLayer">[docs]</a><span class="k">class</span> <span class="nc">PerFrameStatisticalPoolingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>

@@ -241,6 +241,13 @@
         <span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;When True, layer norm is used before attention&#39;</span>
         <span class="s1">&#39;module, otherwise used after attention module which is consistent with&#39;</span>
         <span class="s1">&#39;Vaswani et al</span><span class="se">\&#39;</span><span class="s1">s paper&#39;</span><span class="p">)</span>
+
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;memory_augmentation&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Augment attention with memory if True.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;memory&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Parameters for memory augmentation, currently only support &#39;</span>
+        <span class="s1">&#39;layers.LSHTaskWithMultiplierLayer.Params().&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -275,6 +282,14 @@
       <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_function</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_hidden_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;residual_function&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">memory_augmentation</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">memory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">mem_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="c1"># Make sure to override input and output dim.</span>
+      <span class="n">mem_params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+      <span class="n">mem_params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">context_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lsh_mem&#39;</span><span class="p">,</span> <span class="n">mem_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TransformerAttentionLayer._InitAttention"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer._InitAttention">[docs]</a>  <span class="k">def</span> <span class="nf">_InitAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -402,6 +417,8 @@
         <span class="n">atten_prob</span><span class="p">,</span>
         <span class="p">[</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_bs</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_GetSourceLength</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">memory_augmentation</span><span class="p">:</span>
+      <span class="n">h</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lsh_mem</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lsh_mem</span><span class="p">,</span> <span class="n">context_vecs</span> <span class="o">-</span> <span class="n">query_vec</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span></div>
 
 <div class="viewcode-block" id="TransformerAttentionLayer._FinishExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer._FinishExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">_FinishExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -631,6 +648,12 @@
         <span class="s1">&#39;Boolean array to determine whether to use block diagonal matmul.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_blocks_pl&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;Int array for number of blocks for input &#39;</span>
              <span class="s1">&#39;and output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;memory_augmentation&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Augment attention with memory if True.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;memory&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Parameters for memory augmentation, currently only support &#39;</span>
+        <span class="s1">&#39;layers.LSHTaskWithMultiplierLayer.Params().&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="TransformerFeedForwardLayer.SetFPropDtype"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.SetFPropDtype">[docs]</a>  <span class="nd">@classmethod</span>
@@ -700,6 +723,17 @@
           <span class="n">survival_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_droppath_prob</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;residual_droppath&#39;</span><span class="p">,</span> <span class="n">droppath_p</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">memory_augmentation</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">memory</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">mem_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">memory</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="c1"># Make sure to override input and output dim.</span>
+      <span class="n">mem_params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">mem_params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">mem_params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lsh_mem&#39;</span><span class="p">,</span> <span class="n">mem_params</span><span class="p">)</span>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns output dimension of the transformer layer.&quot;&quot;&quot;</span>
@@ -738,6 +772,8 @@
                              <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">primer_hybrid_norm</span><span class="p">:</span>
         <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post_layer_norm</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">memory_augmentation</span><span class="p">:</span>
+        <span class="n">h</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lsh_mem</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lsh_mem</span><span class="p">,</span> <span class="n">h</span> <span class="o">-</span> <span class="n">inputs</span><span class="p">)</span>
       <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_droppath_prob</span><span class="p">:</span>

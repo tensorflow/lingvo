@@ -557,6 +557,19 @@
         <span class="s1">&#39;atten_logit_cap&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Cap the absolute values of logits by &#39;</span>
         <span class="s1">&#39;tanh. Enabled when a positive value is specified. May not be &#39;</span>
         <span class="s1">&#39;supported by a subclass.&#39;</span><span class="p">)</span>
+    <span class="c1"># Memory related params.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_add_memory&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to add sketch memory to attention.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;memory_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Template for memory layer, currently only support &#39;</span>
+        <span class="s1">&#39;layers.LSHTaskWithMultiplierLayer.Params().&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_log_num_buckets&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Log of number of buckets.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_num_hash_fn&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of hash functions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_grid_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_rank&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_memory_act&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Activation function for memory.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_add_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to add bias.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_seed&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Seed for the random hyperplanes.&#39;</span><span class="p">)</span>
     <span class="c1"># SPMD partition related params.</span>
     <span class="c1">#</span>
     <span class="c1"># d - model_dim</span>
@@ -640,6 +653,22 @@
             <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
             <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
             <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">post_weight_split_dims_mapping</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attn_add_memory</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">memory_tpl</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
+          <span class="s1">&#39;lsh_mem&#39;</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">memory_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">input_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">,</span>
+              <span class="n">output_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">,</span>
+              <span class="n">log_num_buckets</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_log_num_buckets</span><span class="p">,</span>
+              <span class="n">num_hash_fn</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_num_hash_fn</span><span class="p">,</span>
+              <span class="n">grid_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_grid_size</span><span class="p">,</span>
+              <span class="n">rank</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_rank</span><span class="p">,</span>
+              <span class="n">memory_act</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_memory_act</span><span class="p">,</span>
+              <span class="n">add_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_add_bias</span><span class="p">,</span>
+              <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_seed</span><span class="p">,</span>
+              <span class="n">name</span><span class="o">=</span><span class="s1">&#39;attn_lsh_mem&#39;</span><span class="p">))</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">dim_per_head</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1078,6 +1107,8 @@
     <span class="n">encoded</span><span class="p">,</span> <span class="n">atten_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DotAtten</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_proj</span><span class="p">,</span> <span class="n">key_proj</span><span class="p">,</span>
                                           <span class="n">value_proj</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_mask</span><span class="p">,</span>
                                           <span class="n">per_step_padding</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attn_add_memory</span><span class="p">:</span>
+      <span class="n">encoded</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lsh_mem</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lsh_mem</span><span class="p">,</span> <span class="n">encoded</span> <span class="o">-</span> <span class="n">query_proj</span><span class="p">)</span>
     <span class="c1"># Post projection</span>
     <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PostProj</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoded</span><span class="p">)</span>
 
@@ -7477,6 +7508,266 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
       <span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">atten_p</span></div></div>
+
+
+<div class="viewcode-block" id="MemoryAddLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MemoryAddLayer">[docs]</a><span class="k">class</span> <span class="nc">MemoryAddLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A layer to add inputs with residual weight.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MemoryAddLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MemoryAddLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params for `MemoryAddLayer`.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_memory&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If set False, memory is not added.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Input dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Output dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;log_num_buckets&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Log of number of buckets.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_hash_fn&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of hash functions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grid_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rank&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;memory_act&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Activation function for memory.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to add bias.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;seed&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Seed for the random hyperplanes.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_memory</span><span class="p">:</span>
+      <span class="n">lsh_params</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LSHTaskWithMultiplierLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+          <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">,</span>
+          <span class="n">log_num_buckets</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">log_num_buckets</span><span class="p">,</span>
+          <span class="n">num_hash_fn</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_hash_fn</span><span class="p">,</span>
+          <span class="n">grid_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">grid_size</span><span class="p">,</span>
+          <span class="n">rank</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">rank</span><span class="p">,</span>
+          <span class="n">memory_act</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">memory_act</span><span class="p">,</span>
+          <span class="n">add_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">add_bias</span><span class="p">,</span>
+          <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">seed</span><span class="p">)</span>
+      <span class="n">lsh_params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lsh_mem&#39;</span><span class="p">,</span> <span class="n">lsh_params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MemoryAddLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MemoryAddLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">outputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Return combined inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: weights defined in this layer.</span>
+<span class="sd">      inputs: input tensor.</span>
+<span class="sd">      outputs: input tensor to add memory to.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Added tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_memory</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">outputs</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">lsh_mem</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">lsh_mem</span><span class="p">,</span> <span class="n">outputs</span> <span class="o">-</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">outputs</span></div>
+
+<div class="viewcode-block" id="MemoryAddLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MemoryAddLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">y</span><span class="p">,))</span></div></div>
+
+
+<div class="viewcode-block" id="SketchMemTransformerBuilder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SketchMemTransformerBuilder">[docs]</a><span class="k">class</span> <span class="nc">SketchMemTransformerBuilder</span><span class="p">(</span><span class="n">Builder</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Builder for transformer with sketchmem models.</span>
+
+<span class="sd">  GShard mesh splits not supported yet.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SketchMemTransformerBuilder.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SketchMemTransformerBuilder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_add_memory&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to add sketch memory to attention.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn_add_memory&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to add sketch memory to FFN.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_log_num_buckets&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Log of number of buckets.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_num_hash_fn&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of hash functions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_grid_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_rank&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_memory_act&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Activation function for memory.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_add_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to add bias.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_seed&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Seed for the random hyperplanes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn_log_num_buckets&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Log of number of buckets.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn_num_hash_fn&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of hash functions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn_grid_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn_rank&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn_memory_act&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Activation function for memory.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn_add_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to add bias.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn_seed&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Seed for the random hyperplanes.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="SketchMemTransformerBuilder._MemoryAdd"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SketchMemTransformerBuilder._MemoryAdd">[docs]</a>  <span class="k">def</span> <span class="nf">_MemoryAdd</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">add_memory</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">input_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">output_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">MemoryAddLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">input_dim</span> <span class="k">if</span> <span class="n">input_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">output_dim</span> <span class="k">if</span> <span class="n">output_dim</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">add_memory</span><span class="o">=</span><span class="n">add_memory</span><span class="p">,</span>
+        <span class="n">log_num_buckets</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ffn_log_num_buckets</span><span class="p">,</span>
+        <span class="n">num_hash_fn</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ffn_num_hash_fn</span><span class="p">,</span>
+        <span class="n">grid_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ffn_grid_size</span><span class="p">,</span>
+        <span class="n">rank</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ffn_rank</span><span class="p">,</span>
+        <span class="n">add_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ffn_add_bias</span><span class="p">,</span>
+        <span class="n">memory_act</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ffn_memory_act</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">ffn_seed</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SketchMemTransformerBuilder._MultiHeadedAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SketchMemTransformerBuilder._MultiHeadedAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_MultiHeadedAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a MultiHeadedAttention params.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="n">atten_p</span> <span class="o">=</span> <span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_hidden_dim</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+        <span class="n">enable_value_proj</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">selfatten_enable_value_proj</span><span class="p">,</span>
+        <span class="n">enable_query_scale</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_query_scale</span><span class="p">,</span>
+        <span class="n">enable_per_dim_scale</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">,</span>
+        <span class="n">packed_input</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
+        <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
+        <span class="n">enable_scaling_code_motion</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_scaling_code_motion</span><span class="p">,</span>
+        <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+        <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">dnh</span><span class="p">,</span>
+        <span class="n">attn_add_memory</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_add_memory</span><span class="p">,</span>
+        <span class="n">memory_tpl</span><span class="o">=</span><span class="n">layers</span><span class="o">.</span><span class="n">LSHTaskWithMultiplierLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+        <span class="n">attn_log_num_buckets</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_log_num_buckets</span><span class="p">,</span>
+        <span class="n">attn_num_hash_fn</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_num_hash_fn</span><span class="p">,</span>
+        <span class="n">attn_grid_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_grid_size</span><span class="p">,</span>
+        <span class="n">attn_rank</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_rank</span><span class="p">,</span>
+        <span class="n">attn_memory_act</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_memory_act</span><span class="p">,</span>
+        <span class="n">attn_add_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_add_bias</span><span class="p">,</span>
+        <span class="n">attn_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_seed</span><span class="p">)</span>
+    <span class="n">atten_ap</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
+    <span class="n">atten_ap</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span>
+    <span class="n">atten_ap</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
+      <span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">atten_p</span></div>
+
+<div class="viewcode-block" id="SketchMemTransformerBuilder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SketchMemTransformerBuilder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                  <span class="n">name</span><span class="p">,</span>
+                  <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                  <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                  <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">is_causal</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ff_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="o">.</span><span class="n">ndim</span> <span class="o">&gt;=</span> <span class="mi">2</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">fd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">bias_f_split</span> <span class="o">=</span> <span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">bias_d_split</span> <span class="o">=</span> <span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">fd</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span>
+                    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">fd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span>
+            <span class="s1">&#39;i.vec-&gt;after_feedforward&#39;</span><span class="p">,</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+                <span class="s1">&#39;feedforward&#39;</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">),</span>  <span class="c1"># LN with default params.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span>
+                    <span class="s1">&#39;linear01&#39;</span><span class="p">,</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+                    <span class="n">ff_hidden_dim</span><span class="p">,</span>
+                    <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                    <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">df</span><span class="p">),</span>
+                    <span class="n">qdomain</span><span class="o">=</span><span class="n">qdomain</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;split01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blf</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span>
+                    <span class="s1">&#39;bias01&#39;</span><span class="p">,</span>
+                    <span class="n">ff_hidden_dim</span><span class="p">,</span>
+                    <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                    <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">bias_f_split</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_activation_fn</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;relu_dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relu_dropout_prob</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span>
+                    <span class="s1">&#39;linear02&#39;</span><span class="p">,</span>
+                    <span class="n">ff_hidden_dim</span><span class="p">,</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+                    <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                    <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">fd</span><span class="p">),</span>
+                    <span class="n">qdomain</span><span class="o">=</span><span class="n">qdomain</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;split02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span><span class="p">),</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span>
+                    <span class="s1">&#39;bias02&#39;</span><span class="p">,</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+                    <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
+                    <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">bias_d_split</span><span class="p">),</span>
+                <span class="c1"># TODO(wanxin): add memory here for feedforward.</span>
+                <span class="c1"># If dropout is zero, we can also apply it after this layer.</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,after_feedforward-&gt;after_memory&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_MemoryAdd</span><span class="p">(</span><span class="s1">&#39;lsh_mem&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ffn_add_memory</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,after_memory-&gt;added&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_residual_weight</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_apply_residual</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;added,i.paddings-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pad</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)),</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+      <span class="n">sub_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="p">(</span><span class="s1">&#39;i.segment_mask-&gt;o.segment_mask&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;segment_mask&#39;</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>  <span class="c1"># input NestedMap with {vec, paddings, segment_mask}</span>
+        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings, segment_mask}</span>
+        <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SketchMemTransformerBuilder.GatedGeluFeedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SketchMemTransformerBuilder.GatedGeluFeedforward">[docs]</a>  <span class="k">def</span> <span class="nf">GatedGeluFeedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">GatedFeedforward</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">is_causal</span><span class="p">,</span>
+        <span class="n">ff_hidden_dim</span><span class="p">,</span>
+        <span class="n">activation_fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="SketchMemTransformerBuilder.GatedFeedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.SketchMemTransformerBuilder.GatedFeedforward">[docs]</a>  <span class="k">def</span> <span class="nf">GatedFeedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                       <span class="n">name</span><span class="p">,</span>
+                       <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                       <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                       <span class="n">activation_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">is_causal</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ff_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span>
+
+    <span class="k">def</span> <span class="nf">GatedFn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span><span class="n">activation_fn</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">y</span><span class="p">)</span>
+
+    <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_gelu&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+             <span class="s1">&#39;feedforward&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;y&#39;</span><span class="p">],</span> <span class="p">(</span><span class="s1">&#39;x-&gt;x1&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DefaultLN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">)),</span>
+             <span class="p">(</span><span class="s1">&#39;x1-&gt;h0&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;wi0&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">)),</span>
+             <span class="p">(</span><span class="s1">&#39;x1-&gt;h1&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;wi1&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">)),</span>
+             <span class="p">(</span><span class="s1">&#39;h0,h1-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;gelu&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">GatedFn</span><span class="p">,</span> <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span><span class="p">)),</span>
+             <span class="p">(</span><span class="s1">&#39;h-&gt;h_dropout&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relu_dropout_prob</span><span class="p">)),</span>
+             <span class="p">(</span><span class="s1">&#39;h_dropout-&gt;y&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)))),</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,after_gelu-&gt;after_memory&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_MemoryAdd</span><span class="p">(</span><span class="s1">&#39;lsh_mem&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ffn_add_memory</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;after_memory-&gt;y&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,y-&gt;added&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_residual_weight</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_apply_residual</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;added,i.paddings-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pad</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)),</span>
+    <span class="p">]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
+      <span class="n">sub_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="p">(</span><span class="s1">&#39;i.segment_mask-&gt;o.segment_mask&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;segment_mask&#39;</span><span class="p">)))</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>  <span class="c1"># input NestedMap with {vec, paddings, segment_mask}</span>
+        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings, segment_mask}</span>
+        <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="LmBuilder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder">[docs]</a><span class="k">class</span> <span class="nc">LmBuilder</span><span class="p">(</span><span class="n">Builder</span><span class="p">):</span>

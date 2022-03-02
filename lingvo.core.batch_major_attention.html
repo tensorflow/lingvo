@@ -3890,6 +3890,113 @@ specified, this will override p.num_heads.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.MemoryAddLayer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.batch_major_attention.</span></span><span class="sig-name descname"><span class="pre">MemoryAddLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MemoryAddLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MemoryAddLayer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A layer to add inputs with residual weight.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.MemoryAddLayer.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MemoryAddLayer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MemoryAddLayer.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Params for <a class="reference internal" href="#lingvo.core.batch_major_attention.MemoryAddLayer" title="lingvo.core.batch_major_attention.MemoryAddLayer"><code class="xref py py-obj docutils literal notranslate"><span class="pre">MemoryAddLayer</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.MemoryAddLayer.FProp">
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">outputs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MemoryAddLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MemoryAddLayer.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Return combined inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – weights defined in this layer.</p></li>
+<li><p><strong>inputs</strong> – input tensor.</p></li>
+<li><p><strong>outputs</strong> – input tensor to add memory to.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Added tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.MemoryAddLayer.FPropMeta">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">FPropMeta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MemoryAddLayer.FPropMeta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MemoryAddLayer.FPropMeta" title="Permalink to this definition"></a></dt>
+<dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.batch_major_attention.MemoryAddLayer.FProp" title="lingvo.core.batch_major_attention.MemoryAddLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
+<p><strong>Experimental feature.</strong>
+Don’t use or depend on it without consulting Lingvo authors.</p>
+<p>E.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p</span> <span class="o">=</span> <span class="n">SomeComplexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="n">meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">([</span><span class="mi">128</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;channels&#39;</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p><code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.flops</span></code> gives an estimate count of floating point operations done by
+one <a class="reference internal" href="#lingvo.core.batch_major_attention.MemoryAddLayer.FProp" title="lingvo.core.batch_major_attention.MemoryAddLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> given an input tensor of shape [128, 20, 50, channels].
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">meta.out_shapes</span></code> is a tuple of TShape, which tells you what shape
+of tensors this layer will return.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – The param of a layer of this layer type.</p></li>
+<li><p><strong>*args</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Corresponds to FProp with Tensors replaced by <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with</p>
+<ul class="simple">
+<li><p>flops - The estimated number of floating point operations incurred by
+this fprop.</p></li>
+<li><p>out_shapes - A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">TShape</span></code>. I.e., <code class="xref py py-obj docutils literal notranslate"><span class="pre">out_shapes[i]</span></code>
+represents the shape of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">i</span></code>-th returned tensor of the fprop.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.SketchMemTransformerBuilder">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.batch_major_attention.</span></span><span class="sig-name descname"><span class="pre">SketchMemTransformerBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SketchMemTransformerBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SketchMemTransformerBuilder" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.Builder" title="lingvo.core.batch_major_attention.Builder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.Builder</span></code></a></p>
+<p>Builder for transformer with sketchmem models.</p>
+<p>GShard mesh splits not supported yet.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.SketchMemTransformerBuilder.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SketchMemTransformerBuilder.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SketchMemTransformerBuilder.Params" title="Permalink to this definition"></a></dt>
+<dd><p>The params of this layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.SketchMemTransformerBuilder._MemoryAdd">
+<span class="sig-name descname"><span class="pre">_MemoryAdd</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">add_memory</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SketchMemTransformerBuilder._MemoryAdd"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SketchMemTransformerBuilder._MemoryAdd" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.SketchMemTransformerBuilder._MultiHeadedAtten">
+<span class="sig-name descname"><span class="pre">_MultiHeadedAtten</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_heads</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SketchMemTransformerBuilder._MultiHeadedAtten"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SketchMemTransformerBuilder._MultiHeadedAtten" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a MultiHeadedAttention params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.SketchMemTransformerBuilder.Feedforward">
+<span class="sig-name descname"><span class="pre">Feedforward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_causal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_hidden_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qdomain</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SketchMemTransformerBuilder.Feedforward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SketchMemTransformerBuilder.Feedforward" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.SketchMemTransformerBuilder.GatedGeluFeedforward">
+<span class="sig-name descname"><span class="pre">GatedGeluFeedforward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_causal</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_hidden_dim</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SketchMemTransformerBuilder.GatedGeluFeedforward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SketchMemTransformerBuilder.GatedGeluFeedforward" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.SketchMemTransformerBuilder.GatedFeedforward">
+<span class="sig-name descname"><span class="pre">GatedFeedforward</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">is_causal=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ff_hidden_dim=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">activation_fn=&lt;function</span> <span class="pre">relu&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#SketchMemTransformerBuilder.GatedFeedforward"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.SketchMemTransformerBuilder.GatedFeedforward" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.batch_major_attention.LmBuilder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.batch_major_attention.</span></span><span class="sig-name descname"><span class="pre">LmBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.Builder" title="lingvo.core.batch_major_attention.Builder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.Builder</span></code></a></p>
