@@ -176,6 +176,13 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         'pre_layer_norm', True, 'When True, layer norm is used before attention'
         'module, otherwise used after attention module which is consistent with'
         'Vaswani et al\'s paper')
+
+    p.Define('memory_augmentation', False,
+             'Augment attention with memory if True.')
+    p.Define(
+        'memory', None,
+        'Parameters for memory augmentation, currently only support '
+        'layers.LSHTaskWithMultiplierLayer.Params().')
     return p
 
   def __init__(self, params):
@@ -210,6 +217,14 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       params = p.residual_function.Copy()
       params.input_dim = p.atten_hidden_dim
       self.CreateChild('residual_function', params)
+
+    if p.memory_augmentation:
+      assert p.memory is not None
+      mem_params = p.memory.Copy()
+      # Make sure to override input and output dim.
+      mem_params.input_dim = p.source_dim
+      mem_params.output_dim = p.context_dim
+      self.CreateChild('lsh_mem', mem_params)
 
   def _InitAttention(self, atten_tpl):
     p = self.params
@@ -337,6 +352,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         atten_prob,
         [target_time, target_bs,
          self._GetSourceLength(source_paddings)])
+    if p.memory_augmentation:
+      h += self.lsh_mem.FProp(theta.lsh_mem, context_vecs - query_vec)
     return h, atten_prob
 
   def _FinishExtendStep(self,
@@ -566,6 +583,12 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
         'Boolean array to determine whether to use block diagonal matmul.')
     p.Define('num_blocks_pl', [], 'Int array for number of blocks for input '
              'and output.')
+    p.Define('memory_augmentation', False,
+             'Augment attention with memory if True.')
+    p.Define(
+        'memory', None,
+        'Parameters for memory augmentation, currently only support '
+        'layers.LSHTaskWithMultiplierLayer.Params().')
     return p
 
   @classmethod
@@ -635,6 +658,17 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
           survival_prob=1.0 - p.residual_droppath_prob)
       self.CreateChild('residual_droppath', droppath_p)
 
+    if p.memory_augmentation:
+      assert p.memory is not None
+      mem_params = p.memory.Copy()
+      # Make sure to override input and output dim.
+      mem_params.input_dim = p.input_dim
+      if p.output_dim == 0:
+        mem_params.output_dim = p.input_dim
+      else:
+        mem_params.output_dim = p.output_dim
+      self.CreateChild('lsh_mem', mem_params)
+
   @property
   def output_dim(self):
     """Returns output dimension of the transformer layer."""
@@ -673,6 +707,8 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
                              tf.expand_dims(paddings, -1))
       if p.primer_hybrid_norm:
         h = self.post_layer_norm.FProp(theta.post_layer_norm, h)
+      if p.memory_augmentation:
+        h += self.lsh_mem.FProp(theta.lsh_mem, h - inputs)
       h = self.residual_dropout.FProp(theta.residual_dropout, h)
       if p.add_skip_connection:
         if p.residual_droppath_prob:

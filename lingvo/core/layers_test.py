@@ -6370,5 +6370,46 @@ class MaskedLmDataAugmenterTest(test_utils.TestCase):
       tf.logging.info('masked_pos: %s', np.array_repr(v2))
 
 
+class LSHMemoryRankKOneHotTaskLayerTest(test_utils.TestCase):
+
+  def testLSHLayer(self):
+    with self.session(use_gpu=False):
+      tf.random.set_seed(398847392)
+      p = layers.LSHMemoryRankKOneHotTaskLayer.Params().Set(name='LSH')
+      p.input_dim = 128
+      p.output_dim = 64
+      p.log_num_buckets = 6
+      p.num_hash_fn = 2
+      p.rank = 16
+      p.add_bias = True
+      p.seed = 398847392
+
+      lsh_layer = p.Instantiate()
+      inputs = tf.random.normal(shape=(16, 32, 128))
+      outputs = lsh_layer.FPropDefaultTheta(inputs)
+      self.assertEqual(outputs.shape, (16, 32, 64))
+
+
+class LSHTaskWithMultiplierLayerTest(test_utils.TestCase):
+
+  def testLSHWithMultiplierLayer(self):
+    with self.session(use_gpu=False):
+      tf.random.set_seed(398847392)
+      p = layers.LSHTaskWithMultiplierLayer.Params().Set(
+          name='LSHWithMultiplier')
+      p.input_dim = 128
+      p.output_dim = 64
+      p.log_num_buckets = 6
+      p.num_hash_fn = 2
+      p.rank = 16
+      p.add_bias = True
+      p.seed = 398847392
+
+      lsh_mul_layer = p.Instantiate()
+      inputs = tf.random.normal(shape=(16, 32, 128))
+      outputs = lsh_mul_layer.FPropDefaultTheta(inputs)
+      self.assertEqual(outputs.shape, (16, 32, 64))
+
+
 if __name__ == '__main__':
   test_utils.main()

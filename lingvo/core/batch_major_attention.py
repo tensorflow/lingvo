@@ -492,6 +492,19 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         'atten_logit_cap', 0.0, 'Cap the absolute values of logits by '
         'tanh. Enabled when a positive value is specified. May not be '
         'supported by a subclass.')
+    # Memory related params.
+    p.Define('attn_add_memory', False,
+             'Whether to add sketch memory to attention.')
+    p.Define(
+        'memory_tpl', None, 'Template for memory layer, currently only support '
+        'layers.LSHTaskWithMultiplierLayer.Params().')
+    p.Define('attn_log_num_buckets', 6, 'Log of number of buckets.')
+    p.Define('attn_num_hash_fn', 2, 'Number of hash functions.')
+    p.Define('attn_grid_size', 1, 'Grid size.')
+    p.Define('attn_rank', 0, 'Grid size.')
+    p.Define('attn_memory_act', 'RELU', 'Activation function for memory.')
+    p.Define('attn_add_bias', True, 'Whether to add bias.')
+    p.Define('attn_seed', 0, 'Seed for the random hyperplanes.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -575,6 +588,22 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
             use_bias=p.use_bias,
             device_mesh=p.device_mesh,
             weight_split_dims_mapping=post_weight_split_dims_mapping))
+
+    if p.attn_add_memory:
+      assert p.memory_tpl is not None
+      self.CreateChild(
+          'lsh_mem',
+          p.memory_tpl.Copy().Set(
+              input_dim=self.dim_per_head,
+              output_dim=self.dim_per_head,
+              log_num_buckets=p.attn_log_num_buckets,
+              num_hash_fn=p.attn_num_hash_fn,
+              grid_size=p.attn_grid_size,
+              rank=p.attn_rank,
+              memory_act=p.attn_memory_act,
+              add_bias=p.attn_add_bias,
+              seed=p.attn_seed,
+              name='attn_lsh_mem'))
 
   @property
   def dim_per_head(self):
@@ -1013,6 +1042,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     encoded, atten_probs = self._DotAtten(theta, query_proj, key_proj,
                                           value_proj, paddings, segment_mask,
                                           per_step_padding)
+    if p.attn_add_memory:
+      encoded += self.lsh_mem.FProp(theta.lsh_mem, encoded - query_proj)
     # Post projection
     encoded = self._PostProj(theta, encoded)
 
@@ -7412,6 +7443,266 @@ class PerformerBuilder(Builder):
     if p.deterministic_dropout:
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
+
+
+class MemoryAddLayer(base_layer.BaseLayer):
+  """A layer to add inputs with residual weight."""
+
+  @classmethod
+  def Params(cls):
+    """Params for `MemoryAddLayer`."""
+    p = super().Params()
+    p.Define('add_memory', True, 'If set False, memory is not added.')
+    p.Define('input_dim', 0, 'Input dimension.')
+    p.Define('output_dim', 0, 'Output dimension.')
+    p.Define('log_num_buckets', 6, 'Log of number of buckets.')
+    p.Define('num_hash_fn', 2, 'Number of hash functions.')
+    p.Define('grid_size', 1, 'Grid size.')
+    p.Define('rank', 0, 'Grid size.')
+    p.Define('memory_act', 'RELU', 'Activation function for memory.')
+    p.Define('add_bias', True, 'Whether to add bias.')
+    p.Define('seed', 0, 'Seed for the random hyperplanes.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+
+    if p.add_memory:
+      lsh_params = layers.LSHTaskWithMultiplierLayer.Params().Set(
+          input_dim=p.input_dim,
+          output_dim=p.output_dim,
+          log_num_buckets=p.log_num_buckets,
+          num_hash_fn=p.num_hash_fn,
+          grid_size=p.grid_size,
+          rank=p.rank,
+          memory_act=p.memory_act,
+          add_bias=p.add_bias,
+          seed=p.seed)
+      lsh_params.dtype = p.dtype
+      self.CreateChild('lsh_mem', lsh_params)
+
+  def FProp(self, theta, inputs, outputs):
+    """Return combined inputs.
+
+    Args:
+      theta: weights defined in this layer.
+      inputs: input tensor.
+      outputs: input tensor to add memory to.
+
+    Returns:
+      Added tensors.
+    """
+    p = self.params
+    if p.add_memory:
+      return outputs + self.lsh_mem.FProp(theta.lsh_mem, outputs - inputs)
+    else:
+      return outputs
+
+  @classmethod
+  def FPropMeta(cls, p, x, y):
+    py_utils.CheckShapes((x, y))
+    return py_utils.NestedMap(flops=x.num_elements() * 2, out_shapes=(y,))
+
+
+class SketchMemTransformerBuilder(Builder):
+  """Builder for transformer with sketchmem models.
+
+  GShard mesh splits not supported yet.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('attn_add_memory', False,
+             'Whether to add sketch memory to attention.')
+    p.Define('ffn_add_memory', False, 'Whether to add sketch memory to FFN.')
+    p.Define('attn_log_num_buckets', 6, 'Log of number of buckets.')
+    p.Define('attn_num_hash_fn', 2, 'Number of hash functions.')
+    p.Define('attn_grid_size', 1, 'Grid size.')
+    p.Define('attn_rank', 0, 'Grid size.')
+    p.Define('attn_memory_act', 'RELU', 'Activation function for memory.')
+    p.Define('attn_add_bias', True, 'Whether to add bias.')
+    p.Define('attn_seed', 0, 'Seed for the random hyperplanes.')
+    p.Define('ffn_log_num_buckets', 6, 'Log of number of buckets.')
+    p.Define('ffn_num_hash_fn', 2, 'Number of hash functions.')
+    p.Define('ffn_grid_size', 1, 'Grid size.')
+    p.Define('ffn_rank', 0, 'Grid size.')
+    p.Define('ffn_memory_act', 'RELU', 'Activation function for memory.')
+    p.Define('ffn_add_bias', True, 'Whether to add bias.')
+    p.Define('ffn_seed', 0, 'Seed for the random hyperplanes.')
+    return p
+
+  def _MemoryAdd(self, name, add_memory=True, input_dim=None, output_dim=None):
+    p = self.params
+    return MemoryAddLayer.Params().Set(
+        name=name,
+        input_dim=input_dim if input_dim is not None else p.model_dim,
+        output_dim=output_dim if output_dim is not None else p.model_dim,
+        add_memory=add_memory,
+        log_num_buckets=p.ffn_log_num_buckets,
+        num_hash_fn=p.ffn_num_hash_fn,
+        grid_size=p.ffn_grid_size,
+        rank=p.ffn_rank,
+        add_bias=p.ffn_add_bias,
+        memory_act=p.ffn_memory_act,
+        seed=p.ffn_seed)
+
+  def _MultiHeadedAtten(self, name, num_heads=None):
+    """Returns a MultiHeadedAttention params."""
+    p = self.params
+    if num_heads is None:
+      num_heads = p.num_heads
+    atten_p = MultiHeadedAttention.Params().Set(
+        name=name,
+        input_dim=p.model_dim,
+        hidden_dim=p.attention_hidden_dim or p.model_dim,
+        num_heads=num_heads,
+        atten_dropout_prob=p.atten_dropout_prob,
+        enable_value_proj=p.selfatten_enable_value_proj,
+        enable_query_scale=p.enable_query_scale,
+        enable_per_dim_scale=p.enable_per_dim_scale,
+        packed_input=p.packed_input,
+        fprop_dtype=p.fprop_dtype,
+        use_bias=p.use_bias,
+        enable_scaling_code_motion=p.enable_scaling_code_motion,
+        device_mesh=p.device_mesh,
+        weight_split_dims_mapping=p.weight_split_dims_mapping.dnh,
+        attn_add_memory=p.attn_add_memory,
+        memory_tpl=layers.LSHTaskWithMultiplierLayer.Params(),
+        attn_log_num_buckets=p.attn_log_num_buckets,
+        attn_num_hash_fn=p.attn_num_hash_fn,
+        attn_grid_size=p.attn_grid_size,
+        attn_rank=p.attn_rank,
+        attn_memory_act=p.attn_memory_act,
+        attn_add_bias=p.attn_add_bias,
+        attn_seed=p.attn_seed)
+    atten_ap = atten_p.activation_split_dims_mapping
+    atten_ap.blnh = p.activation_split_dims_mapping.blnh
+    atten_ap.bld = p.activation_split_dims_mapping.bld
+    if p.deterministic_dropout:
+      atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
+    return atten_p
+
+  def Feedforward(self,
+                  name,
+                  is_causal=False,
+                  ff_hidden_dim=None,
+                  qdomain=None):
+    del is_causal
+    p = self.params
+    if ff_hidden_dim is None:
+      ff_hidden_dim = p.ff_hidden_dim
+    if p.device_mesh is not None:
+      assert p.device_mesh.ndim >= 2
+      assert p.weight_split_dims_mapping.df is not None
+      assert p.weight_split_dims_mapping.fd is not None
+    bias_f_split = ([p.weight_split_dims_mapping.df[1]]
+                    if p.weight_split_dims_mapping.df is not None else None)
+    bias_d_split = ([p.weight_split_dims_mapping.fd[1]]
+                    if p.weight_split_dims_mapping.fd is not None else None)
+    sub_list = [
+        (
+            'i.vec->after_feedforward',
+            self._Seq(
+                'feedforward',
+                self._DefaultLN('ln'),  # LN with default params.
+                self._Linear(
+                    'linear01',
+                    p.model_dim,
+                    ff_hidden_dim,
+                    device_mesh=p.device_mesh,
+                    weight_split_dims_mapping=(p.weight_split_dims_mapping.df),
+                    qdomain=qdomain),
+                self.MeshSplit('split01', p.activation_split_dims_mapping.blf),
+                self._Bias(
+                    'bias01',
+                    ff_hidden_dim,
+                    device_mesh=p.device_mesh,
+                    weight_split_dims_mapping=bias_f_split),
+                self._Activation('act', p.ff_activation_fn),
+                self._Dropout('relu_dropout', p.relu_dropout_prob),
+                self._Linear(
+                    'linear02',
+                    ff_hidden_dim,
+                    p.model_dim,
+                    device_mesh=p.device_mesh,
+                    weight_split_dims_mapping=(p.weight_split_dims_mapping.fd),
+                    qdomain=qdomain),
+                self.MeshSplit('split02', p.activation_split_dims_mapping.bld),
+                self._Bias(
+                    'bias02',
+                    p.model_dim,
+                    device_mesh=p.device_mesh,
+                    weight_split_dims_mapping=bias_d_split),
+                # TODO(wanxin): add memory here for feedforward.
+                # If dropout is zero, we can also apply it after this layer.
+                self._Dropout('dropout', p.residual_dropout_prob))),
+        ('i.vec,after_feedforward->after_memory',
+         self._MemoryAdd('lsh_mem', p.ffn_add_memory)),
+        ('i.vec,after_memory->added',
+         self._Add('add', p.ff_residual_weight, p.ff_apply_residual)),
+        ('added,i.paddings->o.vec', self._Pad('pad')),
+        ('i.paddings->o.paddings', self._Id('id')),
+    ]
+
+    if p.packed_input:
+      sub_list.append(
+          ('i.segment_mask->o.segment_mask', self._Id('segment_mask')))
+
+    return self._Graph(
+        name,
+        ['i'],  # input NestedMap with {vec, paddings, segment_mask}
+        ['o'],  # output NestedMap with {vec, paddings, segment_mask}
+        *sub_list)
+
+  def GatedGeluFeedforward(self, name, is_causal=False, ff_hidden_dim=None):
+    return self.GatedFeedforward(
+        name,
+        is_causal,
+        ff_hidden_dim,
+        activation_fn=lambda x: tf.nn.gelu(x, approximate=True))
+
+  def GatedFeedforward(self,
+                       name,
+                       is_causal=False,
+                       ff_hidden_dim=None,
+                       activation_fn=tf.nn.relu):
+    del is_causal
+    p = self.params
+    if ff_hidden_dim is None:
+      ff_hidden_dim = p.ff_hidden_dim
+
+    def GatedFn(x, y):
+      return tf.math.multiply(activation_fn(x), y)
+
+    sub_list = [
+        ('i.vec->after_gelu',
+         self._Graph(
+             'feedforward', ['x'], ['y'], ('x->x1', self._DefaultLN('ln')),
+             ('x1->h0', self._Linear('wi0', p.model_dim, ff_hidden_dim)),
+             ('x1->h1', self._Linear('wi1', p.model_dim, ff_hidden_dim)),
+             ('h0,h1->h', self._Fn('gelu', fn=GatedFn, fn_out=lambda x, y: x)),
+             ('h->h_dropout', self._Dropout('dropout', p.relu_dropout_prob)),
+             ('h_dropout->y', self._Linear('wo', ff_hidden_dim, p.model_dim)))),
+        ('i.vec,after_gelu->after_memory',
+         self._MemoryAdd('lsh_mem', p.ffn_add_memory)),
+        ('after_memory->y', self._Dropout('dropout', p.residual_dropout_prob)),
+        ('i.vec,y->added',
+         self._Add('add', p.ff_residual_weight, p.ff_apply_residual)),
+        ('added,i.paddings->o.vec', self._Pad('pad')),
+        ('i.paddings->o.paddings', self._Id('id')),
+    ]
+
+    if p.packed_input:
+      sub_list.append(
+          ('i.segment_mask->o.segment_mask', self._Id('segment_mask')))
+
+    return self._Graph(
+        name,
+        ['i'],  # input NestedMap with {vec, paddings, segment_mask}
+        ['o'],  # output NestedMap with {vec, paddings, segment_mask}
+        *sub_list)
 
 
 class LmBuilder(Builder):

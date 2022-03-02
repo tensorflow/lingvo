@@ -1476,6 +1476,12 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
         'whether to use block diagonal matmul in the projection layer.')
     p.Define('num_blocks_pl', [], 'Int array for number of blocks for input '
              'and output.')
+    p.Define('memory_augmentation', False,
+             'Augment FeedForwardNet with memory if True.')
+    p.Define(
+        'memory', None,
+        'Parameters for memory augmentation, currently only support '
+        'layers.LSHTaskWithMultiplierLayer.Params().')
 
     return p
 
@@ -1583,6 +1589,13 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     self.CreateChildren('fc', params_fc_layers)
     self.CreateChildren('dropout', params_dropout_layers)
 
+    memory_params = None
+    if p.memory_augmentation:
+      assert p.memory is not None
+      memory_params = p.memory.Copy()
+      memory_params.Set(input_dim=p.input_dim, emb_dim=self.output_dim)
+      self.CreateChild('lsh_mem', memory_params)
+
   @property
   def output_dim(self):
     """Returns output dimension of the FeedForwardNet."""
@@ -1625,7 +1638,11 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     Returns:
       Output after applying all layers.  Shaped [..., p.hidden_layer_dims[-1]].
     """
-    return self.FPropAllLayers(theta, inputs, paddings)[-1]
+    p = self.params
+    ff_output = self.FPropAllLayers(theta, inputs, paddings)[-1]
+    if p.memory_augmentation:
+      ff_output += self.lsh_mem.FProp(theta.lsh_mem, inputs)
+    return ff_output
 
   @classmethod
   def FPropMeta(cls, p, inputs, paddings=None):
@@ -1639,6 +1656,15 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
         proj_shape = tshape.Shape(inputs[:-1] + [proj_params.input_dim])
         proj_meta = proj_params.cls.FPropMeta(proj_params, proj_shape)
         flops += proj_meta.flops
+
+      if p.memory_augmentation:
+        lsh_mem = instance.lsh_mem
+        lsh_mem_params = lsh_mem.params
+        lsh_mem_shape = tshape.Shape(inputs[:-1] + [lsh_mem_params.input_dim])
+        lsh_mem_meta = lsh_mem_params.cls.FPropMeta(lsh_mem_params,
+                                                    lsh_mem_shape)
+        flops += lsh_mem_meta.flops
+
     out_shape = tshape.Shape(inputs[:-1] + [p.hidden_layer_dims[-1]])
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
@@ -6039,6 +6065,257 @@ class StatisticalPoolingLayer(base_layer.BaseLayer):
       return tf.concat([mean, stddev], axis=1)
     else:
       return mean
+
+
+class LSHMemoryRankKOneHotTaskLayer(base_layer.BaseLayer):
+  """LSH memory layer with rank k and one hot lookups.
+
+  Sketch based memory for neural networks,
+  https://proceedings.mlr.press/v130/panigrahy21a.html.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('input_dim', 0, 'Input dimension.')
+    p.Define('output_dim', 0, 'Output dimension.')
+    p.Define('log_num_buckets', 6, 'Log of number of buckets.')
+    p.Define('num_hash_fn', 2, 'Number of hash functions.')
+    p.Define('grid_size', 1, 'Grid size.')
+    p.Define('rank', 0, 'Grid size.')
+    p.Define('memory_act', 'RELU', 'Activation function for memory.')
+    p.Define('add_bias', True, 'Whether to add bias.')
+    p.Define('lsh_u_init', py_utils.DefaultParamInit(),
+             'Initializer for memory U variable.')
+    p.Define('lsh_v_init', py_utils.DefaultParamInit(),
+             'Initializer for memory V variable.')
+    p.Define('lsh_b_init', py_utils.WeightInit.Constant(0.0),
+             'Initializer for memory bias variable.')
+    p.Define('shuffle_before_rehash', True,
+             'Whether to shuffle bucket bits before rehash.')
+    p.Define('seed', 0, 'Seed for the random hyperplanes.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+
+    input_dim = p.input_dim
+    output_dim = p.output_dim
+    if output_dim is None or output_dim <= 0:
+      output_dim = input_dim
+
+    # Weights for bucket id computation.
+    hp_coef_pc = py_utils.WeightParams(
+        shape=[input_dim, p.num_hash_fn, p.log_num_buckets],
+        init=py_utils.WeightInit.Gaussian(scale=1.0, seed=p.seed),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('hp_coef', hp_coef_pc, trainable=False)
+
+    # Create trainable memory tables.
+    if p.rank > 0:
+      mem_u_pc = py_utils.WeightParams(
+          shape=[2**p.log_num_buckets, input_dim, p.rank],
+          init=p.lsh_u_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      mem_v_pc = py_utils.WeightParams(
+          shape=[2**p.log_num_buckets, p.rank, output_dim],
+          init=p.lsh_v_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('lsh_u_emb', mem_u_pc)
+      self.CreateVariable('lsh_v_emb', mem_v_pc)
+    if p.add_bias:
+      mem_b_pc = py_utils.WeightParams(
+          shape=[2**p.log_num_buckets, output_dim],
+          init=p.lsh_b_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('lsh_b_emb', mem_b_pc)
+
+  def _ComputeGridLSHBucketIds(self, theta, inputs):
+    p = self.params
+    bucket_vectors = tf.einsum('...i,inm->...nm', inputs, theta.hp_coef)
+    bucket_binaries = [bucket_vectors > i for i in range(p.grid_size)]
+    bucket_binary = tf.concat(bucket_binaries, axis=-1)
+    powers_of_two = 2**tf.range(0, p.log_num_buckets * p.grid_size)
+    if p.shuffle_before_rehash:
+      powers_of_two = tf.random.shuffle(powers_of_two, seed=p.seed)
+    bucket_ids = tf.einsum('...n,n->...', tf.cast(bucket_binary, tf.int32),
+                           powers_of_two)
+    bucket_ids = tf.math.floormod(bucket_ids, 2**p.log_num_buckets)
+    bucket_ids = tf.cast(bucket_ids, tf.int32)
+    return bucket_ids
+
+  def FProp(self, theta, inputs):
+    """Apply deconvolution to inputs.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      inputs: The inputs tensor. It is expected to be of shape [batch, height,
+        width, channel].
+
+    Returns:
+      outputs.
+    """
+    p = self.params
+    num_buckets = 2**p.log_num_buckets
+    # inputs = py_utils.HasShape(inputs, [-1, -1, ])
+    bucket_ids = self._ComputeGridLSHBucketIds(theta, inputs)
+    # shape: (B, seq, num_hash, num_buckets)
+    # * shape: (B, seq, num_heads, num_hash, num_buckets)
+    bucket_one_hot = tf.one_hot(bucket_ids, num_buckets, axis=-1)
+    summed_one_hot = tf.math.reduce_mean(bucket_one_hot, axis=-3)
+
+    if p.rank > 0:
+      u_mat = tf.einsum('...n,nir->...ir',
+                        tf.cast(summed_one_hot, theta.lsh_u_emb.dtype),
+                        theta.lsh_u_emb)
+      v_mat = tf.einsum('...n,nro->...ro',
+                        tf.cast(summed_one_hot, theta.lsh_v_emb.dtype),
+                        theta.lsh_v_emb)
+    if p.add_bias:
+      bias = tf.einsum('...n,nd->...d',
+                       tf.cast(summed_one_hot, theta.lsh_b_emb.dtype),
+                       theta.lsh_b_emb)
+
+    outputs = 0.0
+    if p.rank > 0:
+      outputs = tf.einsum('...si,...kir->...skr', inputs, u_mat)
+      outputs = activations.GetFn(p.memory_act)(outputs)
+      outputs = tf.einsum('...skr,...kro->...so', outputs, v_mat)
+    if p.add_bias:
+      outputs += tf.expand_dims(tf.math.reduce_sum(bias, axis=-2), axis=-2)
+    return outputs
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, paddings=None):
+    py_utils.CheckShapes((inputs,))
+    assert inputs[-1] == p.input_dim
+
+    flops = 0
+    in_dim = inputs[-1]
+    other_dims = inputs.num_elements() / in_dim
+
+    # Matmul with hyperplane coef.
+    flops += other_dims * p.input_dim * p.num_hash_fn * p.log_num_buckets * 2
+    # Raise to powers of two.
+    flops += other_dims * p.num_hash_fn * p.log_num_buckets * 2
+    # Reduce to output dim.
+    flops += other_dims * p.num_hash_fn * p.output_dim
+
+    out_shape = tshape.Shape(inputs[:-1] + [p.output_dim])
+
+    return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
+
+
+class LSHTaskWithMultiplierLayer(base_layer.BaseLayer):
+  """LSH Memory layer with multiplier."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('input_dim', 0, 'Input dimension.')
+    p.Define('output_dim', 0, 'Output dimension.')
+    p.Define('log_num_buckets', 6, 'Log of number of buckets.')
+    p.Define('num_hash_fn', 2, 'Number of hash functions.')
+    p.Define('grid_size', 1, 'Grid size.')
+    p.Define('rank', 0, 'Grid size.')
+    p.Define('memory_act', 'RELU', 'Activation function for memory.')
+    p.Define('add_bias', True, 'Whether to add bias.')
+    p.Define('lsh_u_init', py_utils.DefaultParamInit(),
+             'Initializer for memory U variable.')
+    p.Define('lsh_v_init', py_utils.DefaultParamInit(),
+             'Initializer for memory V variable.')
+    p.Define('lsh_b_init', py_utils.WeightInit.Constant(0.0),
+             'Initializer for memory bias variable.')
+    p.Define('seed', 0, 'Seed for the random hyperplanes.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+    assert symbolic.ToStatic(p.input_dim) > 0
+
+    lsh_params = LSHMemoryRankKOneHotTaskLayer.Params().Set(
+        input_dim=p.input_dim,
+        output_dim=p.output_dim,
+        log_num_buckets=p.log_num_buckets,
+        num_hash_fn=p.num_hash_fn,
+        grid_size=p.grid_size,
+        rank=p.rank,
+        memory_act=p.memory_act,
+        add_bias=p.add_bias,
+        lsh_u_init=p.lsh_u_init,
+        lsh_v_init=p.lsh_v_init,
+        lsh_b_init=p.lsh_b_init,
+        seed=p.seed)
+    lsh_params.dtype = p.dtype
+    multiplier_params = ProjectionLayer.Params().Set(
+        input_dim=p.input_dim,
+        output_dim=1,
+        activation='SIGMOID',
+        has_bias=True,
+        use_einsum=True,
+        batch_norm=True)
+    multiplier_params.dtype = p.dtype
+
+    self.CreateChild('lsh', lsh_params)
+    self.CreateChild('multiplier', multiplier_params)
+
+  def FProp(self, theta, inputs, paddings=None):
+    """Apply LSH memory layer with multiplier.
+
+    The operation is
+    outputs = self.multiplier(theta, inputs) * self.lsh(theta, inputs).
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [..., input_dim].
+      paddings: The paddings tensor.  Shaped [..., 1], where all but the last
+        dimension match.
+
+    Returns:
+      Output after applying projection, and optionally batch normalization and
+      relu non-linearity.
+    """
+    outputs = self.multiplier.FProp(theta.multiplier, inputs) * self.lsh.FProp(
+        theta.lsh, inputs)
+    return outputs
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, paddings=None):
+    py_utils.CheckShapes((inputs,))
+    assert inputs[-1] == p.input_dim
+    flops = 0
+    input_shape = tshape.Shape(inputs[:-1] + [p.input_dim])
+    out_shape = tshape.Shape(inputs[:-1] + [p.emb_dim])
+
+    with tf.Graph().as_default():  # throw-away graph.
+      instance = p.Instantiate()
+
+      lsh = instance.lsh
+      lsh_params = lsh.params
+      lsh_meta = lsh_params.cls.FPropMeta(lsh_params, input_shape)
+      flops += lsh_meta.flops
+
+      multiplier = instance.multiplier
+      multiplier_params = multiplier.params
+      multiplier_meta = multiplier_params.cls.FPropMeta(multiplier_params,
+                                                        input_shape)
+      flops += multiplier_meta.flops
+
+    return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
 
 class PerFrameStatisticalPoolingLayer(base_layer.BaseLayer):
