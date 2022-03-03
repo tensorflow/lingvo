@@ -426,11 +426,23 @@ class InputBenchmark(BaseProgram):
 class TrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
 
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'summary_interval_steps', None,
+        'By default, we write summaries after each program execution. '
+        'If this param is set, we write roughly every '
+        '`summary_interval_steps`.')
+    return p
+
   def __init__(self, params, **kwargs):
     super().__init__(params, **kwargs)
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
     p = self.params
+    self._summary_interval_steps = p.summary_interval_steps
+    self._next_summary_step = None
     if (p.ml_perf is not None and p.ml_perf.benchmark_name is not None and
         p.ml_perf.steps_per_epoch is not None):
       self._ml_perf = p.ml_perf
@@ -630,6 +642,17 @@ class TrainProgram(BaseProgram):
     except tf.errors.NotFoundError as e:
       tf.logging.info('Failed to write model analysis %s', e)
 
+  def _ShouldWriteSummary(self, global_step):
+    if not self._summary_interval_steps:
+      return True
+    if not self._next_summary_step:
+      self._next_summary_step = global_step
+    if global_step >= self._next_summary_step:
+      self._next_summary_step = global_step + self._summary_interval_steps
+      return True
+    else:
+      return False
+
   def Run(self, sess=None):
     # Prevent overtraining.
     if py_utils.IsEagerMode():
@@ -675,32 +698,35 @@ class TrainProgram(BaseProgram):
       global_step = self._model.global_step.numpy()
     else:
       global_step = sess.run(self._model.global_step)
-    step_rate, example_rate, total_examples = (
-        self._step_rate_tracker.ComputeStepRate(
-            global_step,
-            eval_metrics['num_samples_in_batch'][0] * self._steps_per_loop))
-    self._SummarizeValue(global_step, 'global_step/sec', step_rate)
-    self._SummarizeValue(global_step, 'examples/sec', example_rate)
-    self._SummarizeValue(global_step, 'total_samples', total_examples)
-    self._SummarizeValue(global_step, 'total_num_params',
-                         self._total_num_params)
-    status_strs = []
-    for key, (val, _) in sorted(eval_metrics.items()):
-      self._SummarizeValue(global_step, key, val)
-      tf.logging.info((global_step, key, val))
-      status_strs.append('%s=%s' % (key, val))
-    self.SetStatusMessage('Executing train program at step %d %s' %
-                          (global_step, ','.join(status_strs)))
 
-    if py_utils.IsEagerMode():
-      task_global_step = self._task.global_step.numpy()
-      # TODO(laigd): ProcessFPropResults doesn't work yet.
-    else:
-      task_global_step = sess.run(self._task.global_step)
-      summaries = self._task.ProcessFPropResults(sess, task_global_step,
-                                                 eval_metrics, outfeeds)
-      self._WriteSummaries(
-          os.path.basename(self._program_dir), global_step, summaries)
+    if self._ShouldWriteSummary(global_step):
+      step_rate, example_rate, total_examples = (
+          self._step_rate_tracker.ComputeStepRate(
+              global_step,
+              eval_metrics['num_samples_in_batch'][0] * self._steps_per_loop))
+      self._SummarizeValue(global_step, 'global_step/sec', step_rate)
+      self._SummarizeValue(global_step, 'examples/sec', example_rate)
+      self._SummarizeValue(global_step, 'total_samples', total_examples)
+      self._SummarizeValue(global_step, 'total_num_params',
+                           self._total_num_params)
+      status_strs = []
+      for key, (val, _) in sorted(eval_metrics.items()):
+        self._SummarizeValue(global_step, key, val)
+        tf.logging.info((global_step, key, val))
+        status_strs.append('%s=%s' % (key, val))
+      self.SetStatusMessage('Executing train program at step %d %s' %
+                            (global_step, ','.join(status_strs)))
+
+      if py_utils.IsEagerMode():
+        task_global_step = self._task.global_step.numpy()
+        # TODO(laigd): ProcessFPropResults doesn't work yet.
+      else:
+        task_global_step = sess.run(self._task.global_step)
+        summaries = self._task.ProcessFPropResults(sess, task_global_step,
+                                                   eval_metrics, outfeeds)
+        self._WriteSummaries(
+            os.path.basename(self._program_dir), global_step, summaries)
+      self._summary_writer.flush()
 
     if self._ml_perf:
       mlp_log.mlperf_print(
@@ -1806,7 +1832,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  async_postprocess=True,
                                  decode_until_out_of_range=False,
                                  postprocess_all_at_once=False,
-                                 emails=None):
+                                 emails=None,
+                                 train_summary_interval_steps=None):
   """Convenient helper method for common case.
 
   Args:
@@ -1845,6 +1872,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       single value or a list of values corresponding to the entries in
       eval_dataset_names.
     emails: list. List of emails to email decode/scoring summaries.
+    train_summary_interval_steps: Number of steps to wait before flushing
+      summaries to disk.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -1853,6 +1882,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   program_schedule_params = SimpleProgramSchedule.Params()
   program_schedule_params.train_program = _CreateProgramParams(
       train_program_cls, 'train', train_dataset_name, train_steps_per_loop)
+  if train_program_cls == TrainProgram:
+    program_schedule_params.train_program.summary_interval_steps = train_summary_interval_steps
 
   program_schedule_params.dataset_names = []
 

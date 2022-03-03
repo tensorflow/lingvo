@@ -119,6 +119,7 @@ class SingleTaskModelParams(_BaseModelParams):
     return program_lib.SimpleProgramScheduleForTask(
         'Train',
         train_steps_per_loop=self.Task().train.tpu_steps_per_loop,
+        train_summary_interval_steps=self.Task().train.summary_interval_steps,
         eval_dataset_names=[],
         eval_steps_per_loop=0,
         decode_steps_per_loop=0)
