@@ -82,11 +82,32 @@
 
 <span class="kn">import</span> <span class="nn">pickle</span>
 
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core.ops</span> <span class="kn">import</span> <span class="n">record_pb2</span>
+
 
 <div class="viewcode-block" id="WriteKeyValuePairs"><a class="viewcode-back" href="../../../lingvo.core.decoder_lib.html#lingvo.core.decoder_lib.WriteKeyValuePairs">[docs]</a><span class="k">def</span> <span class="nf">WriteKeyValuePairs</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">key_value_pairs</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Writes `key_value_pairs` to `filename`.&quot;&quot;&quot;</span>
   <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">key_value_pairs</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">protocol</span><span class="o">=</span><span class="n">pickle</span><span class="o">.</span><span class="n">HIGHEST_PROTOCOL</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SerializeOutputs"><a class="viewcode-back" href="../../../lingvo.core.decoder_lib.html#lingvo.core.decoder_lib.SerializeOutputs">[docs]</a><span class="k">def</span> <span class="nf">SerializeOutputs</span><span class="p">(</span><span class="n">nmap</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bytes</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Return a serialized representation of the contents of `nmap`.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    nmap: A NestedMap of data to serialize.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A serialized record_pb2.Record() of the contents of `nmap`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">record</span> <span class="o">=</span> <span class="n">record_pb2</span><span class="o">.</span><span class="n">Record</span><span class="p">()</span>
+  <span class="n">flat_nmap</span> <span class="o">=</span> <span class="n">nmap</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">()</span>
+  <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">flat_nmap</span><span class="p">:</span>
+    <span class="n">record</span><span class="o">.</span><span class="n">fields</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">make_tensor_proto</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+  <span class="n">serialized</span> <span class="o">=</span> <span class="n">record</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">()</span>
+  <span class="k">return</span> <span class="n">serialized</span></div>
 </pre></div>
 
            </div>
