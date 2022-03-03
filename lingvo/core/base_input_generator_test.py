@@ -231,6 +231,50 @@ class BaseInputGeneratorTest(test_utils.TestCase):
     self.assertEqual(sub_params[1].source_id_offset, 1)
     self.assertEqual(sub_params[2].source_id_offset, 2)
 
+  def testPartitionFilePatternsIntoDataSources(self):
+    p = base_input_generator.BaseInputGeneratorFromFiles.Params()
+
+    p.file_pattern = [(f'fp{i}', i) for i in range(10)]
+    paths = [p for p, _ in p.file_pattern]
+    weights = [w for _, w in p.file_pattern]
+
+    p.use_within_batch_mixing = False
+    p.all_zero_source_id_without_within_batch_mixing = False
+    p.batch_mixing_partition_boundaries = [3, 8]
+    expected_paths = [paths[:3], paths[3:8], paths[8:]]
+    expected_ds_weights = [
+        np.sum(weights[:3]),
+        np.sum(weights[3:8]),
+        np.sum(weights[8:])
+    ]
+
+    ds_params = base_input_generator.FilePatternToDataSource(p)
+    self.assertEqual(ds_params.weights, expected_ds_weights)
+
+    sub_params = ds_params.sub
+    self.assertEqual(len(sub_params), 3)
+    self.assertEqual(sub_params[0].file_pattern, expected_paths[0])
+    self.assertEqual(sub_params[1].file_pattern, expected_paths[1])
+    self.assertEqual(sub_params[2].file_pattern, expected_paths[2])
+
+    # source_id offsets must be set for each datasource. Datasources can
+    #  correctly handle offsets for their internal file_patterns.
+    self.assertEqual(sub_params[0].source_id_offset, 0)
+    self.assertEqual(sub_params[1].source_id_offset, 3)
+    self.assertEqual(sub_params[2].source_id_offset, 8)
+
+  def testPartitionFilePatternsIntoDataSourcesInvalidArguments(self):
+    p = base_input_generator.BaseInputGeneratorFromFiles.Params()
+
+    p.file_pattern = [(f'fp{i}', i) for i in range(10)]
+
+    p.use_within_batch_mixing = False
+    p.all_zero_source_id_without_within_batch_mixing = False
+    p.batch_mixing_partition_boundaries = [3, 7, 5]
+
+    with self.assertRaises(ValueError):
+      base_input_generator.FilePatternToDataSource(p)
+
 
 class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):
 
