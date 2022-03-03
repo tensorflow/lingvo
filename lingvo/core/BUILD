@@ -471,6 +471,9 @@ py_library(
     srcs = ["decoder_lib.py"],
     srcs_version = "PY3",
     deps = [
+        ":py_utils",
+        "//lingvo:compat",
+        "//lingvo/core/ops:record_py_pb2",
     ],
 )
 
