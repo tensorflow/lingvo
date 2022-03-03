@@ -329,6 +329,12 @@ or a MultiTaskSubModel.</p>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
 <p>TrainProgram trains a single task and handles checkpoints.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.TrainProgram.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram.Params" title="Permalink to this definition"></a></dt>
+<dd><p>“Defaults parameters for Programs.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.TrainProgram._OutfeedDequeueLoop">
 <span class="sig-name descname"><span class="pre">_OutfeedDequeueLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">per_example_tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_loops</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_devices</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram._OutfeedDequeueLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram._OutfeedDequeueLoop" title="Permalink to this definition"></a></dt>
 <dd><p>Process all per-example tensor outfeed data for a TPU sess.run.</p>
@@ -373,6 +379,11 @@ or a MultiTaskSubModel.</p>
 <p>Specific to TPU execution, this may involve a
 &#64;tpu_function.on_device_training_loop etc.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.TrainProgram._ShouldWriteSummary">
+<span class="sig-name descname"><span class="pre">_ShouldWriteSummary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#TrainProgram._ShouldWriteSummary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.TrainProgram._ShouldWriteSummary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.TrainProgram.Run">
@@ -724,7 +735,7 @@ Run all the eval_programs</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program.SimpleProgramScheduleForTask">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_dataset_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_postprocess=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_until_out_of_range=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_all_at_once=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emails=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_dataset_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_postprocess=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_until_out_of_range=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_all_at_once=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emails=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_summary_interval_steps=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
 <dd><p>Convenient helper method for common case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -764,6 +775,8 @@ should define the logic of aggregating across steps/batches. Can be a
 single value or a list of values corresponding to the entries in
 eval_dataset_names.</p></li>
 <li><p><strong>emails</strong> – list. List of emails to email decode/scoring summaries.</p></li>
+<li><p><strong>train_summary_interval_steps</strong> – Number of steps to wait before flushing
+summaries to disk.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

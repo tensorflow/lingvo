@@ -491,11 +491,23 @@
 <div class="viewcode-block" id="TrainProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram">[docs]</a><span class="k">class</span> <span class="nc">TrainProgram</span><span class="p">(</span><span class="n">BaseProgram</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;TrainProgram trains a single task and handles checkpoints.&quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="TrainProgram.Params"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;summary_interval_steps&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;By default, we write summaries after each program execution. &#39;</span>
+        <span class="s1">&#39;If this param is set, we write roughly every &#39;</span>
+        <span class="s1">&#39;`summary_interval_steps`.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">StepRateTracker</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;TrainProgram&#39;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary_interval_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">summary_interval_steps</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_next_summary_step</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
         <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">steps_per_epoch</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span>
@@ -695,6 +707,17 @@
     <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">NotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Failed to write model analysis </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="TrainProgram._ShouldWriteSummary"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram._ShouldWriteSummary">[docs]</a>  <span class="k">def</span> <span class="nf">_ShouldWriteSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_interval_steps</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_summary_step</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_next_summary_step</span> <span class="o">=</span> <span class="n">global_step</span>
+    <span class="k">if</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_summary_step</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_next_summary_step</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_interval_steps</span>
+      <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">False</span></div>
+
 <div class="viewcode-block" id="TrainProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># Prevent overtraining.</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
@@ -740,32 +763,35 @@
       <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
-    <span class="n">step_rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">,</span> <span class="n">total_examples</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span><span class="o">.</span><span class="n">ComputeStepRate</span><span class="p">(</span>
-            <span class="n">global_step</span><span class="p">,</span>
-            <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;global_step/sec&#39;</span><span class="p">,</span> <span class="n">step_rate</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;total_samples&#39;</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;total_num_params&#39;</span><span class="p">,</span>
-                         <span class="bp">self</span><span class="o">.</span><span class="n">_total_num_params</span><span class="p">)</span>
-    <span class="n">status_strs</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">eval_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">((</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
-      <span class="n">status_strs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Executing train program at step </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                          <span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_strs</span><span class="p">)))</span>
 
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="n">task_global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">global_step</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
-      <span class="c1"># TODO(laigd): ProcessFPropResults doesn&#39;t work yet.</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">task_global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
-      <span class="n">summaries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">task_global_step</span><span class="p">,</span>
-                                                 <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">outfeeds</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteSummaries</span><span class="p">(</span>
-          <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">),</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldWriteSummary</span><span class="p">(</span><span class="n">global_step</span><span class="p">):</span>
+      <span class="n">step_rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">,</span> <span class="n">total_examples</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span><span class="o">.</span><span class="n">ComputeStepRate</span><span class="p">(</span>
+              <span class="n">global_step</span><span class="p">,</span>
+              <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;global_step/sec&#39;</span><span class="p">,</span> <span class="n">step_rate</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;total_samples&#39;</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;total_num_params&#39;</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_total_num_params</span><span class="p">)</span>
+      <span class="n">status_strs</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">eval_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">((</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
+        <span class="n">status_strs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Executing train program at step </span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                            <span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">status_strs</span><span class="p">)))</span>
+
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+        <span class="n">task_global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">global_step</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+        <span class="c1"># TODO(laigd): ProcessFPropResults doesn&#39;t work yet.</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">task_global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="n">summaries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">task_global_step</span><span class="p">,</span>
+                                                   <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">outfeeds</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_WriteSummaries</span><span class="p">(</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">),</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="p">:</span>
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
@@ -1871,7 +1897,8 @@
                                  <span class="n">async_postprocess</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                  <span class="n">decode_until_out_of_range</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                  <span class="n">postprocess_all_at_once</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                 <span class="n">emails</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                                 <span class="n">emails</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">train_summary_interval_steps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Convenient helper method for common case.</span>
 
 <span class="sd">  Args:</span>
@@ -1910,6 +1937,8 @@
 <span class="sd">      single value or a list of values corresponding to the entries in</span>
 <span class="sd">      eval_dataset_names.</span>
 <span class="sd">    emails: list. List of emails to email decode/scoring summaries.</span>
+<span class="sd">    train_summary_interval_steps: Number of steps to wait before flushing</span>
+<span class="sd">      summaries to disk.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A populated SimpleProgramSchedule.Params()</span>
@@ -1918,6 +1947,8 @@
   <span class="n">program_schedule_params</span> <span class="o">=</span> <span class="n">SimpleProgramSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span>
       <span class="n">train_program_cls</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="n">train_dataset_name</span><span class="p">,</span> <span class="n">train_steps_per_loop</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">train_program_cls</span> <span class="o">==</span> <span class="n">TrainProgram</span><span class="p">:</span>
+    <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">summary_interval_steps</span> <span class="o">=</span> <span class="n">train_summary_interval_steps</span>
 
   <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span> <span class="o">=</span> <span class="p">[]</span>
 
