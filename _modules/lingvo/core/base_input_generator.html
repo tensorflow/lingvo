@@ -113,6 +113,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tokenizers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_embedding_layers</span>
 
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">io_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_embedding</span> <span class="k">as</span> <span class="n">tpu_embedding_lib</span>
@@ -973,6 +975,95 @@
     <span class="p">}</span></div>
 
 
+<div class="viewcode-block" id="MaybeOffsetDataSourceId"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.MaybeOffsetDataSourceId">[docs]</a><span class="k">def</span> <span class="nf">MaybeOffsetDataSourceId</span><span class="p">(</span><span class="n">ds</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper to add DataSource source_id offset if configured in p.&quot;&quot;&quot;</span>
+  <span class="c1"># This is essentially a bug fix, but we only enable it based on this</span>
+  <span class="c1">#  param to maintain backward compatibility.</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">all_zero_source_id_without_within_batch_mixing</span><span class="p">:</span>
+    <span class="c1"># SimpleDataSource will output source_id=0. We use source_id_offset</span>
+    <span class="c1"># to correct this.</span>
+    <span class="n">ds</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">source_id_offset</span><span class="o">=</span><span class="n">offset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="PartitionFilePatternsIntoDataSources"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.PartitionFilePatternsIntoDataSources">[docs]</a><span class="k">def</span> <span class="nf">PartitionFilePatternsIntoDataSources</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper to execute batch_mixing_partition_boundaries.</span>
+
+<span class="sd">  Refer to param documentation for details.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    p: params</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    datasources: list of Configured SimpleDataSource objects per partition.</span>
+<span class="sd">    weights: sum of file_pattern weights per partition.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Verifying configuration params</span>
+  <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)))</span> <span class="o">&gt;=</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;Cannot use batch_mixing_partition_starts with backprop filters. I.e. &#39;</span>
+        <span class="sa">f</span><span class="s1">&#39;file_pattern cannot have triplets: </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+  <span class="n">prev_ps</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_mixing_partition_boundaries</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">ps</span> <span class="o">&lt;=</span> <span class="n">prev_ps</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;batch_mixing_partition_boundaries must be an increasing series &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;greater than 1. Values were: </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">batch_mixing_partition_boundaries</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="n">prev_ps</span> <span class="o">=</span> <span class="n">ps</span>
+
+  <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_mixing_partition_boundaries</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;batch_mixing_partition_boundaries cannot have boundary &#39;</span>
+                     <span class="s1">&#39;&gt;= length of file_patterns. Values were: &#39;</span>
+                     <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">batch_mixing_partition_boundaries</span><span class="si">}</span><span class="s1"> and &#39;</span>
+                     <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+  <span class="c1"># Adding a trailing value to simplify logic.</span>
+  <span class="n">partition_boundaries</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">batch_mixing_partition_boundaries</span><span class="p">)</span>
+  <span class="n">partition_boundaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">))</span>
+
+  <span class="n">datasources</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+  <span class="n">weights</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+  <span class="c1"># Go through file_pattern&#39;s and partition according to boundaries.</span>
+  <span class="n">curr_partition_start</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">next_partition_idx</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="n">partition_file_patterns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+  <span class="n">partition_weights</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+  <span class="k">for</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">):</span>
+    <span class="c1"># If we have finished this partition and should move to the next</span>
+    <span class="k">if</span> <span class="n">source_id</span> <span class="o">&gt;=</span> <span class="n">partition_boundaries</span><span class="p">[</span><span class="n">next_partition_idx</span><span class="p">]:</span>
+      <span class="c1"># Make the new datasource</span>
+      <span class="n">partition_ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">file_pattern</span><span class="o">=</span><span class="n">partition_file_patterns</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">partition_weights</span><span class="p">)</span>
+      <span class="n">MaybeOffsetDataSourceId</span><span class="p">(</span><span class="n">partition_ds</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">curr_partition_start</span><span class="p">)</span>
+
+      <span class="c1"># Store datasource and corresponding total weight</span>
+      <span class="n">datasources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">partition_ds</span><span class="p">)</span>
+      <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">partition_weights</span><span class="p">))</span>
+
+      <span class="c1"># Clear buffers for use with next datasource</span>
+      <span class="n">partition_file_patterns</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+      <span class="n">partition_weights</span> <span class="o">=</span> <span class="nb">list</span><span class="p">()</span>
+
+      <span class="c1"># Set up offset and end boundary idx for next datasource</span>
+      <span class="n">curr_partition_start</span> <span class="o">=</span> <span class="n">source_id</span>
+      <span class="n">next_partition_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+    <span class="n">partition_file_patterns</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_entry</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="n">partition_weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">input_entry</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+  <span class="c1"># Set up datasource for final partition.</span>
+  <span class="n">partition_ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+      <span class="n">file_pattern</span><span class="o">=</span><span class="n">partition_file_patterns</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">partition_weights</span><span class="p">)</span>
+  <span class="n">MaybeOffsetDataSourceId</span><span class="p">(</span><span class="n">partition_ds</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">curr_partition_start</span><span class="p">)</span>
+
+  <span class="n">datasources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">partition_ds</span><span class="p">)</span>
+  <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">partition_weights</span><span class="p">))</span>
+
+  <span class="k">return</span> <span class="n">datasources</span><span class="p">,</span> <span class="n">weights</span></div>
+
+
 <div class="viewcode-block" id="FilePatternToDataSource"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.FilePatternToDataSource">[docs]</a><span class="k">def</span> <span class="nf">FilePatternToDataSource</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Helper to turn p.file_pattern (deprecated) into p.file_datasource.&quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -998,31 +1089,37 @@
           <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_patterns</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Otherwise fall back to MixByWeight-based approach.</span>
-      <span class="n">datasources</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">input_entry</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Should explicitly specify weights, got string: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                            <span class="n">input_entry</span><span class="p">)</span>
-        <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
-        <span class="n">datasources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">))</span>
 
-        <span class="c1"># This is essentially a bug fix, but we only enable it based on this</span>
-        <span class="c1">#  param to maintain backward compatibility.</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">all_zero_source_id_without_within_batch_mixing</span><span class="p">:</span>
-          <span class="c1"># SimpleDataSource will output source_id=0. We use source_id_offset</span>
-          <span class="c1"># to correct this.</span>
-          <span class="n">datasources</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">source_id_offset</span><span class="o">=</span><span class="n">source_id</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_mixing_partition_boundaries</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">datasources</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">PartitionFilePatternsIntoDataSources</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
-        <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
-        <span class="n">bprop_variable_filter</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_entry</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
-        <span class="n">bprop_variable_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bprop_variable_filter</span><span class="p">)</span>
-      <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CrossBatchMixingDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">sub</span><span class="o">=</span><span class="n">datasources</span><span class="p">,</span>
-          <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
-          <span class="n">bprop_variable_filters</span><span class="o">=</span><span class="n">bprop_variable_filters</span><span class="p">)</span>
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CrossBatchMixingDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">sub</span><span class="o">=</span><span class="n">datasources</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
+
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">datasources</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[]</span>
+
+        <span class="k">for</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">input_entry</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">):</span>
+          <span class="n">file_pattern</span><span class="p">,</span> <span class="n">weight</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+          <span class="n">datasources</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">datasource</span><span class="o">.</span><span class="n">SimpleDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+              <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">))</span>
+
+          <span class="n">MaybeOffsetDataSourceId</span><span class="p">(</span><span class="n">datasources</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="p">,</span> <span class="n">source_id</span><span class="p">)</span>
+
+          <span class="n">weights</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+          <span class="n">bprop_variable_filter</span> <span class="o">=</span> <span class="n">input_entry</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">input_entry</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+          <span class="n">bprop_variable_filters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bprop_variable_filter</span><span class="p">)</span>
+
+        <span class="n">ds</span> <span class="o">=</span> <span class="n">datasource</span><span class="o">.</span><span class="n">CrossBatchMixingDataSource</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">sub</span><span class="o">=</span><span class="n">datasources</span><span class="p">,</span>
+            <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+            <span class="n">bprop_variable_filters</span><span class="o">=</span><span class="n">bprop_variable_filters</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot parse p.file_pattern into a datasource.&#39;</span><span class="p">)</span>
 
@@ -1098,6 +1195,14 @@
         <span class="s1">&#39; is a list of file patterns with weights. Note: without mixing, all&#39;</span>
         <span class="s1">&#39; source_id values for records will be set to 0 unless &#39;</span>
         <span class="s1">&#39;all_zero_source_id_without_within_batch_mixing is set to False.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;batch_mixing_partition_boundaries&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Must be either None or a list of indices into the file_pattern. &#39;</span>
+        <span class="s1">&#39;If set, indicies are interpreted as the begining of a partition. E.g. &#39;</span>
+        <span class="s1">&#39;[2, 5, 9] will partition file_pattern into [:,2], [2:5], [5:9], and &#39;</span>
+        <span class="s1">&#39;[9:]. The patterns within each partition will have &#39;</span>
+        <span class="s1">&#39;within_batch_mixing. There will be no batch mixining between &#39;</span>
+        <span class="s1">&#39;partitions.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;all_zero_source_id_without_within_batch_mixing&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
         <span class="s1">&#39;When set (by default) and use_within_batch_mixing is false, all &#39;</span>
