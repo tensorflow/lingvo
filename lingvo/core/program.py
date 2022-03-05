@@ -320,8 +320,12 @@ class BaseProgram:
       proto = tpu_compilation_result.CompilationResultProto()
       proto.ParseFromString(result)
       if proto.status_error_message:
-        tf.logging.fatal('Compilation failed: {}'.format(
-            proto.status_error_message))
+        error_msg = 'Compilation of {} failed: {}'.format(
+            self._program_name, proto.status_error_message)
+        self.SetStatusMessage(error_msg)
+        tf.logging.fatal(error_msg)
+
+      self.SetStatusMessage('Compiling {} done.'.format(self._program_name))
       tf.logging.info('Compiling %s done.', self._program_name)
 
   def Run(self, sess=None, threadpool=None):
