@@ -255,7 +255,7 @@ def evaluate_spmd_model(
     # TODO(pax): set is_eval=True for all ckpt types.
     if use_gda_checkpoint:
       partitioned_specs = jax_task.create_train_state_partition_specs(
-          jax_task.model.vars, is_eval=True)
+          jax_task.model.vars, discard_opt_states=True)
       partitioned_train_state = checkpoints.restore_checkpoint(
           None,
           checkpoint_task_dir,
@@ -691,7 +691,7 @@ def decode_once_spmd_model(
       model.instantiate_variable_configs()
       # Get the metadata from variables instead of actually instantiating them.
       partitioned_specs = jax_task.create_train_state_partition_specs(
-          model.vars, is_eval=True)
+          model.vars, discard_opt_states=True)
       # Instantiate the TrainState directly from the checkpoint.
       partitioned_train_state = checkpoints.restore_checkpoint(
           None,
