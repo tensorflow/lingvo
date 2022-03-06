@@ -65,14 +65,15 @@
   <h1>Source code for sympy.core.assumptions</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">This module contains the machinery handling assumptions.</span>
+<span class="sd">Do also consider the guide :ref:`assumptions`.</span>
 
 <span class="sd">All symbolic objects have assumption attributes that can be accessed via</span>
-<span class="sd">.is_&lt;assumption name&gt; attribute.</span>
+<span class="sd">``.is_&lt;assumption name&gt;`` attribute.</span>
 
 <span class="sd">Assumptions determine certain properties of symbolic objects and can</span>
-<span class="sd">have 3 possible values: True, False, None.  True is returned if the</span>
-<span class="sd">object has the property and False is returned if it doesn&#39;t or can&#39;t</span>
-<span class="sd">(i.e. doesn&#39;t make sense):</span>
+<span class="sd">have 3 possible values: ``True``, ``False``, ``None``.  ``True`` is returned if the</span>
+<span class="sd">object has the property and ``False`` is returned if it does not or cannot</span>
+<span class="sd">(i.e. does not make sense):</span>
 
 <span class="sd">    &gt;&gt;&gt; from sympy import I</span>
 <span class="sd">    &gt;&gt;&gt; I.is_algebraic</span>
@@ -83,8 +84,8 @@
 <span class="sd">    False</span>
 
 <span class="sd">When the property cannot be determined (or when a method is not</span>
-<span class="sd">implemented) None will be returned, e.g. a generic symbol, x, may or</span>
-<span class="sd">may not be positive so a value of None is returned for x.is_positive.</span>
+<span class="sd">implemented) ``None`` will be returned. For example,  a generic symbol, ``x``,</span>
+<span class="sd">may or may not be positive so a value of ``None`` is returned for ``x.is_positive``.</span>
 
 <span class="sd">By default, all symbolic values are in the largest set in the given context</span>
 <span class="sd">without specifying the property. For example, a symbol that has a property</span>
@@ -96,11 +97,11 @@
 
 <span class="sd">    commutative</span>
 <span class="sd">        object commutes with any other object with</span>
-<span class="sd">        respect to multiplication operation.</span>
+<span class="sd">        respect to multiplication operation. See [12]_.</span>
 
 <span class="sd">    complex</span>
 <span class="sd">        object can have only values from the set</span>
-<span class="sd">        of complex numbers.</span>
+<span class="sd">        of complex numbers. See [13]_.</span>
 
 <span class="sd">    imaginary</span>
 <span class="sd">        object value is a number that can be written as a real</span>
@@ -113,6 +114,10 @@
 <span class="sd">        object can have only values from the set</span>
 <span class="sd">        of real numbers.</span>
 
+<span class="sd">    extended_real</span>
+<span class="sd">        object can have only values from the set</span>
+<span class="sd">        of real numbers, ``oo`` and ``-oo``.</span>
+
 <span class="sd">    integer</span>
 <span class="sd">        object can have only values from the set</span>
 <span class="sd">        of integers.</span>
@@ -123,15 +128,15 @@
 <span class="sd">        odd (even) integers [2]_.</span>
 
 <span class="sd">    prime</span>
-<span class="sd">        object is a natural number greater than ``1`` that has</span>
-<span class="sd">        no positive divisors other than ``1`` and itself.  See [6]_.</span>
+<span class="sd">        object is a natural number greater than 1 that has</span>
+<span class="sd">        no positive divisors other than 1 and itself.  See [6]_.</span>
 
 <span class="sd">    composite</span>
 <span class="sd">        object is a positive integer that has at least one positive</span>
-<span class="sd">        divisor other than ``1`` or the number itself.  See [4]_.</span>
+<span class="sd">        divisor other than 1 or the number itself.  See [4]_.</span>
 
 <span class="sd">    zero</span>
-<span class="sd">        object has the value of ``0``.</span>
+<span class="sd">        object has the value of 0.</span>
 
 <span class="sd">    nonzero</span>
 <span class="sd">        object is a real number that is not zero.</span>
@@ -149,7 +154,7 @@
 <span class="sd">        of transcendental numbers [10]_.</span>
 
 <span class="sd">    irrational</span>
-<span class="sd">        object value cannot be represented exactly by Rational, see [5]_.</span>
+<span class="sd">        object value cannot be represented exactly by :class:`~.Rational`, see [5]_.</span>
 
 <span class="sd">    finite</span>
 <span class="sd">    infinite</span>
@@ -163,12 +168,19 @@
 
 <span class="sd">    positive</span>
 <span class="sd">    nonpositive</span>
-<span class="sd">        object can have only positive (only</span>
-<span class="sd">        nonpositive) values.</span>
+<span class="sd">        object can have only positive (nonpositive) values.</span>
+
+<span class="sd">    extended_negative</span>
+<span class="sd">    extended_nonnegative</span>
+<span class="sd">    extended_positive</span>
+<span class="sd">    extended_nonpositive</span>
+<span class="sd">    extended_nonzero</span>
+<span class="sd">        as without the extended part, but also including infinity with</span>
+<span class="sd">        corresponding sign, e.g., extended_positive includes ``oo``</span>
 
 <span class="sd">    hermitian</span>
 <span class="sd">    antihermitian</span>
-<span class="sd">        object belongs to the field of hermitian</span>
+<span class="sd">        object belongs to the field of Hermitian</span>
 <span class="sd">        (antihermitian) operators.</span>
 
 <span class="sd">Examples</span>
@@ -190,6 +202,9 @@
 <span class="sd">    :py:class:`sympy.core.numbers.ImaginaryUnit`</span>
 <span class="sd">    :py:class:`sympy.core.numbers.Zero`</span>
 <span class="sd">    :py:class:`sympy.core.numbers.One`</span>
+<span class="sd">    :py:class:`sympy.core.numbers.Infinity`</span>
+<span class="sd">    :py:class:`sympy.core.numbers.NegativeInfinity`</span>
+<span class="sd">    :py:class:`sympy.core.numbers.ComplexInfinity`</span>
 
 <span class="sd">Notes</span>
 <span class="sd">=====</span>
@@ -226,7 +241,7 @@
 <span class="sd">    &gt;&gt;&gt; eq._assumptions</span>
 <span class="sd">    {&#39;finite&#39;: True, &#39;infinite&#39;: False}</span>
 
-<span class="sd">For a Symbol, there are two locations for assumptions that may</span>
+<span class="sd">For a :class:`~.Symbol`, there are two locations for assumptions that may</span>
 <span class="sd">be of interest. The ``assumptions0`` attribute gives the full set of</span>
 <span class="sd">assumptions derived from a given set of initial assumptions. The</span>
 <span class="sd">latter assumptions are stored as ``Symbol._assumptions.generator``</span>
@@ -238,7 +253,7 @@
 <span class="sd">in any way: it records the assumptions used to instantiate a Symbol</span>
 <span class="sd">and (for storage purposes) represents a more compact representation</span>
 <span class="sd">of the assumptions needed to recreate the full set in</span>
-<span class="sd">`Symbol.assumptions0`.</span>
+<span class="sd">``Symbol.assumptions0``.</span>
 
 
 <span class="sd">References</span>
@@ -255,14 +270,16 @@
 <span class="sd">.. [9] http://docs.scipy.org/doc/numpy/reference/generated/numpy.isfinite.html</span>
 <span class="sd">.. [10] https://en.wikipedia.org/wiki/Transcendental_number</span>
 <span class="sd">.. [11] https://en.wikipedia.org/wiki/Algebraic_number</span>
+<span class="sd">.. [12] https://en.wikipedia.org/wiki/Commutative_property</span>
+<span class="sd">.. [13] https://en.wikipedia.org/wiki/Complex_number</span>
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">sympy.core.facts</span> <span class="kn">import</span> <span class="n">FactRules</span><span class="p">,</span> <span class="n">FactKB</span>
-<span class="kn">from</span> <span class="nn">sympy.core.core</span> <span class="kn">import</span> <span class="n">BasicMeta</span>
-<span class="kn">from</span> <span class="nn">sympy.core.sympify</span> <span class="kn">import</span> <span class="n">sympify</span>
+<span class="kn">from</span> <span class="nn">.facts</span> <span class="kn">import</span> <span class="n">FactRules</span><span class="p">,</span> <span class="n">FactKB</span><span class="p">,</span> <span class="n">InconsistentAssumptions</span>
+<span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">BasicMeta</span>
+<span class="kn">from</span> <span class="nn">.sympify</span> <span class="kn">import</span> <span class="n">sympify</span>
 
-<span class="kn">from</span> <span class="nn">random</span> <span class="kn">import</span> <span class="n">shuffle</span>
+<span class="kn">from</span> <span class="nn">sympy.core.random</span> <span class="kn">import</span> <span class="n">shuffle</span>
 
 
 <span class="n">_assume_rules</span> <span class="o">=</span> <span class="n">FactRules</span><span class="p">([</span>
@@ -352,7 +369,7 @@
 <span class="sd">    Examples</span>
 <span class="sd">    ========</span>
 
-<span class="sd">    &gt;&gt;&gt; from sympy.core.assumptions import common_assumptions</span>
+<span class="sd">    &gt;&gt;&gt; from sympy.core import common_assumptions</span>
 <span class="sd">    &gt;&gt;&gt; from sympy import oo, pi, sqrt</span>
 <span class="sd">    &gt;&gt;&gt; common_assumptions([-4, 0, sqrt(2), 2, pi, oo])</span>
 <span class="sd">    {&#39;commutative&#39;: True, &#39;composite&#39;: False,</span>
@@ -391,10 +408,10 @@
 
 <span class="sd">    &gt;&gt;&gt; from sympy import failing_assumptions, Symbol</span>
 
-<span class="sd">    &gt;&gt;&gt; x = Symbol(&#39;x&#39;, real=True, positive=True)</span>
+<span class="sd">    &gt;&gt;&gt; x = Symbol(&#39;x&#39;, positive=True)</span>
 <span class="sd">    &gt;&gt;&gt; y = Symbol(&#39;y&#39;)</span>
-<span class="sd">    &gt;&gt;&gt; failing_assumptions(6*x + y, real=True, positive=True)</span>
-<span class="sd">    {&#39;positive&#39;: None, &#39;real&#39;: None}</span>
+<span class="sd">    &gt;&gt;&gt; failing_assumptions(6*x + y, positive=True)</span>
+<span class="sd">    {&#39;positive&#39;: None}</span>
 
 <span class="sd">    &gt;&gt;&gt; failing_assumptions(x**2 - 1, positive=True)</span>
 <span class="sd">    {&#39;positive&#39;: None}</span>
@@ -434,14 +451,14 @@
 <span class="sd">    True</span>
 <span class="sd">    &gt;&gt;&gt; check_assumptions(pi, real=True, integer=False)</span>
 <span class="sd">    True</span>
-<span class="sd">    &gt;&gt;&gt; check_assumptions(pi, real=True, negative=True)</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(pi, negative=True)</span>
 <span class="sd">    False</span>
 <span class="sd">    &gt;&gt;&gt; check_assumptions(exp(I*pi/7), real=False)</span>
 <span class="sd">    True</span>
-<span class="sd">    &gt;&gt;&gt; x = Symbol(&#39;x&#39;, real=True, positive=True)</span>
-<span class="sd">    &gt;&gt;&gt; check_assumptions(2*x + 1, real=True, positive=True)</span>
+<span class="sd">    &gt;&gt;&gt; x = Symbol(&#39;x&#39;, positive=True)</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(2*x + 1, positive=True)</span>
 <span class="sd">    True</span>
-<span class="sd">    &gt;&gt;&gt; check_assumptions(-2*x - 5, real=True, positive=True)</span>
+<span class="sd">    &gt;&gt;&gt; check_assumptions(-2*x - 5, positive=True)</span>
 <span class="sd">    False</span>
 
 <span class="sd">    To check assumptions of *expr* against another variable or expression,</span>
@@ -563,7 +580,25 @@
 
     <span class="c1"># Store None into the assumptions so that recursive attempts at</span>
     <span class="c1"># evaluating the same fact don&#39;t trigger infinite recursion.</span>
-    <span class="n">assumptions</span><span class="o">.</span><span class="n">_tell</span><span class="p">(</span><span class="n">fact</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="c1">#</span>
+    <span class="c1"># Potentially in a multithreaded context it is possible that the</span>
+    <span class="c1"># assumptions query for fact was already resolved in another thread. If</span>
+    <span class="c1"># that happens and the query was resolved as True or False then</span>
+    <span class="c1"># assumptions._tell will raise InconsistentAssumptions because of the</span>
+    <span class="c1"># attempt to replace True/False with None. In that case it should be safe</span>
+    <span class="c1"># to catch the exception and return the result that was computed in the</span>
+    <span class="c1"># other thread.</span>
+    <span class="c1">#</span>
+    <span class="c1"># XXX: Ideally this call to assumptions._tell would be removed. Its purpose</span>
+    <span class="c1"># is to guard against infinite recursion if a query for one fact attempts</span>
+    <span class="c1"># to evaluate a related fact for the same object. However really this is</span>
+    <span class="c1"># just masking bugs because a query for a fact about obj should only query</span>
+    <span class="c1"># the properties of obj.args and not obj itself. This is not easy to change</span>
+    <span class="c1"># though because it requires fixing all of the buggy _eval_is_* handlers.</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">assumptions</span><span class="o">.</span><span class="n">_tell</span><span class="p">(</span><span class="n">fact</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">InconsistentAssumptions</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">assumptions</span><span class="p">[</span><span class="n">fact</span><span class="p">]</span>
 
     <span class="c1"># First try the assumption evaluation function if it exists</span>
     <span class="k">try</span><span class="p">:</span>
