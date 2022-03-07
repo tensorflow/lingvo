@@ -1181,7 +1181,11 @@ def WeightParams(shape,
   if collections is None:
     collections = []
   if device_mesh is not None:
-    assert tensor_split_dims_mapping is not None
+    if tensor_split_dims_mapping is None:
+      tensor_split_dims_mapping = (-1,) * len(shape)
+      tf.logging.info(
+          'Sets tensor_split_dims_mapping of a param of shape {} to {}'.format(
+              shape, tensor_split_dims_mapping))
     assert len(tensor_split_dims_mapping) == len(shape)
 
   p = hyperparams.Params()
