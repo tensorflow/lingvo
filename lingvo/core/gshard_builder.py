@@ -1511,7 +1511,12 @@ class MoEBuilder(builder.Base):
     model_dims = model_dims or [p.model_dim]
     model_dims = model_dims if p.conv_vars_reshape else [np.prod(model_dims)]
     return gshard_layers.CausalDepthwiseConv1DLayer.Params().Set(
-        name=name, kernel_size=kernel_size, model_dims=model_dims)
+        name=name,
+        kernel_size=kernel_size,
+        model_dims=model_dims,
+        compatible_with_mtf_ckpt=True,
+        state_layer=gshard_layers.Conv1DStateLayer.Params().Set(
+            shape=[None, None] + model_dims))
 
   def DepthwiseConvAutoregressive(self, name, kernel_size, model_dims=None):
     r"""Depthwise convolution for autoregressive models.

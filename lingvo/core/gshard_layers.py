@@ -1398,6 +1398,7 @@ class Conv1DStateLayer(StateLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define('kernel_size', 0, 'Spatial dimension filter size.')
     p.Delete('use_xla_dynamic_update_slice')
     return p
 
@@ -1405,24 +1406,24 @@ class Conv1DStateLayer(StateLayer):
     """Returns initial state.
 
     Args:
-      shape: [batch, beam, kernel_size].
+      shape: [batch, beam, max_size].
 
     Returns:
-      zero-initialized state tensor of shape [batch, kernel_size * beam, ...],
-      with the underlying layout being the same as
-      [batch, kernel_size, beam, ...].
+      zero-initialized state tensor of shape [batch, beam, kernel_size, ...].
     """
     assert len(shape) == 3
 
     p = self.params
     fprop_dtype = p.dtype or py_utils.FPropDtype(p)
 
-    batch, beam, max_steps = shape
-    # Need to remember beam_size to correctly map 't' argument of Fprop
-    # to the combined (max_steps * beam) dimension.
+    batch, beam, _ = shape
     self._beam = beam
+    self._batch = batch
+    self._trailing_dims = p.shape[2:]
     state = tf.Empty(
-        [batch, max_steps * beam] + p.shape[2:], fprop_dtype, init=True)
+        [batch, beam, p.kernel_size] + self._trailing_dims,
+        fprop_dtype,
+        init=True)
     return state
 
   def _Step(self, theta, x):
@@ -1430,12 +1431,11 @@ class Conv1DStateLayer(StateLayer):
 
     Args:
       theta: A NestedMap of layer weights.
-      x:     A Tensor of shape [batch, beam * num_steps, ...] with the
-        underlying layout being the same as [batch, num_steps, beam, ...].
+      x:     A Tensor of shape [batch, beam, ...].
 
     Returns:
-      A Tensor of the same shape as theta.state as returned by NewState(),
-      a.k.a [batch, kernel_size * beam, ...].
+      A Tensor of shape [batch * beam, kernel_width, ...], with underlying
+      layout [batch, beam, kernel_width, ...].
     """
     t = getattr(theta, 't', None)
     assert t is not None
@@ -1448,13 +1448,55 @@ class Conv1DStateLayer(StateLayer):
     tf.logging.info('t=%r', t)
 
     # left-shift state and append x.
-    new_state = tf.concat([state[:, self._beam:], x], axis=1)
-
-    theta.state = new_state
-    y = new_state
+    input_shape = x.shape
+    x = tf.reshape(x, [self._batch, self._beam, 1] + self._trailing_dims)
+    theta.state = tf.concat(
+        [theta.state[:, :, 1:], tf.cast(x, state.dtype)], axis=2)
+    y = tf.reshape(theta.state,
+                   [self._batch * self._beam, p.kernel_size] + input_shape[2:])
 
     tf.logging.info('y=%r', y)
     return y
+
+  def _LoadPrefix(self, theta, x):
+    """Load a prefix sequence.
+
+    Args:
+      theta: A NestedMap of layer weights.
+      x:     A Tensor of shape [batch, prefix_len, ...].
+
+    Returns:
+      `x`, with theta.state loaded properly.
+    """
+    t = getattr(theta, 't', None)
+    assert t is not None
+
+    p = self.params
+    tf.logging.info('p.name=%r', p.name)
+    tf.logging.info('x=%r', x)
+    tf.logging.info('t=%r', t)
+
+    new_state = x[:, -p.kernel_size:]  # Cache the last kernel-width tokens.
+    new_state = tf.expand_dims(new_state, axis=1)
+    tile_shape = [1] * len(new_state.shape.as_list())
+    tile_shape[1] = self._beam
+    theta.state = tf.reshape(
+        tf.tile(new_state, tile_shape),
+        [self._batch, self._beam, p.kernel_size] + self._trailing_dims)
+
+    return x
+
+  def FProp(self, theta, x):
+    p = self.params
+    t = getattr(theta, 't', None)
+    if t is None:  # Normal training mode.
+      return x
+
+    with tf.name_scope(p.name):
+      if x.shape.as_list()[1] != self._beam:
+        tf.logging.info('Prefix detected. Not running single step.')
+        return self._LoadPrefix(theta, x)
+      return self._Step(theta, x)
 
 
 class OverrideLayer(base_layer.BaseLayer):
@@ -1691,6 +1733,7 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
     if p.state_layer is not None:
+      p.state_layer.kernel_size = p.kernel_size
       self.CreateChild('state_layer', p.state_layer)
 
     # If required to be compatible with Mesh TF, create VarLayers for vars.
@@ -1745,7 +1788,7 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
     self.CreateVariable('w', w_pc)
 
   def _DoConv(self, theta, inputs, padding):
-    w = self._GetWeight(theta)
+    w = tf.cast(self._GetWeight(theta), inputs.dtype)
 
     # [b, t, 1, d]
     output = tf.nn.depthwise_conv2d(
@@ -1773,7 +1816,7 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
 
   def FProp(self, theta, x):
     p = self.params
-    x = py_utils.HasRank(x, 3)
+    input_shape = x.shape.as_list()
 
     with tf.name_scope(p.name):
       dilation = (1, 1)
@@ -1781,12 +1824,18 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
           self._GetWeight(theta).shape, dilation)
 
       if p.state_layer is not None:
+        pre_x = x
         x = self.state_layer.FProp(theta.state_layer, x)
-        if getattr(theta.state_layer, 't', None) is not None:
+        if x.shape.as_list()[1] != pre_x.shape.as_list()[1]:
           # Single-step, thus use 'VALID' padding.
           padding = 'VALID'
 
-      return self._DoConv(theta, x, padding)
+      pre_conv_shape = x.shape.as_list()
+      flattened_shape = 1
+      for dim in pre_conv_shape[2:]:
+        flattened_shape *= dim
+      x = tf.reshape(x, pre_conv_shape[:2] + [flattened_shape])
+      return tf.reshape(self._DoConv(theta, x, padding), input_shape)
 
 
 def Top2GatingOnLogits(inputs,
