@@ -49,6 +49,8 @@ class TestCase(parameterized.TestCase):
     y = np.asarray(y)
     if check_dtypes:
       self.assertDtypesMatch(x, y)
+    x = x.astype(np.float32) if x.dtype == jnp.bfloat16 else x
+    y = y.astype(np.float32) if y.dtype == jnp.bfloat16 else y
     np.testing.assert_allclose(x, y, rtol=rtol, atol=atol, **kwargs)
 
   def assertArraysEqual(self, x, y, check_dtypes=True, **kwargs):
