@@ -47,11 +47,17 @@ class MetricsTest(test_utils.TestCase):
     m = metrics.UniqueAverageMetric()
     m.Update('a', 1.0)
     m.Update('b', 2.0, 10.0)
+    # Different value for 'a' than the previous one.
+    m.Update('a', 2.0)
 
     with self.assertRaises(ValueError):
-      # Different value for 'a' than the previous one.
-      m.Update('a', 2.0)
+      # Error raised during value, so that we can collect all
+      # of the keys in the error reporting.
+      _ = m.value
 
+    m = metrics.UniqueAverageMetric()
+    m.Update('a', 1.0)
+    m.Update('b', 2.0, 10.0)
     # Duplicate update is ignored.
     m.Update('a', 1.0)
 
@@ -68,6 +74,11 @@ class MetricsTest(test_utils.TestCase):
             tf.Summary.Value(tag=name + '/total_value', simple_value=21.),
             tf.Summary.Value(tag=name + '/total_weight', simple_value=11.),
         ]), m.Summary(name))
+
+    m = metrics.UniqueAverageMetric(mismatch_is_error=False)
+    m.Update('a', 1.0)
+    m.Update('a', 2.0)
+    self.assertEqual(1.0, m.value)
 
   def testF1Metric(self):
     m = metrics.F1Metric()

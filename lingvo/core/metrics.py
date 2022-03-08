@@ -123,9 +123,11 @@ class UniqueAverageMetric(AverageMetric):
   that the final value reflects an average over unique keys only.
   """
 
-  def __init__(self):
+  def __init__(self, mismatch_is_error=True):
     super().__init__()
     self._stored_values = {}
+    self._mismatch_is_error = mismatch_is_error
+    self._keys_with_different_values = set()
 
   def Update(self, key, value, weight=1.0):
     prev_value = self._stored_values.get(key, None)
@@ -136,9 +138,7 @@ class UniqueAverageMetric(AverageMetric):
       #
       # We may want to make the tolerances configurable via ConfigurableMetric.
       if not np.isclose(prev_value, value):
-        raise ValueError(f'Previously stored value `{prev_value}` for {key} '
-                         f'differs from current value `{value}`')
-      # Values match, ignore current update.
+        self._keys_with_different_values.add(key)
       return
 
     self._stored_values[key] = value
@@ -163,6 +163,21 @@ class UniqueAverageMetric(AverageMetric):
             tag=name + '/total_weight', simple_value=self._total_weight),
     ])
     return summary
+
+  @property
+  def value(self):
+    if self._keys_with_different_values:
+      msg = ('UniqueAverageMetric received duplicate keys with different '
+             f'values: {self._keys_with_different_values}')
+      if self._mismatch_is_error:
+        # Log and raise an error, since current infrastructure can
+        # swallow exceptions.
+        tf.logging.error(msg)
+        raise ValueError(msg)
+      else:
+        tf.logging.warning(msg)
+
+    return super().value
 
 
 class F1Metric(BaseMetric):
