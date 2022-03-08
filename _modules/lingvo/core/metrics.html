@@ -188,9 +188,11 @@
 <span class="sd">  that the final value reflects an average over unique keys only.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mismatch_is_error</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_stored_values</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_mismatch_is_error</span> <span class="o">=</span> <span class="n">mismatch_is_error</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_keys_with_different_values</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
 <div class="viewcode-block" id="UniqueAverageMetric.Update"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.UniqueAverageMetric.Update">[docs]</a>  <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
     <span class="n">prev_value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stored_values</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
@@ -201,9 +203,7 @@
       <span class="c1">#</span>
       <span class="c1"># We may want to make the tolerances configurable via ConfigurableMetric.</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">(</span><span class="n">prev_value</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Previously stored value `</span><span class="si">{</span><span class="n">prev_value</span><span class="si">}</span><span class="s1">` for </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> &#39;</span>
-                         <span class="sa">f</span><span class="s1">&#39;differs from current value `</span><span class="si">{</span><span class="n">value</span><span class="si">}</span><span class="s1">`&#39;</span><span class="p">)</span>
-      <span class="c1"># Values match, ignore current update.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_keys_with_different_values</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
       <span class="k">return</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_stored_values</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
@@ -227,7 +227,22 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span>
             <span class="n">tag</span><span class="o">=</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/total_weight&#39;</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_total_weight</span><span class="p">),</span>
     <span class="p">])</span>
-    <span class="k">return</span> <span class="n">summary</span></div></div>
+    <span class="k">return</span> <span class="n">summary</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keys_with_different_values</span><span class="p">:</span>
+      <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;UniqueAverageMetric received duplicate keys with different &#39;</span>
+             <span class="sa">f</span><span class="s1">&#39;values: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_keys_with_different_values</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mismatch_is_error</span><span class="p">:</span>
+        <span class="c1"># Log and raise an error, since current infrastructure can</span>
+        <span class="c1"># swallow exceptions.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">value</span></div>
 
 
 <div class="viewcode-block" id="F1Metric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.F1Metric">[docs]</a><span class="k">class</span> <span class="nc">F1Metric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
