@@ -865,10 +865,8 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
       n = tf.reduce_sum(updated_ema_count, axis=-1, keepdims=True)
       updated_ema_count = ((updated_ema_count + p.epsilon) /
                            (n + p.num_clusters * p.epsilon) * n)
-      # pylint: disable=g-no-augmented-assignment
       updated_ema_means = updated_ema_means / tf.expand_dims(
           updated_ema_count, axis=-1)
-      # pylint: enable=g-no-augmented-assignment
       updated_ema_means = tf.cast(updated_ema_means, self.vars.means.dtype)
       means = tf.cast(theta.means, updated_ema_means.dtype)
       update_means_diff = updated_ema_means - means
