@@ -357,6 +357,10 @@ class ExecutorTpu(base_runner.BaseRunner):
         stack.enter_context(pdb_wrapper.catch_post_mortem())
       with py_utils.VariableStore(), py_utils.VariableRenameScope(
           self._variable_renaming_rules):
+        # `BuildTpuSubgraph` has to be called before checkpoint restore, so that
+        # the optimizer slot variables are guaranteed to be initialized before
+        # they get loaded. Otherwise, the optimizers' slot variables will not
+        # be properly loaded when V1 checkpoint is used.
         for program in self._programs:
           program.BuildTpuSubgraph()
           py_utils.ClearTpuSummaryTensors()

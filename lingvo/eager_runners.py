@@ -39,10 +39,6 @@ class Trainer(base_runner.BaseRunner):
       model = self._params.Instantiate()
       ckptr = self._CreateCheckpointer(self._train_dir, model)
       task = model.GetTask(self._model_task_name)
-      # Initialze the datasets and iterators before `tf.function` because
-      # `tf.function` does not trace python side effects.
-      # https://www.tensorflow.org/guide/function#executing_python_side_effects
-      _ = task.GetInputBatch()
 
       @tf.function(autograph=False)
       def TrainFunc():

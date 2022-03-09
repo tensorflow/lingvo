@@ -592,7 +592,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
       raise self._WrapRestoreErrorWithGraphModeWarning(err)
 
     # Check all model vars are matched from the checkpoint.
-    load_status.assert_existing_objects_matched()
+    load_status.assert_existing_objects_matched().assert_consumed()
     tf.logging.info('Load checkpoint done.')
     self._MaybeOverwriteModelVariablesWithEMA()
     return checkpoint_path
@@ -693,7 +693,7 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     tf.logging.info('Load from checkpoint (V2) %s.', checkpoint_path)
     load_status = self._saver.restore(checkpoint_path)
     tf.logging.info('Load checkpoint done.')
-    load_status.assert_existing_objects_matched()
+    load_status.assert_existing_objects_matched().assert_consumed()
     self._MaybeOverwriteModelVariablesWithEMA()
     return checkpoint_path
 
