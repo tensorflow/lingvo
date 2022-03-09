@@ -422,6 +422,10 @@
         <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">pdb_wrapper</span><span class="o">.</span><span class="n">catch_post_mortem</span><span class="p">())</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableStore</span><span class="p">(),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
+        <span class="c1"># `BuildTpuSubgraph` has to be called before checkpoint restore, so that</span>
+        <span class="c1"># the optimizer slot variables are guaranteed to be initialized before</span>
+        <span class="c1"># they get loaded. Otherwise, the optimizers&#39; slot variables will not</span>
+        <span class="c1"># be properly loaded when V1 checkpoint is used.</span>
         <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
           <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">ClearTpuSummaryTensors</span><span class="p">()</span>

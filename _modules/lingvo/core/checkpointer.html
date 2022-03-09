@@ -657,7 +657,7 @@
       <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WrapRestoreErrorWithGraphModeWarning</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
 
     <span class="c1"># Check all model vars are matched from the checkpoint.</span>
-    <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span>
+    <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span><span class="o">.</span><span class="n">assert_consumed</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeOverwriteModelVariablesWithEMA</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">checkpoint_path</span></div>
@@ -758,7 +758,7 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint (V2) </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
     <span class="n">load_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
-    <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span>
+    <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span><span class="o">.</span><span class="n">assert_consumed</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeOverwriteModelVariablesWithEMA</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">checkpoint_path</span></div>
 
