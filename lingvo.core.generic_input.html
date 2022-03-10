@@ -84,28 +84,35 @@
 <span id="lingvo-core-generic-input-module"></span><h1>lingvo.core.generic_input module<a class="headerlink" href="#module-lingvo.core.generic_input" title="Permalink to this headline"></a></h1>
 <p>Generic input.</p>
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.generic_input._ParseProcessor">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.generic_input.</span></span><span class="sig-name descname"><span class="pre">_ParseProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#_ParseProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.generic_input._ParseProcessor" title="Permalink to this definition"></a></dt>
+<dd><p>Parses python callable <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code> into a TF concrete function.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.generic_input.GenericInput">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.generic_input.</span></span><span class="sig-name descname"><span class="pre">GenericInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processor</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#GenericInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.generic_input.GenericInput" title="Permalink to this definition"></a></dt>
 <dd><p>Builds a generic input pipeline.</p>
 <p>Example usage:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">ParseRecord</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
-  <span class="c1"># Given a tf.string record, return a (NestedMap, bucketing key) pair.</span>
-  <span class="n">feature_map</span> <span class="o">=</span> <span class="o">...</span>
-  <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
-  <span class="c1"># Each example is represented by a NestedMap of tensors (without a</span>
-  <span class="c1"># batch dimension).</span>
-  <span class="n">example</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">field1</span><span class="o">=...</span><span class="p">,</span> <span class="n">field2</span><span class="o">=...</span><span class="p">)</span>
-  <span class="c1"># bucketing_key is a scalar convertible to tf.int32.</span>
-  <span class="c1"># Use 1 if all examples are of the same size.</span>
-  <span class="n">bucketing_key</span> <span class="o">=</span> <span class="mi">1</span>
-  <span class="k">return</span> <span class="n">example</span><span class="p">,</span> <span class="n">bucketing_key</span>
-
-<span class="n">input_batch</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">GenericInput</span><span class="p">(</span><span class="n">ParseRecord</span><span class="p">,</span> <span class="n">file_pattern</span><span class="o">=...</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
-<span class="c1"># input_batch is a NestedMap of tensors, where dim 0 of each tensor</span>
-<span class="c1"># represents the batch dimension.</span>
-<span class="n">input_batch</span><span class="o">.</span><span class="n">field1</span> <span class="o">=</span> <span class="o">...</span>
-</pre></div>
-</div>
+<blockquote>
+<div><dl class="simple">
+<dt>def ParseRecord(record):</dt><dd><p># Given a tf.string record, return a (NestedMap, bucketing key) pair.
+feature_map = …
+features = tf.io.parse_single_example(record, feature_map)
+# Each example is represented by a NestedMap of tensors (without a
+# batch dimension).
+example = py_utils.NestedMap(field1=…, field2=…)
+# bucketing_key is a scalar convertible to tf.int32.
+# Use 1 if all examples are of the same size.
+bucketing_key = 1
+return example, bucketing_key</p>
+</dd>
+</dl>
+<p>input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=…, …)
+# input_batch is a NestedMap of tensors, where dim 0 of each tensor
+# represents the batch dimension.
+input_batch.field1 = …</p>
+</div></blockquote>
 <p>ParseRecord can also take both ‘source_id’ and ‘record’ as inputs (the arg
 names must be exactly ‘source_id’ and ‘record’):</p>
 <blockquote>
@@ -137,6 +144,118 @@ the record is dropped.</p></li>
 <li><p>outputs: a NestedMap or a tuple of tensors, similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code>’s
 return,  except every tensor will have an additional dimension 0 that
 represents the batch dimension.</p></li>
+<li><p>bucket_keys: a tf.int32 vector.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple of (outputs, bucket_keys)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.generic_input.GenericInputV2Create">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.generic_input.</span></span><span class="sig-name descname"><span class="pre">GenericInputV2Create</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processor</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#GenericInputV2Create"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.generic_input.GenericInputV2Create" title="Permalink to this definition"></a></dt>
+<dd><p>Builds a generic input pipeline with an explicit resource handle.</p>
+<p>The resource handle uniquely identifies each GenericInputV2 dataset. This
+handle is passsed into method GenericInputV2GetNext to get a batch.</p>
+<p>Example usage:</p>
+<blockquote>
+<div><dl class="simple">
+<dt>def ParseRecord(record):</dt><dd><p># Given a tf.string record, return a (NestedMap, bucketing key) pair.
+feature_map = …
+features = tf.io.parse_single_example(record, feature_map)
+# Each example is represented by a NestedMap of tensors (without a
+# batch dimension).
+example = py_utils.NestedMap(field1=…, field2=…)
+# bucketing_key is a scalar convertible to tf.int32.
+# Use 1 if all examples are of the same size.
+bucketing_key = 1
+return example, bucketing_key</p>
+</dd>
+</dl>
+<p>resource, out_types, output_tmpl = GenericInputV2Create(ParseRecord, …)
+input_batch, … = GenericInputV2GetNext(resource, out_types, output_tmpl)
+# input_batch is a NestedMap of tensors, where dim 0 of each tensor
+# represents the batch dimension.
+input_batch.field1 = …</p>
+</div></blockquote>
+<p>ParseRecord can also take both ‘source_id’ and ‘record’ as inputs (the arg
+names must be exactly ‘source_id’ and ‘record’):</p>
+<blockquote>
+<div><dl class="simple">
+<dt>def ParseRecord(source_id, record):</dt><dd><p># Given a tf.int32 source_id and a tf.string record, return a (NestedMap,
+# bucketing key) pair.
+example = py_utils.NestedMap(source_id=source_id, …)
+…
+return example, bucketing_key</p>
+</dd>
+<dt>resource, out_types, output_tmpl = GenericInputV2Create(</dt><dd><p>ParseRecord, file_pattern=…, …)</p>
+</dd>
+<dt>input_batch, bucket_keys = GenericInputV2GetNext(</dt><dd><p>resource, out_types, output_tmpl)</p>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>processor</strong> – a function that takes either a tf.string record or a
+(source_id: tf.int32, record: tf.string) pair as input and returns a
+tuple (output, bucketing_key). <code class="xref py py-obj docutils literal notranslate"><span class="pre">output</span></code> must be a NestedMap or a list of
+tensors representing an example. <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> must be a scalar
+convertible to a tf.int32 tensor that represents the bucketing key
+(e.g., sequence length for sequence inputs). If <code class="xref py py-obj docutils literal notranslate"><span class="pre">bucketing_key</span></code> is a
+negative number, the record is dropped.</p></li>
+<li><p><strong>**kwargs</strong> – additional keyword args for x_ops.generic_input_v2_create.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><dl class="simple">
+<dt>resource: a handle that uniquely identifies the created GenericInputV2</dt><dd><p>resource.</p>
+</dd>
+</dl>
+</li>
+<li><p>out_types: a list of tensor types representing the types in each batch.</p></li>
+<li><p>output_tmpl: a NestedMap that will be used to pack each batch.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple of (resource, out_types, output_tmpl)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.generic_input.GenericInputV2GetNext">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.generic_input.</span></span><span class="sig-name descname"><span class="pre">GenericInputV2GetNext</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">resource</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">out_types</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_tmpl</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#GenericInputV2GetNext"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.generic_input.GenericInputV2GetNext" title="Permalink to this definition"></a></dt>
+<dd><p>Gets a batch from the GenericInputV2 dataset represented by <a class="reference external" href="https://docs.python.org/3.7/library/resource.html#module-resource" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource</span></code></a>.</p>
+<p><a class="reference external" href="https://docs.python.org/3.7/library/resource.html#module-resource" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource</span></code></a> is a handle that uniquely identifies a GenericInputV2 dataset. More
+details can be seen in the docstring of GenericInputV2Create.</p>
+<p>Example usage:</p>
+<blockquote>
+<div><p># resource, out_types, output_tmpl are returned from <a class="reference internal" href="#lingvo.core.generic_input.GenericInputV2Create" title="lingvo.core.generic_input.GenericInputV2Create"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GenericInputV2Create</span></code></a>.
+… = generic_input.GenericInputV2GetNext(resource, out_types, output_tmpl)</p>
+</div></blockquote>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>resource</strong> – a handle that uniquely identifies the created GenericInputV2
+resource.</p></li>
+<li><p><strong>out_types</strong> – a list of tensor types representing the types in each batch.</p></li>
+<li><p><strong>output_tmpl</strong> – a NestedMap that will be used to pack each batch.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><dl class="simple">
+<dt>outputs: a NestedMap or a tuple of tensors, similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code>’s</dt><dd><p>return,  except every tensor will have an additional dimension 0 that
+represents the batch dimension.</p>
+</dd>
+</dl>
+</li>
 <li><p>bucket_keys: a tf.int32 vector.</p></li>
 </ul>
 </p>
