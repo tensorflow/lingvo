@@ -20,6 +20,7 @@ limitations under the License.
 
 #include "lingvo/core/ops/record_batcher.h"
 #include "lingvo/core/ops/record_yielder.h"
+#include "tensorflow/core/framework/attr_value.pb.h"
 #include "tensorflow/core/framework/op_kernel.h"
 
 namespace tensorflow {
@@ -45,6 +46,54 @@ std::vector<BasicRecordYielder::Options> CreatePerFileYielderOptions(
 void GetBasicRecordYielderOptions(OpKernelConstruction* ctx,
                                   BasicRecordYielder::Options* yopts);
 
+struct InputArgs {
+  void Init(OpKernelConstruction* ctx) {
+    GetBasicRecordYielderOptions(ctx, &yopts);
+#define GETATTR(FIELD) OP_REQUIRES_OK(ctx, ctx->GetAttr(#FIELD, &FIELD));
+    GETATTR(file_pattern);
+    GETATTR(input_source_weights);
+    GETATTR(bucket_upper_bound);
+    GETATTR(bucket_batch_limit);
+    GETATTR(bucket_adjust_every_n);
+    GETATTR(flush_every_n);
+    GETATTR(num_threads);
+    num_merger_threads = num_threads;
+    GETATTR(require_sequential_order);
+    GETATTR(repeat_count);
+    GETATTR(fatal_errors);
+    OP_REQUIRES(
+        ctx,
+        std::is_sorted(bucket_upper_bound.begin(), bucket_upper_bound.end()),
+        errors::InvalidArgument("Bucket_upper_bound is not sorted"));
+    if (require_sequential_order) {
+      num_threads = 1;
+    }
+#undef GETATTR
+  }
+
+  void GetRecordBatcherOptions(RecordBatcher::Options* opt) const {
+    opt->bucket_upper_bound = bucket_upper_bound;
+    opt->bucket_batch_limit = bucket_batch_limit;
+    opt->bucket_adjust_every_n = bucket_adjust_every_n;
+    opt->flush_every_n = flush_every_n;
+    opt->num_threads = num_threads;
+    opt->fatal_errors = fatal_errors;
+  }
+
+  bool require_sequential_order;
+  int num_merger_threads = -1;
+  int64_t bucket_adjust_every_n;
+  int64_t flush_every_n;
+  int64_t num_threads;
+  int64_t repeat_count;
+  BasicRecordYielder::Options yopts;
+  string file_pattern;
+  std::vector<float> input_source_weights;
+  std::vector<int64_t> bucket_upper_bound;
+  std::vector<int64_t> bucket_batch_limit;
+  std::vector<string> fatal_errors;
+};
+
 // Base class for op kernels that emit training examples.
 template <class RecordProcessorClass>
 class InputOp : public OpKernel {
@@ -54,43 +103,15 @@ class InputOp : public OpKernel {
 
  public:
   explicit InputOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    BasicRecordYielder::Options yopts;
-    GetBasicRecordYielderOptions(ctx, &yopts);
-#define GETATTR(TYPE, FIELD) \
-  TYPE FIELD;                \
-  OP_REQUIRES_OK(ctx, ctx->GetAttr(#FIELD, &FIELD));
-
-    GETATTR(string, file_pattern);
-    GETATTR(std::vector<float>, input_source_weights);
-    GETATTR(std::vector<int64_t>, bucket_upper_bound);
-    GETATTR(std::vector<int64_t>, bucket_batch_limit);
-    GETATTR(int64_t, bucket_adjust_every_n);
-    GETATTR(int64_t, flush_every_n);
-    GETATTR(int64_t, num_threads);
-    GETATTR(bool, require_sequential_order);
-    GETATTR(int64_t, repeat_count);
-    GETATTR(std::vector<string>, fatal_errors);
-#undef GETATTR
-    OP_REQUIRES(
-        ctx,
-        std::is_sorted(bucket_upper_bound.begin(), bucket_upper_bound.end()),
-        errors::InvalidArgument("Bucket_upper_bound is not sorted"));
-    if (require_sequential_order) {
-      num_threads = 1;
-    }
-    LOG(INFO) << "Create RecordProcessor; source_id: " << yopts.source_id;
+    args_.Init(ctx);
+    LOG(INFO) << "Create RecordProcessor; source_id: " << args_.yopts.source_id;
     processor_ = new RecordProcessorClass(ctx);
-    RecordYielder* yielder = CHECK_NOTNULL(
-        ConstructYielder(file_pattern, input_source_weights, yopts,
-                         require_sequential_order, repeat_count));
+    RecordYielder* yielder = CHECK_NOTNULL(ConstructYielder(
+        args_.file_pattern, args_.input_source_weights, args_.yopts,
+        args_.require_sequential_order, args_.repeat_count));
     LOG(INFO) << "Create batcher";
     RecordBatcher::Options bopts;
-    bopts.bucket_upper_bound = bucket_upper_bound;
-    bopts.bucket_batch_limit = bucket_batch_limit;
-    bopts.bucket_adjust_every_n = bucket_adjust_every_n;
-    bopts.flush_every_n = flush_every_n;
-    bopts.num_threads = num_threads;
-    bopts.fatal_errors = fatal_errors;
+    args_.GetRecordBatcherOptions(&bopts);
     batcher_ = new RecordBatcher(bopts, yielder, processor_);
   }
 
@@ -115,6 +136,128 @@ class InputOp : public OpKernel {
  private:
   // Owned.
   RecordBatcher* batcher_ = nullptr;
+  InputArgs args_;
+};
+
+template <class RecordProcessorClass>
+class InputResource : public tensorflow::ResourceBase {
+  static_assert(
+      std::is_base_of<RecordProcessor, RecordProcessorClass>::value,
+      "InputOp requires a RecordProcessor subclass as the template arg.");
+
+ public:
+  InputResource(const InputArgs& args, const NameAttrList& processor,
+                const std::vector<int32>& dynamic_padding_dimensions,
+                const std::vector<int32>& dynamic_padding_constants) {
+    LOG(INFO) << "Create RecordProcessor; source_id: " << args.yopts.source_id;
+    processor_ = new RecordProcessorClass(
+        processor, args.num_merger_threads,
+        dynamic_padding_dimensions, dynamic_padding_constants);
+    RecordYielder* yielder = CHECK_NOTNULL(ConstructYielder(
+        args.file_pattern, args.input_source_weights, args.yopts,
+        args.require_sequential_order, args.repeat_count));
+    LOG(INFO) << "Create batcher";
+    RecordBatcher::Options bopts;
+    args.GetRecordBatcherOptions(&bopts);
+    batcher_ = new RecordBatcher(bopts, yielder, processor_);
+  }
+
+  std::string DebugString() const override { return "lingvo InputResource"; }
+
+  ~InputResource() override { delete batcher_; }
+
+  void GetNext(OpKernelContext* ctx) {
+    int64_t bucket_id;
+    TensorVec batch;
+    OP_REQUIRES_OK(ctx, batcher_->GetNext(ctx, &bucket_id, &batch));
+    VLOG(1) << "Produce a batch from bucket : " << bucket_id;
+    OP_REQUIRES(ctx, static_cast<int>(batch.size()) == ctx->num_outputs(),
+                errors::Internal("Unexpected batch: ", batch.size()));
+    for (int i = 0; i < batch.size(); ++i) {
+      ctx->set_output(i, batch[i]);
+    }
+  }
+
+  Status EnsureInitialized(OpKernelContext* ctx) {
+    return batcher_->EnsureInitialized(ctx);
+  }
+
+ protected:
+  // Not owned - will be deleted in RecordBatcher.
+  RecordProcessorClass* processor_ = nullptr;
+
+ private:
+  // Owned.
+  BasicRecordYielder::Options yopts_;
+  RecordBatcher* batcher_ = nullptr;
+};
+
+// Base class for op kernels that emit training examples.
+template <class RecordProcessorClass>
+class InputOpV2Create : public OpKernel {
+  static_assert(
+      std::is_base_of<RecordProcessor, RecordProcessorClass>::value,
+      "InputOp requires a RecordProcessor subclass as the template arg.");
+
+ public:
+  explicit InputOpV2Create(OpKernelConstruction* ctx) : OpKernel(ctx) {
+    args_.Init(ctx);
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("processor", &processor_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("dynamic_padding_dimensions",
+                                     &dynamic_padding_dimensions_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("dynamic_padding_constants",
+                                     &dynamic_padding_constants_));
+  }
+
+  void Compute(OpKernelContext* ctx) override {
+    Tensor handle_tensor;
+    AllocatorAttributes attr;
+    OP_REQUIRES_OK(ctx, ctx->allocate_temp(DT_RESOURCE, TensorShape({}),
+                                           &handle_tensor, attr));
+    LOG(INFO) << "Create InputResource";
+    auto* resource = new InputResource<RecordProcessorClass>(
+        args_, processor_, dynamic_padding_dimensions_,
+        dynamic_padding_constants_);
+    // Function `EnsureInitialized` needs to access a registered
+    // concrete_function in OpKernelContext. We need to call it here to ensure
+    // that the same OpKernelContext is used. If we defer the call to
+    // `InputOpV2GetNext::Compute()`, in Eager mode a different OpKernelContext
+    // will be used and the concrete_function will not be found.
+    OP_REQUIRES_OK(ctx, resource->EnsureInitialized(ctx));
+    handle_tensor.scalar<ResourceHandle>()() =
+        ResourceHandle::MakeRefCountingHandle(resource, ctx->device()->name(),
+                                              /*dtypes_and_shapes=*/{},
+                                              ctx->stack_trace());
+    ctx->set_output(0, handle_tensor);
+  }
+
+ private:
+  NameAttrList processor_;
+  // The following are requred for GenericInputV2 only
+  std::vector<int32> dynamic_padding_dimensions_;
+  std::vector<int32> dynamic_padding_constants_;
+  InputArgs args_;
+};
+
+template <class RecordProcessorClass>
+class InputOpV2GetNext : public OpKernel {
+ public:
+  explicit InputOpV2GetNext(OpKernelConstruction* ctx) : OpKernel(ctx) {}
+
+  void Compute(OpKernelContext* ctx) override {
+    InputResource<RecordProcessorClass>* resource;
+    const Tensor& handle_tensor = ctx->input(0);
+    const ResourceHandle& handle = handle_tensor.scalar<ResourceHandle>()();
+    typedef InputResource<RecordProcessorClass> resource_type;
+    auto statusor = handle.GetResource<resource_type>();
+    if (TF_PREDICT_FALSE(!statusor.ok())) {
+      LOG(ERROR) << "Could not find the InputOpV2 resource: "
+                 << statusor.status();
+      return;
+    }
+    resource = std::move(statusor.ValueOrDie());
+    resource->GetNext(ctx);
+  }
 };
 
 }  // namespace lingvo

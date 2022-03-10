@@ -183,6 +183,7 @@ lingvo_cc_library(
     hdrs = ["input_common.h"],
     deps = [
         ":record",
+        # Implicit tensorflow C++ proto dependency.
     ],
 )
 

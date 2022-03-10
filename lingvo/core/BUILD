@@ -1615,6 +1615,21 @@ py_test(
     ],
 )
 
+py_test(
+    name = "generic_input_tf2_test",
+    srcs = ["generic_input_tf2_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":generic_input",
+        ":py_utils",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
 py_library(
     name = "gpipe",
     srcs = ["gpipe.py"],

@@ -138,15 +138,30 @@ class GenericInputProcessor : public RecordProcessor {
   explicit GenericInputProcessor(OpKernelConstruction* ctx) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("processor", &func_));
     OP_REQUIRES_OK(ctx, ctx->GetAttr("num_threads", &num_merger_threads_));
+    SetupThreads();
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("dynamic_padding_dimensions",
+                                     &dynamic_padding_dimensions_));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("dynamic_padding_constants",
+                                     &dynamic_padding_constants_));
+  }
+
+  void SetupThreads() {
     num_merger_threads_ = std::max(4, num_merger_threads_ / 4);  // An estimate.
     merger_ = new thread::ThreadPool(
         Env::Default(), ThreadOptions(), "generic_input_merger",
         num_merger_threads_, /* low_latency_hint */ false);
     merger_runner_ = [this](Closure c) { merger_->Schedule(c); };
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("dynamic_padding_dimensions",
-                                     &dynamic_padding_dimensions_));
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("dynamic_padding_constants",
-                                     &dynamic_padding_constants_));
+  }
+
+  explicit GenericInputProcessor(
+      const NameAttrList& func, int num_merger_threads,
+      const std::vector<int32>& dynamic_padding_dimensions,
+      const std::vector<int32>& dynamic_padding_constants) {
+    func_ = func;
+    num_merger_threads_ = num_merger_threads;
+    SetupThreads();
+    dynamic_padding_dimensions_ = dynamic_padding_dimensions;
+    dynamic_padding_constants_ = dynamic_padding_constants;
   }
 
   Status Initialize(OpKernelContext* ctx) override {
@@ -343,6 +358,12 @@ class GenericInputProcessor : public RecordProcessor {
 
 REGISTER_KERNEL_BUILDER(Name("GenericInput").Device(DEVICE_CPU),
                         InputOp<GenericInputProcessor>);
+
+REGISTER_KERNEL_BUILDER(Name("GenericInputV2Create").Device(DEVICE_CPU),
+                        InputOpV2Create<GenericInputProcessor>);
+
+REGISTER_KERNEL_BUILDER(Name("GenericInputV2GetNext").Device(DEVICE_CPU),
+                        InputOpV2GetNext<GenericInputProcessor>);
 }  // namespace
 }  // namespace lingvo
 }  // namespace tensorflow

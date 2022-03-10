@@ -18,7 +18,7 @@ limitations under the License.
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "x_ops_helper.h"
+#include "lingvo/core/ops/x_ops_helper.h"
 
 namespace tensorflow {
 namespace {
@@ -880,6 +880,50 @@ dynamic_padding_dimensions: If not empty, must be the same length as out.
     scalar rather than a sequence.
 dynamic_padding_constants: Must be set if `dynamic_padding_dimension` is
     provided. The constant value to use for padding.
+)doc");
+
+REGISTER_OP("GenericInputV2Create")
+    .Output("output: resource")
+    .INPUT_ATTRS_V2
+    .Attr("out_types: list(type)")
+    .Attr("processor: func")
+    .Attr("dynamic_padding_dimensions: list(int) = []")
+    .Attr("dynamic_padding_constants: list(int) = []")
+    .Doc(R"doc(
+Creates a V2 generic input producer.
+
+output: a resource Tensor representing the producer.
+)doc" INPUT_DOCS
+         R"doc(
+out_types: A list of tensor types.
+processor: A function that processes a string (one record) and returns
+    a list of tensors. The last tensor must be a int32 scalar, which is
+    used in conjunction with `bucket_upper_bound` to bucket all the
+    samples.  The other tensors belongs to one sample. They have the
+    respective `out_types`.  These tensors' first dimension are _not_ the
+    batch dimension. Instead, when multiple samples are merged into a
+    batch, GenericInputV2's implementation expand the batch dimension (dim
+    0) and concatenate the corresponding tensors into one tensor.
+dynamic_padding_dimensions: If not empty, must be the same length as out.
+    Specifies the 0-indexed dimension to pad dynamically for each output.
+    The output is padded to the longest tensor in the batch along the dimension.
+    The first (0-th) dimension is _not_ the batch dimension. A value of -1
+    indicates the specified output should not be padded, eg. if the output is a
+    scalar rather than a sequence.
+dynamic_padding_constants: Must be set if `dynamic_padding_dimension` is
+    provided. The constant value to use for padding.
+)doc");
+
+REGISTER_OP("GenericInputV2GetNext")
+    .Input("input: resource")
+    .Output("out: out_types")
+    .Output("bucket_keys: int32")
+    .Attr("out_types: list(type)")
+    .Doc(R"doc(
+Produces an example from processed records.
+
+input: a resource Tensor representing the producer.
+out_types: A list of tensor types.
 )doc");
 
 REGISTER_OP("StaticMapStringInt")

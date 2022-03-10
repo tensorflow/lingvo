@@ -21,58 +21,8 @@ from lingvo.core import py_utils
 from tensorflow.python.util import tf_inspect  # pylint: disable=g-direct-tensorflow-import
 
 
-def GenericInput(processor, **kwargs):
-  """Builds a generic input pipeline.
-
-  Example usage::
-
-    def ParseRecord(record):
-      # Given a tf.string record, return a (NestedMap, bucketing key) pair.
-      feature_map = ...
-      features = tf.io.parse_single_example(record, feature_map)
-      # Each example is represented by a NestedMap of tensors (without a
-      # batch dimension).
-      example = py_utils.NestedMap(field1=..., field2=...)
-      # bucketing_key is a scalar convertible to tf.int32.
-      # Use 1 if all examples are of the same size.
-      bucketing_key = 1
-      return example, bucketing_key
-
-    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)
-    # input_batch is a NestedMap of tensors, where dim 0 of each tensor
-    # represents the batch dimension.
-    input_batch.field1 = ...
-
-  ParseRecord can also take both 'source_id' and 'record' as inputs (the arg
-  names must be exactly 'source_id' and 'record'):
-
-    def ParseRecord(source_id, record):
-      # Given a tf.int32 source_id and a tf.string record, return a (NestedMap,
-      # bucketing key) pair.
-      example = py_utils.NestedMap(source_id=source_id, ...)
-      ...
-      return example, bucketing_key
-
-    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)
-
-  Args:
-    processor: a function that takes either a tf.string record or a
-      (source_id: tf.int32, record: tf.string) pair as input and returns a tuple
-      (output, bucketing_key). `output` must be a NestedMap or a list of tensors
-      representing an example. `bucketing_key` must be a scalar convertible to
-      a tf.int32 tensor that represents the bucketing key (e.g., sequence
-      length for sequence inputs). If `bucketing_key` is a negative number,
-      the record is dropped.
-    **kwargs: additional keyword args for x_ops.generic_input.
-
-  Returns:
-    A tuple of (outputs, bucket_keys):
-
-    - outputs: a NestedMap or a tuple of tensors, similar to `processor`'s
-      return,  except every tensor will have an additional dimension 0 that
-      represents the batch dimension.
-    - bucket_keys: a tf.int32 vector.
-  """
+def _ParseProcessor(processor):
+  """Parses python callable `processor` into a TF concrete function."""
   output_tmpl = py_utils.NestedMap()
 
   @tf.function(autograph=False)
@@ -122,6 +72,62 @@ def GenericInput(processor, **kwargs):
       tf.DType(a.type) for a in proc_fn.function_def.signature.output_arg
   ]
   assert out_types[-1] == tf.int32, ('%s is not expected.' % out_types[-1])
+  return proc_fn, out_types, output_tmpl
+
+
+def GenericInput(processor, **kwargs):
+  """Builds a generic input pipeline.
+
+  Example usage:
+
+    def ParseRecord(record):
+      # Given a tf.string record, return a (NestedMap, bucketing key) pair.
+      feature_map = ...
+      features = tf.io.parse_single_example(record, feature_map)
+      # Each example is represented by a NestedMap of tensors (without a
+      # batch dimension).
+      example = py_utils.NestedMap(field1=..., field2=...)
+      # bucketing_key is a scalar convertible to tf.int32.
+      # Use 1 if all examples are of the same size.
+      bucketing_key = 1
+      return example, bucketing_key
+
+    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)
+    # input_batch is a NestedMap of tensors, where dim 0 of each tensor
+    # represents the batch dimension.
+    input_batch.field1 = ...
+
+  ParseRecord can also take both 'source_id' and 'record' as inputs (the arg
+  names must be exactly 'source_id' and 'record'):
+
+    def ParseRecord(source_id, record):
+      # Given a tf.int32 source_id and a tf.string record, return a (NestedMap,
+      # bucketing key) pair.
+      example = py_utils.NestedMap(source_id=source_id, ...)
+      ...
+      return example, bucketing_key
+
+    input_batch, bucket_keys = GenericInput(ParseRecord, file_pattern=..., ...)
+
+  Args:
+    processor: a function that takes either a tf.string record or a
+      (source_id: tf.int32, record: tf.string) pair as input and returns a tuple
+      (output, bucketing_key). `output` must be a NestedMap or a list of tensors
+      representing an example. `bucketing_key` must be a scalar convertible to
+      a tf.int32 tensor that represents the bucketing key (e.g., sequence
+      length for sequence inputs). If `bucketing_key` is a negative number,
+      the record is dropped.
+    **kwargs: additional keyword args for x_ops.generic_input.
+
+  Returns:
+    A tuple of (outputs, bucket_keys):
+
+    - outputs: a NestedMap or a tuple of tensors, similar to `processor`'s
+      return,  except every tensor will have an additional dimension 0 that
+      represents the batch dimension.
+    - bucket_keys: a tf.int32 vector.
+  """
+  proc_fn, out_types, output_tmpl = _ParseProcessor(processor)
   flat_outputs, bucket_keys = ops.gen_x_ops.generic_input(
       processor=proc_fn, out_types=out_types[:-1], **kwargs)
   tf.logging.debug('x_ops.generic_input flat_outputs=%s', flat_outputs)
@@ -130,6 +136,114 @@ def GenericInput(processor, **kwargs):
   if isinstance(outputs, list):
     outputs = tuple(outputs)  # b/124336469
   tf.logging.debug('x_ops.generic_input outputs=%s', outputs)
+  return outputs, bucket_keys
+
+
+def GenericInputV2Create(processor, **kwargs):
+  # pyformat: disable
+  """Builds a generic input pipeline with an explicit resource handle.
+
+  The resource handle uniquely identifies each GenericInputV2 dataset. This
+  handle is passsed into method GenericInputV2GetNext to get a batch.
+
+  Example usage:
+
+    def ParseRecord(record):
+      # Given a tf.string record, return a (NestedMap, bucketing key) pair.
+      feature_map = ...
+      features = tf.io.parse_single_example(record, feature_map)
+      # Each example is represented by a NestedMap of tensors (without a
+      # batch dimension).
+      example = py_utils.NestedMap(field1=..., field2=...)
+      # bucketing_key is a scalar convertible to tf.int32.
+      # Use 1 if all examples are of the same size.
+      bucketing_key = 1
+      return example, bucketing_key
+
+    resource, out_types, output_tmpl = GenericInputV2Create(ParseRecord, ...)
+    input_batch, ... = GenericInputV2GetNext(resource, out_types, output_tmpl)
+    # input_batch is a NestedMap of tensors, where dim 0 of each tensor
+    # represents the batch dimension.
+    input_batch.field1 = ...
+
+  ParseRecord can also take both 'source_id' and 'record' as inputs (the arg
+  names must be exactly 'source_id' and 'record'):
+
+    def ParseRecord(source_id, record):
+      # Given a tf.int32 source_id and a tf.string record, return a (NestedMap,
+      # bucketing key) pair.
+      example = py_utils.NestedMap(source_id=source_id, ...)
+      ...
+      return example, bucketing_key
+
+    resource, out_types, output_tmpl = GenericInputV2Create(
+        ParseRecord, file_pattern=..., ...)
+    input_batch, bucket_keys = GenericInputV2GetNext(
+        resource, out_types, output_tmpl)
+
+  Args:
+    processor: a function that takes either a tf.string record or a
+      (source_id: tf.int32, record: tf.string) pair as input and returns a
+      tuple (output, bucketing_key). `output` must be a NestedMap or a list of
+      tensors representing an example. `bucketing_key` must be a scalar
+      convertible to a tf.int32 tensor that represents the bucketing key
+      (e.g., sequence length for sequence inputs). If `bucketing_key` is a
+      negative number, the record is dropped.
+    **kwargs: additional keyword args for x_ops.generic_input_v2_create.
+
+  Returns:
+    A tuple of (resource, out_types, output_tmpl):
+
+    - resource: a handle that uniquely identifies the created GenericInputV2
+        resource.
+    - out_types: a list of tensor types representing the types in each batch.
+    - output_tmpl: a NestedMap that will be used to pack each batch.
+  """
+  # pyformat: enable
+  proc_fn, out_types, output_tmpl = _ParseProcessor(processor)
+  # "Lifts" the resource creation outside of tf.function Graphs (i.e.
+  # FuncGraphs). This is necessary when tf.function is retraced, but the
+  # same GenericInputV2 resource needs to be used.
+  with tf.init_scope():
+    return ops.gen_x_ops.generic_input_v2_create(
+        processor=proc_fn, out_types=out_types[:-1],
+        **kwargs), out_types[:-1], output_tmpl
+
+
+def GenericInputV2GetNext(resource, out_types, output_tmpl):
+  """Gets a batch from the GenericInputV2 dataset represented by `resource`.
+
+  `resource` is a handle that uniquely identifies a GenericInputV2 dataset. More
+  details can be seen in the docstring of GenericInputV2Create.
+
+  Example usage:
+
+    # resource, out_types, output_tmpl are returned from `GenericInputV2Create`.
+    ... = generic_input.GenericInputV2GetNext(resource, out_types, output_tmpl)
+
+  Args:
+    resource: a handle that uniquely identifies the created GenericInputV2
+      resource.
+    out_types: a list of tensor types representing the types in each batch.
+    output_tmpl: a NestedMap that will be used to pack each batch.
+
+  Returns:
+    A tuple of (outputs, bucket_keys):
+
+    - outputs: a NestedMap or a tuple of tensors, similar to `processor`'s
+        return,  except every tensor will have an additional dimension 0 that
+        represents the batch dimension.
+    - bucket_keys: a tf.int32 vector.
+  """
+  flat_outputs, bucket_keys = ops.gen_x_ops.generic_input_v2_get_next(
+      resource, out_types)
+  tf.logging.debug('x_ops.generic_input_v2_get_next flat_outputs=%s',
+                   flat_outputs)
+  # Pack flat_outputs to outputs.
+  outputs = output_tmpl.Pack(flat_outputs).out_values
+  if isinstance(outputs, list):
+    outputs = tuple(outputs)  # b/124336469
+  tf.logging.debug('x_ops.generic_input_v2_get_next outputs=%s', outputs)
   return outputs, bucket_keys
 
 

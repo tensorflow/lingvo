@@ -37,6 +37,26 @@ limitations under the License.
       .Attr("source_id_offset: int = 0")              \
       .SetIsStateful()
 
+#define INPUT_ATTRS_V2                                \
+  Attr("file_pattern: string")                        \
+      .Attr("input_source_weights: list(float) = []") \
+      .Attr("file_random_seed: int = 301")            \
+      .Attr("file_buffer_size: int = 10000")          \
+      .Attr("file_buffer_size_in_seconds: int = 0")   \
+      .Attr("file_parallelism: int = 16")             \
+      .Attr("bucket_upper_bound: list(int)")          \
+      .Attr("bucket_batch_limit: list(int)")          \
+      .Attr("bucket_adjust_every_n: int = 0")         \
+      .Attr("flush_every_n: int = 0")                 \
+      .Attr("num_threads: int = 1")                   \
+      .Attr("require_sequential_order: bool = False") \
+      .Attr("repeat_count: int = -1")                 \
+      .Attr("fatal_errors: list(string) = []")        \
+      .Attr("num_input_replicas: int = 1")            \
+      .Attr("input_replica_id: int = 0")              \
+      .Attr("source_id_offset: int = 0")              \
+      .SetIsStateful()
+
 #define INPUT_DOCS \
   R"( \
 file_pattern: A comma-separated list of glob patterns or sharded file patterns\

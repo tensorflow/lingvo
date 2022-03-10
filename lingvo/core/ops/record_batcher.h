@@ -108,13 +108,13 @@ class RecordBatcher {
   // Processor threads will be launched on the first call to this function.
   Status GetNext(OpKernelContext* ctx, int64_t* bucket_id, TensorVec* batch);
 
- private:
   // Initializes the batcher and launches the processor threads, if not done.
   // This should be invoked on the first call of 'GetNext', since some
   // processors expect some initialization with an OpKernelContext before
   // running.
   Status EnsureInitialized(OpKernelContext* ctx);
 
+ private:
   typedef RecordBatcher ME;
   struct Processed {
     int64_t bucket_key;
