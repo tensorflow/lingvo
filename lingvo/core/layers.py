@@ -4360,6 +4360,18 @@ class LayerNorm(base_layer.BaseLayer):
         'use_batch_norm_backend', False,
         'Whether to use the implementation based on '
         'tf.nn.batch_normalization.')
+    p.Define(
+        'trainable_scale_and_bias', True,
+        'A boolean value that specifies whether an elementwise affine'
+        ' transformation (`scale` and `bias` parameters) should be learned,'
+        ' such that instead of having (elementwise) standard deviation 1 and'
+        ' mean 0, the output of this layer will have (elementwise) standard'
+        ' deviation `scale` (or `scale + 1`, depending on the `direct_scale`'
+        ' parameter) and mean `bias`, where `scale` and `bias` have the same'
+        ' dimension as the last dimension of the input. This parameter is the'
+        ' equivalent of the `elementwise_affine` parameter in the PyTorch'
+        ' implementation of `LayerNorm`:'
+        ' https://pytorch.org/docs/stable/generated/torch.nn.LayerNorm.html.')
     return p
 
   def __init__(self, params):
@@ -4378,7 +4390,7 @@ class LayerNorm(base_layer.BaseLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'] +
           [py_utils.SKIP_LP_REGULARIZATION])
-      self.CreateVariable('bias', pc)
+      self.CreateVariable('bias', pc, trainable=p.trainable_scale_and_bias)
 
     if p.direct_scale:
       scale_pc = py_utils.WeightParams(
@@ -4394,7 +4406,7 @@ class LayerNorm(base_layer.BaseLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'] +
           [py_utils.SKIP_LP_REGULARIZATION])
-    self.CreateVariable('scale', scale_pc)
+    self.CreateVariable('scale', scale_pc, trainable=p.trainable_scale_and_bias)
 
   def _GetScaleAndBias(self, theta):
     if self.params.bias:
