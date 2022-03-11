@@ -2500,7 +2500,7 @@
   <span class="n">seq_len</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
   <span class="c1"># number of ffn layers for each expert.</span>
   <span class="c1"># Number of tokens per expert (C).</span>
-  <span class="n">bucket_size</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="n">experts_dim</span>
+  <span class="n">bucket_size</span> <span class="o">=</span> <span class="n">seq_len</span> <span class="o">//</span> <span class="n">experts_dim</span> <span class="o">*</span> <span class="mi">2</span>
 
   <span class="c1"># Tensor shape: G`EC.</span>
   <span class="n">gate</span><span class="p">,</span> <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span>
