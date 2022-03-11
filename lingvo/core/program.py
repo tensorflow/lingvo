@@ -860,7 +860,7 @@ class EvalProgram(BaseProgram):
       mlperf_epoch_num = int(global_step / self._ml_perf.steps_per_epoch)
       mlp_log.mlperf_print(
           'eval_start', None, metadata={'epoch_num': mlperf_epoch_num})
-
+    begin_time = time.time()
     if self._task.input.params.resettable:
       tf.logging.info('Resetting input_generator.')
       self._task.input.Reset(sess)
@@ -892,10 +892,21 @@ class EvalProgram(BaseProgram):
     status_strs = []
     self._eval_metrics.PackMetricsValues(values)
     eval_metrics = self._eval_metrics.metrics
+
+    elapsed_secs = time.time() - begin_time
+    # TODO(yanqiz): Here we assume a per replica example rate.
+    example_rate = float(eval_metrics['num_samples_in_batch'][0] *
+                         self._steps_per_loop / elapsed_secs)
+    tf.logging.info((global_step, 'example_rate', example_rate))
+
     for key, (val, _) in sorted(eval_metrics.items()):
       self._SummarizeValue(global_step, key, val)
       tf.logging.info((global_step, key, val))
       status_strs.append('%s=%s' % (key, val))
+
+    if 'example_rate' not in self._eval_metrics.metrics:
+      eval_metrics['example_rate'] = (example_rate, 1.0)
+      self._eval_metrics.metrics['example_rate'] = (example_rate, 1.0)
 
     mlperf_done = False
     if self._ml_perf:
