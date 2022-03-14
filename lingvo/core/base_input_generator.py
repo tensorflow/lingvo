@@ -698,11 +698,14 @@ class BaseInputGenerator(base_layer.BaseLayer):
     for key in tpu_emb_input_keys:
       feat = input_batch.GetItem(key)
       config = tpu_embedding.feature_to_config_dict[key]
-      if (config.max_sequence_length > 0 and
+      expected_batch_size = tpu_embedding.batch_size_per_core * num_splits
+      if (feat.shape and feat.shape[0] != expected_batch_size) or (
+          config.max_sequence_length > 0 and
           feat.shape[1] != config.max_sequence_length):
         raise ValueError(
             'TPU embedding input ids shape mismatch. Expecting '
-            f'(None, {config.max_sequence_length}), got {feat.shape}')
+            f'({expected_batch_size}, {config.max_sequence_length}), '
+            f'got {feat.shape}')
 
       if isinstance(feat, tf.sparse.SparseTensor):
         tpu_emb_feat_splitted = tf.sparse.split(feat, num_splits, axis=0)
