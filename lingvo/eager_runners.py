@@ -199,6 +199,8 @@ class Evaler(base_runner.BaseRunner):
       self._checkpointer = self._CreateCheckpointer(self._train_dir,
                                                     self._model)
       self._task = self._model.GetTask(self._model_task_name)
+      self._eval_fn = self._GetEvalFunc()
+      self._eval_fn_with_summary = self._GetEvalFunc(write_summary=True)
 
     self._eval_path = checkpointer.GetSpecificCheckpoint(
         self._task.params.eval.load_checkpoint_from)
@@ -212,6 +214,20 @@ class Evaler(base_runner.BaseRunner):
     else:
       self._RunOnLatestCheckpoints(
           runner_fn=self._EvalOnce, runner_dir=self._eval_dir)
+
+  def _GetEvalFunc(self, write_summary=False):
+
+    @tf.function(autograph=False)
+    def EvalFunc():
+      if write_summary:
+        # TODO(jiaweix): Investigate how to only write non-scalar summaries.
+        with self._summary_writer.as_default():
+          self._model.ConstructFPropGraph()
+      else:
+        self._model.ConstructFPropGraph()
+      return self._task.eval_metrics
+
+    return EvalFunc
 
   def _EvalOnce(self, sess=None, path=''):
     """Eval a single checkpoint."""
@@ -244,20 +260,18 @@ class Evaler(base_runner.BaseRunner):
           # should update eval_metrics and generate aggregate summaries. Other
           # types of summaries (images, audio etc.) will be generated for the
           # first batch only.
+          eval_fn = (
+              self._eval_fn_with_summary
+              if metrics_dict is None else self._eval_fn)
+          eval_metrics = eval_fn()
+
           if metrics_dict is None:
-            # TODO(jiaweix): Investigate how to only write non-scalar summaries.
-            with self._summary_writer.as_default():
-              self._model.ConstructFPropGraph()
             metrics_dict = {
-                name: metrics.AverageMetric()
-                for name in self._task.eval_metrics
+                name: metrics.AverageMetric() for name in eval_metrics
             }
             num_samples_metric = metrics_dict['num_samples_in_batch']
-          else:
-            self._model.ConstructFPropGraph()
 
-          eval_metrics = py_utils.Transform(lambda x: x.numpy(),
-                                            self._task.eval_metrics)
+          eval_metrics = py_utils.Transform(lambda x: x.numpy(), eval_metrics)
           for name, (value, weight) in eval_metrics.items():
             metrics_dict[name].Update(value, weight)
           tf.logging.info('Total examples done: %d/%d',
@@ -335,6 +349,8 @@ class Decoder(base_runner.BaseRunner):
       self._checkpointer = self._CreateCheckpointer(self._train_dir,
                                                     self._model)
       self._task = self._model.GetTask(self._model_task_name)
+      self._decode_fn = self._GetDecodeFunc()
+      self._decode_fn_with_summary = self._GetDecodeFunc(write_summary=True)
 
     self._decode_path = checkpointer.GetSpecificCheckpoint(
         self._task.params.eval.load_checkpoint_from)
@@ -348,6 +364,22 @@ class Decoder(base_runner.BaseRunner):
     else:
       self._RunOnLatestCheckpoints(
           runner_fn=self._DecodeOnce, runner_dir=self._decoder_dir)
+
+  def _GetDecodeFunc(self, write_summary=False):
+
+    @tf.function(autograph=False)
+    def DecodeFunc():
+      if write_summary:
+        # TODO(jiaweix): Investigate how to only write non-scalar summaries.
+        with self._summary_writer.as_default():
+          input_batch, dec_output = self._model.ConstructDecodeGraph(
+              self._model_task_name)
+      else:
+        input_batch, dec_output = self._model.ConstructDecodeGraph(
+            self._model_task_name)
+      return input_batch, dec_output
+
+    return DecodeFunc
 
   @classmethod
   def GetDecodeOutPath(cls, decoder_dir, checkpoint_id):
@@ -394,14 +426,10 @@ class Decoder(base_runner.BaseRunner):
           # Other types of summaries (images, audio etc.) will be generated for
           # the first batch only.
           is_first_loop = num_samples_metric.total_value == 0
-          if is_first_loop:
-            # TODO(jiaweix): Investigate how to only write non-scalar summaries.
-            with self._summary_writer.as_default():
-              input_batch, dec_output = self._model.ConstructDecodeGraph(
-                  self._model_task_name)
-          else:
-            input_batch, dec_output = self._model.ConstructDecodeGraph(
-                self._model_task_name)
+          decode_fn = (
+              self._decode_fn_with_summary
+              if is_first_loop else self._decode_fn)
+          input_batch, dec_output = decode_fn()
 
           for key in self._task.input_generator.GetCpuPassthroughKeys():
             if key in input_batch:
