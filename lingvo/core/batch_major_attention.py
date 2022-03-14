@@ -717,13 +717,18 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     else:
       # Exclude padding frames.
       paddings = py_utils.HasShape(paddings, [b, s])
+      if paddings.dtype != tf.bool:
+        paddings = paddings > tf.zeros([], paddings.dtype)
       paddings = tf.tile(tf.reshape(paddings, [b, 1, 1, s]), [1, n, t, 1])
       if per_step_padding is not None:
+        if per_step_padding.dtype != tf.bool:
+          per_step_padding = per_step_padding > tf.zeros([],
+                                                         per_step_padding.dtype)
         per_step_padding = tf.tile(
             tf.expand_dims(per_step_padding, 1), [1, n, 1, 1])
-        paddings += per_step_padding
+        paddings = tf.logical_or(paddings, per_step_padding)
 
-      padded_logits = py_utils.ApplyPadding(paddings > 0.0, logits,
+      padded_logits = py_utils.ApplyPadding(paddings, logits,
                                             GetDtypeMin(logits.dtype))
 
     if self.params.enable_scaling_code_motion:
@@ -868,10 +873,15 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     b, t, n, h = py_utils.GetShape(query, 4)
     s, b, _, _ = py_utils.GetShape(key, 4)
     paddings = py_utils.HasShape(paddings, [b, s])
+    if paddings.dtype != tf.bool:
+      paddings = paddings > tf.zeros([], paddings.dtype)
     assert t == 1, query
 
     if per_step_padding is not None:
-      paddings += tf.squeeze(per_step_padding, 1)
+      if per_step_padding.dtype != tf.bool:
+        per_step_padding = per_step_padding > tf.zeros([],
+                                                       per_step_padding.dtype)
+      paddings = tf.logical_or(paddings, tf.squeeze(per_step_padding, 1))
 
     query = tf.reshape(query, [b, n, h])
     pad = tf.reshape(
@@ -882,7 +892,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       logits = self._AttenLogitsOneStep(theta, query, key, time_step)
 
       logits = tf.reshape(logits, [s, -1])
-      padded_logits = py_utils.ApplyPadding(pad > 0.0, logits,
+      padded_logits = py_utils.ApplyPadding(pad, logits,
                                             GetDtypeMin(logits.dtype))
       probs = py_utils.Softmax(
           padded_logits, axis=0, extra_logit=p.atten_extra_logit)
@@ -925,7 +935,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       logits = self.FromAqtActActMatmul(logits)
       logits = self._CapLogits(logits)
 
-      padded_logits = py_utils.ApplyPadding(pad > 0.0, logits,
+      padded_logits = py_utils.ApplyPadding(pad, logits,
                                             GetDtypeMin(logits.dtype))
       probs = py_utils.Softmax(
           padded_logits, axis=0, extra_logit=p.atten_extra_logit)
@@ -2084,13 +2094,16 @@ class LocalSelfAttention(MultiHeadedAttention):
     # Make local causal paddings, which have shape [B, T].
     t, b, _, _ = py_utils.GetShape(cached_states.key, 4)
     if paddings is None:
-      paddings = tf.zeros([b, t], dtype=query_vec.dtype)
+      paddings = tf.zeros([b, t], dtype=tf.bool)
+    else:
+      if paddings.dtype != tf.bool:
+        paddings = paddings > tf.zeros([], paddings.dtype)
+
     position_diff = tf.tile(tf.range(t)[tf.newaxis, :], [b, 1]) - time_step
     valid_atten = tf.math.logical_and(position_diff > -p.left_context,
                                       position_diff <= 0)
-    local_causal_padding = tf.cast(
-        tf.math.logical_not(valid_atten), dtype=query_vec.dtype)
-    paddings += local_causal_padding
+    local_causal_padding = tf.math.logical_not(valid_atten)
+    paddings = tf.logical_or(paddings, local_causal_padding)
 
     return super().ExtendStep(theta, query_vec, cached_states, paddings,
                               segment_mask, per_step_padding, time_step,
