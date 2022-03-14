@@ -264,6 +264,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                                                     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_eval_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetEvalFunc</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_eval_fn_with_summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetEvalFunc</span><span class="p">(</span><span class="n">write_summary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_path</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">GetSpecificCheckpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
@@ -277,6 +279,20 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_RunOnLatestCheckpoints</span><span class="p">(</span>
           <span class="n">runner_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_EvalOnce</span><span class="p">,</span> <span class="n">runner_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_dir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Evaler._GetEvalFunc"><a class="viewcode-back" href="../../lingvo.eager_runners.html#lingvo.eager_runners.Evaler._GetEvalFunc">[docs]</a>  <span class="k">def</span> <span class="nf">_GetEvalFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">write_summary</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">EvalFunc</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">write_summary</span><span class="p">:</span>
+        <span class="c1"># TODO(jiaweix): Investigate how to only write non-scalar summaries.</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span>
+
+    <span class="k">return</span> <span class="n">EvalFunc</span></div>
 
 <div class="viewcode-block" id="Evaler._EvalOnce"><a class="viewcode-back" href="../../lingvo.eager_runners.html#lingvo.eager_runners.Evaler._EvalOnce">[docs]</a>  <span class="k">def</span> <span class="nf">_EvalOnce</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Eval a single checkpoint.&quot;&quot;&quot;</span>
@@ -309,20 +325,18 @@
           <span class="c1"># should update eval_metrics and generate aggregate summaries. Other</span>
           <span class="c1"># types of summaries (images, audio etc.) will be generated for the</span>
           <span class="c1"># first batch only.</span>
+          <span class="n">eval_fn</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_eval_fn_with_summary</span>
+              <span class="k">if</span> <span class="n">metrics_dict</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_fn</span><span class="p">)</span>
+          <span class="n">eval_metrics</span> <span class="o">=</span> <span class="n">eval_fn</span><span class="p">()</span>
+
           <span class="k">if</span> <span class="n">metrics_dict</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="c1"># TODO(jiaweix): Investigate how to only write non-scalar summaries.</span>
-            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
             <span class="n">metrics_dict</span> <span class="o">=</span> <span class="p">{</span>
-                <span class="n">name</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">()</span>
-                <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span>
+                <span class="n">name</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">eval_metrics</span>
             <span class="p">}</span>
             <span class="n">num_samples_metric</span> <span class="o">=</span> <span class="n">metrics_dict</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
-          <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
 
-          <span class="n">eval_metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span>
-                                            <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">)</span>
+          <span class="n">eval_metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">numpy</span><span class="p">(),</span> <span class="n">eval_metrics</span><span class="p">)</span>
           <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">eval_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
             <span class="n">metrics_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total examples done: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
@@ -400,6 +414,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                                                     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDecodeFunc</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_fn_with_summary</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDecodeFunc</span><span class="p">(</span><span class="n">write_summary</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_path</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">GetSpecificCheckpoint</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
@@ -413,6 +429,22 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_RunOnLatestCheckpoints</span><span class="p">(</span>
           <span class="n">runner_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_DecodeOnce</span><span class="p">,</span> <span class="n">runner_dir</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Decoder._GetDecodeFunc"><a class="viewcode-back" href="../../lingvo.eager_runners.html#lingvo.eager_runners.Decoder._GetDecodeFunc">[docs]</a>  <span class="k">def</span> <span class="nf">_GetDecodeFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">write_summary</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">DecodeFunc</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">write_summary</span><span class="p">:</span>
+        <span class="c1"># TODO(jiaweix): Investigate how to only write non-scalar summaries.</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+          <span class="n">input_batch</span><span class="p">,</span> <span class="n">dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">input_batch</span><span class="p">,</span> <span class="n">dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">dec_output</span>
+
+    <span class="k">return</span> <span class="n">DecodeFunc</span></div>
 
 <div class="viewcode-block" id="Decoder.GetDecodeOutPath"><a class="viewcode-back" href="../../lingvo.eager_runners.html#lingvo.eager_runners.Decoder.GetDecodeOutPath">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">GetDecodeOutPath</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">decoder_dir</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="p">):</span>
@@ -459,14 +491,10 @@
           <span class="c1"># Other types of summaries (images, audio etc.) will be generated for</span>
           <span class="c1"># the first batch only.</span>
           <span class="n">is_first_loop</span> <span class="o">=</span> <span class="n">num_samples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">==</span> <span class="mi">0</span>
-          <span class="k">if</span> <span class="n">is_first_loop</span><span class="p">:</span>
-            <span class="c1"># TODO(jiaweix): Investigate how to only write non-scalar summaries.</span>
-            <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-              <span class="n">input_batch</span><span class="p">,</span> <span class="n">dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span>
-                  <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
-          <span class="k">else</span><span class="p">:</span>
-            <span class="n">input_batch</span><span class="p">,</span> <span class="n">dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+          <span class="n">decode_fn</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_decode_fn_with_summary</span>
+              <span class="k">if</span> <span class="n">is_first_loop</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_fn</span><span class="p">)</span>
+          <span class="n">input_batch</span><span class="p">,</span> <span class="n">dec_output</span> <span class="o">=</span> <span class="n">decode_fn</span><span class="p">()</span>
 
           <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetCpuPassthroughKeys</span><span class="p">():</span>
             <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
