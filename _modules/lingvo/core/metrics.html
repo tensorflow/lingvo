@@ -428,6 +428,13 @@
     <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">()),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Zip</span><span class="p">(</span><span class="n">values</span><span class="p">)):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span></div>
 
+<div class="viewcode-block" id="TpuEvalMetrics.ToAverageMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics.ToAverageMetric">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">ToAverageMetric</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+    <span class="n">avg_metric</span> <span class="o">=</span> <span class="n">AverageMetric</span><span class="p">()</span>
+    <span class="n">avg_metric</span><span class="o">.</span><span class="n">total_weight</span> <span class="o">=</span> <span class="n">weight</span>
+    <span class="n">avg_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">value</span>
+    <span class="k">return</span> <span class="n">avg_metric</span></div>
+
 <div class="viewcode-block" id="TpuEvalMetrics.ToAverageMetrics"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics.ToAverageMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">ToAverageMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrap the final metric values into AverageMetric objects.</span>
 
@@ -436,10 +443,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="n">avg_metric</span> <span class="o">=</span> <span class="n">AverageMetric</span><span class="p">()</span>
-      <span class="n">avg_metric</span><span class="o">.</span><span class="n">total_weight</span> <span class="o">=</span> <span class="n">weight</span>
-      <span class="n">avg_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">=</span> <span class="n">weight</span> <span class="o">*</span> <span class="n">value</span>
-      <span class="n">ret</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">avg_metric</span>
+      <span class="n">ret</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAverageMetric</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
