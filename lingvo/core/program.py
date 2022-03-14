@@ -891,22 +891,22 @@ class EvalProgram(BaseProgram):
 
     status_strs = []
     self._eval_metrics.PackMetricsValues(values)
-    eval_metrics = self._eval_metrics.metrics
+    # Make a copy to avoid changing self._eval_metrics.metrics, which needs to
+    # be fixed in order to run PackMetricsValues() correctly.
+    eval_metrics = self._eval_metrics.metrics.copy()
 
     elapsed_secs = time.time() - begin_time
     # TODO(yanqiz): Here we assume a per replica example rate.
     example_rate = float(eval_metrics['num_samples_in_batch'][0] *
                          self._steps_per_loop / elapsed_secs)
     tf.logging.info((global_step, 'example_rate', example_rate))
+    if 'example_rate' not in eval_metrics:
+      eval_metrics['example_rate'] = (example_rate, 1.0)
 
     for key, (val, _) in sorted(eval_metrics.items()):
       self._SummarizeValue(global_step, key, val)
       tf.logging.info((global_step, key, val))
       status_strs.append('%s=%s' % (key, val))
-
-    if 'example_rate' not in self._eval_metrics.metrics:
-      eval_metrics['example_rate'] = (example_rate, 1.0)
-      self._eval_metrics.metrics['example_rate'] = (example_rate, 1.0)
 
     mlperf_done = False
     if self._ml_perf:
@@ -948,8 +948,11 @@ class EvalProgram(BaseProgram):
     if self._ml_perf:
       return mlperf_done
     else:
-      return self._ReportVizierMetrics(global_step,
-                                       self._eval_metrics.ToAverageMetrics())
+      average_metrics = self._eval_metrics.ToAverageMetrics()
+      if 'example_rate' not in average_metrics:
+        average_metrics['example_rate'] = (
+            metrics.TpuEvalMetrics.ToAverageMetric(example_rate))
+      return self._ReportVizierMetrics(global_step, average_metrics)
 
 
 def _UpdateCpuPassThroughData(decode_out_dict, cpu_pt):
