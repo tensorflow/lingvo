@@ -655,7 +655,11 @@ class ConformerLayer(base_layer.BaseLayer):
       p.lconv_tpl.conv_norm_layer_tpl = conv_norm_layer_tpl
     if fprop_dtype is not None:
       p.cls.SetFPropDtype(p, fprop_dtype)
-    p.trans_atten_tpl.atten_tpl.atten_logit_cap = atten_logit_cap
+    if isinstance(p.trans_atten_tpl.atten_tpl, list):
+      for a in p.trans_atten_tpl.atten_tpl:
+        a.atten_logit_cap = atten_logit_cap
+    else:
+      p.trans_atten_tpl.atten_tpl.atten_logit_cap = atten_logit_cap
     if list_regex_dtypes is not None:
       p.list_regex_dtypes = list_regex_dtypes
     if layer_order == 'mhsa':
