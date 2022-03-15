@@ -170,7 +170,10 @@ def FlattenPadding(padding):
   if padding is None:
     return padding
   r = tf.rank(padding)
-  return tf.reduce_min(padding, axis=tf.range(1, r))
+  if padding.dtype == tf.bool:
+    return tf.reduce_all(padding, axis=tf.range(1, r))
+  else:
+    return tf.reduce_min(padding, axis=tf.range(1, r))
 
 
 def _SeqPaddingLength(inputs_nmap):
@@ -188,13 +191,14 @@ def _SeqPaddingLength(inputs_nmap):
     return [0, 0]
   time = tf.shape(padding)[0]
   pad_1d = FlattenPadding(padding)
-  pad_bool = tf.not_equal(pad_1d, 0)
-  pad_bool_reverse = tf.reverse(pad_bool, [0])
+  if padding.dtype != tf.bool:
+    pad_1d = tf.not_equal(pad_1d, 0)
+  pad_1d_reverse = tf.reverse(pad_1d, [0])
   numbers = tf.range(1, time + 1)
-  padding_end = time - tf.reduce_max(py_utils.ApplyPadding(pad_bool, numbers))
+  padding_end = time - tf.reduce_max(py_utils.ApplyPadding(pad_1d, numbers))
   padding_begin = tf.where(
       tf.equal(padding_end, time), 0,
-      time - tf.reduce_max(py_utils.ApplyPadding(pad_bool_reverse, numbers)))
+      time - tf.reduce_max(py_utils.ApplyPadding(pad_1d_reverse, numbers)))
   return [padding_begin, padding_end]
 
 
