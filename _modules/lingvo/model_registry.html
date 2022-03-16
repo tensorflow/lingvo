@@ -84,6 +84,7 @@
 <span class="sd">for each dataset.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_imports</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -209,20 +210,21 @@
     <span class="c1"># When the python3 super() is used, it should be possible to return this</span>
     <span class="c1"># from the decorators too.</span>
 
-    <span class="n">registered_source_info</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_GetSourceInfo</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span>
-
     <span class="k">class</span> <span class="nc">Registered</span><span class="p">(</span><span class="n">src_cls</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Registered model wrapper.&quot;&quot;&quot;</span>
 
-      <span class="nd">@property</span>
+      <span class="nd">@functools</span><span class="o">.</span><span class="n">lru_cache</span><span class="p">()</span>
       <span class="k">def</span> <span class="nf">_registered_source_info</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">registered_source_info</span>
+        <span class="c1"># This is lazily calculated only when needed. _GetSourceInfo is</span>
+        <span class="c1"># expensive since it calls inspect APIs and is best to be avoided at</span>
+        <span class="c1"># import time.</span>
+        <span class="k">return</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_GetSourceInfo</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
 
       <span class="c1"># Extend model to annotate source information.</span>
       <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Wraps BaseTask params into SingleTaskModel params.&quot;&quot;&quot;</span>
         <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_source_info</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_source_info</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">p</span>
 
     <span class="c1"># So things show up in messages well.</span>
