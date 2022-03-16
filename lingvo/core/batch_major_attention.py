@@ -498,13 +498,6 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     p.Define(
         'memory_tpl', None, 'Template for memory layer, currently only support '
         'layers.LSHTaskWithMultiplierLayer.Params().')
-    p.Define('attn_log_num_buckets', 6, 'Log of number of buckets.')
-    p.Define('attn_num_hash_fn', 2, 'Number of hash functions.')
-    p.Define('attn_grid_size', 1, 'Grid size.')
-    p.Define('attn_rank', 0, 'Grid size.')
-    p.Define('attn_memory_act', 'RELU', 'Activation function for memory.')
-    p.Define('attn_add_bias', True, 'Whether to add bias.')
-    p.Define('attn_seed', 0, 'Seed for the random hyperplanes.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -596,13 +589,6 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
           p.memory_tpl.Copy().Set(
               input_dim=self.dim_per_head,
               output_dim=self.dim_per_head,
-              log_num_buckets=p.attn_log_num_buckets,
-              num_hash_fn=p.attn_num_hash_fn,
-              grid_size=p.attn_grid_size,
-              rank=p.attn_rank,
-              memory_act=p.attn_memory_act,
-              add_bias=p.attn_add_bias,
-              seed=p.attn_seed,
               name='attn_lsh_mem'))
 
   @property
@@ -7566,6 +7552,14 @@ class SketchMemTransformerBuilder(Builder):
     p = self.params
     if num_heads is None:
       num_heads = p.num_heads
+    attn_memory_tpl = layers.LSHTaskWithMultiplierLayer.Params().Set(
+        log_num_buckets=p.attn_log_num_buckets,
+        num_hash_fn=p.attn_num_hash_fn,
+        grid_size=p.attn_grid_size,
+        rank=p.attn_rank,
+        memory_act=p.attn_memory_act,
+        add_bias=p.attn_add_bias,
+        seed=p.attn_seed)
     atten_p = MultiHeadedAttention.Params().Set(
         name=name,
         input_dim=p.model_dim,
@@ -7582,14 +7576,7 @@ class SketchMemTransformerBuilder(Builder):
         device_mesh=p.device_mesh,
         weight_split_dims_mapping=p.weight_split_dims_mapping.dnh,
         attn_add_memory=p.attn_add_memory,
-        memory_tpl=layers.LSHTaskWithMultiplierLayer.Params(),
-        attn_log_num_buckets=p.attn_log_num_buckets,
-        attn_num_hash_fn=p.attn_num_hash_fn,
-        attn_grid_size=p.attn_grid_size,
-        attn_rank=p.attn_rank,
-        attn_memory_act=p.attn_memory_act,
-        attn_add_bias=p.attn_add_bias,
-        attn_seed=p.attn_seed)
+        memory_tpl=attn_memory_tpl)
     atten_ap = atten_p.activation_split_dims_mapping
     atten_ap.blnh = p.activation_split_dims_mapping.blnh
     atten_ap.bld = p.activation_split_dims_mapping.bld
