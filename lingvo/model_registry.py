@@ -19,6 +19,7 @@ Typical usage will be to define and register a subclass of ModelParams
 for each dataset.
 """
 
+import functools
 import inspect
 from lingvo import model_imports
 import lingvo.compat as tf
@@ -144,20 +145,21 @@ class _ModelRegistryHelper:
     # When the python3 super() is used, it should be possible to return this
     # from the decorators too.
 
-    registered_source_info = cls._GetSourceInfo(src_cls)
-
     class Registered(src_cls):
       """Registered model wrapper."""
 
-      @property
+      @functools.lru_cache()
       def _registered_source_info(self):
-        return registered_source_info
+        # This is lazily calculated only when needed. _GetSourceInfo is
+        # expensive since it calls inspect APIs and is best to be avoided at
+        # import time.
+        return cls._GetSourceInfo(src_cls)  # pylint: disable=protected-access
 
       # Extend model to annotate source information.
       def Model(self):
         """Wraps BaseTask params into SingleTaskModel params."""
         p = super().Model()
-        p.model = self._registered_source_info
+        p.model = self._registered_source_info()
         return p
 
     # So things show up in messages well.
