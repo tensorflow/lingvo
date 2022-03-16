@@ -563,13 +563,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;memory_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Template for memory layer, currently only support &#39;</span>
         <span class="s1">&#39;layers.LSHTaskWithMultiplierLayer.Params().&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_log_num_buckets&#39;</span><span class="p">,</span> <span class="mi">6</span><span class="p">,</span> <span class="s1">&#39;Log of number of buckets.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_num_hash_fn&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Number of hash functions.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_grid_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_rank&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Grid size.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_memory_act&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Activation function for memory.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_add_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to add bias.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attn_seed&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Seed for the random hyperplanes.&#39;</span><span class="p">)</span>
     <span class="c1"># SPMD partition related params.</span>
     <span class="c1">#</span>
     <span class="c1"># d - model_dim</span>
@@ -661,13 +654,6 @@
           <span class="n">p</span><span class="o">.</span><span class="n">memory_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
               <span class="n">input_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">,</span>
               <span class="n">output_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">,</span>
-              <span class="n">log_num_buckets</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_log_num_buckets</span><span class="p">,</span>
-              <span class="n">num_hash_fn</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_num_hash_fn</span><span class="p">,</span>
-              <span class="n">grid_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_grid_size</span><span class="p">,</span>
-              <span class="n">rank</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_rank</span><span class="p">,</span>
-              <span class="n">memory_act</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_memory_act</span><span class="p">,</span>
-              <span class="n">add_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_add_bias</span><span class="p">,</span>
-              <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_seed</span><span class="p">,</span>
               <span class="n">name</span><span class="o">=</span><span class="s1">&#39;attn_lsh_mem&#39;</span><span class="p">))</span>
 
   <span class="nd">@property</span>
@@ -7631,6 +7617,14 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="n">attn_memory_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LSHTaskWithMultiplierLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">log_num_buckets</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_log_num_buckets</span><span class="p">,</span>
+        <span class="n">num_hash_fn</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_num_hash_fn</span><span class="p">,</span>
+        <span class="n">grid_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_grid_size</span><span class="p">,</span>
+        <span class="n">rank</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_rank</span><span class="p">,</span>
+        <span class="n">memory_act</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_memory_act</span><span class="p">,</span>
+        <span class="n">add_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_add_bias</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_seed</span><span class="p">)</span>
     <span class="n">atten_p</span> <span class="o">=</span> <span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
@@ -7647,14 +7641,7 @@
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
         <span class="n">weight_split_dims_mapping</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">weight_split_dims_mapping</span><span class="o">.</span><span class="n">dnh</span><span class="p">,</span>
         <span class="n">attn_add_memory</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_add_memory</span><span class="p">,</span>
-        <span class="n">memory_tpl</span><span class="o">=</span><span class="n">layers</span><span class="o">.</span><span class="n">LSHTaskWithMultiplierLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
-        <span class="n">attn_log_num_buckets</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_log_num_buckets</span><span class="p">,</span>
-        <span class="n">attn_num_hash_fn</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_num_hash_fn</span><span class="p">,</span>
-        <span class="n">attn_grid_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_grid_size</span><span class="p">,</span>
-        <span class="n">attn_rank</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_rank</span><span class="p">,</span>
-        <span class="n">attn_memory_act</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_memory_act</span><span class="p">,</span>
-        <span class="n">attn_add_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_add_bias</span><span class="p">,</span>
-        <span class="n">attn_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attn_seed</span><span class="p">)</span>
+        <span class="n">memory_tpl</span><span class="o">=</span><span class="n">attn_memory_tpl</span><span class="p">)</span>
     <span class="n">atten_ap</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span>
     <span class="n">atten_ap</span><span class="o">.</span><span class="n">blnh</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">blnh</span>
     <span class="n">atten_ap</span><span class="o">.</span><span class="n">bld</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="o">.</span><span class="n">bld</span>
