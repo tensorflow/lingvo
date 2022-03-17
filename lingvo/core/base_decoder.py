@@ -663,12 +663,12 @@ class BaseBeamSearchDecoder(BaseDecoder):
     k = self.params.stochastic_beam_search_top_k
 
     def Callback(theta, encoder_outputs, step_ids, states, num_hyps_per_beam,
-                 *args, **kwargs):
+                 cur_step, *args, **kwargs):
       p = self.params
       time_step = states.time_step
       bs_results, out_states = self._PreBeamSearchStepCallback(
-          theta, encoder_outputs, step_ids, states, num_hyps_per_beam, *args,
-          **kwargs)
+          theta, encoder_outputs, step_ids, states, num_hyps_per_beam, cur_step,
+          *args, **kwargs)
 
       def TileForBeamAndFlatten(tensor):
         tensor = tf.reshape(tensor, [1, -1])  # [1, src_batch]

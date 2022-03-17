@@ -1024,7 +1024,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
   @py_utils.NameScopeDecorator('MTDecoderV1/PreBeamSearchStepCallback')
   def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
-                                 num_hyps_per_beam):
+                                 num_hyps_per_beam, cur_step):
     """Returns logits for sampling ids and the next model states.
 
     Args:
@@ -1034,6 +1034,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       states: A `.NestedMap` of tensors representing states that the clients
           would like to keep track of for each of the active hyps.
       num_hyps_per_beam: Beam size.
+      cur_step: Current step id.
     Returns:
       A tuple (results, out_states).
       results: A `.NestedMap` of beam search results.
@@ -1827,7 +1828,8 @@ class TransformerDecoder(MTBaseDecoder):
                               encoder_outputs,
                               step_ids,
                               states,
-                              num_hyps_per_beam=1):
+                              num_hyps_per_beam=1,
+                              cur_step=0):
       """Wrapper for _PreBeamSearchStepCallback for sequence sampler.
 
       The main change is to ensure state tensors have fixed shapes.
@@ -1840,6 +1842,7 @@ class TransformerDecoder(MTBaseDecoder):
         states: A `.NestedMap` of tensors representing states that the clients
           would like to keep track of for each of the active hyps.
         num_hyps_per_beam: Beam size.
+        cur_step: current step id.
 
       Returns:
         A NestedMap of
@@ -1861,7 +1864,7 @@ class TransformerDecoder(MTBaseDecoder):
               val, [0, 0, 0], [target_time, -1, -1])
 
       bs_results, new_states = self._PreBeamSearchStepCallback(
-          theta, encoder_outputs, step_ids, states, num_hyps_per_beam)
+          theta, encoder_outputs, step_ids, states, num_hyps_per_beam, cur_step)
 
       if non_tpu:
         # Add back paddings (to maintain paddings shape).
@@ -1967,7 +1970,7 @@ class TransformerDecoder(MTBaseDecoder):
     })
 
   def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
-                                 num_hyps_per_beam):
+                                 num_hyps_per_beam, cur_step):
     """Returns logits for sampling ids and the next model states.
 
     Args:
@@ -1978,6 +1981,7 @@ class TransformerDecoder(MTBaseDecoder):
       states: A `.NestedMap` of tensors representing states that the clients
           would like to keep track of for each of the active hyps.
       num_hyps_per_beam: Beam size.
+      cur_step: current step id.
     Returns:
       A tuple (results, out_states).
         results: A `.NestedMap` of beam search results.
@@ -2917,6 +2921,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
                                  new_ids,
                                  states,
                                  num_hyps_per_beam,
+                                 cur_step,
                                  use_short_seq_opt=False):
     """Returns logits for sampling ids and the next model states.
 
@@ -2938,6 +2943,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
           - value: [target_time, target_batch, num_heads, dim_per_head].
           - time_step: A scalar, the current decode step, 0-based.
       num_hyps_per_beam: A scalar, beam size.
+      cur_step: current step id.
       use_short_seq_opt: A bool, whether using short sequence optimization.
 
     Returns:

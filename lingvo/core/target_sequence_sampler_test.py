@@ -44,7 +44,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase, parameterized.TestCase):
                 py_utils.NestedMap(step=tf.constant(0)))
 
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
-                                    unused_step_ids, states, num_hyps_per_beam):
+                                    unused_step_ids, states, num_hyps_per_beam,
+                                    unused_cur_step):
         self.assertEqual(1, num_hyps_per_beam)
         logits = tf.random.stateless_normal([batch_size, vocab_size],
                                             seed=[8273747, 9])
@@ -190,7 +191,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase, parameterized.TestCase):
         return result, states
 
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
-                                    unused_step_ids, states, num_hyps_per_beam):
+                                    unused_step_ids, states, num_hyps_per_beam,
+                                    unused_cur_step):
         self.assertEqual(1, num_hyps_per_beam)
         logits = tf.random.stateless_normal([batch_size, vocab_size],
                                             seed=[8273747, 9])
@@ -280,7 +282,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase, parameterized.TestCase):
                 py_utils.NestedMap(step=tf.constant(0)))
 
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
-                                    unused_step_ids, states, num_hyps_per_beam):
+                                    unused_step_ids, states, num_hyps_per_beam,
+                                    unused_cur_step):
         self.assertEqual(1, num_hyps_per_beam)
         hidden = tf.random.stateless_normal([batch_size, hidden_dim],
                                             seed=[8273747, 9])
@@ -342,7 +345,8 @@ class TargetSequenceSamplerTest(test_utils.TestCase, parameterized.TestCase):
                 py_utils.NestedMap(step=tf.constant(0)))
 
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
-                                    unused_step_ids, states, num_hyps_per_beam):
+                                    unused_step_ids, states, num_hyps_per_beam,
+                                    unused_cur_step):
         self.assertEqual(4, num_hyps_per_beam)
         logits = tf.random.stateless_normal(
             [batch_size * num_hyps_per_beam, vocab_size], seed=[8273747, 9])

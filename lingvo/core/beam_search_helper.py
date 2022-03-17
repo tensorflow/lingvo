@@ -236,7 +236,8 @@ class BeamSearchHelper(BeamSearchSharedParams):
                                     encoder_outputs,
                                     step_ids,
                                     in_states,
-                                    num_hyps_per_beam):
+                                    num_hyps_per_beam,
+                                    cur_step):
         Args:
           theta: A NestedMap object containing weights' values of this layer and
             its children layers.
@@ -244,6 +245,7 @@ class BeamSearchHelper(BeamSearchSharedParams):
           step_ids: A tensor of shape [num_hyps_per_beam * src_batch, 1].
           in_states: A `.NestedMap` of tensors representing states that the
             clients would like to keep track of for each of the active hyps.
+          cur_step: Current step id.
 
         Returns:
           A tuple (results, out_states):
@@ -378,7 +380,8 @@ class BeamSearchHelper(BeamSearchSharedParams):
     p = self.params
 
     bs_results, other_states = pre_beam_search_step_callback(
-        theta, encoder_outputs, step_ids, other_states, num_hyps_per_beam)
+        theta, encoder_outputs, step_ids, other_states, num_hyps_per_beam,
+        cur_step)
 
     (best_scores, cumulative_scores, in_scores, in_hyps, in_prev_hyps,
      in_done_hyps, in_atten_probs, in_beam_done) = core_bs_states
@@ -761,7 +764,7 @@ class GreedySearchHelper(base_layer.BaseLayer):
     hyp_lens = hyp_lens + (1 - tf.cast(done_hyps, tf.int32))
 
     bs_results, new_other_states = pre_beam_search_step_callback(
-        theta, encoder_outputs, step_ids, other_states, 1)  # num_hyps_per_beam
+        theta, encoder_outputs, step_ids, other_states, 1, cur_step)
     new_step_ids = tf.math.argmax(bs_results.log_probs, 1)
     new_step_ids = tf.cast(new_step_ids, tf.int32)
     new_step_ids = tf.reshape(new_step_ids, tf.shape(step_ids))

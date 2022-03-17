@@ -712,7 +712,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     raise NotImplementedError('_InitBeamSearchStateCallback')
 
   def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
-                                 num_hyps_per_beam):
+                                 num_hyps_per_beam, cur_step):
     raise NotImplementedError('_PreBeamSearchStepCallback')
 
   def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
@@ -1608,7 +1608,7 @@ class AsrDecoder(AsrDecoderBase):
     return initial_results, other_states
 
   def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
-                                 num_hyps_per_beam):
+                                 num_hyps_per_beam, unused_cur_step):
     p = self.params
     step_paddings = tf.zeros(tf.shape(step_ids), dtype=p.dtype)
     embs = self.emb.EmbLookup(theta.emb, tf.reshape(step_ids, [-1]))

@@ -49,7 +49,7 @@ def GetBeamSearchHelperResults(sess,
 
   def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
                                 unused_step_ids, states,
-                                unused_num_hyps_per_beam):
+                                unused_num_hyps_per_beam, unused_cur_step):
     atten_probs = tf.identity(states.atten_probs)
     logits = tf.random.normal([tgt_batch_size, vocab_size], seed=8273747)
     return (py_utils.NestedMap({
@@ -188,7 +188,7 @@ class BeamSearchHelperTest(test_utils.TestCase, parameterized.TestCase):
 
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
                                     unused_step_ids, states,
-                                    unused_num_hyps_per_beam):
+                                    unused_num_hyps_per_beam, unused_cur_step):
         # Same probs for each id.
         logits = tf.zeros([tgt_batch_size, vocab_size])
         # Except eos is slightly lower prob.
@@ -271,7 +271,7 @@ class BeamSearchHelperTest(test_utils.TestCase, parameterized.TestCase):
 
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
                                     unused_step_ids, states,
-                                    unused_num_hyps_per_beam):
+                                    unused_num_hyps_per_beam, unused_cur_step):
         # Same probs for each id.
         logits = tf.zeros([tgt_batch_size, vocab_size])
         # Except eoc has slightly lower score.
@@ -332,7 +332,7 @@ class BeamSearchHelperTest(test_utils.TestCase, parameterized.TestCase):
 
       def PreBeamSearchStepCallback(unused_theta, unused_encoder_outputs,
                                     unused_step_ids, states,
-                                    unused_num_hyps_per_beam):
+                                    unused_num_hyps_per_beam, unused_cur_step):
         atten_probs = tf.identity(states.atten_probs)
         logits = tf.random.normal([tgt_batch_size, vocab_size], seed=8273747)
         return (py_utils.NestedMap({
@@ -439,7 +439,8 @@ class GreedySearchHelperTest(test_utils.TestCase):
 
       def PreGreedySearchStepCallback(unused_theta, unused_encoder_outputs,
                                       unused_step_ids, states,
-                                      unused_num_hyps_per_beam):
+                                      unused_num_hyps_per_beam,
+                                      unused_cur_step):
         atten_probs = tf.identity(states.atten_probs)
         logits = tf.random.normal([tgt_batch_size, vocab_size], seed=8273747)
         return (py_utils.NestedMap({

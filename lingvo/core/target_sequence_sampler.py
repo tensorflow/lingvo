@@ -144,7 +144,8 @@ class TargetSequenceSampler(base_layer.BaseLayer):
             recurrent_theta.encoder_outputs,
             tf.expand_dims(state0.ids, 1),  # [batch, 1].
             state0.bs_state,
-            num_hyps_per_beam=p.num_hyps_per_beam)
+            p.num_hyps_per_beam,
+            0)  # cur_step
         batch = tf.shape(bs_result.log_probs)[0]
         state1 = py_utils.NestedMap(timestep=state0.timestep + 1)
         state1.logits = bs_result.log_probs
