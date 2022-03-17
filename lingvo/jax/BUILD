@@ -1,8 +1,9 @@
 # Description:
 #   Base directory for the lingvo Jax library.
 
-load("//lingvo:lingvo.bzl", "pytype_strict_binary", "pytype_strict_library", "lingvo_proto_py")
+load("//lingvo:lingvo.bzl", "pytype_strict_binary", "pytype_strict_library")
 load("//lingvo:lingvo.bzl", "py_strict_test")
+load("//lingvo:lingvo.bzl", "lingvo_proto_py")
 load("//lingvo/jax:build-visibility.bzl", "JAX_VISIBILITY")
 
 package(default_visibility = JAX_VISIBILITY)
