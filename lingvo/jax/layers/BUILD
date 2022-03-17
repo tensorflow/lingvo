@@ -442,7 +442,7 @@ pytype_strict_library(
         ":poolings",
         ":stochastics",
         ":transformers",
-        "//third_party/py/einshape",
+        "//third_party/py/einops",
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",

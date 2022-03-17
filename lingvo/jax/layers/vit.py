@@ -25,7 +25,7 @@ N = number of tokens
 D = hidden dims
 """
 
-import einshape
+import einops
 import jax.numpy as jnp
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
@@ -64,9 +64,9 @@ def image_to_patch(img: JTensor, patch_size: int) -> JTensor:
   row_blocks = height // patch_size
   column_blocks = width // patch_size
 
-  img = einshape.jax_einshape(
-      '...(mp)(nq)c->...(mn)(pqc)',
+  img = einops.rearrange(
       img,
+      '... (m p)(n q) c->...(m n)(p q c)',
       m=row_blocks,
       n=column_blocks,
       p=patch_size,
