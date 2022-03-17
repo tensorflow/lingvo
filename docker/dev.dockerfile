@@ -75,6 +75,7 @@ ARG pip_dependencies=' \
       attrs \
       contextlib2 \
       dataclasses \
+      flax \
       google-api-python-client \
       graph-compression-google-research \
       h5py \
