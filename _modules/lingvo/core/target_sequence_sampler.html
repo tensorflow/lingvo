@@ -209,7 +209,8 @@
             <span class="n">recurrent_theta</span><span class="o">.</span><span class="n">encoder_outputs</span><span class="p">,</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">state0</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>  <span class="c1"># [batch, 1].</span>
             <span class="n">state0</span><span class="o">.</span><span class="n">bs_state</span><span class="p">,</span>
-            <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_hyps_per_beam</span><span class="p">)</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">num_hyps_per_beam</span><span class="p">,</span>
+            <span class="mi">0</span><span class="p">)</span>  <span class="c1"># cur_step</span>
         <span class="n">batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
         <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">timestep</span><span class="o">=</span><span class="n">state0</span><span class="o">.</span><span class="n">timestep</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
         <span class="n">state1</span><span class="o">.</span><span class="n">logits</span> <span class="o">=</span> <span class="n">bs_result</span><span class="o">.</span><span class="n">log_probs</span>

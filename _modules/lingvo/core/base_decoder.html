@@ -728,12 +728,12 @@
     <span class="n">k</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">stochastic_beam_search_top_k</span>
 
     <span class="k">def</span> <span class="nf">Callback</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span>
-                 <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                 <span class="n">cur_step</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
       <span class="n">time_step</span> <span class="o">=</span> <span class="n">states</span><span class="o">.</span><span class="n">time_step</span>
       <span class="n">bs_results</span><span class="p">,</span> <span class="n">out_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreBeamSearchStepCallback</span><span class="p">(</span>
-          <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span>
-          <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+          <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">states</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span>
+          <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">TileForBeamAndFlatten</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
         <span class="n">tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># [1, src_batch]</span>
