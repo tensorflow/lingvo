@@ -310,20 +310,21 @@ class TransformerSchedule(BaseSchedule):
     p.Define('decay_end', None, 'Ends the learning rate decay at '
              'decay_end-th step.')
     p.Define('decay_factor', -0.5, 'Decay factor after warmup.')
-
+    p.Define('start_step', 0, 'Translate the function left in the step axis.')
     return p
 
   def Value(self):
     """Returns the current learning rate decay."""
     p = self.params
     current_step = tf.cast(py_utils.GetGlobalStep(), tf.float32)
+    start_step = tf.cast(p.start_step, tf.float32)
     warmup_steps = tf.cast(p.warmup_steps * p.worker_replicas, tf.float32)
     if p.decay_end is not None:
       current_step = tf.where(current_step < p.decay_end, current_step,
                               tf.cast(p.decay_end, tf.float32))
     return p.model_dim**-0.5 * tf.minimum(
         (current_step + 1) * warmup_steps**(p.decay_factor - 1.0),
-        (current_step + 1)**tf.cast(p.decay_factor, tf.float32))
+        (current_step + start_step + 1)**tf.cast(p.decay_factor, tf.float32))
 
 
 class TransformerMLPerfSchedule(BaseSchedule):

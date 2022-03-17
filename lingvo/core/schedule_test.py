@@ -246,6 +246,40 @@ class LearningRateScheduleTest(test_utils.TestCase):
       with py_utils.GlobalStepContext(6000):
         self.assertAllClose(lrs.Value().eval(), a)
 
+  def testTransformerScheduleWithStartStep(self):
+    ref_params = schedule.TransformerSchedule.Params().Set(
+        warmup_steps=3000, model_dim=512)
+    ref_lrs = ref_params.Instantiate()
+
+    start_step = 1000
+    params = ref_params.Copy().Set(start_step=start_step)
+    lrs = params.Instantiate()
+
+    with self.session() as sess:
+      sess.run(tf.global_variables_initializer())
+      # Warmup respects real global_step no matter start_step.
+      warmup_values = []
+      for step in range(0, 4001, 1000):
+        with py_utils.GlobalStepContext(step):
+          warmup_values.append(lrs.Value())
+      warmup_values = sess.run(warmup_values)
+      expected_values = [0, 0.000269, 0.000538, 0.000699, 0.000625]
+      print(warmup_values)
+      self.assertAllClose(warmup_values, expected_values)
+
+      # After warmup, ref_lrs and lrs has same function with x-axis translation.
+      ref_values = []
+      values = []
+      for step in range(3000, 8000, 1000):
+        with py_utils.GlobalStepContext(step):
+          values.append(lrs.Value())
+        with py_utils.GlobalStepContext(step + start_step):
+          ref_values.append(ref_lrs.Value())
+
+      ref_values, values = sess.run([ref_values, values])
+      print(ref_values)
+      self.assertAllClose(ref_values, values)
+
   def testTransformerScheduleNoWarmUp(self):
     params = schedule.TransformerScheduleNoWarmUp.Params().Set(
         decay_start=4000, model_dim=512)

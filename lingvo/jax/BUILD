@@ -3,7 +3,6 @@
 
 load("//lingvo:lingvo.bzl", "pytype_strict_binary", "pytype_strict_library")
 load("//lingvo:lingvo.bzl", "py_strict_test")
-load("//lingvo:lingvo.bzl", "lingvo_proto_py")
 load("//lingvo/jax:build-visibility.bzl", "JAX_VISIBILITY")
 
 package(default_visibility = JAX_VISIBILITY)
@@ -599,8 +598,8 @@ proto_library(
     srcs = ["checkpoint.proto"],
 )
 
-lingvo_proto_py(
+py_proto_library(
     name = "checkpoint_py_pb2",
-    src = "checkpoint.proto",
+    api_version = 2,
     deps = [":checkpoint_proto"],
 )
