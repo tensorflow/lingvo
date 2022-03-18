@@ -117,7 +117,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">natural_order_model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">natural_order_model</span>
 
-<div class="viewcode-block" id="NmtInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+<div class="viewcode-block" id="NmtInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">):</span>
     <span class="k">def</span> <span class="nf">Proc</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Parses a serialized tf.Example record.&quot;&quot;&quot;</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span>
@@ -247,7 +247,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">natural_order_model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">natural_order_model</span>
 
-<div class="viewcode-block" id="MlPerfInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.MlPerfInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+<div class="viewcode-block" id="MlPerfInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.MlPerfInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">_DerivePaddingsAndIds</span><span class="p">(</span><span class="n">src_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">):</span>
@@ -345,12 +345,20 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">processor_fn</span> <span class="o">=</span> <span class="n">_ProcPacked</span>
 
+    <span class="n">kwargs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">()</span>
+    <span class="c1"># In pure Eager or tf.function mode, add this kwarg so `GenericInputV2` ops</span>
+    <span class="c1"># get used instead of `GenericInput`.</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;allow_eager&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="c1"># Pass `extra_input_kwargs` into GenericInput calls.</span>
+      <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">}</span>
+
     <span class="n">features</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
         <span class="n">processor</span><span class="o">=</span><span class="n">processor_fn</span><span class="p">,</span>
         <span class="n">dynamic_padding_dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span>
         <span class="n">dynamic_padding_constants</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">BuildInputBatch</span><span class="p">(</span>
         <span class="n">batch_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">(),</span>
@@ -863,7 +871,10 @@
     <span class="n">sentences</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">sentences</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">sentences</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">sentences</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="TextPackedInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="TextPackedInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                 <span class="n">file_pattern</span><span class="p">,</span>
+                                 <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">Processor</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Parses a record, which is a line of text.&quot;&quot;&quot;</span>
@@ -1189,7 +1200,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_file&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Vocabulary file path&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="NmtDoubleInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtDoubleInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+<div class="viewcode-block" id="NmtDoubleInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtDoubleInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">Proc</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Parses a serialized tf.Example record.&quot;&quot;&quot;</span>

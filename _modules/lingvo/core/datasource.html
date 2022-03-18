@@ -226,6 +226,15 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">source_id_offset</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">extra_args</span><span class="p">[</span><span class="s1">&#39;input_source_id_offset&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_id_offset</span>
 
+    <span class="c1"># In TF1 mode, the python method `GetNext` only gets called once for each</span>
+    <span class="c1"># DataSource object during graph construction.</span>
+    <span class="c1"># In TF2 mode, however, `GetNext` can be called many times. We must specify</span>
+    <span class="c1"># keys to uniquely identify its `GenericInputV2` resource. This</span>
+    <span class="c1"># ensures that the resource is properly reused.</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="c1"># The current DataSource object is used as the key to GenericInputV2 ops.</span>
+      <span class="n">extra_args</span><span class="p">[</span><span class="s1">&#39;generic_input_v2_key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
       <span class="c1"># Within-batch mixing.</span>
       <span class="n">batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_generator</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>

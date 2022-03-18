@@ -1290,7 +1290,8 @@
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                  <span class="n">file_pattern</span><span class="p">,</span>
                                  <span class="n">input_source_weights</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                                 <span class="n">input_source_id_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+                                 <span class="n">input_source_id_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                 <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Return a NestedMap containing an input batch from a string file_pattern.</span>
 
 <span class="sd">    Subclasses should implement this function.</span>
@@ -1303,6 +1304,9 @@
 <span class="sd">        treated as an empty list.</span>
 <span class="sd">      input_source_id_offset: All source_ids returned from datasource will be</span>
 <span class="sd">        offset by this value.</span>
+<span class="sd">      **extra_input_kwargs: Extra args for customized implementations. For</span>
+<span class="sd">        example if the input pipeline calls GenericInputV2 ops, a key</span>
+<span class="sd">        &#39;generic_input_v2_key&#39; must be specified here.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A `.NestedMap` of tf.Tensors containing a batch of input data with shapes</span>

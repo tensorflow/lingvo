@@ -84,6 +84,16 @@
 <span id="lingvo-core-generic-input-module"></span><h1>lingvo.core.generic_input module<a class="headerlink" href="#module-lingvo.core.generic_input" title="Permalink to this headline"></a></h1>
 <p>Generic input.</p>
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.generic_input.SetAllowGenericInputV2InEager">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.generic_input.</span></span><span class="sig-name descname"><span class="pre">SetAllowGenericInputV2InEager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">allowed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#SetAllowGenericInputV2InEager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.generic_input.SetAllowGenericInputV2InEager" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.generic_input.IsGenericInputV2AllwedInEager">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.generic_input.</span></span><span class="sig-name descname"><span class="pre">IsGenericInputV2AllwedInEager</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#IsGenericInputV2AllwedInEager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.generic_input.IsGenericInputV2AllwedInEager" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.generic_input._ParseProcessor">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.generic_input.</span></span><span class="sig-name descname"><span class="pre">_ParseProcessor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">processor</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#_ParseProcessor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.generic_input._ParseProcessor" title="Permalink to this definition"></a></dt>
 <dd><p>Parses python callable <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code> into a TF concrete function.</p>
@@ -150,6 +160,10 @@ represents the batch dimension.</p></li>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>A tuple of (outputs, bucket_keys)</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – If called in pure Eager/tf.function mode without
+    <code class="xref py py-obj docutils literal notranslate"><span class="pre">generic_input_v2_key</span></code> defined.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -297,6 +311,10 @@ kwargs[‘bucket_batch_limit’] specifies the per-replica batch size.</p></li>
 </dd>
 <dt class="field-odd">Return type</dt>
 <dd class="field-odd"><p>A tuple of (outputs, bucket_keys)</p>
+</dd>
+<dt class="field-even">Raises</dt>
+<dd class="field-even"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – If called in pure Eager/tf.function mode without
+    <code class="xref py py-obj docutils literal notranslate"><span class="pre">generic_input_v2_key</span></code> defined.</p>
 </dd>
 </dl>
 </dd></dl>

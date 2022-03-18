@@ -86,6 +86,33 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">tf_inspect</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
 
+<span class="c1"># This cache is used to reuse the GenericInputV2 resources.</span>
+<span class="c1"># key: the DataSource object that calls into `GenericInput`.</span>
+<span class="c1"># value: a three-element tuple that will be used as inputs to</span>
+<span class="c1"># `GenericInputV2GetNext`:</span>
+<span class="c1"># (data_resource_id, batch_types, batch_template)</span>
+<span class="n">_GENERIC_CACHE_V2</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="c1"># Escape hatch for existing Eager-mode tests that happen to use GenericInput op.</span>
+<span class="n">_IS_GENERIC_INPUT_V2_ALLOWED_IN_EAGER</span> <span class="o">=</span> <span class="kc">False</span>
+
+
+<div class="viewcode-block" id="SetAllowGenericInputV2InEager"><a class="viewcode-back" href="../../../lingvo.core.generic_input.html#lingvo.core.generic_input.SetAllowGenericInputV2InEager">[docs]</a><span class="k">def</span> <span class="nf">SetAllowGenericInputV2InEager</span><span class="p">(</span><span class="n">allowed</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="k">global</span> <span class="n">_IS_GENERIC_INPUT_V2_ALLOWED_IN_EAGER</span>
+  <span class="n">_IS_GENERIC_INPUT_V2_ALLOWED_IN_EAGER</span> <span class="o">=</span> <span class="n">allowed</span></div>
+
+
+<div class="viewcode-block" id="IsGenericInputV2AllwedInEager"><a class="viewcode-back" href="../../../lingvo.core.generic_input.html#lingvo.core.generic_input.IsGenericInputV2AllwedInEager">[docs]</a><span class="k">def</span> <span class="nf">IsGenericInputV2AllwedInEager</span><span class="p">():</span>
+  <span class="k">return</span> <span class="n">_IS_GENERIC_INPUT_V2_ALLOWED_IN_EAGER</span></div>
+
+
+<span class="n">_MISSING_KEY_ERR</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="s1">&#39;In tf.function or pure Eager, GenericInputV2 ops will be called. &#39;</span>
+    <span class="s1">&#39;Each GenericInputV2 op requires a unique key for identification. &#39;</span>
+    <span class="s1">&#39;To provide this key, you can specify the keyword arg &#39;</span>
+    <span class="s1">&#39;`generic_input_v2_key` when calling this function.&#39;</span><span class="p">)</span>
+
+
 <div class="viewcode-block" id="_ParseProcessor"><a class="viewcode-back" href="../../../lingvo.core.generic_input.html#lingvo.core.generic_input._ParseProcessor">[docs]</a><span class="k">def</span> <span class="nf">_ParseProcessor</span><span class="p">(</span><span class="n">processor</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Parses python callable `processor` into a TF concrete function.&quot;&quot;&quot;</span>
   <span class="n">output_tmpl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
@@ -191,7 +218,40 @@
 <span class="sd">      return,  except every tensor will have an additional dimension 0 that</span>
 <span class="sd">      represents the batch dimension.</span>
 <span class="sd">    - bucket_keys: a tf.int32 vector.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    RuntimeError: If called in pure Eager/tf.function mode without</span>
+<span class="sd">      `generic_input_v2_key` defined.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># In TF2 mode, call `GenericInputV2Create` and `GenericInputV2GetNext` for</span>
+  <span class="c1"># the purpose of migration.</span>
+  <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">IsGenericInputV2AllwedInEager</span><span class="p">()</span> <span class="ow">and</span> <span class="p">(</span><span class="s1">&#39;allow_eager&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span>
+                                                <span class="ow">not</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;allow_eager&#39;</span><span class="p">]):</span>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+          <span class="s1">&#39;GenericInput is called in tf.function or pure Eager mode. This means&#39;</span>
+          <span class="s1">&#39; you might be in the process of migrating your code from TF1 to TF2.&#39;</span>
+          <span class="s1">&#39; GenericInput is generally not safe for pure Eager mode and a newer &#39;</span>
+          <span class="s1">&#39;version is introduced (GenericInputV2). To enable that, please &#39;</span>
+          <span class="s1">&#39;add keyword arg `allow_eager=True` when calling GenericInput. &#39;</span>
+          <span class="s1">&#39;Also, we recommend that you add extra tests for your own data &#39;</span>
+          <span class="s1">&#39;pipeline in TF2 mode. Refer to b/223271939 for concrete examples.&#39;</span><span class="p">)</span>
+
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;allow_eager&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="n">generic_input_v2_key</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;generic_input_v2_key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">generic_input_v2_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">_MISSING_KEY_ERR</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">generic_input_v2_key</span> <span class="ow">in</span> <span class="n">_GENERIC_CACHE_V2</span><span class="p">:</span>
+      <span class="n">resource</span><span class="p">,</span> <span class="n">out_types</span><span class="p">,</span> <span class="n">output_tmpl</span> <span class="o">=</span> <span class="n">_GENERIC_CACHE_V2</span><span class="p">[</span><span class="n">generic_input_v2_key</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">init_scope</span><span class="p">():</span>
+        <span class="n">resource</span><span class="p">,</span> <span class="n">out_types</span><span class="p">,</span> <span class="n">output_tmpl</span> <span class="o">=</span> <span class="n">GenericInputV2Create</span><span class="p">(</span>
+            <span class="n">processor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">_GENERIC_CACHE_V2</span><span class="p">[</span><span class="n">generic_input_v2_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">out_types</span><span class="p">,</span> <span class="n">output_tmpl</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">GenericInputV2GetNext</span><span class="p">(</span><span class="n">resource</span><span class="p">,</span> <span class="n">out_types</span><span class="p">,</span> <span class="n">output_tmpl</span><span class="p">)</span>
+
   <span class="n">proc_fn</span><span class="p">,</span> <span class="n">out_types</span><span class="p">,</span> <span class="n">output_tmpl</span> <span class="o">=</span> <span class="n">_ParseProcessor</span><span class="p">(</span><span class="n">processor</span><span class="p">)</span>
   <span class="n">flat_outputs</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">gen_x_ops</span><span class="o">.</span><span class="n">generic_input</span><span class="p">(</span>
       <span class="n">processor</span><span class="o">=</span><span class="n">proc_fn</span><span class="p">,</span> <span class="n">out_types</span><span class="o">=</span><span class="n">out_types</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
@@ -337,15 +397,29 @@
 <span class="sd">      (num_replicas * bucket_batch_limit[...]), i.e.,</span>
 <span class="sd">      kwargs[&#39;bucket_batch_limit&#39;] specifies the per-replica batch size.</span>
 <span class="sd">    - bucket_keys: a tf.int32 vector.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    RuntimeError: If called in pure Eager/tf.function mode without</span>
+<span class="sd">      `generic_input_v2_key` defined.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">num_replicas</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="s1">&#39;bucket_batch_limit&#39;</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">b</span> <span class="o">==</span> <span class="nb">max</span><span class="p">(</span><span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">])</span>
                <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;bucket_batch_limit&#39;</span><span class="p">])</span>
   <span class="n">replica_outputs</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+    <span class="n">current_key</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;generic_input_v2_key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">current_key</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">_MISSING_KEY_ERR</span><span class="p">)</span>
+
   <span class="k">for</span> <span class="n">replica_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_replicas</span><span class="p">):</span>
+    <span class="c1"># Blend `replica_i` into the key for _GENERIC_CACHE_V2 to distinguish</span>
+    <span class="c1"># different GenericInputV2 ops in the same Datasource object.</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;generic_input_v2_key&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">current_key</span><span class="p">,</span> <span class="n">replica_i</span><span class="p">)</span>
     <span class="n">replica_device</span> <span class="o">=</span> <span class="n">replica_device_fn</span><span class="p">(</span><span class="n">replica_i</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">replica_device</span><span class="p">):</span>
       <span class="n">replica_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">GenericInput</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span>
+
   <span class="n">output_nmaps</span><span class="p">,</span> <span class="n">output_bucket_keys</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">replica_outputs</span><span class="p">)</span>
   <span class="n">concat_nmap</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="o">*</span><span class="n">t</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span>
                                       <span class="o">*</span><span class="n">output_nmaps</span><span class="p">)</span>
