@@ -21,6 +21,33 @@ from lingvo.core import py_utils
 from tensorflow.python.util import tf_inspect  # pylint: disable=g-direct-tensorflow-import
 
 
+# This cache is used to reuse the GenericInputV2 resources.
+# key: the DataSource object that calls into `GenericInput`.
+# value: a three-element tuple that will be used as inputs to
+# `GenericInputV2GetNext`:
+# (data_resource_id, batch_types, batch_template)
+_GENERIC_CACHE_V2 = {}
+
+# Escape hatch for existing Eager-mode tests that happen to use GenericInput op.
+_IS_GENERIC_INPUT_V2_ALLOWED_IN_EAGER = False
+
+
+def SetAllowGenericInputV2InEager(allowed=True):
+  global _IS_GENERIC_INPUT_V2_ALLOWED_IN_EAGER
+  _IS_GENERIC_INPUT_V2_ALLOWED_IN_EAGER = allowed
+
+
+def IsGenericInputV2AllwedInEager():
+  return _IS_GENERIC_INPUT_V2_ALLOWED_IN_EAGER
+
+
+_MISSING_KEY_ERR = (
+    'In tf.function or pure Eager, GenericInputV2 ops will be called. '
+    'Each GenericInputV2 op requires a unique key for identification. '
+    'To provide this key, you can specify the keyword arg '
+    '`generic_input_v2_key` when calling this function.')
+
+
 def _ParseProcessor(processor):
   """Parses python callable `processor` into a TF concrete function."""
   output_tmpl = py_utils.NestedMap()
@@ -126,7 +153,40 @@ def GenericInput(processor, **kwargs):
       return,  except every tensor will have an additional dimension 0 that
       represents the batch dimension.
     - bucket_keys: a tf.int32 vector.
+
+  Raises:
+    RuntimeError: If called in pure Eager/tf.function mode without
+      `generic_input_v2_key` defined.
   """
+  # In TF2 mode, call `GenericInputV2Create` and `GenericInputV2GetNext` for
+  # the purpose of migration.
+  if py_utils.IsEagerMode():
+    if not IsGenericInputV2AllwedInEager() and ('allow_eager' not in kwargs or
+                                                not kwargs['allow_eager']):
+      raise RuntimeError(
+          'GenericInput is called in tf.function or pure Eager mode. This means'
+          ' you might be in the process of migrating your code from TF1 to TF2.'
+          ' GenericInput is generally not safe for pure Eager mode and a newer '
+          'version is introduced (GenericInputV2). To enable that, please '
+          'add keyword arg `allow_eager=True` when calling GenericInput. '
+          'Also, we recommend that you add extra tests for your own data '
+          'pipeline in TF2 mode. Refer to b/223271939 for concrete examples.')
+
+    kwargs.pop('allow_eager', None)
+    generic_input_v2_key = kwargs.pop('generic_input_v2_key', None)
+    if generic_input_v2_key is None:
+      raise RuntimeError(_MISSING_KEY_ERR)
+
+    if generic_input_v2_key in _GENERIC_CACHE_V2:
+      resource, out_types, output_tmpl = _GENERIC_CACHE_V2[generic_input_v2_key]
+    else:
+      with tf.init_scope():
+        resource, out_types, output_tmpl = GenericInputV2Create(
+            processor, **kwargs)
+
+    _GENERIC_CACHE_V2[generic_input_v2_key] = (resource, out_types, output_tmpl)
+    return GenericInputV2GetNext(resource, out_types, output_tmpl)
+
   proc_fn, out_types, output_tmpl = _ParseProcessor(processor)
   flat_outputs, bucket_keys = ops.gen_x_ops.generic_input(
       processor=proc_fn, out_types=out_types[:-1], **kwargs)
@@ -272,15 +332,29 @@ def ReplicatedGenericInput(processor, num_replicas, replica_device_fn,
       (num_replicas * bucket_batch_limit[...]), i.e.,
       kwargs['bucket_batch_limit'] specifies the per-replica batch size.
     - bucket_keys: a tf.int32 vector.
+
+  Raises:
+    RuntimeError: If called in pure Eager/tf.function mode without
+      `generic_input_v2_key` defined.
   """
   if num_replicas > 1 and 'bucket_batch_limit' in kwargs:
     assert all(b == max(kwargs['bucket_batch_limit'])
                for b in kwargs['bucket_batch_limit'])
   replica_outputs = []
+  if py_utils.IsEagerMode():
+    current_key = kwargs.pop('generic_input_v2_key', None)
+    if current_key is None:
+      raise RuntimeError(_MISSING_KEY_ERR)
+
   for replica_i in range(num_replicas):
+    # Blend `replica_i` into the key for _GENERIC_CACHE_V2 to distinguish
+    # different GenericInputV2 ops in the same Datasource object.
+    if py_utils.IsEagerMode():
+      kwargs['generic_input_v2_key'] = (current_key, replica_i)
     replica_device = replica_device_fn(replica_i)
     with tf.device(replica_device):
       replica_outputs.append(GenericInput(processor, **kwargs))
+
   output_nmaps, output_bucket_keys = zip(*replica_outputs)
   concat_nmap = tf.nest.map_structure(lambda *t: tf.concat(t, axis=0),
                                       *output_nmaps)

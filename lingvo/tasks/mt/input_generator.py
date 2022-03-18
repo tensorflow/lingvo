@@ -52,7 +52,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
 
     self.natural_order_model = p.natural_order_model
 
-  def _DataSourceFromFilePattern(self, file_pattern):
+  def _DataSourceFromFilePattern(self, file_pattern, **extra_input_kwargs):
     def Proc(record):
       """Parses a serialized tf.Example record."""
       outputs = [
@@ -182,7 +182,7 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
 
     self.natural_order_model = p.natural_order_model
 
-  def _DataSourceFromFilePattern(self, file_pattern):
+  def _DataSourceFromFilePattern(self, file_pattern, **extra_input_kwargs):
     p = self.params
 
     def _DerivePaddingsAndIds(src_ids, tgt_labels):
@@ -280,12 +280,20 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     else:
       processor_fn = _ProcPacked
 
+    kwargs = self.CommonInputOpArgs()
+    # In pure Eager or tf.function mode, add this kwarg so `GenericInputV2` ops
+    # get used instead of `GenericInput`.
+    if py_utils.IsEagerMode():
+      kwargs['allow_eager'] = True
+      # Pass `extra_input_kwargs` into GenericInput calls.
+      kwargs = {**kwargs, **extra_input_kwargs}
+
     features, bucket_keys = generic_input.GenericInput(
         file_pattern=file_pattern,
         processor=processor_fn,
         dynamic_padding_dimensions=[0] * 10,
         dynamic_padding_constants=[0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
-        **self.CommonInputOpArgs())
+        **kwargs)
 
     return self.BuildInputBatch(
         batch_size=self.InfeedBatchSize(),
@@ -798,7 +806,10 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     sentences = tf.squeeze(sentences)
     return sentences[0], sentences[1]
 
-  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
+  def _DataSourceFromFilePattern(self,
+                                 file_pattern,
+                                 input_source_weights=None,
+                                 **extra_input_kwargs):
 
     def Processor(source_id, record):
       """Parses a record, which is a line of text."""
@@ -1124,7 +1135,7 @@ class NmtDoubleInput(NmtInput):
     p.Define('vocab_file', None, 'Vocabulary file path')
     return p
 
-  def _DataSourceFromFilePattern(self, file_pattern):
+  def _DataSourceFromFilePattern(self, file_pattern, **extra_input_kwargs):
 
     def Proc(record):
       """Parses a serialized tf.Example record."""

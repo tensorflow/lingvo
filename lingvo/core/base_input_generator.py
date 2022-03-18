@@ -1225,7 +1225,8 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
   def _DataSourceFromFilePattern(self,
                                  file_pattern,
                                  input_source_weights=None,
-                                 input_source_id_offset=0):
+                                 input_source_id_offset=0,
+                                 **extra_input_kwargs):
     """Return a NestedMap containing an input batch from a string file_pattern.
 
     Subclasses should implement this function.
@@ -1238,6 +1239,9 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
         treated as an empty list.
       input_source_id_offset: All source_ids returned from datasource will be
         offset by this value.
+      **extra_input_kwargs: Extra args for customized implementations. For
+        example if the input pipeline calls GenericInputV2 ops, a key
+        'generic_input_v2_key' must be specified here.
 
     Returns:
       A `.NestedMap` of tf.Tensors containing a batch of input data with shapes

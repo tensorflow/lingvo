@@ -431,6 +431,87 @@ class GenericInputV2OpTest(test_utils.TestCase, parameterized.TestCase):
     for i in range(100):
       self.assertIn(('%08d' % i).encode('utf-8'), record_seen)
 
+  @parameterized.named_parameters(
+      ('EagerMissingFlag', False, False), ('FuncMissingFlag', True, False),
+      ('EagerMissingKey', False, True), ('FuncMissingKey', True, True))
+  def testV2OpsErrorRaised(self, use_tf_func, set_allow_eager):
+    # Generate a test file w/ 100 records.
+    tmp = os.path.join(tf.test.get_temp_dir(), 'basic')
+    with tf.python_io.TFRecordWriter(tmp) as w:
+      for i in range(100):
+        w.write(('%08d' % i).encode('utf-8'))
+
+    # A simple string parsing routine. Just convert a string to a
+    # number.
+    def str_to_num(s):
+      return np.array(float(s), dtype=np.float32)
+
+    bucket_fn = lambda x: 1
+
+    # A record processor written in TF graph.
+    def _process(source_id, record):
+      num, = tf.py_func(str_to_num, [record], [tf.float32])
+      num = tf.stack([num, tf.square(num)])
+      return py_utils.NestedMap(
+          source_id=source_id, record=record, num=num), bucket_fn(num)
+
+    if set_allow_eager:
+      # Test unique keys must be provided to distinguish GenericInputV2 ops
+      generic_input.SetAllowGenericInputV2InEager(True)
+      err_regex = 'op requires a unique key'
+    else:
+      # Test flags must be set to enable GenericInputV2 ops in Eager mode
+      generic_input.SetAllowGenericInputV2InEager(False)
+      err_regex = 'please add keyword arg'
+
+    with self.assertRaisesRegex(RuntimeError, err_regex):
+      _ = generic_input.GenericInput(
+          file_pattern='tfrecord:' + tmp,
+          file_random_seed=0,
+          file_buffer_size=32,
+          file_parallelism=4,
+          bucket_batch_limit=[8],
+          bucket_upper_bound=[1],
+          processor=_process)
+
+  @parameterized.named_parameters(('Eager', False, 'foo'),
+                                  ('Func', True, 'bar'))
+  def testV2OpsGetCalledInEager(self, use_tf_func, mock_op_key):
+    # Generate a test file w/ 100 records.
+    tmp = os.path.join(tf.test.get_temp_dir(), 'basic')
+    with tf.python_io.TFRecordWriter(tmp) as w:
+      for i in range(100):
+        w.write(('%08d' % i).encode('utf-8'))
+
+    # A simple string parsing routine. Just convert a string to a
+    # number.
+    def str_to_num(s):
+      return np.array(float(s), dtype=np.float32)
+
+    bucket_fn = lambda x: 1
+
+    # A record processor written in TF graph.
+    def _process(source_id, record):
+      num, = tf.py_func(str_to_num, [record], [tf.float32])
+      num = tf.stack([num, tf.square(num)])
+      return py_utils.NestedMap(
+          source_id=source_id, record=record, num=num), bucket_fn(num)
+
+    # pylint: disable=protected-access
+    len_before = len(generic_input._GENERIC_CACHE_V2)
+    _ = generic_input.GenericInput(
+        file_pattern='tfrecord:' + tmp,
+        file_random_seed=0,
+        file_buffer_size=32,
+        file_parallelism=4,
+        bucket_batch_limit=[8],
+        bucket_upper_bound=[1],
+        processor=_process,
+        generic_input_v2_key=mock_op_key)
+
+    # pylint: disable=protected-access
+    len_after = len(generic_input._GENERIC_CACHE_V2)
+    self.assertEqual(len_after, len_before + 1)
 
 if __name__ == '__main__':
   py_utils.SetEagerMode()

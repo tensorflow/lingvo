@@ -161,6 +161,15 @@ class SimpleDataSource(DataSource):
     if p.source_id_offset != 0:
       extra_args['input_source_id_offset'] = p.source_id_offset
 
+    # In TF1 mode, the python method `GetNext` only gets called once for each
+    # DataSource object during graph construction.
+    # In TF2 mode, however, `GetNext` can be called many times. We must specify
+    # keys to uniquely identify its `GenericInputV2` resource. This
+    # ensures that the resource is properly reused.
+    if py_utils.IsEagerMode():
+      # The current DataSource object is used as the key to GenericInputV2 ops.
+      extra_args['generic_input_v2_key'] = self
+
     if p.weights:
       # Within-batch mixing.
       batch = self._input_generator._DataSourceFromFilePattern(  # pylint: disable=protected-access
