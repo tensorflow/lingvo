@@ -301,7 +301,7 @@ To run the StarNet model using CloudTPUs on GCP, please refer to
     *   [asr.librispeech.Librispeech960Wpm](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/asr/params/librispeech.py)
 
 ### Car
-*   [DeepFusion: Lidar-Camera Deep Fusion for Multi-Modal 3D Object Detection](https://arxiv.org/pdf/2203.xxxxx.pdf).<br/>
+*   [DeepFusion: Lidar-Camera Deep Fusion for Multi-Modal 3D Object Detection](https://arxiv.org/pdf/2203.08195.pdf).<br/>
     Yingwei Li, Adams Wei Yu, Tianjian Meng, Ben Caine, Jiquan Ngiam, Daiyi Peng, Junyang Shen, Bo Wu, Yifeng Lu, Denny 
     Zhou, Quoc V. Le, Alan Yuille, Mingxing Tan. CVPR 2022.
     *   Please stay tuned for code release in this repo!
