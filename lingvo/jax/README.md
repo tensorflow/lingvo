@@ -32,6 +32,8 @@ More specifically:
 
 *   [jax-bitempered-loss](https://pypi.org/project/jax-bitempered-loss)
 
+*   [einops](https://github.com/arogozhnikov/einops)
+
 *   [abseil](http://github.com/abseil/abseil-py)
 
 *   [clu](http://pypi.org/project/clu/)

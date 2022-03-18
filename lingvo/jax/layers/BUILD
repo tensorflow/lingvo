@@ -442,7 +442,7 @@ pytype_strict_library(
         ":poolings",
         ":stochastics",
         ":transformers",
-        "//third_party/py/einops",
+        # Implicit einops dependency.
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
@@ -484,7 +484,7 @@ py_strict_test(
         # Implicit jax dependency.
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
-        "//third_party/py/tensorflow:tensorflow_no_contrib",
+        # Implicit tensorflow dependency.
     ],
 )
 
@@ -532,7 +532,7 @@ py_strict_test(
         ":objectives",
         # Implicit absl.testing.absltest dependency.
         # Implicit jax dependency.
-        "//third_party/py/jax/experimental/jax2tf",
+        # Implicit jax/experimental/jax2tf dependency.
         "//lingvo/jax:pytypes",
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
@@ -735,7 +735,6 @@ py_strict_test(
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
-        "//third_party/py/tensorflow:tensorflow_no_contrib",
     ],
 )
 
@@ -759,6 +758,6 @@ py_strict_test(
         "//lingvo/jax:py_utils",
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
-        "//third_party/py/tensorflow:tensorflow_no_contrib",
+        # Implicit tensorflow dependency.
     ],
 )

@@ -34,6 +34,7 @@ REQUIRED_PACKAGES = [
     'absl-py',
     'attrs',
     'clu',
+    'einops',
     'flax',
     'ipykernel',
     'jax',

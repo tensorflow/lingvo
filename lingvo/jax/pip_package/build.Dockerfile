@@ -29,6 +29,7 @@ RUN for python in python3.7 python3.8 python3.9; do \
         absl-py \
         attrs \
         clu \
+        einops \
         flax \
         graph-compression-google-research \
         grpcio \

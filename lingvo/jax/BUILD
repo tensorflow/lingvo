@@ -3,6 +3,7 @@
 
 load("//lingvo:lingvo.bzl", "pytype_strict_binary", "pytype_strict_library")
 load("//lingvo:lingvo.bzl", "py_strict_test")
+load("//lingvo:lingvo.bzl", "lingvo_proto_cc", "lingvo_proto_py")
 load("//lingvo/jax:build-visibility.bzl", "JAX_VISIBILITY")
 
 package(default_visibility = JAX_VISIBILITY)
@@ -339,7 +340,7 @@ pytype_strict_library(
     srcs_version = "PY3",
     deps = [
         # Implicit absl.logging dependency.
-        # Implicit flax's dependency.
+        # Implicit flax dependency.
         # Implicit jax dependency.
         "//lingvo/core:cluster",
         "//lingvo/core:hyperparams",
@@ -400,7 +401,6 @@ pytype_strict_library(
         # Implicit jax dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
-        "//third_party/py/tensorflow:tensorflow_no_contrib",
     ],
 )
 
@@ -593,13 +593,13 @@ py_strict_test(
     ],
 )
 
-proto_library(
+lingvo_proto_cc(
     name = "checkpoint_proto",
-    srcs = ["checkpoint.proto"],
+    src = "checkpoint.proto",
 )
 
-py_proto_library(
+lingvo_proto_py(
     name = "checkpoint_py_pb2",
-    api_version = 2,
+    src = "checkpoint.proto",
     deps = [":checkpoint_proto"],
 )
