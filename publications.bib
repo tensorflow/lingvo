@@ -12,6 +12,7 @@
 @string{nips = {Advances in Neural Information Processing Systems}}
 @string{slt = {Proc. {IEEE} Spoken Language Technology Workshop ({SLT})}}
 @string{asru = {Proc. {IEEE} Automatic Speech Recognition and Understanding Workshop ({ASRU})}}
+@string{odyssey = {Odyssey: The Speaker and Language Recognition Workshop}}
 
 % Topic annotations, used by update_publications.sh to update the markdown index.
 @string{nmt = {Translation}}
@@ -19,8 +20,9 @@
 @string{asr = {Speech recognition}}
 @string{st = {Speech translation}}
 @string{enhancement = {Speech enhancement}}
-@string{nlu = {Language Understanding}}
+@string{nlu = {Language understanding}}
 @string{opt = {Optimization}}
+@string{slr = {Speaker and language recognition}}
 
 %%%%%%%%%%%%%%%%%%%%
 % Translation papers.
@@ -557,7 +559,7 @@
 }
 @inproceedings{doutre2021b,
   annote = asr,
-  title = {Bridging the gap between streaming and non-streaming ASR systems bydistilling ensembles of CTC and RNN-T models},
+  title = {Bridging the gap between streaming and non-streaming {ASR} systems bydistilling ensembles of {CTC} and {RNN-T} models},
   author = {Thibault Doutre and Wei Han and Chung-Cheng Chiu and Ruoming Pang and Olivier Siohan and Liangliang Cao},
   booktitle = interspeech,
   year = {2021},
@@ -848,13 +850,63 @@
 
 %%%%%%%%%%%%%%%%%%%%
 % Speech enhancement papers.
-@inproceedings{ding2020textual,
+
+@inproceedings{ding2021textual,
   annote = enhancement,
   title={Textual Echo Cancellation},
   author={Ding, Shaojin and Jia, Ye and Hu, Ke and Wang, Quan},
-  year = {2020},
+  booktitle = asru,
+  year = {2021},
   pdf = {https://arxiv.org/abs/2008.06006},
   sound_examples = {https://google.github.io/speaker-id/publications/TEC/},
+}
+
+@inproceedings{narayanan2021cross,
+  annote = enhancement,
+  title={Cross-Attention Conformer for Context Modeling in Speech Enhancement for ASR},
+  author={Arun Narayanan and  Chung-Cheng Chiu and Tom O'Malley and Quan Wang and Yanzhang He},
+  booktitle = asru,
+  year = {2021},
+  pdf = {https://arxiv.org/abs/2111.00127},
+}
+
+@inproceedings{omalley2021aconformer,
+  annote = enhancement,
+  title={A Conformer-Based ASR Frontend For Joint Acoustic Echo Cancellation, Speech Enhancement and Speech Separation},
+  author={Tom O'Malley and Arun Narayanan and Quan Wang and Alex Park and James Walker and Nathan Howard},
+  booktitle = asru,
+  year = {2021},
+  pdf = {https://arxiv.org/abs/2111.09935},
+}
+
+%%%%%%%%%%%%%%%%%%%%
+% Speaker and language recognition papers.
+
+@inproceedings{wang2022attentive,
+  annote = slr,
+  title={Attentive Temporal Pooling for Conformer-based Streaming Language Identification in Long-form Speech},
+  author={Quan Wang and Yang Yu and Jason Pelecanos and Yiling Huang and Ignacio Lopez Moreno},
+  year = {2022},
+  pdf = {https://arxiv.org/abs/2202.12163},
+}
+
+@inproceedings{pelecanos2022parameter,
+  annote = slr,
+  title={Parameter-Free Attentive Scoring for Speaker Verification},
+  author={Jason Pelecanos and Quan Wang and Yiling Huang and Ignacio Lopez Moreno},
+  year = {2022},
+  pdf = {https://arxiv.org/abs/2203.05642},
+  code = {https://github.com/google/speaker-id/tree/master/attentive_scoring},
+}
+
+@inproceedings{xia2022turn,
+  annote = slr,
+  title={{Turn-to-Diarize}: Online Speaker Diarization Constrained by Transformer Transducer Speaker Turn Detection},
+  author={Wei Xia and Han Lu and Quan Wang and Anshuman Tripathi and Yiling Huang and Ignacio Lopez Moreno and Hasim Sak},
+  booktitle=icassp,
+  year={2022},
+  pdf = {https://arxiv.org/abs/2109.11641},
+  code = {https://github.com/wq2012/SpectralCluster},
 }
 
 %%%%%%%%%%%%%%%%%%%%

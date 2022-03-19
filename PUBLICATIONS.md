@@ -7,7 +7,7 @@
 <!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples" -nf code code  -->
 
 
 <table>
@@ -211,7 +211,7 @@ Y.&nbsp;Huang, Y.&nbsp;Cheng, A.&nbsp;Bapna, O.&nbsp;Firat, M.&nbsp;X. Chen, D.&
 <!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples" -nf code code  -->
 
 
 <table>
@@ -867,9 +867,9 @@ T.&nbsp;Doutre, W.&nbsp;Han, M.&nbsp;Ma, Z.&nbsp;Lu, C.-C. Chiu, R.&nbsp;Pang, A
 [<a name="doutre2021b">45</a>]
 </td>
 <td class="bibtexitem">
-T.&nbsp;Doutre, W.&nbsp;Han, C.-C. Chiu, R.&nbsp;Pang, O.&nbsp;Siohan, and L.&nbsp;Cao, &ldquo;Bridging
-  the gap between streaming and non-streaming ASR systems bydistilling ensembles of CTC and RNN-T models
-  on unsupervised data,&rdquo; in <em>Proc. Interspeech</em>, 2021.
+T.&nbsp;Doutre, W.&nbsp;Han, C.-C. Chiu, R.&nbsp;Pang, O.&nbsp;Siohan, and L.&nbsp;Cao, &ldquo;Bridging the
+  gap between streaming and non-streaming ASR systems bydistilling ensembles
+  of CTC and RNN-T models,&rdquo; in <em>Proc. Interspeech</em>, 2021.
 [&nbsp;<a href="https://arxiv.org/abs/2104.14346">pdf</a>&nbsp;]
 
 </td>
@@ -938,7 +938,7 @@ Q.&nbsp;Li, D.&nbsp;Qiu, Y.&nbsp;Zhang, B.&nbsp;Li, Y.&nbsp;He, P.&nbsp;C. Woodl
 <!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples" -nf code code  -->
 
 
 <table>
@@ -1009,7 +1009,7 @@ M.&nbsp;X. Chen, B.&nbsp;N. Lee, G.&nbsp;Bansal, Y.&nbsp;Cao, S.&nbsp;Zhang, J.&
 <!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples" -nf code code  -->
 
 
 <table>
@@ -1270,7 +1270,7 @@ Y.&nbsp;Jia, H.&nbsp;Zen, J.&nbsp;Shen, Y.&nbsp;Zhang, and Y.&nbsp;Wu, &ldquo;Pn
 <!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples" -nf code code  -->
 
 
 <table>
@@ -1339,19 +1339,105 @@ Y.&nbsp;Jia, M.&nbsp;T. Ramanovich, T.&nbsp;Remez, and R.&nbsp;Pomerantz, &ldquo
 <!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples" -nf code code  -->
 
 
 <table>
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="ding2020textual">1</a>]
+[<a name="ding2021textual">1</a>]
 </td>
 <td class="bibtexitem">
-S.&nbsp;Ding, Y.&nbsp;Jia, K.&nbsp;Hu, and Q.&nbsp;Wang, &ldquo;Textual echo cancellation,&rdquo; 2020.
+S.&nbsp;Ding, Y.&nbsp;Jia, K.&nbsp;Hu, and Q.&nbsp;Wang, &ldquo;Textual echo cancellation,&rdquo; in <em>
+  Proc. IEEE Automatic Speech Recognition and Understanding Workshop
+  (ASRU)</em>, 2021.
 [&nbsp;<a href="https://google.github.io/speaker-id/publications/TEC/">sound examples</a>&nbsp;| 
 <a href="https://arxiv.org/abs/2008.06006">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="narayanan2021cross">2</a>]
+</td>
+<td class="bibtexitem">
+A.&nbsp;Narayanan, C.-C. Chiu, T.&nbsp;O'Malley, Q.&nbsp;Wang, and Y.&nbsp;He, &ldquo;Cross-attention
+  conformer for context modeling in speech enhancement for asr,&rdquo; in <em>Proc.
+  IEEE Automatic Speech Recognition and Understanding Workshop (ASRU)</em>,
+  2021.
+[&nbsp;<a href="https://arxiv.org/abs/2111.00127">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="omalley2021aconformer">3</a>]
+</td>
+<td class="bibtexitem">
+T.&nbsp;O'Malley, A.&nbsp;Narayanan, Q.&nbsp;Wang, A.&nbsp;Park, J.&nbsp;Walker, and N.&nbsp;Howard, &ldquo;A
+  conformer-based asr frontend for joint acoustic echo cancellation, speech
+  enhancement and speech separation,&rdquo; in <em>Proc. IEEE Automatic Speech
+  Recognition and Understanding Workshop (ASRU)</em>, 2021.
+[&nbsp;<a href="https://arxiv.org/abs/2111.09935">pdf</a>&nbsp;]
+
+</td>
+</tr>
+</table>
+
+## Speaker and language recognition
+
+<!-- This document was automatically generated with bibtex2html 1.99
+     (see http://www.lri.fr/~filliatr/bibtex2html/),
+     with the following command:
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples" -nf code code  -->
+
+
+<table>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="wang2022attentive">1</a>]
+</td>
+<td class="bibtexitem">
+Q.&nbsp;Wang, Y.&nbsp;Yu, J.&nbsp;Pelecanos, Y.&nbsp;Huang, and I.&nbsp;L. Moreno, &ldquo;Attentive temporal
+  pooling for conformer-based streaming language identification in long-form
+  speech,&rdquo; 2022.
+[&nbsp;<a href="https://arxiv.org/abs/2202.12163">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="pelecanos2022parameter">2</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Pelecanos, Q.&nbsp;Wang, Y.&nbsp;Huang, and I.&nbsp;L. Moreno, &ldquo;Parameter-free attentive
+  scoring for speaker verification,&rdquo; 2022.
+[&nbsp;<a href="https://github.com/google/speaker-id/tree/master/attentive_scoring">code</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2203.05642">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="xia2022turn">3</a>]
+</td>
+<td class="bibtexitem">
+W.&nbsp;Xia, H.&nbsp;Lu, Q.&nbsp;Wang, A.&nbsp;Tripathi, Y.&nbsp;Huang, I.&nbsp;L. Moreno, and H.&nbsp;Sak,
+  &ldquo;Turn-to-Diarize: Online speaker diarization constrained by transformer
+  transducer speaker turn detection,&rdquo; in <em>Proc. IEEE International
+  Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2022.
+[&nbsp;<a href="https://github.com/wq2012/SpectralCluster">code</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2109.11641">pdf</a>&nbsp;]
 
 </td>
 </tr>
@@ -1362,7 +1448,7 @@ S.&nbsp;Ding, Y.&nbsp;Jia, K.&nbsp;Hu, and Q.&nbsp;Wang, &ldquo;Textual echo can
 <!-- This document was automatically generated with bibtex2html 1.99
      (see http://www.lri.fr/~filliatr/bibtex2html/),
      with the following command:
-     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples"  -->
+     bibtex2html -s ieeetr -nodoc -nobibsource -nofooter -nf pdf pdf -nf data data -nf sound_examples "sound examples" -nf code code  -->
 
 
 <table>

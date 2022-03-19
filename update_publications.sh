@@ -33,10 +33,12 @@ for topic in \
     'Speech synthesis' \
     'Speech translation' \
     'Speech enhancement' \
+    'Speaker and language recognition' \
     'Optimization';  do
   echo -e "\n\n## ${topic}"
   bib2bib -c "annote='${topic}'" publications.bib \
       | bibtex2html -s ieeetr -nodoc -nobibsource -nofooter \
-        -nf pdf "pdf" -nf data "data" -nf sound_examples "sound examples"
+        -nf pdf "pdf" -nf data "data" -nf sound_examples "sound examples" \
+        -nf code "code"
 done >> ${OUTPUT_FILE}
 
