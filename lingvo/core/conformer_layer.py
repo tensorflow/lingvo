@@ -965,6 +965,8 @@ class ConformerLayer(base_layer.BaseLayer):
       # TODO(ngyuzh,yuanzx): fix pipelined layer so don't need pass it manually.
       if 'language_vector' in in_nmap:
         out_nmap.language_vector = in_nmap.language_vector
+      if 'language_id' in in_nmap:
+        out_nmap.language_id = in_nmap.language_id
       inputs = self.final_ln.FProp(theta.final_ln, inputs)
       inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       out_nmap.features = inputs
