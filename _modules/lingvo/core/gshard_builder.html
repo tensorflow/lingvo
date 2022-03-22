@@ -3242,6 +3242,7 @@
         <span class="s1">&#39;z_loss&#39;</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="s1">&#39;if z_loss is nonzero, we add a loss equal to &#39;</span>
         <span class="s1">&#39;z_loss * tf.math.square(tf.math.reduce_logsumexp(logits, -1))&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;positional_embedding&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Positional embs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;sub_layer_types&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of layer types.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gated_gelu&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;FFN gated GELU. &#39;</span>
              <span class="s1">&#39;Deprecated. Use gated_ffn_activation=gelu.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;moe_gated_gelu&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use gated GELU for the MoE layer.&#39;</span><span class="p">)</span>
@@ -3396,8 +3397,22 @@
           <span class="n">moe_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MoEGated</span><span class="p">(</span><span class="s1">&#39;moe&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">moe_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">MoE</span><span class="p">(</span><span class="s1">&#39;moe&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-        <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">moe_layer</span><span class="p">,</span> <span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
-        <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="n">layer_type_dict</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;attn&#39;</span><span class="p">:</span> <span class="n">atten_layer</span><span class="p">,</span>
+            <span class="s1">&#39;moe&#39;</span><span class="p">:</span> <span class="n">moe_layer</span><span class="p">,</span>
+            <span class="s1">&#39;ffw&#39;</span><span class="p">:</span> <span class="n">ffw_layer</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">:</span>
+          <span class="n">sub_layer_type_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">%</span> <span class="n">sub_layer_type_len</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported Sub-layer types length!&#39;</span><span class="p">)</span>
+          <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="k">for</span> <span class="n">sub_layer_type</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">:</span>
+            <span class="n">decoder_sub_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_type_dict</span><span class="p">[</span><span class="n">sub_layer_type</span><span class="p">])</span>
+          <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">//</span> <span class="n">sub_layer_type_len</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">moe_layer</span><span class="p">,</span> <span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
+          <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">//</span> <span class="mi">2</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
         <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span>
