@@ -1,4 +1,4 @@
-FROM tensorflow/tensorflow:custom-op-ubuntu16
+FROM tensorflow/tensorflow:nightly-custom-op-ubuntu16
 
 ENV GITHUB_BRANCH="master"
 ENV PYTHON_VERSION="3"
