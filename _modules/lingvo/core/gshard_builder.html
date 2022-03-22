@@ -296,6 +296,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_xla_dynamic_update_slice&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;internal optimization&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_skip_causal_mask&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Skip applying the decoder causal mask&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_bidirectional_relative_attention&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Use bidirectional relative attention in decoders for prefix-lm&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -1447,6 +1449,12 @@
         <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
     <span class="p">]</span>
 
+    <span class="k">def</span> <span class="nf">_RelativeBiasFn</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">query_segment_pos</span><span class="p">,</span> <span class="n">key_segment_pos</span><span class="p">,</span>
+                        <span class="n">relative_bias_weights</span><span class="p">):</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddRelativeBias</span><span class="p">(</span><span class="n">bias</span><span class="p">,</span> <span class="n">query_segment_pos</span><span class="p">,</span> <span class="n">key_segment_pos</span><span class="p">,</span>
+                                   <span class="n">relative_bias_weights</span><span class="p">,</span>
+                                   <span class="n">p</span><span class="o">.</span><span class="n">decoder_bidirectional_relative_attention</span><span class="p">)</span>
+
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
@@ -1464,8 +1472,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecComputeBiasGraphEdge</span><span class="p">(),</span>
         <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;qk_bias&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;qk_bias,segment_pos,key_segment_pos,relative_bias_weights-&gt;qhk_bias&#39;</span><span class="p">,</span>
-         <span class="c1"># Decoder _AddRelativeBias always has bidirectional=False.</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_AddRelativeBias</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;relative_bias&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_RelativeBiasFn</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,qhk_bias-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
