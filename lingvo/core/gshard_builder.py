@@ -231,6 +231,8 @@ class MoEBuilder(builder.Base):
     p.Define('use_xla_dynamic_update_slice', True, 'internal optimization')
     p.Define('decoder_skip_causal_mask', False,
              'Skip applying the decoder causal mask')
+    p.Define('decoder_bidirectional_relative_attention', False,
+             'Use bidirectional relative attention in decoders for prefix-lm')
 
     return p
 
@@ -1382,6 +1384,12 @@ class MoEBuilder(builder.Base):
         p.attention_key_value_dim
     ]
 
+    def _RelativeBiasFn(bias, query_segment_pos, key_segment_pos,
+                        relative_bias_weights):
+      return self._AddRelativeBias(bias, query_segment_pos, key_segment_pos,
+                                   relative_bias_weights,
+                                   p.decoder_bidirectional_relative_attention)
+
     # pyformat: disable
     return self._Graph(
         name, self._DecoderLayerInMapKeys, [
@@ -1399,8 +1407,7 @@ class MoEBuilder(builder.Base):
         self._DecComputeBiasGraphEdge(),
         ('qq_bias->qk_bias', self._Override('dec_self_attention_bias')),
         ('qk_bias,segment_pos,key_segment_pos,relative_bias_weights->qhk_bias',
-         # Decoder _AddRelativeBias always has bidirectional=False.
-         self._Fn('relative_bias', fn=self._AddRelativeBias)),
+         self._Fn('relative_bias', fn=_RelativeBiasFn)),
         ('q,k_full,v_full,qhk_bias->o', self.Attention('attention')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
