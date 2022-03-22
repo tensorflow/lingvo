@@ -38,4 +38,6 @@ More specifically:
 
 *   [clu](http://pypi.org/project/clu/)
 
+*   [tensorstore](http://github.com/google/tensorstore)
+
 *   (optional) [MLPerf logging](http://github.com/mlcommons/logging)

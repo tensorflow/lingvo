@@ -58,6 +58,7 @@ RUN for python in python3.7 python3.8 python3.9; do \
         scipy \
         sentencepiece \
         sympy \
+        tensorstore \
         twine && \
       $python -m pip install tensorflow tensorflow-datasets tensorflow-text; \
     done
