@@ -166,6 +166,9 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
     self.assertTrue(tf.executing_eagerly())
     cfg = model_registry.GetParams('test.LinearModelParams', 'Train')
     mdl = cfg.Instantiate()
+    # Disable async checkpointing.
+    cfg.task.train.async_checkpointing = False
+    cfg.train.async_checkpointing = False
     with py_utils.GradientTape(persistent=True):
       mdl.ConstructFPropBPropGraph()
 
@@ -192,8 +195,8 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
         lrn.optimizer.params.clear_variable_scope = False
       mdl.ConstructFPropBPropGraph()
       sess.run(tf.global_variables_initializer())
-      checkpointer.Checkpointer(graph_logdir, mdl).Save(sess)
-    graph_keys = _GetCheckpointKeys(os.path.join(graph_logdir, 'ckpt'))
+      checkpointer.Checkpointer(graph_logdir, mdl).Save(sess, gsteps=0)
+    graph_keys = _GetCheckpointKeys(os.path.join(graph_logdir, 'ckpt-00000000'))
     self.assertEqual(eager_v1_keys, graph_keys)
 
 

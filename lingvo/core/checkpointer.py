@@ -26,7 +26,7 @@ from lingvo.core import saver as custom_saver
 import six
 
 
-tf.flags.DEFINE_boolean('use_custom_saver', False,
+tf.flags.DEFINE_boolean('use_custom_saver', True,
                         'Uses customized saver if True.')
 FLAGS = tf.flags.FLAGS
 
