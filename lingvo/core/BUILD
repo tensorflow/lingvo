@@ -2210,12 +2210,15 @@ py_library(
     deps = [
         ":base_model",
         ":builder",
+        ":builder_layers",
         ":flat_beam_search_helper",
         ":gshard_layers",
+        ":gshard_utils",
         ":layers",
         ":py_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
+        # Implicit six dependency.
     ],
 )
 

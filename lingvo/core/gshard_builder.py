@@ -3177,6 +3177,7 @@ class UniTransformer(base_model.BaseTask):
         'z_loss', 1e-4, 'if z_loss is nonzero, we add a loss equal to '
         'z_loss * tf.math.square(tf.math.reduce_logsumexp(logits, -1))')
     p.Define('positional_embedding', True, 'Positional embs.')
+    p.Define('sub_layer_types', None, 'A list of layer types.')
     p.Define('gated_gelu', False, 'FFN gated GELU. '
              'Deprecated. Use gated_ffn_activation=gelu.')
     p.Define('moe_gated_gelu', False, 'Use gated GELU for the MoE layer.')
@@ -3331,8 +3332,22 @@ class UniTransformer(base_model.BaseTask):
           moe_layer = b.MoEGated('moe', decoder=True)
         else:
           moe_layer = b.MoE('moe', decoder=True)
-        decoder_sub_layers = [atten_layer, moe_layer, atten_layer, ffw_layer]
-        num_decoder_layers = p.num_transformer_layers // 2
+        layer_type_dict = {
+            'attn': atten_layer,
+            'moe': moe_layer,
+            'ffw': ffw_layer
+        }
+        if p.sub_layer_types:
+          sub_layer_type_len = len(p.sub_layer_types)
+          if p.num_transformer_layers * 2 % sub_layer_type_len != 0:
+            raise ValueError('Unsupported Sub-layer types length!')
+          decoder_sub_layers = []
+          for sub_layer_type in p.sub_layer_types:
+            decoder_sub_layers.append(layer_type_dict[sub_layer_type])
+          num_decoder_layers = p.num_transformer_layers * 2 // sub_layer_type_len
+        else:
+          decoder_sub_layers = [atten_layer, moe_layer, atten_layer, ffw_layer]
+          num_decoder_layers = p.num_transformer_layers // 2
       else:
         decoder_sub_layers = [atten_layer, ffw_layer]
         num_decoder_layers = p.num_transformer_layers
