@@ -178,7 +178,10 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
   def class_names(self):
     raise NotImplementedError('Return a list of class names strings.')
 
-  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
+  def _DataSourceFromFilePattern(self,
+                                 file_pattern,
+                                 input_source_weights=None,
+                                 **extra_input_kwargs):
 
     def Proc(record):
       """Parses a serialized tf.Example record."""

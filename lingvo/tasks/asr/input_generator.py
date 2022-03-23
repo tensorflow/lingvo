@@ -34,7 +34,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     p.source_max_length = 3000
     return p
 
-  def _DataSourceFromFilePattern(self, file_pattern):
+  def _DataSourceFromFilePattern(self, file_pattern, **extra_input_kwargs):
 
     def Proc(record):
       """Parses a serialized tf.Example record."""

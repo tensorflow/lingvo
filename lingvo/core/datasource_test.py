@@ -33,7 +33,10 @@ import tensorflow_datasets as tfds
 
 class TestInputGenerator(base_input_generator.TFDataSequenceInputGenerator):
 
-  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
+  def _DataSourceFromFilePattern(self,
+                                 file_pattern,
+                                 input_source_weights=None,
+                                 **extra_input_kwargs):
     """Read and return input batch from a string file_pattern.
 
     Args:
@@ -42,6 +45,7 @@ class TestInputGenerator(base_input_generator.TFDataSequenceInputGenerator):
         input example mix in the batch. The records will be sampled from inputs
         proportionally to these weights. Defaults to None which should be
         treated as an empty list.
+      **extra_input_kwargs: Same as base class.
 
     Returns:
       file_pattern.  This is the file_pattern that will be sent to InputOp along
@@ -94,7 +98,10 @@ class TestInputGenerator(base_input_generator.TFDataSequenceInputGenerator):
 
 class TestFileInputGenerator(base_input_generator.BaseInputGeneratorFromFiles):
 
-  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
+  def _DataSourceFromFilePattern(self,
+                                 file_pattern,
+                                 input_source_weights=None,
+                                 **extra_input_kwargs):
     """Read and return input batch from a string file_pattern."""
     del input_source_weights  # Unused.
 

@@ -65,7 +65,10 @@ class TestInput(base_input.BaseInput):
 
 class LingvoInput(base_input_generator.BaseInputGeneratorFromFiles):
 
-  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
+  def _DataSourceFromFilePattern(self,
+                                 file_pattern,
+                                 input_source_weights=None,
+                                 **extra_input_kwargs):
     assert not tf.compat.v1.executing_eagerly()
     assert tf.compat.v1.executing_eagerly_outside_functions()
 

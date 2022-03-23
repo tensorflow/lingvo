@@ -41,7 +41,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
     params.fixed_input_shape = params.fixed_input_shape or py_utils.use_tpu()
     super().__init__(params)
 
-  def _DataSourceFromFilePattern(self, file_pattern):
+  def _DataSourceFromFilePattern(self, file_pattern, **extra_input_kwargs):
 
     def ReadInput(line):
       word_count = tf.size(tf.strings.split([line]))
