@@ -623,9 +623,7 @@ class _LeastLoadedPlacer(VarPlacer):
     assert self._var_space_pq, ('No ps devices to use.')
     allocated, device = heapq.heappop(self._var_space_pq)
     if shape.num_elements() is None:
-      assert var_op.name.endswith(
-          'wb/var'), 'Unexpected name pattern: %s' % var_op.name
-      # CuDNN RNN vars shape aren't known statically, decide to make a constant
+      # For vars whose shape aren't known statically, make a constant
       # estimate to avoid introducing more complexities.
       var_bytes = 10 * 1024**2 * size
     else:
