@@ -511,9 +511,14 @@ class TrainerTpu(base_runner.BaseRunner):
         self._checkpointer = checkpointer.Checkpointer(
             self._train_dir, self._model, init_op=self._initialize_global_vars)
 
-      self.enqueue_ops = self._task.input.tpu_infeed_op
-      tf.logging.info('Trainer number of enqueue ops: %d',
-                      len(self.enqueue_ops))
+      self._tpu_infeed_op = self._task.input.tpu_infeed_op
+      if not self._retrieve_ops:
+        # When retrieve ops for TPU embedding is present, we use _InfeedLoop
+        # instead of enqueue_ops so the training loop will be driven by the main
+        # thread.
+        self.enqueue_ops = self._tpu_infeed_op
+      tf.logging.info('TrainerTpu number of enqueue ops: %d',
+                      len(self._tpu_infeed_op))
 
     if self._task.input.input_data_summary_layout is not None:
       self._summary_writer.add_summary(
@@ -628,15 +633,14 @@ class TrainerTpu(base_runner.BaseRunner):
   def _InfeedLoop(self, sess):
     tf.logging.info('_InfeedLoop start')
     for _ in range(self._steps_per_loop):
-      sess.run(self.enqueue_ops)
+      sess.run(self._tpu_infeed_op)
 
   def StartEnqueueOp(self, op):
     # When retrieve ops for TPU embedding is present, we use _InfeedLoop above
     # instead to make sure enqueue and retrieve does not happen at the same
     # time as required by TPU embedding.
     # We can remove this by using a tf.while_loop driven infeed op.
-    if self._retrieve_ops:
-      return
+    assert not self._retrieve_ops
     self._RunLoop(
         'trainer/enqueue_op/%s' % op.name, self._LoopEnqueue, loop_args=[op])
 
