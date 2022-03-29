@@ -547,6 +547,9 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         'single_column_input=True, apply MASS to all tasks, otherwise '
         'only apply to the specified tasks.')
     p.Define('enable_mass_for_eval', False, 'Enables masking during eval.')
+    p.Define(
+        'keep_truncated', False, 'Permits using truncated seqs instead '
+        'of filtering them out. Doesnt append EOS to truncated seqs.')
     # TODO(b/201766229): Re-enable ID histograms when root problem is resolved.
     p.Define('suppress_id_histograms', True,
              'Suppresses histograms for source and target ids.')
@@ -628,16 +631,8 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
       self.CreateChild('mass_layer', p.mass_layer)
 
   def _GetBucketKey(self, features, filtered):
-    """Returns a the bucket key for a given input."""
-    # The token ids are not truncated if and only if it ends with padding
-    # or the last id is EOS.
-    src_fits = tf.math.logical_or(
-        tf.math.equal(features.src.ids_indicator[-1], 0),
-        tf.math.equal(features.src.ids[-1], self._src_tokenizer.eos_id))
-    tgt_fits = tf.math.logical_or(
-        tf.math.equal(features.tgt.ids_indicator[-1], 0),
-        tf.math.equal(features.tgt.labels[-1], self._tgt_tokenizer.eos_id))
-
+    """Returns the bucket key for a given input."""
+    p = self.params
     # We return the max of sourcec or target sequence length if and only if both
     # src and tgt fit. Otherwise we return a key of -1 to filter out this input.
     def _MaxLen():
@@ -647,6 +642,17 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
           tf.math.reduce_sum(features.tgt.ids_indicator), dtype=tf.int32)
       return tf.math.maximum(src_len, tgt_len)
 
+    if p.keep_truncated:
+      return _MaxLen()
+
+    # The token ids are not truncated if and only if it ends with padding
+    # or the last id is EOS.
+    src_fits = tf.math.logical_or(
+        tf.math.equal(features.src.ids_indicator[-1], 0),
+        tf.math.equal(features.src.ids[-1], self._src_tokenizer.eos_id))
+    tgt_fits = tf.math.logical_or(
+        tf.math.equal(features.tgt.ids_indicator[-1], 0),
+        tf.math.equal(features.tgt.labels[-1], self._tgt_tokenizer.eos_id))
     filtered = tf.math.logical_or(
         filtered, tf.math.logical_not(tf.math.logical_and(src_fits, tgt_fits)))
     return tf.cond(filtered, lambda: -1, _MaxLen)

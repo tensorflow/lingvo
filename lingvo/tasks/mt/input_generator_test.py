@@ -405,6 +405,38 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
             197, 446, 458, 419, 284, 323, 1411, 571, 456, 409, 13, 4, 2, 0, 0
         ], [115, 281, 18, 66, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
 
+  def testTextPackedInputKeepTruncated(self):
+    p = input_generator.TextPackedInput.Params()
+    p.flush_every_n = 0
+    p.repeat_count = 1
+    p.file_pattern = 'text:' + test_helper.test_src_dir_path(
+        'tasks/mt/testdata/en_de.text')
+    p.tokenizer = tokenizers.WpmTokenizer.Params().Set(
+        vocab_filepath=test_helper.test_src_dir_path(
+            'tasks/mt/wpm-ende-2k.voc'),
+        vocab_size=2000)
+    p.bucket_batch_limit = [2]
+
+    # Set short max lengths to test if truncated sequences are passed through.
+    p.source_max_length = 5
+    p.target_max_length = 5
+    p.keep_truncated = True
+
+    with self.session() as sess:
+      inp = p.Instantiate()
+      batch_tensor = inp.GetPreprocessedInputBatch()
+      batch = sess.run(batch_tensor)
+      print(batch)
+    self.assertAllEqual(
+        batch.src.ids,
+        np.array([[109, 251, 98, 595, 1009], [115, 276, 18, 66, 2]]))
+    self.assertAllEqual(
+        batch.tgt.ids, np.array([[1, 197, 446, 458, 419], [1, 115, 281, 18,
+                                                           66]]))
+    self.assertAllEqual(
+        batch.tgt.labels,
+        np.array([[197, 446, 458, 419, 284], [115, 281, 18, 66, 2]]))
+
   def testTextPackedInputTextPacking(self):
     p = input_generator.TextPackedInput.Params()
     p.flush_every_n = 0
