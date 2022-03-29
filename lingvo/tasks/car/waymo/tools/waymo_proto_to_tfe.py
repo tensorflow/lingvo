@@ -156,6 +156,22 @@ that the tracked object is of LEVEL_2 difficulty.
 
 nlz_proto_strs: string - Vector of NoLabelZone polygon protos.  Currently
 unused.
+
+* Camera labels
+There are 5 cameras in the dataset: "FRONT", "FRONT_LEFT", "FRONT_RIGHT",
+"SIDE_LEFT", and "SIDE_RIGHT".
+
+For each $CAM, we store:
+camera_bboxes_$CAM_bboxes_2d: float - A flattened [M, 4] matrix where there are
+M boxes in the frame, and each box is defined by a 4-DOF format - [center_x,
+center_y, length, width].
+
+camera_bboxes_$CAM_label_ids: string - [M] - The unique label string identifying
+each labeled object. This can be used for associating the same object across
+frames of the same run segment.
+
+camera_bboxes_$CAM_labels: int64 - [M] - The integer label class for every 2D
+bounding box corresponding to the enumeration defined in the proto.
 """
 
 import zlib
@@ -243,9 +259,10 @@ class FrameToTFE(object):
         camera_calibration.name: camera_calibration
         for camera_calibration in item.context.camera_calibrations
     })
-    # Extract camera image data and the calibrations.
+    # Extract camera image data, the calibrations, and bboxes.
     self.extract_camera_images(feature, item.images, camera_calibrations_dict)
     self.extract_camera_calibrations(feature, camera_calibrations_dict.values())
+    self.extract_camera_labels(feature, item.camera_labels)
 
     return key, output
 
@@ -642,6 +659,34 @@ class FrameToTFE(object):
     for nlz in no_label_zones:
       nlz_proto_strs += [tf.compat.as_bytes(nlz.SerializeToString())]
     feature['no_label_zones'].bytes_list.value[:] = nlz_proto_strs
+
+  def extract_camera_labels(self, feature, camera_labels):
+    """Extract the camera labels into the tf.Example feature map.
+
+    Args:
+      feature: A tf.Example feature map.
+      camera_labels: A CameraLabels proto from the Waymo Dataset.
+    """
+    for camera_label in camera_labels:
+      camera_name = camera_label.name
+      real_name = dataset_pb2.CameraName.Name.Name(camera_name)
+      bboxes = []
+      label_classes = []
+      label_ids = []
+      for label in camera_label.labels:
+        box = label.box
+        bbox_2d = [box.center_x, box.center_y, box.length, box.width]
+        bboxes += bbox_2d
+        label_classes += [label.type]
+        label_ids += [tf.compat.as_bytes(label.id)]
+
+      bboxes = np.array(bboxes).reshape(-1)
+      feature['camera_bboxes_%s_labels' %
+              real_name].int64_list.value[:] = label_classes
+      feature['camera_bboxes_%s_label_ids' %
+              real_name].bytes_list.value[:] = label_ids
+      feature['camera_bboxes_%s_bboxes_2d' %
+              real_name].float_list.value[:] = list(bboxes)
 
 
 class WaymoOpenDatasetConverter(beam.DoFn):
