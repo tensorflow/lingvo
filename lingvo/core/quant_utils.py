@@ -16,6 +16,7 @@
 """Utilities for model quantization."""
 
 import enum
+from typing import Optional
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -289,6 +290,113 @@ class QuantizableLayer(base_layer.BaseLayer):
     """
     qd = self._GetQDomain(domain)
     return qd.QuantizeWeight(w) if qd else w
+
+  def QMatmul(self,
+              lhs,
+              rhs,
+              *,
+              lhs_name: Optional[str],
+              rhs_name: Optional[str],
+              lhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              rhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              qdomain=None,
+              **op_kwargs):
+    qd = self._GetQDomain(qdomain)
+    if qd is None:
+      return tf.matmul(lhs, rhs, **op_kwargs)
+    else:
+      return qd.QMatmul(
+          lhs,
+          rhs,
+          lhs_name=lhs_name,
+          rhs_name=rhs_name,
+          lhs_dist=lhs_dist,
+          rhs_dist=rhs_dist,
+          **op_kwargs)
+
+  def QConv1D(self,
+              inputs,
+              filters,
+              strides,
+              padding,
+              *,
+              inputs_name: Optional[str],
+              filters_name: Optional[str],
+              inputs_dist: QDistribution = QDistribution.SYMMETRIC,
+              filters_dist: QDistribution = QDistribution.SYMMETRIC,
+              qdomain=None,
+              **op_kwargs):
+    qd = self._GetQDomain(qdomain)
+    if qd is None:
+      return tf.nn.conv1d(inputs, filters, strides, padding, **op_kwargs)
+    else:
+      return qd.QConv1D(
+          inputs,
+          filters,
+          strides,
+          padding,
+          inputs_name=inputs_name,
+          filters_name=filters_name,
+          inputs_dist=inputs_dist,
+          filters_dist=filters_dist,
+          **op_kwargs)
+
+  def QConv2D(self,
+              inputs,
+              filters,
+              strides,
+              padding,
+              *,
+              inputs_name: Optional[str],
+              filters_name: Optional[str],
+              inputs_dist: QDistribution = QDistribution.SYMMETRIC,
+              filters_dist: QDistribution = QDistribution.SYMMETRIC,
+              is_depthwise: bool = False,
+              qdomain=None,
+              **op_kwargs):
+    qd = self._GetQDomain(qdomain)
+    if qd is None:
+      if is_depthwise:
+        return tf.nn.depthwise_conv2d(inputs, filters, strides, padding,
+                                      **op_kwargs)
+      return tf.nn.conv2d(inputs, filters, strides, padding, **op_kwargs)
+    else:
+      return qd.QConv2D(
+          inputs,
+          filters,
+          strides,
+          padding,
+          inputs_name=inputs_name,
+          filters_name=filters_name,
+          inputs_dist=inputs_dist,
+          filters_dist=filters_dist,
+          is_depthwise=is_depthwise,
+          **op_kwargs)
+
+  def QEinsum(self,
+              equation,
+              lhs,
+              rhs,
+              *,
+              lhs_name: Optional[str],
+              rhs_name: Optional[str],
+              lhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              rhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              qdomain=None,
+              **einsum_kwargs):
+    qd = self._GetQDomain(qdomain)
+    if qd is None:
+      return tf.einsum(equation, lhs, rhs, **einsum_kwargs)
+    else:
+      return qd.QEinsum(
+          equation,
+          lhs,
+          rhs,
+          lhs_name=lhs_name,
+          rhs_name=rhs_name,
+          lhs_dist=lhs_dist,
+          rhs_dist=rhs_dist,
+          **einsum_kwargs)
 
   def ToAqtWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
     """Quantized integer weight AQT style.
@@ -632,6 +740,63 @@ class QDomain(base_layer.BaseLayer):
   def QRAct(self, act, dist: QDistribution):
     del dist
     return act
+
+  def QMatmul(self,
+              lhs,
+              rhs,
+              *,
+              lhs_name: Optional[str],
+              rhs_name: Optional[str],
+              lhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              rhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              **op_kwargs):
+    del lhs_name, rhs_name, lhs_dist, rhs_dist
+    return tf.matmul(lhs, rhs, **op_kwargs)
+
+  def QConv1D(self,
+              inputs,
+              filters,
+              strides,
+              padding,
+              *,
+              inputs_name: Optional[str],
+              filters_name: Optional[str],
+              inputs_dist: QDistribution = QDistribution.SYMMETRIC,
+              filters_dist: QDistribution = QDistribution.SYMMETRIC,
+              **op_kwargs):
+    del inputs_name, filters_name, inputs_dist, filters_dist
+    return tf.nn.conv1d(inputs, filters, strides, padding, **op_kwargs)
+
+  def QConv2D(self,
+              inputs,
+              filters,
+              strides,
+              padding,
+              *,
+              inputs_name: Optional[str],
+              filters_name: Optional[str],
+              inputs_dist: QDistribution = QDistribution.SYMMETRIC,
+              filters_dist: QDistribution = QDistribution.SYMMETRIC,
+              is_depthwise: bool = False,
+              **op_kwargs):
+    del inputs_name, filters_name, inputs_dist, filters_dist
+    if is_depthwise:
+      return tf.nn.depthwise_conv2d(inputs, filters, strides, padding,
+                                    **op_kwargs)
+    return tf.nn.conv2d(inputs, filters, strides, padding, **op_kwargs)
+
+  def QEinsum(self,
+              equation,
+              lhs,
+              rhs,
+              *,
+              lhs_name: Optional[str],
+              rhs_name: Optional[str],
+              lhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              rhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              **einsum_kwargs):
+    del lhs_name, rhs_name, lhs_dist, rhs_dist
+    return tf.einsum(equation, lhs, rhs, **einsum_kwargs)
 
   def ToAqtConv(self,
                 w_name,
