@@ -2154,6 +2154,8 @@
              <span class="s1">&#39;Mesh split dims mapping could require a fix for special cases.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_logit_cap&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Atten logit cap.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale_input_embedding_by_dim&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether or not to scale the input embedding state.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">attention_combine_dims</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -2380,6 +2382,9 @@
 
 <div class="viewcode-block" id="DenseBuilder.Embedding"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.Embedding">[docs]</a>  <span class="k">def</span> <span class="nf">Embedding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">vocab_dim</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">scaling_factor</span> <span class="o">=</span> <span class="mf">1.0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_input_embedding_by_dim</span><span class="p">:</span>
+      <span class="n">scaling_factor</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ids&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">],</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;emb_orig&#39;</span><span class="p">,</span>
@@ -2392,7 +2397,9 @@
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;one_hot_ids_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">one_hot_ids_split</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;emb,one_hot_ids_split-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;einsum&#39;</span><span class="p">,</span> <span class="s1">&#39;VM,BLV-&gt;BLM&#39;</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs_scaled&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span> <span class="o">*</span> <span class="n">scaling_factor</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_scaled-&gt;outputs&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;out_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">emb_out_split</span><span class="p">,</span> <span class="mi">2</span><span class="p">))))</span></div>
 
   <span class="nd">@property</span>
@@ -3319,6 +3326,8 @@
         <span class="s1">&#39; parallel_ffn is true currently.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;conv_kernel_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Optional 1D depthwise convolutional kernel.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale_decoder_outputs&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to scale decoder outputs by model dimension.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_per_layer_vars_for_recurrent&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -3551,7 +3560,8 @@
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">has_final_layer</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">dec_outputs</span><span class="p">,</span> <span class="n">aux_loss</span>
 
-      <span class="n">dec_outputs</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_decoder_outputs</span><span class="p">:</span>
+        <span class="n">dec_outputs</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
       <span class="n">dec_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_out_split</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_out_split</span><span class="p">,</span> <span class="n">dec_outputs</span><span class="p">)</span>
       <span class="c1"># TODO(lepikhin): we only support</span>
       <span class="c1"># shared_embedding_and_softmax_weights=True at the moment.</span>
@@ -3838,7 +3848,8 @@
     <span class="n">all_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta_with_state</span><span class="p">,</span> <span class="n">dec_inputs</span><span class="p">)</span>
     <span class="k">del</span> <span class="n">enc_output</span><span class="p">,</span> <span class="n">src_segment_ids</span><span class="p">,</span> <span class="n">src_segment_pos</span><span class="p">,</span> <span class="n">aux_loss</span>
     <span class="n">dec_outputs</span> <span class="o">=</span> <span class="n">all_outputs</span><span class="o">.</span><span class="n">vec</span>
-    <span class="n">dec_outputs</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_decoder_outputs</span><span class="p">:</span>
+      <span class="n">dec_outputs</span> <span class="o">*=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
     <span class="n">dec_outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">dec_out_split</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">dec_out_split</span><span class="p">,</span> <span class="n">dec_outputs</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;model_dim_reshape_segments&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">builder</span> <span class="ow">and</span>
         <span class="n">p</span><span class="o">.</span><span class="n">builder</span><span class="o">.</span><span class="n">model_dim_reshape_segments</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
