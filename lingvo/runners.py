@@ -720,9 +720,6 @@ class TrainerTpu(base_runner.BaseRunner):
       sess.run(self._load_ops)
       while True:
         train_steps_start = time.perf_counter()
-        if FLAGS.checkpoint_in_trainer_tpu:
-          # Init/restore variable if needed.
-          self._checkpointer.RestoreIfNeeded(sess)
 
         if self._trial.ShouldStopAndMaybeReport(
             global_step, eval_metrics) or self._ShouldEarlyStop(sess):
