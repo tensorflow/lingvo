@@ -811,14 +811,30 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Early stopping at step: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">_max_steps_for_early_stop</span><span class="p">)</span>
 
+        <span class="k">def</span> <span class="nf">_RunSave</span><span class="p">():</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">:</span>
+            <span class="c1"># Running retrieve ops is expensive, so do it only before</span>
+            <span class="c1"># checkpointing.</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
+            <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
+
+          <span class="n">checkpoint_write_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+          <span class="c1"># Save checkpoint asynchronously.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+          <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">checkpoint_write_start</span>
+
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">check_early_stop</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+            <span class="n">_RunSave</span><span class="p">()</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_DequeueThreadComplete</span><span class="p">()</span>
           <span class="k">return</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">:</span>
+          <span class="k">assert</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">,</span> <span class="p">(</span>
+              <span class="s1">&#39;When retrieve ops for TPU embedding is present, checkpointing &#39;</span>
+              <span class="s1">&#39;need to happen in TrainerTpu to avoid race conditions.&#39;</span><span class="p">)</span>
           <span class="n">infeed_loop_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
               <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
           <span class="n">infeed_loop_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
@@ -828,10 +844,9 @@
         <span class="n">tpu_train_op_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">tpu_train_op_start</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">:</span>
+          <span class="c1"># Wait for infeed loop to finish to avoid running it in parallel with</span>
+          <span class="c1"># retrieve ops.</span>
           <span class="n">infeed_loop_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params.&#39;</span><span class="p">)</span>
-          <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">)</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Retrieve params done.&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">PackMetricsValues</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
         <span class="n">eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">metrics</span>
@@ -873,13 +888,9 @@
                                       <span class="n">metric_value</span><span class="p">)</span>
 
         <span class="n">checkpoint_write_secs</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
-          <span class="n">checkpoint_write_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
-          <span class="c1"># Save checkpoint asynchronously.</span>
-          <span class="n">checkpoint_saved</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span>
-              <span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-          <span class="k">if</span> <span class="n">checkpoint_saved</span><span class="p">:</span>
-            <span class="n">checkpoint_write_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">checkpoint_write_start</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span> <span class="ow">and</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span><span class="n">global_step</span><span class="p">)):</span>
+          <span class="n">checkpoint_write_secs</span> <span class="o">=</span> <span class="n">_RunSave</span><span class="p">()</span>
         <span class="n">train_steps_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">train_steps_start</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span>
             <span class="c1"># Metrics expects python int, but global_step is numpy.int64.</span>
