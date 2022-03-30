@@ -506,8 +506,12 @@ class MoEBuilder(builder.Base):
       norm_layer = self._LN('ln')
     elif norm_type == 'true_ln':
       norm_layer = self._TrueLN('true_ln')
+    elif norm_type == 'jax_replica_ln':
+      norm_layer = self._JaxReplicaLN('jax_replica_ln')
     elif norm_type == 'pn':
       norm_layer = self._PN('pn')
+    elif norm_type == 'none':
+      norm_layer = self._Identity('no_ln')
     else:
       raise ValueError('Norm type %s not supported.' % norm_type)
     layer_input_keys = self._DecoderLayerInMapKeys
@@ -560,8 +564,12 @@ class MoEBuilder(builder.Base):
         post_norm_layer = self._LN('post_ln')
       elif norm_type == 'true_ln':
         post_norm_layer = self._TrueLN('post_true_ln')
+      elif norm_type == 'jax_replica_ln':
+        post_norm_layer = self._JaxReplicaLN('post_jax_replica_ln')
       elif norm_type == 'pn':
         post_norm_layer = self._PN('post_pn')
+      elif norm_type == 'none':
+        post_norm_layer = self._Identity('post_no_ln')
       else:
         raise ValueError('Norm type %s not supported.' % norm_type)
       return self._Graph(
@@ -1665,6 +1673,41 @@ class MoEBuilder(builder.Base):
          self._Var(name='w_shift', weights=[('shift', ln_shift_params)])),
         ('x,scale,shift->x_norm', self._Fn('true_ln', LN)))
 
+  def _JaxReplicaLN(self, name, ln_weight_reshape=None):
+    """A replica of Lingvo's JAX LN."""
+
+    def LN(x, scale, shift):
+      eps = self.params.layer_norm_epsilon
+      axis = [d + 2 for d in range(len(x.shape) - 2)]
+      mean = tf.reduce_mean(x, keepdims=True, axis=axis)
+      mean_centered_x = x - mean
+      var = tf.reduce_mean(
+          tf.math.square((mean_centered_x)), keepdims=True, axis=axis)
+      normed_inputs = (mean_centered_x) * tf.math.rsqrt(var + eps)
+      scale += 1.0
+      if ln_weight_reshape is not None:
+        scale = tf.reshape(scale, ln_weight_reshape)
+        shift = tf.reshape(shift, ln_weight_reshape)
+      output = normed_inputs * scale + shift
+      return output
+
+    ln_scale_params = py_utils.WeightParams(
+        init=py_utils.WeightInit.Constant(1.0),
+        dtype=self.params.dtype,
+        shape=[self.params.model_dim])
+    ln_shift_params = py_utils.WeightParams(
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=self.params.dtype,
+        shape=[self.params.model_dim])
+
+    return self._Graph(
+        name, ['x'], ['x_norm'],
+        ('->scale',
+         self._Var(name='w_scale', weights=[('scale', ln_scale_params)])),
+        ('->shift',
+         self._Var(name='w_shift', weights=[('shift', ln_shift_params)])),
+        ('x,scale,shift->x_norm', self._Fn('jax_replica_ln', LN)))
+
   def _PN(self, name, ln_weight_reshape=None):
     """Primer normalization."""
 
@@ -2132,6 +2175,14 @@ class DenseBuilder(MoEBuilder):
 
     ln_weight_reshape = self._ReshapedModelDims()
     return super()._TrueLN(name, ln_weight_reshape)
+
+  def _JaxReplicaLN(self, name):
+    """Overriding _JaxReplicaLN to consider model_dim_reshape_segments."""
+    if self._model_dim_reshape_segments is None:
+      return super()._JaxReplicaLN(name)
+
+    ln_weight_reshape = self._ReshapedModelDims()
+    return super()._JaxReplicaLN(name, ln_weight_reshape)
 
   @property
   def _device_mesh(self):
@@ -3056,8 +3107,14 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
     elif norm_type == 'true_ln':
       norm_layer = self._TrueLN('true_ln')
       optional_conv_layer = self._Identity('conv')
+    elif norm_type == 'jax_replica_ln':
+      norm_layer = self._JaxReplicaLN('jax_replica_ln')
+      optional_conv_layer = self._Identity('conv')
     elif norm_type == 'pn':
       norm_layer = self._PN('pn')
+      optional_conv_layer = self._Identity('conv')
+    elif norm_type == 'none':
+      norm_layer = self._Identity('no_ln')
       optional_conv_layer = self._Identity('conv')
     else:
       raise ValueError('Norm type %s not supported' % norm_type)
@@ -3213,8 +3270,9 @@ class UniTransformer(base_model.BaseTask):
         'moe', False,
         'True for Mixture-of-Experts, False for canonical Transformer model, ')
     p.Define('activation', 'relu', 'Transformer non-gated FFN activation.')
-    p.Define('norm_type', 'ln', 'Type of normalization. Options are: '
-             '[ln, pn, true_ln].')
+    p.Define(
+        'norm_type', 'ln', 'Type of normalization. Options are: '
+        '[ln, pn, true_ln, jax_replica_ln, no_ln].')
     p.Define(
         'norm_policy', 'pre', 'Policy for applying normalization. '
         'Options are: [pre, primer, primer_hybrid].')
