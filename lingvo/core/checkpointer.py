@@ -131,6 +131,11 @@ class SaverWrapper:
     else:
       self._saver.Restore(sess, path=path)
 
+  def Sync(self):
+    """Wait for any outstanding async saving operations to finish."""
+    if self._use_custom_saver:
+      self._saver.Sync()
+
 
 class Checkpointer:
   """Checkpointing utility class.
@@ -294,32 +299,42 @@ class Checkpointer:
       # Use save_interval_seconds otherwise.
       return time.time() >= self._next_checkpoint_seconds
 
-  def MaybeSave(self, sess=None, gsteps=None):
+  def MaybeSave(self, sess=None, gsteps=None, sync=True):
     """If it's time to save, save the checkpoint.
 
     Args:
       sess: tf.Session.
       gsteps: Current global step.
+      sync: Whether to wait for the saving operations to finish. Only applicable
+        when async checkpointing is used.
     Returns:
       Whether a checkpoint was saved.
     """
     if self.ShouldSave(gsteps):
-      self.Save(sess, gsteps)
+      self.Save(sess, gsteps, sync)
       return True
     return False
 
-  def Save(self, sess=None, gsteps=None):
+  def Save(self, sess=None, gsteps=None, sync=True):
     """Save the checkpoint.
 
     Args:
       sess: tf.Session.
       gsteps: Current global step.
+      sync: Whether to wait for the saving operations to finish. Only applicable
+        when async checkpointing is used.
     """
     tf.logging.info('Save checkpoint')
     path = self._saver.Save(sess, gsteps)
     tf.logging.info('Save checkpoint done: %s', path)
     self._prev_ckpt_step = gsteps
     self._UpdateNextSaveTime()
+    if sync:
+      self.Sync()
+
+  def Sync(self):
+    """Wait for any outstanding async operations to finish."""
+    self._saver.Sync()
 
   def _UpdateNextSaveTime(self):
     now = time.time()
@@ -597,7 +612,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     self._MaybeOverwriteModelVariablesWithEMA()
     return checkpoint_path
 
-  def Save(self, sess=None, gsteps=None):
+  def Save(self, sess=None, gsteps=None, sync=True):
     """`sess` is unused in Eager context."""
     assert sess is None
 
@@ -612,6 +627,10 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     tf.logging.info('Save checkpoint (V1) done: %s', path)
     self._prev_ckpt_step = gsteps
     self._UpdateNextSaveTime()
+
+  def Sync(self):
+    # Async checkpointing is not implemented in eager mode.
+    pass
 
 
 class EagerCheckpointerV2(_EagerCheckpointer):
@@ -697,7 +716,7 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     self._MaybeOverwriteModelVariablesWithEMA()
     return checkpoint_path
 
-  def Save(self, sess=None, gsteps=None):
+  def Save(self, sess=None, gsteps=None, sync=True):
     """`sess` is unused in Eager context."""
     assert sess is None
 
@@ -711,6 +730,10 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     tf.logging.info('Save checkpoint (V2) done: %s', path)
     self._prev_ckpt_step = gsteps
     self._UpdateNextSaveTime()
+
+  def Sync(self):
+    # Async checkpointing is not implemented in eager mode.
+    pass
 
 
 def GetSpecificCheckpoint(load_checkpoint_from):

@@ -810,7 +810,9 @@ class TrainerTpu(base_runner.BaseRunner):
         checkpoint_write_secs = 0.0
         if FLAGS.checkpoint_in_trainer_tpu:
           checkpoint_write_start = time.perf_counter()
-          checkpoint_saved = self._checkpointer.MaybeSave(sess, global_step)
+          # Save checkpoint asynchronously.
+          checkpoint_saved = self._checkpointer.MaybeSave(
+              sess, global_step, sync=False)
           if checkpoint_saved:
             checkpoint_write_secs = time.perf_counter() - checkpoint_write_start
         train_steps_secs = time.perf_counter() - train_steps_start

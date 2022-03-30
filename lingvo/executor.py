@@ -518,8 +518,8 @@ class ExecutorTpu(base_runner.BaseRunner):
           # from checkpoint.
           for program in self._programs:
             program.SaveProgramState(sess, global_step)
-          # Save the checkpoints.
-          self._checkpointer.Save(sess, global_step)
+          # Save the checkpoints asynchronously.
+          self._checkpointer.Save(sess, global_step, sync=False)
 
         checkpoint_write_secs = 0.0
         if not self._ml_perf_log and self._checkpointer.ShouldSave(global_step):
@@ -550,6 +550,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         )
 
         def _ShutDown():
+          self._checkpointer.Sync()
           program_threadpool.close()
           program_threadpool.join()
           tf.logging.info(

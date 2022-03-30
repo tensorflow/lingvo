@@ -266,9 +266,8 @@ class Saver:
       Returns the global step and file prefix.
     """
 
-    if self._async_save_thread is not None:
-      # Waiting for the previous save to finish.
-      self._async_save_thread.join()
+    # Waiting for the previous save to finish.
+    self.Sync()
     if self._async_exception is not None:
       e = self._async_exception
       self._async_exception = None
@@ -454,8 +453,7 @@ class Saver:
       successfully restored, returns the checkpoint's global step and file
       prefix. Otherwise, raises an error.
     """
-    if self._async_save_thread is not None:
-      self._async_save_thread.join()
+    self.Sync()
     if path:
       prefix = path
     elif checkpoint_id:
@@ -470,6 +468,12 @@ class Saver:
     global_step = self.GetCheckpointId(prefix)
     tf.logging.info("Restored %d %s", global_step, prefix)
     return global_step, prefix
+
+  def Sync(self):
+    """Wait for any outstanding async operations to finish."""
+    if self._async_save_thread is not None:
+      self._async_save_thread.join()
+      self._async_save_thread = None
 
 
 def WriteNpArrays(file_prefix, nmap):
