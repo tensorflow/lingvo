@@ -686,8 +686,7 @@ class ConformerLayer(base_layer.BaseLayer):
         atten_type = 'chunk_relative'
       else:
         atten_type = 'chunk'
-
-    if not _AttenCtxIsSet(atten_left_context) and not _AttenCtxIsSet(
+    elif not _AttenCtxIsSet(atten_left_context) and not _AttenCtxIsSet(
         atten_right_context):
       # No atten context set, each position attends to all positions.
       atten_type = 'global' if not use_relative_atten else 'global_relative'
