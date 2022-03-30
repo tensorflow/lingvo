@@ -81,6 +81,7 @@
 <span class="sd">&quot;&quot;&quot;Utilities for model quantization.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -354,6 +355,113 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeWeight</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">w</span></div>
+
+<div class="viewcode-block" id="QuantizableLayer.QMatmul"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QMatmul">[docs]</a>  <span class="k">def</span> <span class="nf">QMatmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">lhs</span><span class="p">,</span>
+              <span class="n">rhs</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">lhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">lhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">rhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QMatmul</span><span class="p">(</span>
+          <span class="n">lhs</span><span class="p">,</span>
+          <span class="n">rhs</span><span class="p">,</span>
+          <span class="n">lhs_name</span><span class="o">=</span><span class="n">lhs_name</span><span class="p">,</span>
+          <span class="n">rhs_name</span><span class="o">=</span><span class="n">rhs_name</span><span class="p">,</span>
+          <span class="n">lhs_dist</span><span class="o">=</span><span class="n">lhs_dist</span><span class="p">,</span>
+          <span class="n">rhs_dist</span><span class="o">=</span><span class="n">rhs_dist</span><span class="p">,</span>
+          <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QuantizableLayer.QConv1D"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QConv1D">[docs]</a>  <span class="k">def</span> <span class="nf">QConv1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">inputs</span><span class="p">,</span>
+              <span class="n">filters</span><span class="p">,</span>
+              <span class="n">strides</span><span class="p">,</span>
+              <span class="n">padding</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">inputs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">filters_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">inputs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">filters_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv1d</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QConv1D</span><span class="p">(</span>
+          <span class="n">inputs</span><span class="p">,</span>
+          <span class="n">filters</span><span class="p">,</span>
+          <span class="n">strides</span><span class="p">,</span>
+          <span class="n">padding</span><span class="p">,</span>
+          <span class="n">inputs_name</span><span class="o">=</span><span class="n">inputs_name</span><span class="p">,</span>
+          <span class="n">filters_name</span><span class="o">=</span><span class="n">filters_name</span><span class="p">,</span>
+          <span class="n">inputs_dist</span><span class="o">=</span><span class="n">inputs_dist</span><span class="p">,</span>
+          <span class="n">filters_dist</span><span class="o">=</span><span class="n">filters_dist</span><span class="p">,</span>
+          <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QuantizableLayer.QConv2D"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">QConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">inputs</span><span class="p">,</span>
+              <span class="n">filters</span><span class="p">,</span>
+              <span class="n">strides</span><span class="p">,</span>
+              <span class="n">padding</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">inputs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">filters_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">inputs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">filters_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">is_depthwise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+              <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">is_depthwise</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">depthwise_conv2d</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span>
+                                      <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QConv2D</span><span class="p">(</span>
+          <span class="n">inputs</span><span class="p">,</span>
+          <span class="n">filters</span><span class="p">,</span>
+          <span class="n">strides</span><span class="p">,</span>
+          <span class="n">padding</span><span class="p">,</span>
+          <span class="n">inputs_name</span><span class="o">=</span><span class="n">inputs_name</span><span class="p">,</span>
+          <span class="n">filters_name</span><span class="o">=</span><span class="n">filters_name</span><span class="p">,</span>
+          <span class="n">inputs_dist</span><span class="o">=</span><span class="n">inputs_dist</span><span class="p">,</span>
+          <span class="n">filters_dist</span><span class="o">=</span><span class="n">filters_dist</span><span class="p">,</span>
+          <span class="n">is_depthwise</span><span class="o">=</span><span class="n">is_depthwise</span><span class="p">,</span>
+          <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QuantizableLayer.QEinsum"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QEinsum">[docs]</a>  <span class="k">def</span> <span class="nf">QEinsum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">equation</span><span class="p">,</span>
+              <span class="n">lhs</span><span class="p">,</span>
+              <span class="n">rhs</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">lhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">lhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">rhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">einsum_kwargs</span><span class="p">):</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">einsum_kwargs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QEinsum</span><span class="p">(</span>
+          <span class="n">equation</span><span class="p">,</span>
+          <span class="n">lhs</span><span class="p">,</span>
+          <span class="n">rhs</span><span class="p">,</span>
+          <span class="n">lhs_name</span><span class="o">=</span><span class="n">lhs_name</span><span class="p">,</span>
+          <span class="n">rhs_name</span><span class="o">=</span><span class="n">rhs_name</span><span class="p">,</span>
+          <span class="n">lhs_dist</span><span class="o">=</span><span class="n">lhs_dist</span><span class="p">,</span>
+          <span class="n">rhs_dist</span><span class="o">=</span><span class="n">rhs_dist</span><span class="p">,</span>
+          <span class="o">**</span><span class="n">einsum_kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.ToAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantized integer weight AQT style.</span>
@@ -697,6 +805,63 @@
 <div class="viewcode-block" id="QDomain.QRAct"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QRAct">[docs]</a>  <span class="k">def</span> <span class="nf">QRAct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act</span><span class="p">,</span> <span class="n">dist</span><span class="p">:</span> <span class="n">QDistribution</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">dist</span>
     <span class="k">return</span> <span class="n">act</span></div>
+
+<div class="viewcode-block" id="QDomain.QMatmul"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QMatmul">[docs]</a>  <span class="k">def</span> <span class="nf">QMatmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">lhs</span><span class="p">,</span>
+              <span class="n">rhs</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">lhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">lhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">rhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">lhs_name</span><span class="p">,</span> <span class="n">rhs_name</span><span class="p">,</span> <span class="n">lhs_dist</span><span class="p">,</span> <span class="n">rhs_dist</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QDomain.QConv1D"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QConv1D">[docs]</a>  <span class="k">def</span> <span class="nf">QConv1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">inputs</span><span class="p">,</span>
+              <span class="n">filters</span><span class="p">,</span>
+              <span class="n">strides</span><span class="p">,</span>
+              <span class="n">padding</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">inputs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">filters_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">inputs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">filters_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">inputs_name</span><span class="p">,</span> <span class="n">filters_name</span><span class="p">,</span> <span class="n">inputs_dist</span><span class="p">,</span> <span class="n">filters_dist</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv1d</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QDomain.QConv2D"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">QConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">inputs</span><span class="p">,</span>
+              <span class="n">filters</span><span class="p">,</span>
+              <span class="n">strides</span><span class="p">,</span>
+              <span class="n">padding</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">inputs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">filters_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">inputs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">filters_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">is_depthwise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">inputs_name</span><span class="p">,</span> <span class="n">filters_name</span><span class="p">,</span> <span class="n">inputs_dist</span><span class="p">,</span> <span class="n">filters_dist</span>
+    <span class="k">if</span> <span class="n">is_depthwise</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">depthwise_conv2d</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span>
+                                    <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv2d</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QDomain.QEinsum"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QEinsum">[docs]</a>  <span class="k">def</span> <span class="nf">QEinsum</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">equation</span><span class="p">,</span>
+              <span class="n">lhs</span><span class="p">,</span>
+              <span class="n">rhs</span><span class="p">,</span>
+              <span class="o">*</span><span class="p">,</span>
+              <span class="n">lhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">lhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">rhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="o">**</span><span class="n">einsum_kwargs</span><span class="p">):</span>
+    <span class="k">del</span> <span class="n">lhs_name</span><span class="p">,</span> <span class="n">rhs_name</span><span class="p">,</span> <span class="n">lhs_dist</span><span class="p">,</span> <span class="n">rhs_dist</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">einsum_kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QDomain.ToAqtConv"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.ToAqtConv">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                 <span class="n">w_name</span><span class="p">,</span>
