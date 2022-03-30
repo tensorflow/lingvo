@@ -746,14 +746,30 @@ class TrainerTpu(base_runner.BaseRunner):
             tf.logging.info('Early stopping at step: %d',
                             self._max_steps_for_early_stop)
 
+        def _RunSave():
+          if self._retrieve_ops:
+            # Running retrieve ops is expensive, so do it only before
+            # checkpointing.
+            tf.logging.info('Retrieve params.')
+            sess.run(self._retrieve_ops)
+            tf.logging.info('Retrieve params done.')
+
+          checkpoint_write_start = time.perf_counter()
+          # Save checkpoint asynchronously.
+          self._checkpointer.Save(sess, global_step, sync=False)
+          return time.perf_counter() - checkpoint_write_start
+
         if self._ShouldStop(sess, global_step, check_early_stop=False):
           tf.logging.info('Training finished.')
           if FLAGS.checkpoint_in_trainer_tpu:
-            self._checkpointer.Save(sess, global_step)
+            _RunSave()
           self._DequeueThreadComplete()
           return
 
         if self._retrieve_ops:
+          assert FLAGS.checkpoint_in_trainer_tpu, (
+              'When retrieve ops for TPU embedding is present, checkpointing '
+              'need to happen in TrainerTpu to avoid race conditions.')
           infeed_loop_thread = threading.Thread(
               target=self._InfeedLoop, args=(sess,))
           infeed_loop_thread.start()
@@ -763,10 +779,9 @@ class TrainerTpu(base_runner.BaseRunner):
         tpu_train_op_secs = time.perf_counter() - tpu_train_op_start
 
         if self._retrieve_ops:
+          # Wait for infeed loop to finish to avoid running it in parallel with
+          # retrieve ops.
           infeed_loop_thread.join()
-          tf.logging.info('Retrieve params.')
-          sess.run(self._retrieve_ops)
-          tf.logging.info('Retrieve params done.')
 
         self._eval_metrics.PackMetricsValues(values)
         eval_metrics = self._eval_metrics.metrics
@@ -808,13 +823,9 @@ class TrainerTpu(base_runner.BaseRunner):
                                       metric_value)
 
         checkpoint_write_secs = 0.0
-        if FLAGS.checkpoint_in_trainer_tpu:
-          checkpoint_write_start = time.perf_counter()
-          # Save checkpoint asynchronously.
-          checkpoint_saved = self._checkpointer.MaybeSave(
-              sess, global_step, sync=False)
-          if checkpoint_saved:
-            checkpoint_write_secs = time.perf_counter() - checkpoint_write_start
+        if (FLAGS.checkpoint_in_trainer_tpu and
+            self._checkpointer.ShouldSave(global_step)):
+          checkpoint_write_secs = _RunSave()
         train_steps_secs = time.perf_counter() - train_steps_start
         self._ExportMetrics(
             # Metrics expects python int, but global_step is numpy.int64.
