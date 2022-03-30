@@ -967,6 +967,8 @@ class ConformerLayer(base_layer.BaseLayer):
         out_nmap.language_vector = in_nmap.language_vector
       if 'language_id' in in_nmap:
         out_nmap.language_id = in_nmap.language_id
+      if 'domain_id_emb' in in_nmap:
+        out_nmap.domain_id_emb = in_nmap.domain_id_emb
       inputs = self.final_ln.FProp(theta.final_ln, inputs)
       inputs, paddings = self._CastToFPropDtype((inputs, paddings))
       out_nmap.features = inputs
