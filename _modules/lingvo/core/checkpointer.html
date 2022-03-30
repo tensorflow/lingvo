@@ -194,7 +194,12 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_custom_saver</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span></div></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SaverWrapper.Sync"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.SaverWrapper.Sync">[docs]</a>  <span class="k">def</span> <span class="nf">Sync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wait for any outstanding async saving operations to finish.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_custom_saver</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">Sync</span><span class="p">()</span></div></div>
 
 
 <div class="viewcode-block" id="Checkpointer"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer">[docs]</a><span class="k">class</span> <span class="nc">Checkpointer</span><span class="p">:</span>
@@ -359,32 +364,42 @@
       <span class="c1"># Use save_interval_seconds otherwise.</span>
       <span class="k">return</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span></div>
 
-<div class="viewcode-block" id="Checkpointer.MaybeSave"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.MaybeSave">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer.MaybeSave"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.MaybeSave">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If it&#39;s time to save, save the checkpoint.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      sess: tf.Session.</span>
 <span class="sd">      gsteps: Current global step.</span>
+<span class="sd">      sync: Whether to wait for the saving operations to finish. Only applicable</span>
+<span class="sd">        when async checkpointing is used.</span>
 <span class="sd">    Returns:</span>
 <span class="sd">      Whether a checkpoint was saved.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ShouldSave</span><span class="p">(</span><span class="n">gsteps</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">,</span> <span class="n">sync</span><span class="p">)</span>
       <span class="k">return</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="kc">False</span></div>
 
-<div class="viewcode-block" id="Checkpointer.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Save the checkpoint.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      sess: tf.Session.</span>
 <span class="sd">      gsteps: Current global step.</span>
+<span class="sd">      sync: Whether to wait for the saving operations to finish. Only applicable</span>
+<span class="sd">        when async checkpointing is used.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint&#39;</span><span class="p">)</span>
     <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint done: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">=</span> <span class="n">gsteps</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">sync</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">Sync</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="Checkpointer.Sync"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Sync">[docs]</a>  <span class="k">def</span> <span class="nf">Sync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wait for any outstanding async operations to finish.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">Sync</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="Checkpointer._UpdateNextSaveTime"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._UpdateNextSaveTime">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateNextSaveTime</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
@@ -662,7 +677,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeOverwriteModelVariablesWithEMA</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">checkpoint_path</span></div>
 
-<div class="viewcode-block" id="EagerCheckpointerV1.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="EagerCheckpointerV1.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
 
@@ -676,7 +691,11 @@
         <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_path</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="n">gsteps</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint (V1) done: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">=</span> <span class="n">gsteps</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span></div></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="EagerCheckpointerV1.Sync"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.Sync">[docs]</a>  <span class="k">def</span> <span class="nf">Sync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Async checkpointing is not implemented in eager mode.</span>
+    <span class="k">pass</span></div></div>
 
 
 <div class="viewcode-block" id="EagerCheckpointerV2"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2">[docs]</a><span class="k">class</span> <span class="nc">EagerCheckpointerV2</span><span class="p">(</span><span class="n">_EagerCheckpointer</span><span class="p">):</span>
@@ -762,7 +781,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeOverwriteModelVariablesWithEMA</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">checkpoint_path</span></div>
 
-<div class="viewcode-block" id="EagerCheckpointerV2.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="EagerCheckpointerV2.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gsteps</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">sync</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
 
@@ -775,7 +794,11 @@
     <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver_mgr</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint_number</span><span class="o">=</span><span class="n">gsteps</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint (V2) done: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">=</span> <span class="n">gsteps</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span></div></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="EagerCheckpointerV2.Sync"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2.Sync">[docs]</a>  <span class="k">def</span> <span class="nf">Sync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Async checkpointing is not implemented in eager mode.</span>
+    <span class="k">pass</span></div></div>
 
 
 <div class="viewcode-block" id="GetSpecificCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.GetSpecificCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">GetSpecificCheckpoint</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">):</span>

@@ -125,6 +125,12 @@
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.checkpointer.SaverWrapper.Sync">
+<span class="sig-name descname"><span class="pre">Sync</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#SaverWrapper.Sync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.SaverWrapper.Sync" title="Permalink to this definition"></a></dt>
+<dd><p>Wait for any outstanding async saving operations to finish.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -169,13 +175,15 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.checkpointer.Checkpointer.MaybeSave">
-<span class="sig-name descname"><span class="pre">MaybeSave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.MaybeSave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.MaybeSave" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">MaybeSave</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.MaybeSave"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.MaybeSave" title="Permalink to this definition"></a></dt>
 <dd><p>If it’s time to save, save the checkpoint.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sess</strong> – tf.Session.</p></li>
 <li><p><strong>gsteps</strong> – Current global step.</p></li>
+<li><p><strong>sync</strong> – Whether to wait for the saving operations to finish. Only applicable
+when async checkpointing is used.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -186,16 +194,24 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.checkpointer.Checkpointer.Save">
-<span class="sig-name descname"><span class="pre">Save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.Save" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">Save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.Save" title="Permalink to this definition"></a></dt>
 <dd><p>Save the checkpoint.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sess</strong> – tf.Session.</p></li>
 <li><p><strong>gsteps</strong> – Current global step.</p></li>
+<li><p><strong>sync</strong> – Whether to wait for the saving operations to finish. Only applicable
+when async checkpointing is used.</p></li>
 </ul>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.checkpointer.Checkpointer.Sync">
+<span class="sig-name descname"><span class="pre">Sync</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#Checkpointer.Sync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.Checkpointer.Sync" title="Permalink to this definition"></a></dt>
+<dd><p>Wait for any outstanding async operations to finish.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -319,8 +335,14 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.checkpointer.EagerCheckpointerV1.Save">
-<span class="sig-name descname"><span class="pre">Save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#EagerCheckpointerV1.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.EagerCheckpointerV1.Save" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">Save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#EagerCheckpointerV1.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.EagerCheckpointerV1.Save" title="Permalink to this definition"></a></dt>
 <dd><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sess</span></code> is unused in Eager context.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.checkpointer.EagerCheckpointerV1.Sync">
+<span class="sig-name descname"><span class="pre">Sync</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#EagerCheckpointerV1.Sync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.EagerCheckpointerV1.Sync" title="Permalink to this definition"></a></dt>
+<dd><p>Wait for any outstanding async operations to finish.</p>
 </dd></dl>
 
 </dd></dl>
@@ -356,8 +378,14 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.checkpointer.EagerCheckpointerV2.Save">
-<span class="sig-name descname"><span class="pre">Save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#EagerCheckpointerV2.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.EagerCheckpointerV2.Save" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">Save</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gsteps</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sync</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#EagerCheckpointerV2.Save"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.EagerCheckpointerV2.Save" title="Permalink to this definition"></a></dt>
 <dd><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">sess</span></code> is unused in Eager context.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.checkpointer.EagerCheckpointerV2.Sync">
+<span class="sig-name descname"><span class="pre">Sync</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/checkpointer.html#EagerCheckpointerV2.Sync"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.checkpointer.EagerCheckpointerV2.Sync" title="Permalink to this definition"></a></dt>
+<dd><p>Wait for any outstanding async operations to finish.</p>
 </dd></dl>
 
 </dd></dl>

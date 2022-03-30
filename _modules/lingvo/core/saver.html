@@ -331,9 +331,8 @@
 <span class="sd">      Returns the global step and file prefix.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="c1"># Waiting for the previous save to finish.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="c1"># Waiting for the previous save to finish.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Sync</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="o">=</span> <span class="kc">None</span>
@@ -519,8 +518,7 @@
 <span class="sd">      successfully restored, returns the checkpoint&#39;s global step and file</span>
 <span class="sd">      prefix. Otherwise, raises an error.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">Sync</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
       <span class="n">prefix</span> <span class="o">=</span> <span class="n">path</span>
     <span class="k">elif</span> <span class="n">checkpoint_id</span><span class="p">:</span>
@@ -534,7 +532,13 @@
         <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_op</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span><span class="p">:</span> <span class="n">prefix</span><span class="p">})</span>
     <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Restored </span><span class="si">%d</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span></div></div>
+    <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span></div>
+
+<div class="viewcode-block" id="Saver.Sync"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Sync">[docs]</a>  <span class="k">def</span> <span class="nf">Sync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wait for any outstanding async operations to finish.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="o">=</span> <span class="kc">None</span></div></div>
 
 
 <div class="viewcode-block" id="WriteNpArrays"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.WriteNpArrays">[docs]</a><span class="k">def</span> <span class="nf">WriteNpArrays</span><span class="p">(</span><span class="n">file_prefix</span><span class="p">,</span> <span class="n">nmap</span><span class="p">):</span>
