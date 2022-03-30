@@ -2089,6 +2089,8 @@ class DenseBuilder(MoEBuilder):
              'Mesh split dims mapping could require a fix for special cases.')
 
     p.Define('atten_logit_cap', 0.0, 'Atten logit cap.')
+    p.Define('scale_input_embedding_by_dim', False,
+             'Whether or not to scale the input embedding state.')
 
     p.attention_combine_dims = False
     return p
@@ -2315,6 +2317,9 @@ class DenseBuilder(MoEBuilder):
 
   def Embedding(self, name, vocab_dim):
     p = self.params
+    scaling_factor = 1.0
+    if p.scale_input_embedding_by_dim:
+      scaling_factor = np.sqrt(p.model_dim)
     return self._Graph(
         name, ['ids'], ['outputs'],
         ('->emb_orig',
@@ -2327,7 +2332,9 @@ class DenseBuilder(MoEBuilder):
          self.MeshSplit('one_hot_ids_split', p.one_hot_ids_split)),
         ('emb,one_hot_ids_split->outputs_pre_split',
          self.EinsumWithModelDim('einsum', 'VM,BLV->BLM')),
-        ('outputs_pre_split->outputs',
+        ('outputs_pre_split->outputs_scaled',
+         self._Fn('scale', fn=lambda x: x * scaling_factor)),
+        ('outputs_scaled->outputs',
          self.MeshSplit('out_split', self._AdjustMSplit(p.emb_out_split, 2))))
 
   @property
@@ -3254,6 +3261,8 @@ class UniTransformer(base_model.BaseTask):
         ' parallel_ffn is true currently.')
     p.Define('conv_kernel_size', None,
              'Optional 1D depthwise convolutional kernel.')
+    p.Define('scale_decoder_outputs', True,
+             'Whether to scale decoder outputs by model dimension.')
 
     p.Define(
         'use_per_layer_vars_for_recurrent', False,
@@ -3486,7 +3495,8 @@ class UniTransformer(base_model.BaseTask):
       if not p.has_final_layer:
         return dec_outputs, aux_loss
 
-      dec_outputs *= (p.builder.model_dim**-0.5)
+      if p.scale_decoder_outputs:
+        dec_outputs *= (p.builder.model_dim**-0.5)
       dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
       # TODO(lepikhin): we only support
       # shared_embedding_and_softmax_weights=True at the moment.
@@ -3773,7 +3783,8 @@ class UniTransformer(base_model.BaseTask):
     all_outputs = self.dec.FProp(theta_with_state, dec_inputs)
     del enc_output, src_segment_ids, src_segment_pos, aux_loss
     dec_outputs = all_outputs.vec
-    dec_outputs *= (p.builder.model_dim**-0.5)
+    if p.scale_decoder_outputs:
+      dec_outputs *= (p.builder.model_dim**-0.5)
     dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
     if ('model_dim_reshape_segments' in p.builder and
         p.builder.model_dim_reshape_segments is not None):
