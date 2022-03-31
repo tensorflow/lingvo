@@ -31,14 +31,13 @@ from typing import Optional, Sequence
 from absl import app
 from absl import flags
 from absl import logging
+# Required import to setup work units when running through XManager.
 from clu import platform
 import jax
 from lingvo.jax import eval as eval_lib
 from lingvo.jax import py_utils
 from lingvo.jax import train
 import tensorflow.compat.v2 as tf
-
-# Required import to setup work units when running through XManager.
 
 
 FLAGS = flags.FLAGS
