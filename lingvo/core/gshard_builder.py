@@ -2091,6 +2091,8 @@ class DenseBuilder(MoEBuilder):
     p.Define('atten_logit_cap', 0.0, 'Atten logit cap.')
     p.Define('scale_input_embedding_by_dim', False,
              'Whether or not to scale the input embedding state.')
+    p.Define('softplus_scale_q', False,
+             'Whether or not to scale q in self-attention.')
 
     p.attention_combine_dims = False
     return p
@@ -2528,11 +2530,32 @@ class DenseBuilder(MoEBuilder):
       assert p.attention_num_memory_heads is None, p.attention_num_memory_heads
       return tf.einsum('BLHM,BMHD->BLHD', weights, v, name='attention_output')
 
+    if p.softplus_scale_q:
+
+      def _ScaleFn(x):
+        return tf.nn.softplus(x) / tf.nn.softplus(
+            tf.constant(0.0, dtype=x.dtype)) / tf.math.sqrt(
+                tf.constant(p.attention_key_value_dim, dtype=x.dtype))
+
+      per_dim_scale_params = py_utils.WeightParams(
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          shape=[p.attention_key_value_dim])
+      init_q = (('->s',
+                 self._Var(
+                     'per_dim_scale',
+                     weights=[('per_dim_scale', per_dim_scale_params)
+                             ])), ('s->s2', self._Fn('s2', fn=_ScaleFn)),
+                ('_q,s2->_q_scaled',
+                 self._Fn('_q_scaled', fn=lambda q, s: q * s)),
+                ('_q_scaled->q', self.MeshSplit('_q', p.qkv_split)))
+    else:
+      init_q = (('_q->q', self.MeshSplit('_q', p.qkv_split)),)
+
     kv_split = p.qkv_split if p.attention_num_memory_heads is None else None
 
     return self._Graph(
-        name, ['_q', '_k', '_v', 'bias'], ['outputs'],
-        ('_q->q', self.MeshSplit('_q', p.qkv_split)),
+        name, ['_q', '_k', '_v', 'bias'], ['outputs'], *init_q,
         ('_k->k', self.MeshSplit('_k', kv_split)),
         ('_v->v', self.MeshSplit('_v', kv_split)),
         ('q,k->l', self._Fn('logits', fn=_LogitsFnF32)),
