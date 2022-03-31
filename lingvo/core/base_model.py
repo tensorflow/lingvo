@@ -1240,11 +1240,17 @@ class SingleTaskBase(BaseModel):
   def ConstructFPropGraph(self, apply_ema=False):
     if self.ema and apply_ema:
       self._task.ApplyExponentialMovingAverage(self.ema)
+      # This is needed in order to load ema vars from checkpoint using
+      # init_from_checkpoint_rules in eval/decode only exeuctor runs.
+      self._MakeEMAVariablesDict()
     self._task.FPropDefaultTheta()
 
   def ConstructDecodeGraph(self, task_name=None, apply_ema=False):
     if self.ema and apply_ema:
       self._task.ApplyExponentialMovingAverage(self.ema)
+      # This is needed in order to load ema vars from checkpoint using
+      # init_from_checkpoint_rules in eval/decode only exeuctor runs.
+      self._MakeEMAVariablesDict()
     with py_utils.TaskCallScope(self._task):
       input_batch = self._task.GetInputBatch()
       if isinstance(input_batch, list):  # Non-TPU case.
