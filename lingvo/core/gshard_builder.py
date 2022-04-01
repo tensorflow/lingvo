@@ -804,24 +804,34 @@ class MoEBuilder(builder.Base):
                              name,
                              device_mesh=None,
                              wi_mesh_split=None,
-                             wo_mesh_split=None):
-    return self._ShardedVar(
-        name=name,
-        weights=[('wi',
-                  gshard_layers.ShardedWeightParams(
-                      init=py_utils.WeightInit.Uniform(
-                          (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
-                      dtype=self.params.dtype,
-                      shape=[self.params.model_dim, self.params.ff_dim],
-                      tensor_split_dims_mapping=wi_mesh_split)),
-                 ('wo',
-                  gshard_layers.ShardedWeightParams(
-                      init=py_utils.WeightInit.Uniform(
-                          (((1. / self.params.ff_dim)**0.5) * 3.0**0.5)),
-                      dtype=self.params.dtype,
-                      shape=[self.params.ff_dim, self.params.model_dim],
-                      tensor_split_dims_mapping=wo_mesh_split))],
-        device_mesh=device_mesh)
+                             wo_mesh_split=None,
+                             use_bias=False):
+    weights = [('wi',
+                gshard_layers.ShardedWeightParams(
+                    init=py_utils.WeightInit.Uniform(
+                        (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
+                    dtype=self.params.dtype,
+                    shape=[self.params.model_dim, self.params.ff_dim],
+                    tensor_split_dims_mapping=wi_mesh_split)),
+               ('wo',
+                gshard_layers.ShardedWeightParams(
+                    init=py_utils.WeightInit.Uniform(
+                        (((1. / self.params.ff_dim)**0.5) * 3.0**0.5)),
+                    dtype=self.params.dtype,
+                    shape=[self.params.ff_dim, self.params.model_dim],
+                    tensor_split_dims_mapping=wo_mesh_split))]
+    if use_bias:
+      weights += [('bi',
+                   py_utils.WeightParams(
+                       init=py_utils.WeightInit.Constant(0.0),
+                       dtype=self.params.dtype,
+                       shape=[self.params.ff_dim])),
+                  ('bo',
+                   py_utils.WeightParams(
+                       init=py_utils.WeightInit.Constant(0.0),
+                       dtype=self.params.dtype,
+                       shape=[self.params.model_dim]))]
+    return self._ShardedVar(name=name, weights=weights, device_mesh=device_mesh)
 
   def DenseReluDense(self, name, decoder=False, activation='relu'):
     if decoder:
@@ -2093,6 +2103,8 @@ class DenseBuilder(MoEBuilder):
              'Whether or not to scale the input embedding state.')
     p.Define('softplus_scale_q', False,
              'Whether or not to scale q in self-attention.')
+    p.Define('ff_use_bias', False,
+             'Whether or not to use bias for FF projections.')
 
     p.attention_combine_dims = False
     return p
@@ -2718,24 +2730,45 @@ class DenseBuilder(MoEBuilder):
 
     p = self.params
     # Note that dropout is used here, but not in the MoE layer by default.
+    if p.ff_use_bias:
+      loaded_weights = ('->wi,wo,bi,bo',
+                        self._DenseReluDenseWeights('w', self._device_mesh,
+                                                    p.mh_wi_split,
+                                                    p.hm_wo_split,
+                                                    p.ff_use_bias))
+      upwards_project = (('wi_reshaped,vec->h_i',
+                          self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),
+                         ('h_i,bi->h', self._Fn('add_input_bias',
+                                                tf.nn.bias_add)))
+      downwards_project = (('wo_reshaped,h_dropout->h_o',
+                            self.EinsumWithModelDim('wo', 'HM,BLH->BLM')),
+                           ('h_o,bo->outputs_pre_split',
+                            self._Fn('add_output_bias', tf.nn.bias_add)))
+    else:
+      loaded_weights = ('->wi,wo',
+                        self._DenseReluDenseWeights('w', self._device_mesh,
+                                                    p.mh_wi_split,
+                                                    p.hm_wo_split,
+                                                    p.ff_use_bias))
+      upwards_project = (('wi_reshaped,vec->h',
+                          self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),)
+      downwards_project = (('wo_reshaped,h_dropout->outputs_pre_split',
+                            self.EinsumWithModelDim('wo', 'HM,BLH->BLM')),)
     return self._Graph(
         name,
         input_endpoints,
         ['outputs', 'aux_loss'],
-        ('->wi,wo',
-         self._DenseReluDenseWeights('w', self._device_mesh, p.mh_wi_split,
-                                     p.hm_wo_split)),
+        loaded_weights,
         ('wi->wi_reshaped',
          self._Fn('wi_reshape', fn=lambda x: self._ReshapeM(x, 0))),
         ('wo->wo_reshaped',
          self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
-        ('wi_reshaped,vec->h', self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),
+        *upwards_project,
         ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
         ('h_split->h_%s' % activation, self._Fn(activation, activation_fn)),
         ('h_%s->h_dropout' % activation,
          self._Dropout('input_dropout', 1 - p.dropout_rate)),
-        ('wo_reshaped,h_dropout->outputs_pre_split',
-         self.EinsumWithModelDim('wo', 'HM,BLH->BLM')),
+        *downwards_project,
         ('outputs_pre_split->outputs',
          self.MeshSplit('outputs_split', self._AdjustMSplit(p.blm_split, 2))),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
@@ -3278,6 +3311,7 @@ class UniTransformer(base_model.BaseTask):
              'Deprecated. Use gated_ffn_activation=gelu.')
     p.Define('moe_gated_gelu', False, 'Use gated GELU for the MoE layer.')
     p.Define('gated_ffn_activation', None, 'Transformer gated FFN activation.')
+    p.Define('softmax_bias', False, 'Whether to use bias in softmax.')
     p.Define('parallel_ffn', False,
              'Whether to make ffn and attention parallel.')
     p.Define(
@@ -3484,6 +3518,12 @@ class UniTransformer(base_model.BaseTask):
     self.CreateChild('emb_w_split', emb_w_split)
     self.CreateChild('dec_out_split', dec_out_split)
     self.CreateChild('logits_split', logits_split)
+    if p.has_final_layer and p.softmax_bias:
+      bias_params = py_utils.WeightParams(
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          shape=[p.vocab_size])
+      self.CreateVariable('softmax_bias', bias_params)
 
   def _ComputeDecoderInput(self, theta, input_batch):
     p = self.params
@@ -3550,6 +3590,8 @@ class UniTransformer(base_model.BaseTask):
         dec_outputs = tf.reshape(
             dec_outputs, [dec_outputs.shape[0], dec_outputs.shape[1], -1])
       logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
+      if p.has_final_layer and p.softmax_bias:
+        logits = tf.nn.bias_add(logits, theta.softmax_bias)
       logits = self.logits_split.FProp(theta.logits_split, logits)
 
       if p.logits_abs_max is not None:
@@ -3841,6 +3883,8 @@ class UniTransformer(base_model.BaseTask):
       # to enable fprop_dtype = tf.bfloat16
       softmax_weights = tf.cast(softmax_weights, dec_outputs.dtype)
     logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
+    if p.has_final_layer and p.softmax_bias:
+      logits = tf.nn.bias_add(logits, theta.softmax_bias)
     logits = self.logits_split.FProp(theta.logits_split, logits)
 
     # TODO(krikun): make sure this is not needed for beam search
