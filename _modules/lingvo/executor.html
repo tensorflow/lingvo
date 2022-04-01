@@ -615,6 +615,7 @@
         <span class="p">)</span>
 
         <span class="k">def</span> <span class="nf">_ShutDown</span><span class="p">():</span>
+          <span class="c1"># Wait for the save ops to finish before exit.</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">Sync</span><span class="p">()</span>
           <span class="n">program_threadpool</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
           <span class="n">program_threadpool</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
