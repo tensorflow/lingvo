@@ -3272,6 +3272,8 @@ class UniTransformer(base_model.BaseTask):
         'z_loss * tf.math.square(tf.math.reduce_logsumexp(logits, -1))')
     p.Define('positional_embedding', True, 'Positional embs.')
     p.Define('sub_layer_types', None, 'A list of layer types.')
+    p.Define('sinusoid_positional_embedding', False,
+             'Use sinusiod positional embedding without additional weights.')
     p.Define('gated_gelu', False, 'FFN gated GELU. '
              'Deprecated. Use gated_ffn_activation=gelu.')
     p.Define('moe_gated_gelu', False, 'Use gated GELU for the MoE layer.')
@@ -3364,13 +3366,24 @@ class UniTransformer(base_model.BaseTask):
       assert not p.gated_ffn_activation, p.gated_ffn_activation
       gated_ffn_activation = None
 
+    # Whether or not to embed the inputs.
+    # `has_embedding_layer` needs to be True for `sinusoid_positional_embedding`
+    # to be usable.
     if p.has_embedding_layer:
       dec_emb = b.Embedding('dec_emb', tgt_vocab_size)
       self.CreateChild('dec_emb', dec_emb)
 
       if p.positional_embedding:
-        dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
+        if p.sinusoid_positional_embedding:
+          dec_pos_emb = layers.PositionalEmbeddingLayer.Params().Set(
+              embedding_dim=p.builder.model_dim)
+        else:
+          dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
         self.CreateChild('dec_pos_emb', dec_pos_emb)
+      else:
+        assert not p.sinusoid_positional_embedding
+    else:
+      assert not p.sinusoid_positional_embedding
 
     if not self.do_eval:
       # Make sure training won't enable partially constructed model code
@@ -3479,8 +3492,12 @@ class UniTransformer(base_model.BaseTask):
     if p.has_embedding_layer:
       y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
       if self.params.positional_embedding:
-        y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
-                                    input_batch.tgt.segment_pos)
+        if self.params.sinusoid_positional_embedding:
+          y += self.dec_pos_emb.FPropWithPosition(theta.dec_pos_emb,
+                                                  input_batch.tgt.segment_pos)
+        else:
+          y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
+                                      input_batch.tgt.segment_pos)
     else:
       y = tf.cast(input_batch.tgt.ids, py_utils.FPropDtype(self.params))
 
@@ -3783,7 +3800,10 @@ class UniTransformer(base_model.BaseTask):
 
     y = self.dec_emb.FProp(theta.dec_emb, tgt_id)
     if p.positional_embedding:
-      y += self.dec_pos_emb.FProp(theta.dec_pos_emb, tgt_pos)
+      if p.sinusoid_positional_embedding:
+        y += self.dec_pos_emb.FPropWithPosition(theta.dec_pos_emb, tgt_pos)
+      else:
+        y += self.dec_pos_emb.FProp(theta.dec_pos_emb, tgt_pos)
 
     theta_with_state = gshard_layers.StateLayer.UpdateTheta(
         self.dec, theta.dec, dec_state, t)
