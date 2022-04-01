@@ -550,6 +550,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         )
 
         def _ShutDown():
+          # Wait for the save ops to finish before exit.
           self._checkpointer.Sync()
           program_threadpool.close()
           program_threadpool.join()

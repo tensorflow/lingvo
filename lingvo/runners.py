@@ -743,7 +743,7 @@ class TrainerTpu(base_runner.BaseRunner):
             tf.logging.info('Early stopping at step: %d',
                             self._max_steps_for_early_stop)
 
-        def _RunSave():
+        def _RunSave(sync):
           if self._retrieve_ops:
             # Running retrieve ops is expensive, so do it only before
             # checkpointing.
@@ -752,14 +752,13 @@ class TrainerTpu(base_runner.BaseRunner):
             tf.logging.info('Retrieve params done.')
 
           checkpoint_write_start = time.perf_counter()
-          # Save checkpoint asynchronously.
-          self._checkpointer.Save(sess, global_step, sync=False)
+          self._checkpointer.Save(sess, global_step, sync=sync)
           return time.perf_counter() - checkpoint_write_start
 
         if self._ShouldStop(sess, global_step, check_early_stop=False):
           tf.logging.info('Training finished.')
           if FLAGS.checkpoint_in_trainer_tpu:
-            _RunSave()
+            _RunSave(True)  # Wait for the save ops to finish before exit.
           self._DequeueThreadComplete()
           return
 
@@ -822,7 +821,7 @@ class TrainerTpu(base_runner.BaseRunner):
         checkpoint_write_secs = 0.0
         if (FLAGS.checkpoint_in_trainer_tpu and
             self._checkpointer.ShouldSave(global_step)):
-          checkpoint_write_secs = _RunSave()
+          checkpoint_write_secs = _RunSave(False)  # Save asynchronously.
         train_steps_secs = time.perf_counter() - train_steps_start
         self._ExportMetrics(
             # Metrics expects python int, but global_step is numpy.int64.
