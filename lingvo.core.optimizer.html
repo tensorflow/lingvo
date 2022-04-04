@@ -125,13 +125,18 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.optimizer.Base.Apply">
-<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.Apply" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.Apply" title="Permalink to this definition"></a></dt>
 <dd><p>Applies the gradient to the variable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lr</strong> – A scalar or a callable that returns the learning rate.</p></li>
 <li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
+<li><p><strong>weight</strong> – A scalar tensor that stores the weight of the loss and gradient.
+In most cases, weight is the number of training examples in the batch,
+which could vary across global_steps. It is only used by optimizers
+(e.g. DynamicAccumulator) that combines gradients across multiple
+global_steps.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -194,13 +199,14 @@ variables with both ‘a’ and ‘b’ in their name – an exception is thrown
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.optimizer.CompositeOptimizer.Apply">
-<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#CompositeOptimizer.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.CompositeOptimizer.Apply" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#CompositeOptimizer.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.CompositeOptimizer.Apply" title="Permalink to this definition"></a></dt>
 <dd><p>For each optimizer, apply the gradient to the variable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lr</strong> – A scalar. The base learning rate.</p></li>
 <li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
+<li><p><strong>weight</strong> – A scalar tensor that stores the weight of the gradients.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -431,13 +437,18 @@ variables with both ‘a’ and ‘b’ in their name – an exception is thrown
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.optimizer.Accumulator.Apply">
-<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.Apply" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.Apply" title="Permalink to this definition"></a></dt>
 <dd><p>Applies the gradient to the variable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lr</strong> – A scalar or a callable that returns the learning rate.</p></li>
 <li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
+<li><p><strong>weight</strong> – A scalar tensor that stores the weight of the loss and gradient.
+In most cases, weight is the number of training examples in the batch,
+which could vary across global_steps. It is only used by optimizers
+(e.g. DynamicAccumulator) that combines gradients across multiple
+global_steps.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -465,6 +476,64 @@ variables with both ‘a’ and ‘b’ in their name – an exception is thrown
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.optimizer.DynamicAccumulator">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.optimizer.</span></span><span class="sig-name descname"><span class="pre">DynamicAccumulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DynamicAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DynamicAccumulator" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
+<p>Dynamic gradient accumulator wrapper.</p>
+<dl class="simple">
+<dt>The cross replica sum of weights (accum_weight), which usually represents</dt><dd><p>the effective global batch size, or the number of examples, is accumulated
+across global steps. Gradients are also accumulated, and parameter updates
+only happens when accum_weight exceeds min_accum_weight. This can ensure
+a lower bound on the effective batch size for each gradient update.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.optimizer.DynamicAccumulator.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DynamicAccumulator.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DynamicAccumulator.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.optimizer.DynamicAccumulator.GetOptimizer">
+<span class="sig-name descname"><span class="pre">GetOptimizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DynamicAccumulator.GetOptimizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DynamicAccumulator.GetOptimizer" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the TF optimizer object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.optimizer.DynamicAccumulator.AddSummary">
+<span class="sig-name descname"><span class="pre">AddSummary</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimizer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DynamicAccumulator.AddSummary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DynamicAccumulator.AddSummary" title="Permalink to this definition"></a></dt>
+<dd><p>Adds summary if needed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.optimizer.DynamicAccumulator.Apply">
+<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DynamicAccumulator.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DynamicAccumulator.Apply" title="Permalink to this definition"></a></dt>
+<dd><p>Applies the gradient to the variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lr</strong> – A scalar or a callable that returns the learning rate.</p></li>
+<li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
+<li><p><strong>weight</strong> – A scalar tensor that stores the weight of the loss and gradient.
+In most cases, weight is the number of training examples in the batch,
+which could vary across global_steps. It is only used by optimizers
+(e.g. DynamicAccumulator) that combines gradients across multiple
+global_steps.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The variable update op.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#RuntimeError" title="(in Python v3.7)"><strong>RuntimeError</strong></a> – When <code class="xref py py-obj docutils literal notranslate"><span class="pre">lr</span></code> is not a callable in Eager mode and user did not
+    enable the scalar lr option.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.optimizer.DistributedShampoo">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.optimizer.</span></span><span class="sig-name descname"><span class="pre">DistributedShampoo</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
@@ -487,13 +556,14 @@ Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.optimizer.DistributedShampoo.Apply">
-<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.Apply" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.Apply" title="Permalink to this definition"></a></dt>
 <dd><p>Applies the gradient to the variable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>lr</strong> – A scalar or callable that returns the base learning rate.</p></li>
 <li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
+<li><p><strong>weight</strong> – A scalar tensor that stores the weight of the gradients.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

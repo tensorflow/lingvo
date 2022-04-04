@@ -144,12 +144,17 @@
       <span class="n">var_reuse</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span>
     <span class="k">return</span> <span class="n">var_reuse</span></div>
 
-<div class="viewcode-block" id="Base.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+<div class="viewcode-block" id="Base.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies the gradient to the variable.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      lr: A scalar or a callable that returns the learning rate.</span>
 <span class="sd">      var_grad: A `.NestedMap` of (var, grad) pairs.</span>
+<span class="sd">      weight: A scalar tensor that stores the weight of the loss and gradient.</span>
+<span class="sd">        In most cases, weight is the number of training examples in the batch,</span>
+<span class="sd">        which could vary across global_steps. It is only used by optimizers</span>
+<span class="sd">        (e.g. DynamicAccumulator) that combines gradients across multiple</span>
+<span class="sd">        global_steps.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The variable update op.</span>
@@ -293,12 +298,13 @@
         <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_lingvo_optimizer_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
     <span class="p">}</span></div>
 
-<div class="viewcode-block" id="CompositeOptimizer.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+<div class="viewcode-block" id="CompositeOptimizer.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;For each optimizer, apply the gradient to the variable.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      lr: A scalar. The base learning rate.</span>
 <span class="sd">      var_grad: A `.NestedMap` of (var, grad) pairs.</span>
+<span class="sd">      weight: A scalar tensor that stores the weight of the gradients.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The variable update op.</span>
@@ -564,7 +570,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="o">.</span><span class="n">add_summary_in_apply</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_opt&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Accumulator.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+<div class="viewcode-block" id="Accumulator.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">_Acc</span><span class="p">(</span><span class="n">vg</span><span class="p">):</span>
@@ -590,7 +596,8 @@
     <span class="k">def</span> <span class="nf">_ApplyAndReset</span><span class="p">():</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span>
-              <span class="n">lr</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyGradMultiplier</span><span class="p">(</span><span class="n">var_grad</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span><span class="p">))</span>
+              <span class="n">lr</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyGradMultiplier</span><span class="p">(</span><span class="n">var_grad</span><span class="p">,</span> <span class="mf">1.</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span><span class="p">),</span>
+              <span class="n">weight</span><span class="p">)</span>
       <span class="p">]):</span>
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
             <span class="o">*</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span>
@@ -608,6 +615,117 @@
 
 <div class="viewcode-block" id="Accumulator.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="DynamicAccumulator"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DynamicAccumulator">[docs]</a><span class="k">class</span> <span class="nc">DynamicAccumulator</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Dynamic gradient accumulator wrapper.</span>
+
+<span class="sd">  The cross replica sum of weights (accum_weight), which usually represents</span>
+<span class="sd">    the effective global batch size, or the number of examples, is accumulated</span>
+<span class="sd">    across global steps. Gradients are also accumulated, and parameter updates</span>
+<span class="sd">    only happens when accum_weight exceeds min_accum_weight. This can ensure</span>
+<span class="sd">    a lower bound on the effective batch size for each gradient update.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DynamicAccumulator.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DynamicAccumulator.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;optimizer_tpl&#39;</span><span class="p">,</span> <span class="n">Adam</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Params for the wrapped optimizer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;min_accum_weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Minimum accumulated weight for gradient update to happen.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;DynamicAccumulator&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Disable tf.summary in control flow ops.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="o">.</span><span class="n">add_summary_in_apply</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_opt&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer_tpl</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">GetParam</span><span class="p">(</span><span class="n">init_value</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">(),</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">init_value</span><span class="p">),</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;accum_weight&#39;</span><span class="p">,</span> <span class="n">GetParam</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;param_update_step&#39;</span><span class="p">,</span>
+          <span class="n">GetParam</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;accum_weight_at_update&#39;</span><span class="p">,</span>
+          <span class="n">GetParam</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DynamicAccumulator.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DynamicAccumulator.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DynamicAccumulator.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DynamicAccumulator.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;accum_weight&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">accum_weight</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;param_update_step&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">param_update_step</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;accum_weight_at_update&#39;</span><span class="p">,</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">accum_weight_at_update</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DynamicAccumulator.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DynamicAccumulator.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">weight</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+    <span class="n">accum_weight</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">accum_weight</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+
+    <span class="c1"># Scale the gradient of current step with the current weight</span>
+    <span class="n">var_grad</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyGradMultiplier</span><span class="p">(</span><span class="n">var_grad</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Acc</span><span class="p">(</span><span class="n">vg</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Updating accumulators.&quot;&quot;&quot;</span>
+
+      <span class="n">v</span><span class="p">,</span> <span class="n">g</span> <span class="o">=</span> <span class="n">vg</span>
+      <span class="n">scope_name</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span>
+      <span class="k">if</span> <span class="n">scope_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;:0&#39;</span><span class="p">):</span>
+        <span class="n">scope_name</span> <span class="o">=</span> <span class="n">scope_name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">scope_name</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+            <span class="s1">&#39;grad_accumulator&#39;</span><span class="p">,</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get_shape</span><span class="p">(),</span>
+                                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VarGrad</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+
+    <span class="n">var_grad</span> <span class="o">=</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_Acc</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_ApplyAndReset</span><span class="p">():</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span>
+              <span class="n">lr</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyGradMultiplier</span><span class="p">(</span><span class="n">var_grad</span><span class="p">,</span> <span class="mi">1</span> <span class="o">/</span> <span class="n">accum_weight</span><span class="p">),</span>
+              <span class="n">weight</span><span class="p">)</span>
+      <span class="p">]):</span>
+        <span class="n">ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()]</span>
+        <span class="n">ops</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">accum_weight_at_update</span><span class="p">,</span> <span class="n">accum_weight</span><span class="p">),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">accum_weight</span><span class="p">,</span>
+                      <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">accum_weight</span><span class="p">)),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">param_update_step</span><span class="p">,</span>
+                          <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">param_update_step</span><span class="p">))</span>
+        <span class="p">]</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">ops</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_summary_in_apply</span><span class="p">:</span>
+      <span class="n">lr_value</span> <span class="o">=</span> <span class="n">GetLrValue</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr_value</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">),</span> <span class="n">var_grad</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">accum_weight</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">min_accum_weight</span><span class="p">),</span> <span class="n">_ApplyAndReset</span><span class="p">,</span>
+        <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()))</span></div></div>
 
 
 <div class="viewcode-block" id="DistributedShampoo"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo">[docs]</a><span class="k">class</span> <span class="nc">DistributedShampoo</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
@@ -664,12 +782,13 @@
         <span class="n">block_size</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">block_size</span><span class="p">,</span>
         <span class="n">global_step</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span></div>
 
-<div class="viewcode-block" id="DistributedShampoo.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+<div class="viewcode-block" id="DistributedShampoo.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies the gradient to the variable.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      lr: A scalar or callable that returns the base learning rate.</span>
 <span class="sd">      var_grad: A `.NestedMap` of (var, grad) pairs.</span>
+<span class="sd">      weight: A scalar tensor that stores the weight of the gradients.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The variable update op.</span>
