@@ -79,12 +79,17 @@ class Base(base_layer.BaseLayer):
       var_reuse = tf.AUTO_REUSE
     return var_reuse
 
-  def Apply(self, lr, var_grad):
+  def Apply(self, lr, var_grad, weight=None):
     """Applies the gradient to the variable.
 
     Args:
       lr: A scalar or a callable that returns the learning rate.
       var_grad: A `.NestedMap` of (var, grad) pairs.
+      weight: A scalar tensor that stores the weight of the loss and gradient.
+        In most cases, weight is the number of training examples in the batch,
+        which could vary across global_steps. It is only used by optimizers
+        (e.g. DynamicAccumulator) that combines gradients across multiple
+        global_steps.
 
     Returns:
       The variable update op.
@@ -228,12 +233,13 @@ class CompositeOptimizer(Base):
         for k, v in self._lingvo_optimizer_map.items()
     }
 
-  def Apply(self, lr, var_grad):
+  def Apply(self, lr, var_grad, weight=None):
     """For each optimizer, apply the gradient to the variable.
 
     Args:
       lr: A scalar. The base learning rate.
       var_grad: A `.NestedMap` of (var, grad) pairs.
+      weight: A scalar tensor that stores the weight of the gradients.
 
     Returns:
       The variable update op.
@@ -499,7 +505,7 @@ class Accumulator(Base):
     p.optimizer_tpl.add_summary_in_apply = False
     self.CreateChild('_opt', p.optimizer_tpl)
 
-  def Apply(self, lr, var_grad):
+  def Apply(self, lr, var_grad, weight=None):
     p = self.params
 
     def _Acc(vg):
@@ -525,7 +531,8 @@ class Accumulator(Base):
     def _ApplyAndReset():
       with tf.control_dependencies([
           self._opt.Apply(
-              lr, py_utils.ApplyGradMultiplier(var_grad, 1. / p.accum_steps))
+              lr, py_utils.ApplyGradMultiplier(var_grad, 1. / p.accum_steps),
+              weight)
       ]):
         return tf.group(
             *[tf.assign(a, tf.zeros_like(a)) for _, a in var_grad.Flatten()])
@@ -543,6 +550,117 @@ class Accumulator(Base):
 
   def AddSummary(self, lr, optimizer, var_grad):
     return self._opt.AddSummary(lr, optimizer, var_grad)
+
+
+class DynamicAccumulator(Base):
+  """Dynamic gradient accumulator wrapper.
+
+  The cross replica sum of weights (accum_weight), which usually represents
+    the effective global batch size, or the number of examples, is accumulated
+    across global steps. Gradients are also accumulated, and parameter updates
+    only happens when accum_weight exceeds min_accum_weight. This can ensure
+    a lower bound on the effective batch size for each gradient update.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('optimizer_tpl', Adam.Params(),
+             'Params for the wrapped optimizer.')
+    p.Define('min_accum_weight', None,
+             'Minimum accumulated weight for gradient update to happen.')
+    p.name = 'DynamicAccumulator'
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    # Disable tf.summary in control flow ops.
+    p.optimizer_tpl.add_summary_in_apply = False
+    self.CreateChild('_opt', p.optimizer_tpl)
+
+    def GetParam(init_value, dtype):
+      return py_utils.WeightParams(
+          shape=(),
+          init=py_utils.WeightInit.Constant(init_value),
+          dtype=dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+
+    with py_utils.OpportunisticVariableReuseScope():
+      self.CreateVariable(
+          'accum_weight', GetParam(0.0, self.params.dtype), trainable=False)
+      self.CreateVariable(
+          'param_update_step',
+          GetParam(0.0, self.params.dtype),
+          trainable=False)
+      self.CreateVariable(
+          'accum_weight_at_update',
+          GetParam(0.0, self.params.dtype),
+          trainable=False)
+
+  def GetOptimizer(self, lr):
+    return self._opt.GetOptimizer(lr)
+
+  def AddSummary(self, lr, optimizer, var_grad):
+    summary_utils.scalar('accum_weight', self.vars.accum_weight)
+    summary_utils.scalar('param_update_step', self.vars.param_update_step)
+    summary_utils.scalar('accum_weight_at_update',
+                         self.vars.accum_weight_at_update)
+    return self._opt.AddSummary(lr, optimizer, var_grad)
+
+  def Apply(self, lr, var_grad, weight=None):
+    assert weight is not None
+    p = self.params
+    if py_utils.use_tpu():
+      weight = tf.tpu.cross_replica_sum(weight)
+    accum_weight = tf.assign_add(self.vars.accum_weight, weight)
+
+    # Scale the gradient of current step with the current weight
+    var_grad = py_utils.ApplyGradMultiplier(var_grad, weight)
+
+    def _Acc(vg):
+      """Updating accumulators."""
+
+      v, g = vg
+      scope_name = v.name
+      if scope_name.endswith(':0'):
+        scope_name = scope_name[:-2]
+      with tf.variable_scope(scope_name):
+        a = py_utils.CreateVariable(
+            'grad_accumulator',
+            py_utils.WeightParams(v.get_shape(),
+                                  py_utils.WeightInit.Constant(0.0),
+                                  self.params.dtype),
+            trainable=False)
+        a = tf.assign_add(a, g)
+
+      return py_utils.VarGrad(v, a)
+
+    var_grad = var_grad.Transform(_Acc)
+
+    def _ApplyAndReset():
+      with tf.control_dependencies([
+          self._opt.Apply(
+              lr, py_utils.ApplyGradMultiplier(var_grad, 1 / accum_weight),
+              weight)
+      ]):
+        ops = [tf.assign(a, tf.zeros_like(a)) for _, a in var_grad.Flatten()]
+        ops += [
+            tf.assign(self.vars.accum_weight_at_update, accum_weight),
+            tf.assign(self.vars.accum_weight,
+                      tf.zeros_like(self.vars.accum_weight)),
+            tf.assign_add(self.vars.param_update_step,
+                          tf.ones_like(self.vars.param_update_step))
+        ]
+        return tf.group(*ops)
+
+    if self.params.add_summary_in_apply:
+      lr_value = GetLrValue(lr)
+      self.AddSummary(lr_value, self.GetOptimizer(lr), var_grad)
+
+    return tf.cond(
+        tf.greater_equal(accum_weight, p.min_accum_weight), _ApplyAndReset,
+        lambda: tf.group(tf.no_op()))
 
 
 class DistributedShampoo(Base):
@@ -599,12 +717,13 @@ class DistributedShampoo(Base):
         block_size=params.block_size,
         global_step=py_utils.GetGlobalStep())
 
-  def Apply(self, lr, var_grad):
+  def Apply(self, lr, var_grad, weight=None):
     """Applies the gradient to the variable.
 
     Args:
       lr: A scalar or callable that returns the base learning rate.
       var_grad: A `.NestedMap` of (var, grad) pairs.
+      weight: A scalar tensor that stores the weight of the gradients.
 
     Returns:
       The variable update op.

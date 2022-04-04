@@ -185,8 +185,8 @@ class Learner(base_layer.BaseLayer):
     """
     # We apply gradients outside the name_scope to maintain backwards
     # compatibility on variables created by self.optimizer.Apply().
-    losses, var_grads, eval_metrics = self._ComputeLossesAndGradients(
-        metrics, vmap)
+    losses, var_grads, grads_weight, eval_metrics = (
+        self._ComputeLossesAndGradients(metrics, vmap))
     if 'tpu_embedding_var_grads' in var_grads:
       tpu_embedding_var_grads = var_grads.tpu_embedding_var_grads
       del var_grads.tpu_embedding_var_grads
@@ -222,8 +222,8 @@ class Learner(base_layer.BaseLayer):
 
     with self._SelfVariableScope():
       var_update_op = tf.group(
-          [tpu_emb_update_op,
-           self.optimizer.Apply(lr_or_callable, var_grads)])
+          tpu_emb_update_op,
+          self.optimizer.Apply(lr_or_callable, var_grads, grads_weight))
 
     return losses, var_update_op, eval_metrics
 
@@ -303,6 +303,7 @@ class Learner(base_layer.BaseLayer):
           'TPU embedding does not support multiple loss currently.')
       losses_and_grads = {}
       variables = None
+      weights = []
       for metric_name in loss_name:
         loss_metric, var_grads = LossAndGradients(metric_name)
         losses_and_grads[metric_name] = py_utils.NestedMap(
@@ -314,16 +315,24 @@ class Learner(base_layer.BaseLayer):
         else:
           tf.nest.assert_same_structure(variables, current_vars)
         losses.append(loss_metric[0])
+        weights.append(loss_metric[1])
 
       grads, eval_metrics = self.gradient_combiner.Combine(
           variables, losses_and_grads)
+      # This is a naive implementation to sum all the weights together from all
+      # losses. Note that this grads_weight has no effect if you are not using
+      # the DynamicAccumulator optimizer.
+      # TODO(cjzheng) implement weights combination in gradient combiners
+      grads_weight = tf.reduce_sum(weights)
       var_grads = tf.nest.map_structure(
           lambda v, g: py_utils.VarGrad(var=v, grad=g), variables, grads)
     else:
       loss_metric, var_grads = LossAndGradients(loss_name)
       losses.append(loss_metric[0])
+      grads_weight = loss_metric[1]
 
-    return losses, py_utils.SkipNoneGradients(var_grads), eval_metrics
+    return (losses, py_utils.SkipNoneGradients(var_grads), grads_weight,
+            eval_metrics)
 
   def AdjustGradients(self,
                       var_grads,
