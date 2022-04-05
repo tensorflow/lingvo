@@ -159,7 +159,7 @@ class Learner(base_layer.BaseLayer):
 
   def LearningRate(self):
     p = self.params
-    lrs = self.lr_schedule.Value()
+    lrs = self.optimizer.GetLrScheduleValue(self.lr_schedule.Value)
     lrs.set_shape([])
     self._AddEvalMetric('lr_schedule', lrs, tf.constant(1.0))
     return p.learning_rate * lrs

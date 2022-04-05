@@ -79,6 +79,24 @@ class Base(base_layer.BaseLayer):
       var_reuse = tf.AUTO_REUSE
     return var_reuse
 
+  def GetLrScheduleValue(self, lr_schedule_callable):
+    """Determines the learning rate schedule possibly from the optimizer state.
+
+    In most cases, learning rate schedules are determined by the global step.
+    However, for optimizers that doesn't update parameters every global_step,
+    e.g. DynamicAccumulator, this method can be used to pass in the optimizer
+    state to determine the learning rate schedule.
+
+    Args:
+      lr_schedule_callable: A callable that takes in a scalar tensor as learning
+        rate schedule step and returns a scalar tensor as the current learning
+        rate value. This is supposed to be the schedule.Value() method.
+
+    Returns:
+      A scalar tensor
+    """
+    return lr_schedule_callable()
+
   def Apply(self, lr, var_grad, weight=None):
     """Applies the gradient to the variable.
 
@@ -597,6 +615,9 @@ class DynamicAccumulator(Base):
           'accum_weight_at_update',
           GetParam(0.0, self.params.dtype),
           trainable=False)
+
+  def GetLrScheduleValue(self, lr_schedule_callable):
+    return lr_schedule_callable(step=self.vars.param_update_step)
 
   def GetOptimizer(self, lr):
     return self._opt.GetOptimizer(lr)
