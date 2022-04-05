@@ -124,6 +124,26 @@
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.optimizer.Base.GetLrScheduleValue">
+<span class="sig-name descname"><span class="pre">GetLrScheduleValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr_schedule_callable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.GetLrScheduleValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.GetLrScheduleValue" title="Permalink to this definition"></a></dt>
+<dd><p>Determines the learning rate schedule possibly from the optimizer state.</p>
+<p>In most cases, learning rate schedules are determined by the global step.
+However, for optimizers that doesn’t update parameters every global_step,
+e.g. DynamicAccumulator, this method can be used to pass in the optimizer
+state to determine the learning rate schedule.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>lr_schedule_callable</strong> – A callable that takes in a scalar tensor as learning
+rate schedule step and returns a scalar tensor as the current learning
+rate value. This is supposed to be the schedule.Value() method.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A scalar tensor</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.optimizer.Base.Apply">
 <span class="sig-name descname"><span class="pre">Apply</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">var_grad</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.Apply"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.Apply" title="Permalink to this definition"></a></dt>
 <dd><p>Applies the gradient to the variable.</p>
@@ -491,6 +511,26 @@ a lower bound on the effective batch size for each gradient update.</p>
 <dt class="sig sig-object py" id="lingvo.core.optimizer.DynamicAccumulator.Params">
 <em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DynamicAccumulator.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DynamicAccumulator.Params" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.optimizer.DynamicAccumulator.GetLrScheduleValue">
+<span class="sig-name descname"><span class="pre">GetLrScheduleValue</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lr_schedule_callable</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DynamicAccumulator.GetLrScheduleValue"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.optimizer.DynamicAccumulator.GetLrScheduleValue" title="Permalink to this definition"></a></dt>
+<dd><p>Determines the learning rate schedule possibly from the optimizer state.</p>
+<p>In most cases, learning rate schedules are determined by the global step.
+However, for optimizers that doesn’t update parameters every global_step,
+e.g. DynamicAccumulator, this method can be used to pass in the optimizer
+state to determine the learning rate schedule.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>lr_schedule_callable</strong> – A callable that takes in a scalar tensor as learning
+rate schedule step and returns a scalar tensor as the current learning
+rate value. This is supposed to be the schedule.Value() method.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A scalar tensor</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

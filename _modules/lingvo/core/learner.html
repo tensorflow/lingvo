@@ -224,7 +224,7 @@
 
 <div class="viewcode-block" id="Learner.LearningRate"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.LearningRate">[docs]</a>  <span class="k">def</span> <span class="nf">LearningRate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">lrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">()</span>
+    <span class="n">lrs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">GetLrScheduleValue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lr_schedule</span><span class="o">.</span><span class="n">Value</span><span class="p">)</span>
     <span class="n">lrs</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_AddEvalMetric</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">lrs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="n">lrs</span></div>

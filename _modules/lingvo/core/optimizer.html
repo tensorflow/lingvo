@@ -144,6 +144,24 @@
       <span class="n">var_reuse</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span>
     <span class="k">return</span> <span class="n">var_reuse</span></div>
 
+<div class="viewcode-block" id="Base.GetLrScheduleValue"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.GetLrScheduleValue">[docs]</a>  <span class="k">def</span> <span class="nf">GetLrScheduleValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr_schedule_callable</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Determines the learning rate schedule possibly from the optimizer state.</span>
+
+<span class="sd">    In most cases, learning rate schedules are determined by the global step.</span>
+<span class="sd">    However, for optimizers that doesn&#39;t update parameters every global_step,</span>
+<span class="sd">    e.g. DynamicAccumulator, this method can be used to pass in the optimizer</span>
+<span class="sd">    state to determine the learning rate schedule.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      lr_schedule_callable: A callable that takes in a scalar tensor as learning</span>
+<span class="sd">        rate schedule step and returns a scalar tensor as the current learning</span>
+<span class="sd">        rate value. This is supposed to be the schedule.Value() method.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A scalar tensor</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">lr_schedule_callable</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="Base.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies the gradient to the variable.</span>
 
@@ -662,6 +680,9 @@
           <span class="s1">&#39;accum_weight_at_update&#39;</span><span class="p">,</span>
           <span class="n">GetParam</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
           <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<div class="viewcode-block" id="DynamicAccumulator.GetLrScheduleValue"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DynamicAccumulator.GetLrScheduleValue">[docs]</a>  <span class="k">def</span> <span class="nf">GetLrScheduleValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr_schedule_callable</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">lr_schedule_callable</span><span class="p">(</span><span class="n">step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">param_update_step</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DynamicAccumulator.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DynamicAccumulator.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span></div>
