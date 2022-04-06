@@ -53,6 +53,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
     self.natural_order_model = p.natural_order_model
 
   def _DataSourceFromFilePattern(self, file_pattern, **extra_input_kwargs):
+
     def Proc(record):
       """Parses a serialized tf.Example record."""
       outputs = [
@@ -633,6 +634,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
   def _GetBucketKey(self, features, filtered):
     """Returns the bucket key for a given input."""
     p = self.params
+
     # We return the max of sourcec or target sequence length if and only if both
     # src and tgt fit. Otherwise we return a key of -1 to filter out this input.
     def _MaxLen():
@@ -725,7 +727,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
   def _ProcessMASSInput(self, source_id, src):
     """Perform MASS input processing."""
     skip_mass = self.do_eval and not self.params.enable_mass_for_eval
-    if skip_mass or self.mass_layer is None:
+    if skip_mass or self.params.mass_layer is None:
       # At eval time, we copy src to tgt
       return self._ProcessSingleInput(source_id, src, src)
 
