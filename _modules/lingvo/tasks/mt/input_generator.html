@@ -118,6 +118,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">natural_order_model</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">natural_order_model</span>
 
 <div class="viewcode-block" id="NmtInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.NmtInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">):</span>
+
     <span class="k">def</span> <span class="nf">Proc</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Parses a serialized tf.Example record.&quot;&quot;&quot;</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span>
@@ -698,6 +699,7 @@
 <div class="viewcode-block" id="TextPackedInput._GetBucketKey"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._GetBucketKey">[docs]</a>  <span class="k">def</span> <span class="nf">_GetBucketKey</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">,</span> <span class="n">filtered</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the bucket key for a given input.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="c1"># We return the max of sourcec or target sequence length if and only if both</span>
     <span class="c1"># src and tgt fit. Otherwise we return a key of -1 to filter out this input.</span>
     <span class="k">def</span> <span class="nf">_MaxLen</span><span class="p">():</span>
@@ -790,7 +792,7 @@
 <div class="viewcode-block" id="TextPackedInput._ProcessMASSInput"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._ProcessMASSInput">[docs]</a>  <span class="k">def</span> <span class="nf">_ProcessMASSInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Perform MASS input processing.&quot;&quot;&quot;</span>
     <span class="n">skip_mass</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">enable_mass_for_eval</span>
-    <span class="k">if</span> <span class="n">skip_mass</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">skip_mass</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mass_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># At eval time, we copy src to tgt</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessSingleInput</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
 
