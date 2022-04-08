@@ -390,8 +390,13 @@ leading stage dimension before stacking.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.layer_theta">
+<span class="sig-name descname"><span class="pre">layer_theta</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">repeat_idx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stage_idx</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer.layer_theta"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer.layer_theta" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._unrolled_fprop">
-<span class="sig-name descname"><span class="pre">_unrolled_fprop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._unrolled_fprop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._unrolled_fprop" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_unrolled_fprop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fn_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_layer_states</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_layers.html#LayerwiseShardablePipelinedLayer._unrolled_fprop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_layers.LayerwiseShardablePipelinedLayer._unrolled_fprop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -543,8 +548,8 @@ its children layers.</p></li>
 <dd><p>Returns initial state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>shape</strong> – [batch, max_steps] for beam_search_tpu_helper or
-[batch, beam, max_steps] for flat_beam_search.</p>
+<dd class="field-odd"><p><strong>shape</strong> – [batch, max_steps] for beam_search_tpu_helper or [batch, beam,
+max_steps] for flat_beam_search.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>zero-initialized state tensor.</p>
@@ -578,8 +583,8 @@ returns x_full. The shape of x_full is then <code class="xref py py-obj docutils
 <dd><p>Returns initial state.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>shape</strong> – [batch, max_steps] for beam_search_tpu_helper or
-[batch, beam, max_steps] for flat_beam_search.</p>
+<dd class="field-odd"><p><strong>shape</strong> – [batch, max_steps] for beam_search_tpu_helper or [batch, beam,
+max_steps] for flat_beam_search.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
