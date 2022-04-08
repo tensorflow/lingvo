@@ -5871,13 +5871,27 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
 
     has_paddings = isinstance(out, tuple) and len(out) == 2
     if has_paddings:
-      x_out, padding = out
+      if p.unroll == 'always' or (self.do_eval and p.unroll == 'eval_only'):
+        # outputs, per_layer_states
+        x_out, padding = out[0]
+      else:
+        x_out, padding = out
       return self.final_ln.FProp(theta.final_ln, x_out), padding
     else:
       return self.final_ln.FProp(theta.final_ln, out)
 
   def InitStates(self, theta, *args, **kwargs):
     p = self.params
+    if p.unroll != 'never':
+      states = []
+      for repeat_idx in range(p.circular_repeat):
+        for stage_idx in range(p.num_pipeline_stages):
+          layer_theta = self.pipeline.layer_theta(theta.pipeline, repeat_idx,
+                                                  stage_idx)
+          states.append(
+              self.pipeline.body.InitStates(layer_theta, *args, **kwargs))
+      return states
+
     per_stage, _ = self.pipeline.BodyFPropNoMicrobatching(
         theta.pipeline.body, 'InitStates', *args, **kwargs)
 

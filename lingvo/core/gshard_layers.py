@@ -372,8 +372,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     if p.circular_repeat > 1:
       # Circular pipeline only supported for single_stage_body without per-stage
       # vars, and with stage sharding.
-      assert (p.stage_parallel_body is None and
-              (p.shard_stages_1d or p.pipeline_stage_mesh_dim is not None))
+      assert p.stage_parallel_body is None and not p.per_stage_vars and (
+          p.unroll == 'always' or p.shard_stages_1d or
+          p.pipeline_stage_mesh_dim is not None)
     with gshard_utils.MeshSplitDimPrefixContext(p.pipeline_stage_mesh_dim):
       if p.stage_parallel_body is not None:
         assert p.single_stage_body is None
@@ -387,8 +388,9 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
         else:
           with py_utils.VariableShapePrefixContext(p.num_stages):
             if p.circular_repeat > 1:
-              with py_utils.VariableShapePrefixContext(p.circular_repeat):
-                self.CreateChild('body', p.single_stage_body)
+              with gshard_utils.MeshSplitDimPrefixContext(-1):
+                with py_utils.VariableShapePrefixContext(p.circular_repeat):
+                  self.CreateChild('body', p.single_stage_body)
             else:
               self.CreateChild('body', p.single_stage_body)
 
@@ -706,24 +708,45 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     else:
       return self.body
 
-  def _unrolled_fprop(self, theta, *args, **kwargs):
+  def layer_theta(self, theta, repeat_idx, stage_idx):
+    p = self.params
+    if p.per_stage_vars:
+      assert p.circular_repeat == 1
+      return theta['body_iter_%05d' % stage_idx]
+
+    def _Slice(t):
+      t = t[stage_idx]
+      if p.circular_repeat > 1:
+        t = t[repeat_idx]
+      return t
+
+    return tf.nest.map_structure(_Slice, theta.body)
+
+  def _unrolled_fprop(self, theta, fn_name, *args, per_layer_states, **kwargs):
     p = self.params
     fprop_inputs = args
+    # Make a copy of the list to avoid in-place update.
+    per_layer_states = per_layer_states.copy()
     with tf.name_scope(p.name):
-      for layer_idx in range(p.num_stages):
-        if p.per_stage_vars:
-          layer_theta = theta['body_iter_%05d' % layer_idx]
-        else:
+      for repeat_idx in range(p.circular_repeat):
+        for stage_idx in range(p.num_stages):
+          layer_theta = self.layer_theta(theta, repeat_idx, stage_idx)
+          layer_idx = repeat_idx * p.num_stages + stage_idx
+          states = [s[layer_idx] for s in per_layer_states]
+          fprop_outputs = getattr(self._body,
+                                  fn_name)(layer_theta, *fprop_inputs, *states,
+                                           **kwargs)
+          fprop_outputs = _ToTuple(fprop_outputs)
+          fprop_inputs = fprop_outputs[:len(fprop_inputs)]
+          states = fprop_outputs[len(fprop_inputs):]
+          for i, s in enumerate(per_layer_states):
+            s[layer_idx] = states[i]
 
-          def _Slice(t, idx=layer_idx):
-            return t[idx]
-
-          layer_theta = tf.nest.map_structure(_Slice, theta.body)
-        fprop_outputs = self._body.FProp(layer_theta, *fprop_inputs, **kwargs)
-        fprop_outputs = _ToTuple(fprop_outputs)
-        assert len(fprop_outputs) == len(fprop_inputs)
-        fprop_inputs = fprop_outputs
-      return fprop_outputs[0] if len(fprop_outputs) == 1 else fprop_outputs
+    # fprop_inputs is updated to the final outputs.
+    outputs = fprop_inputs
+    if len(outputs) == 1:
+      outputs = outputs[0]
+    return outputs, per_layer_states
 
   def FProp(self, theta, *args, **kwargs):
     return self.FPropFn(
@@ -782,7 +805,14 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     p = self.params
 
     if p.unroll == 'always' or (self.do_eval and p.unroll == 'eval_only'):
-      return self._unrolled_fprop(theta, *args, **kwargs)
+      if kwargs_no_batch is not None:
+        kwargs = {**kwargs, **kwargs_no_batch}
+      return self._unrolled_fprop(
+          theta,
+          fn_name,
+          *args,
+          per_layer_states=padded_per_stage_states,
+          **kwargs)
 
     if p.per_stage_vars:
       all_iters = [theta['body_iter_%05d' % i] for i in range(p.num_stages)]
@@ -1265,8 +1295,8 @@ class StateLayer(base_layer.BaseLayer):
     """Returns initial state.
 
     Args:
-      shape: [batch, max_steps] for beam_search_tpu_helper or
-        [batch, beam, max_steps] for flat_beam_search.
+      shape: [batch, max_steps] for beam_search_tpu_helper or [batch, beam,
+        max_steps] for flat_beam_search.
 
     Returns:
       zero-initialized state tensor.
@@ -1291,8 +1321,8 @@ class MultiHeadAttentionStateLayer(StateLayer):
     """Returns initial state.
 
     Args:
-      shape: [batch, max_steps] for beam_search_tpu_helper or
-        [batch, beam, max_steps] for flat_beam_search.
+      shape: [batch, max_steps] for beam_search_tpu_helper or [batch, beam,
+        max_steps] for flat_beam_search.
 
     Returns:
       zero-initialized state tensor whose shape can be:
