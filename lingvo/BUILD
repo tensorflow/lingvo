@@ -367,6 +367,7 @@ py_library(
         ":compat",
         ":pdb_wrapper",
         # Implicit network file system dependency.
+        # Implicit python proto dependency.
         "//lingvo:base_runner",
         "//lingvo/core:base_model",
         "//lingvo/core:checkpointer_lib",

@@ -33,6 +33,7 @@ from lingvo.core import tpu_embedding_layers
 import numpy as np
 
 from lingvo import base_runner
+from google.protobuf import text_format
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.distribute import tpu_strategy
 from tensorflow.python.tpu import device_assignment as device_assignment_lib
@@ -46,7 +47,6 @@ tf.flags.DEFINE_bool(
     'If set, use TPUStrategy / TPU mirrored variables to eliminate weight transfers. '
     'The trade-off here is that the Graph is larger. Disabling the meta optimizer '
     'might be needed for larger TPU slice topologies')
-
 
 FLAGS = tf.flags.FLAGS
 
@@ -224,6 +224,9 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     self._WriteToLog(train_cfg.ToText(), self._checkpoint_dir,
                      'trainer_params.txt')
+    self._WriteToLog(
+        text_format.MessageToString(train_cfg.ToProto(), as_utf8=True),
+        self._checkpoint_dir, 'trainer_params.pbtxt')
     if self._ml_perf is not None:
       self._ml_perf_log = True
       mlp_log.mlperf_print(key='benchmark', value=self._ml_perf.benchmark_name)
