@@ -746,6 +746,8 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
     outputs = fprop_inputs
     if len(outputs) == 1:
       outputs = outputs[0]
+    if not per_layer_states:
+      return outputs
     return outputs, per_layer_states
 
   def FProp(self, theta, *args, **kwargs):
