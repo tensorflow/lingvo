@@ -98,6 +98,7 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">base_runner</span>
+<span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">text_format</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.distribute</span> <span class="kn">import</span> <span class="n">tpu_strategy</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">device_assignment</span> <span class="k">as</span> <span class="n">device_assignment_lib</span>
@@ -111,7 +112,6 @@
     <span class="s1">&#39;If set, use TPUStrategy / TPU mirrored variables to eliminate weight transfers. &#39;</span>
     <span class="s1">&#39;The trade-off here is that the Graph is larger. Disabling the meta optimizer &#39;</span>
     <span class="s1">&#39;might be needed for larger TPU slice topologies&#39;</span><span class="p">)</span>
-
 
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
@@ -289,6 +289,9 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
                      <span class="s1">&#39;trainer_params.txt&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_WriteToLog</span><span class="p">(</span>
+        <span class="n">text_format</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">ToProto</span><span class="p">(),</span> <span class="n">as_utf8</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span> <span class="s1">&#39;trainer_params.pbtxt&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="s1">&#39;benchmark&#39;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span><span class="p">)</span>
