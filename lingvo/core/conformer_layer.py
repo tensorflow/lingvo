@@ -510,6 +510,13 @@ class ConformerLayer(base_layer.BaseLayer):
         'If True, will ignore `fflayer_end_tpl`, and will make the fflayer_end '
         'layer as a weight-shared copy of the fflayer_start layer.')
     p.Define('final_ln_tpl', layers.LayerNorm.Params(), 'Final layer norm.')
+    # If adapter_tpl is set, layer_out = adapter(conformer(layer_in))
+    # The adapter must
+    # 1. have instance method FProp(self, theta, in_nmap) -> out_nmap, where
+    # {in,out}_nmap must have 'features' and 'paddings' and $adapter_p.task_ids
+    # fields.
+    # 2. have class method SetInputDim(cls, p, input_dim)
+    p.Define('adapter_tpl', None, 'If set, runs an adapter layer in the end.')
     # https://b/167460492#comment16
     p.Define(
         'remat', False, 'If to rematerialize the layer. If true, '
@@ -821,6 +828,10 @@ class ConformerLayer(base_layer.BaseLayer):
       ln_p = p.final_ln_tpl.Copy().Set(name='final_ln', input_dim=p.input_dim)
       self.CreateChild('final_ln', ln_p)
 
+      if p.adapter_tpl:
+        p.adapter_tpl.cls.SetInputDim(p.adapter_tpl, p.input_dim)
+        self.CreateChild('adapter', p.adapter_tpl)
+
   # lconv and fflayer_start have the special treatment, which can be absent,
   # because Transformer doesn't have those.
   @property
@@ -873,7 +884,7 @@ class ConformerLayer(base_layer.BaseLayer):
     inputs, paddings = self.lconv.FProp(theta.lconv, inputs, paddings)
     return inputs, paddings
 
-  def _MoeOrFFLayer(self, theta, fflayer_name, in_nmap):
+  def _MoeOrFFLayer(self, theta, fflayer_name, features, paddings, aux_loss):
     """FProp for MoE or Feed forward layer.
 
     Args:
@@ -881,27 +892,19 @@ class ConformerLayer(base_layer.BaseLayer):
       fflayer_name: Child FFLayer name as created in __init__.
         For example: 'fflayer_end'. This assumes the moe_layer if created would
         have the convention as (`fflayer_name` + `_moe`).
-      in_nmap: Nested Map containing the following:
-
-        * inputs: A Tensor of shape [batch, seqlen, dim0].
-        * paddings: A Tensor of shape [batch, seqlen].
-        * moe_aux_loss: [None] Optional aux loss if present in input batch.
+      features: [batch, seqlen, dim0].
+      paddings: [batch, seqlen].
+      aux_loss: [], can be None.
 
     Returns:
-     out_nmap: A NestedMap of output tensors:
-
-       * features: Tensor of shape [batch, seqlen, dim0].
-       * paddings: A Tensor of shape [batch, seqlen].
-       * aux_loss: [Optional] Scalar tensor. Output moe auxiliary loss with
-         input aux loss added.
-
+      features: [batch, seqlen, dim0].
+      paddings: [batch, seqlen].
+      aux_loss: [], is None if input aux_loss is None.
     """
-    out_nmap = in_nmap.copy()
     if fflayer_name in self.children:
       outputs = self.children[fflayer_name].FProp(
-          theta.GetItem(fflayer_name), in_nmap.features, in_nmap.paddings)
-      out_nmap.features = outputs
-      return out_nmap
+          theta.GetItem(fflayer_name), features, paddings)
+      return outputs, paddings, aux_loss
     else:
       moe_fflayer_name = fflayer_name + '_moe'
       if moe_fflayer_name not in self.children:
@@ -911,67 +914,67 @@ class ConformerLayer(base_layer.BaseLayer):
         raise AssertionError(
             '{} layer theta not present.'.format(moe_fflayer_name))
       # 0 - padded positions and 1 - non-padded positions.
-      segment_ids = tf.cast(1. - in_nmap.paddings, tf.int32)
+      segment_ids = tf.cast(1. - paddings, tf.int32)
       segment_pos = tf.zeros_like(segment_ids)  # not used but required by MoE.
       moe_in = py_utils.NestedMap(
-          vec=in_nmap.features, segment_id=segment_ids, segment_pos=segment_pos)
+          vec=features, segment_id=segment_ids, segment_pos=segment_pos)
       moe_out = self.children[moe_fflayer_name].FProp(
           theta.GetItem(moe_fflayer_name), moe_in)
-      out_nmap.features = moe_out.vec
-      aux_loss = moe_out.aux_loss
-      if 'aux_loss' in in_nmap:
-        assert not aux_loss.shape.rank, 'MoE aux-loss should be a scalar.'
-        if len(py_utils.GetShape(in_nmap.aux_loss)) == 1:
-          b_size = py_utils.GetShape(in_nmap.aux_loss)[0]
-          aux_loss = tf.tile(tf.expand_dims(aux_loss, axis=0), [b_size])
-        assert in_nmap.aux_loss.shape.rank == aux_loss.shape.rank
-        aux_loss += in_nmap.aux_loss
-      # Add 'aux_loss' in out_nmap.
-      out_nmap.aux_loss = aux_loss
-      return out_nmap
+      moe_aux_loss = moe_out.aux_loss
+      if aux_loss is not None:
+        assert not moe_aux_loss.shape.rank, 'MoE aux-loss should be a scalar.'
+        if len(py_utils.GetShape(aux_loss)) == 1:
+          b_size = py_utils.GetShape(aux_loss)[0]
+          moe_aux_loss = tf.tile(tf.expand_dims(moe_aux_loss, axis=0), [b_size])
+        assert moe_aux_loss.shape.rank == aux_loss.shape.rank
+        aux_loss += moe_aux_loss
+      else:
+        aux_loss = moe_aux_loss
+      return moe_out.vec, paddings, aux_loss
 
   def _FProp(self, theta, in_nmap):
     p = self.params
 
     with tf.name_scope(p.name):
-      inputs = in_nmap.features
-      paddings = in_nmap.paddings
-      inputs, paddings = self._CastToFPropDtype((inputs, paddings))
+      features, paddings = in_nmap.features, in_nmap.paddings
+      aux_loss = in_nmap.Get('aux_loss')
+      features, paddings = self._CastToFPropDtype((features, paddings))
       out_nmap = py_utils.NestedMap()
       if self.has_fflayer_start:
-        in_nmap = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
-      inputs = in_nmap.features
+        features, paddings, aux_loss = self._MoeOrFFLayer(
+            theta, 'fflayer_start', features, paddings, aux_loss)
       atten_probs = None
       if p.layer_order == 'mhsa':
-        inputs, paddings, atten_probs = self._SelfAtten(theta, inputs, paddings)
+        features, paddings, atten_probs = self._SelfAtten(
+            theta, features, paddings)
       elif p.layer_order == 'conv':
-        inputs, paddings = self._LConv(theta, inputs, paddings)
+        features, paddings = self._LConv(theta, features, paddings)
       elif p.layer_order == 'mhsa_before_conv':
-        inputs, paddings, atten_probs = self._SelfAtten(theta, inputs, paddings)
-        inputs, paddings = self._LConv(theta, inputs, paddings)
+        features, paddings, atten_probs = self._SelfAtten(
+            theta, features, paddings)
+        features, paddings = self._LConv(theta, features, paddings)
       else:
         assert p.layer_order == 'conv_before_mhsa'
-        inputs, paddings = self._LConv(theta, inputs, paddings)
-        inputs, paddings, atten_probs = self._SelfAtten(theta, inputs, paddings)
-      in_nmap.features = inputs
-      in_nmap.paddings = paddings
-      in_nmap = self._MoeOrFFLayer(theta, 'fflayer_end', in_nmap)
-      inputs = in_nmap.features
-      if 'aux_loss' in in_nmap:
-        out_nmap.aux_loss = in_nmap.aux_loss
-      # Set language vector so recurrent.py won't complain when using
-      # pipelined models.
-      # TODO(ngyuzh,yuanzx): fix pipelined layer so don't need pass it manually.
-      if 'language_vector' in in_nmap:
-        out_nmap.language_vector = in_nmap.language_vector
-      if 'language_id' in in_nmap:
-        out_nmap.language_id = in_nmap.language_id
-      if 'domain_id_emb' in in_nmap:
-        out_nmap.domain_id_emb = in_nmap.domain_id_emb
-      inputs = self.final_ln.FProp(theta.final_ln, inputs)
-      inputs, paddings = self._CastToFPropDtype((inputs, paddings))
-      out_nmap.features = inputs
-      out_nmap.paddings = paddings
+        features, paddings = self._LConv(theta, features, paddings)
+        features, paddings, atten_probs = self._SelfAtten(
+            theta, features, paddings)
+      features, paddings, aux_loss = self._MoeOrFFLayer(theta, 'fflayer_end',
+                                                        features, paddings,
+                                                        aux_loss)
+      features = self.final_ln.FProp(theta.final_ln, features)
+
+      out_nmap = in_nmap.DeepCopy()
+      if p.adapter_tpl:
+        adapter_in_map = in_nmap.DeepCopy()
+        adapter_in_map.features, adapter_in_map.padding = features, paddings
+        adapter_out_nmap = self.adapter.FProp(theta.adapter, adapter_in_map)
+        features, paddings = adapter_out_nmap.features, adapter_out_nmap.paddings
+
+      features, paddings = self._CastToFPropDtype((features, paddings))
+      out_nmap.features, out_nmap.paddings = features, paddings
+      if aux_loss is not None:
+        out_nmap.aux_loss = aux_loss
+
       self._AddAttentionSummaries(p.name, atten_probs)
       return out_nmap
 
@@ -1029,38 +1032,37 @@ class ConformerLayer(base_layer.BaseLayer):
     assert not p.remat
 
     with tf.name_scope(f'{p.name}/StreamStep'):
-      in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
+      features, aux_loss = inputs, None
+
       if self.has_fflayer_start:
-        in_nmap = self._MoeOrFFLayer(theta, 'fflayer_start', in_nmap)
-      inputs = in_nmap.features
+        features, paddings, aux_loss = self._MoeOrFFLayer(
+            theta, 'fflayer_start', features, paddings, aux_loss)
 
       if p.layer_order == 'mhsa':
-        inputs, paddings, atten_state1 = self.trans_atten.StreamStep(
-            theta.trans_atten, inputs, paddings, state0.atten_state)
+        features, paddings, atten_state1 = self.trans_atten.StreamStep(
+            theta.trans_atten, features, paddings, state0.atten_state)
       elif p.layer_order == 'conv':
-        inputs, paddings, lconv_state1 = self.lconv.StreamStep(
-            theta.lconv, inputs, paddings, state0.lconv_state)
+        features, paddings, lconv_state1 = self.lconv.StreamStep(
+            theta.lconv, features, paddings, state0.lconv_state)
       elif p.layer_order == 'mhsa_before_conv':
-        inputs, paddings, atten_state1 = self.trans_atten.StreamStep(
-            theta.trans_atten, inputs, paddings, state0.atten_state)
-        inputs, paddings, lconv_state1 = self.lconv.StreamStep(
-            theta.lconv, inputs, paddings, state0.lconv_state)
+        features, paddings, atten_state1 = self.trans_atten.StreamStep(
+            theta.trans_atten, features, paddings, state0.atten_state)
+        features, paddings, lconv_state1 = self.lconv.StreamStep(
+            theta.lconv, features, paddings, state0.lconv_state)
       else:
         assert p.layer_order == 'conv_before_mhsa'
-        inputs, paddings, lconv_state1 = self.lconv.StreamStep(
-            theta.lconv, inputs, paddings, state0.lconv_state)
-        inputs, paddings, atten_state1 = self.trans_atten.StreamStep(
-            theta.trans_atten, inputs, paddings, state0.atten_state)
+        features, paddings, lconv_state1 = self.lconv.StreamStep(
+            theta.lconv, features, paddings, state0.lconv_state)
+        features, paddings, atten_state1 = self.trans_atten.StreamStep(
+            theta.trans_atten, features, paddings, state0.atten_state)
       if not self.has_lconv:
         lconv_state1 = py_utils.NestedMap()
       if not self.has_mhsa:
         atten_state1 = py_utils.NestedMap()
 
-      in_nmap.features = inputs
-      in_nmap.paddings = paddings
-      in_nmap = self._MoeOrFFLayer(theta, 'fflayer_end', in_nmap)
-      inputs = in_nmap.features
-      outputs = self.final_ln.FProp(theta.final_ln, inputs)
+      features, paddings, _ = self._MoeOrFFLayer(theta, 'fflayer_end', features,
+                                                 paddings, aux_loss)
+      outputs = self.final_ln.FProp(theta.final_ln, features)
 
       state1 = py_utils.NestedMap(
           lconv_state=lconv_state1, atten_state=atten_state1)
