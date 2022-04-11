@@ -15,7 +15,7 @@
 # ==============================================================================
 """Utils for TF Summaries."""
 
-import collections
+import collections.abc
 import contextlib
 import operator
 import textwrap
@@ -204,7 +204,7 @@ def flatten_summary_dict(summary_dict: Dict[str, JTensor],
   for key, value in summary_dict.items():
     if parent_key is not None:
       key = f'{parent_key}{separator}{key}'
-    if isinstance(value, collections.MutableMapping):
+    if isinstance(value, collections.abc.MutableMapping):
       outputs.extend(flatten_summary_dict(value, key))
     else:
       outputs.append((key, value))
