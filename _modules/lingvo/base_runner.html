@@ -465,6 +465,10 @@
 
       <span class="k">return</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint:disable=broad-except</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">base_trial</span><span class="o">.</span><span class="n">TunerManagedError</span><span class="p">):</span>
+        <span class="c1"># For tuner managed error, we propagate the error to the caller.</span>
+        <span class="k">raise</span> <span class="n">e</span> <span class="kn">from</span> <span class="bp">None</span>
+
       <span class="n">fatal_error_msgs</span> <span class="o">=</span> <span class="p">[</span>
           <span class="s1">&#39;Compilation failure&#39;</span><span class="p">,</span>
           <span class="s1">&#39;Run-time shape mismatch for TPUExecute argument&#39;</span>
@@ -539,8 +543,9 @@
         <span class="c1"># e.g. caused by a mis-configured model.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
-              <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Fatal error encountered.&#39;</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (fatal error): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+              <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+              <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Fatal error encountered: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">e</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (fatal error): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
 

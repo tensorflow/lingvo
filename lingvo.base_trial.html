@@ -234,6 +234,18 @@ trial should stop.</p></li>
 
 </dd></dl>
 
+<dl class="py exception">
+<dt class="sig sig-object py" id="lingvo.base_trial.TunerManagedError">
+<em class="property"><span class="pre">exception</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.base_trial.</span></span><span class="sig-name descname"><span class="pre">TunerManagedError</span></span><a class="reference internal" href="_modules/lingvo/base_trial.html#TunerManagedError"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.base_trial.TunerManagedError" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#BaseException" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseException</span></code></a></p>
+<p>Base class for error that should be propagated to the tuner.</p>
+<p>In base_runner.py, the training loop catchs all exceptions and treats
+unknown errors as failure. However, in some cases (e.g. PyGlove uses
+an EarlyStoppingError to signal early stopping that might take place
+at any moment), it requires the error to propagate to the tuner. This
+class is a base for such errors.</p>
+</dd></dl>
+
 </section>
 
 

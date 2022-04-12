@@ -189,6 +189,17 @@
 <div class="viewcode-block" id="NoOpTrial.ReportEvalMeasure"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.ReportEvalMeasure">[docs]</a>  <span class="k">def</span> <span class="nf">ReportEvalMeasure</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">checkpoint_path</span>  <span class="c1"># Unused</span>
     <span class="k">return</span> <span class="kc">False</span></div></div>
+
+
+<div class="viewcode-block" id="TunerManagedError"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.TunerManagedError">[docs]</a><span class="k">class</span> <span class="nc">TunerManagedError</span><span class="p">(</span><span class="ne">BaseException</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Base class for error that should be propagated to the tuner.</span>
+
+<span class="sd">  In base_runner.py, the training loop catchs all exceptions and treats</span>
+<span class="sd">  unknown errors as failure. However, in some cases (e.g. PyGlove uses</span>
+<span class="sd">  an EarlyStoppingError to signal early stopping that might take place</span>
+<span class="sd">  at any moment), it requires the error to propagate to the tuner. This</span>
+<span class="sd">  class is a base for such errors.</span>
+<span class="sd">  &quot;&quot;&quot;</span></div>
 </pre></div>
 
            </div>
