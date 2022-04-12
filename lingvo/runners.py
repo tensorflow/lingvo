@@ -92,10 +92,8 @@ class Controller(base_runner.BaseRunner):
         self._initialize_global_vars = tf.global_variables_initializer()
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
         if self._checkpoint_in_controller:
-          self._checkpointer = self._CreateCheckpointer(
-              self._train_dir,
-              self._model,
-              init_op=self._initialize_global_vars)
+          self._checkpointer = self._CreateCheckpointer(self._train_dir,
+                                                        self._model)
 
     self._ExportMetrics(params=self.params)
     self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
@@ -508,8 +506,8 @@ class TrainerTpu(base_runner.BaseRunner):
       self._initialize_tables = tf.tables_initializer()
 
       if FLAGS.checkpoint_in_trainer_tpu:
-        self._checkpointer = checkpointer.Checkpointer(
-            self._train_dir, self._model, init_op=self._initialize_global_vars)
+        self._checkpointer = checkpointer.Checkpointer(self._train_dir,
+                                                       self._model)
 
       self._tpu_infeed_op = self._task.input.tpu_infeed_op
       if not self._retrieve_ops:

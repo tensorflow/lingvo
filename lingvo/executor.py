@@ -382,21 +382,18 @@ class ExecutorTpu(base_runner.BaseRunner):
           self._checkpointer = checkpointer.EagerCheckpointerV2(
               self._checkpoint_dir,
               models=checkpointer_models,
-              init_op=None,
               train_params=train_cfg.train,
               save_only=False)
         else:
           self._checkpointer = checkpointer.EagerCheckpointerV1(
               self._checkpoint_dir,
               models=checkpointer_models,
-              init_op=None,
               train_params=train_cfg.train,
               save_only=False)
       else:
         self._checkpointer = checkpointer.Checkpointer(
             self._checkpoint_dir,
             models=checkpointer_models,
-            init_op=self._initialize_global_vars,
             train_params=train_cfg.train,
             save_only=False)
 

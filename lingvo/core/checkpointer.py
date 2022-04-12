@@ -146,7 +146,6 @@ class Checkpointer:
   def __init__(self,
                train_dir,
                models,
-               init_op=None,
                train_params=None,
                save_only=False):
     """Initialize Checkpointer.
@@ -156,20 +155,13 @@ class Checkpointer:
      models: One or a list of BaseModel instances. Cannot be empty. If there are
        more than one models and `train_params` is None, the save intervals will
        be only determined by the first model.
-     init_op: The initialize variables op. If unset, it will call
-       tf.global_variables_initializer().
      train_params: If specified, use these training params instead of those in
        the `model`.
      save_only: This checkpointer is only intended for saving checkpoints.
     """
     self._train_dir = train_dir
     self._save_only = save_only
-
-    if init_op:
-      self._init_op = init_op
-    else:
-      self._init_op = tf.global_variables_initializer()
-
+    self._init_op = tf.global_variables_initializer()
     self._save_path = os.path.join(self._train_dir, 'ckpt')
 
     if not isinstance(models, (list, tuple)):
@@ -462,7 +454,6 @@ class _EagerCheckpointer(Checkpointer):
   def __init__(self,
                train_dir,
                models,
-               init_op=None,
                train_params=None,
                save_only=False):
     """Initialize Checkpointer.
@@ -472,8 +463,6 @@ class _EagerCheckpointer(Checkpointer):
      models: One or a list of BaseModel instances. Cannot be empty. If there are
        more than one models and `train_params` is None, the save intervals will
        be only determined by the first model.
-     init_op: The initialize variables op. If unset, it will call
-       tf.global_variables_initializer().
      train_params: If specified, use these training params instead of those in
        the `model`.
      save_only: This checkpointer is only intended for saving checkpoints.
@@ -483,7 +472,7 @@ class _EagerCheckpointer(Checkpointer):
     if not isinstance(models, (list, tuple)):
       models = [models]
     self._models = models
-    super().__init__(train_dir, models, init_op, train_params, save_only)
+    super().__init__(train_dir, models, train_params, save_only)
 
   def RestoreIfNeeded(self, sess):
     raise TypeError('Not supported in Eager mode')
@@ -513,10 +502,9 @@ class EagerCheckpointerV1(_EagerCheckpointer):
   def __init__(self,
                train_dir,
                models,
-               init_op=None,
                train_params=None,
                save_only=False):
-    super().__init__(train_dir, models, init_op, train_params, save_only)
+    super().__init__(train_dir, models, train_params, save_only)
     tf.logging.info('EagerCheckpointerV1')
     # Distinct from EagerCheckpointerV2
     self._train_dir = os.path.join(self._train_dir, 'ckpt_V1')
@@ -639,10 +627,9 @@ class EagerCheckpointerV2(_EagerCheckpointer):
   def __init__(self,
                train_dir,
                models,
-               init_op=None,
                train_params=None,
                save_only=False):
-    super().__init__(train_dir, models, init_op, train_params, save_only)
+    super().__init__(train_dir, models, train_params, save_only)
     tf.logging.info('EagerCheckpointerV2')
     # Distinct from EagerCheckpointerV1
     self._train_dir = os.path.join(self._train_dir, 'ckpt_V2')

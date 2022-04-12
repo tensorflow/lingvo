@@ -138,13 +138,13 @@ class BaseRunner:
   def Start(self):
     pass
 
-  def _CreateCheckpointer(self, train_dir, model, init_op=None):
+  def _CreateCheckpointer(self, train_dir, model):
     """Wrapper method for override purposes."""
     if py_utils.IsEagerMode():
       if FLAGS.write_v2_checkpoints:
-        return checkpointer.EagerCheckpointerV2(train_dir, model, init_op)
-      return checkpointer.EagerCheckpointerV1(train_dir, model, init_op)
-    return checkpointer.Checkpointer(train_dir, model, init_op)
+        return checkpointer.EagerCheckpointerV2(train_dir, model)
+      return checkpointer.EagerCheckpointerV1(train_dir, model)
+    return checkpointer.Checkpointer(train_dir, model)
 
   @classmethod
   def _GetTtlDir(cls, path, duration):
