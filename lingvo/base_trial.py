@@ -124,3 +124,14 @@ class NoOpTrial(Trial):
   def ReportEvalMeasure(self, global_step, metrics_dict, checkpoint_path):
     del global_step, metrics_dict, checkpoint_path  # Unused
     return False
+
+
+class TunerManagedError(BaseException):
+  """Base class for error that should be propagated to the tuner.
+
+  In base_runner.py, the training loop catchs all exceptions and treats
+  unknown errors as failure. However, in some cases (e.g. PyGlove uses
+  an EarlyStoppingError to signal early stopping that might take place
+  at any moment), it requires the error to propagate to the tuner. This
+  class is a base for such errors.
+  """

@@ -400,6 +400,10 @@ class BaseRunner:
 
       return
     except Exception as e:  # pylint:disable=broad-except
+      if isinstance(e, base_trial.TunerManagedError):
+        # For tuner managed error, we propagate the error to the caller.
+        raise e from None
+
       fatal_error_msgs = [
           'Compilation failure',
           'Run-time shape mismatch for TPUExecute argument'
@@ -474,8 +478,9 @@ class BaseRunner:
         # e.g. caused by a mis-configured model.
         if self._should_report_metrics:
           self._trial.ReportDone(
-              infeasible=True, infeasible_reason='Fatal error encountered.')
-        tf.logging.error('%s done (fatal error): %s', job_name, type(e))
+              infeasible=True,
+              infeasible_reason='Fatal error encountered: %s' % e)
+        tf.logging.error('%s done (fatal error): %s', job_name, e)
 
         self._SetStatusMessage('%s exception: %s\n' % (job_name, e))
 
