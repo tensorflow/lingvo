@@ -3377,6 +3377,7 @@ class UniTransformer(base_model.BaseTask):
     p.Define('has_embedding_layer', True, 'Model has embedding layer or not.')
     p.Define('has_final_layer', True, 'The model has the final layer such as '
              'feedforward net.')
+    p.Define('softmax_logit_cap', 0.0, 'Softmax logit cap.')
     return p
 
   def __init__(self, params):
@@ -3592,6 +3593,8 @@ class UniTransformer(base_model.BaseTask):
       logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
       if p.has_final_layer and p.softmax_bias:
         logits = tf.nn.bias_add(logits, theta.softmax_bias)
+      if p.softmax_logit_cap and p.softmax_logit_cap > 0:
+        logits = py_utils.MaybeSoftCapLogits(logits, p.softmax_logit_cap)
       logits = self.logits_split.FProp(theta.logits_split, logits)
 
       if p.logits_abs_max is not None:
@@ -3885,6 +3888,8 @@ class UniTransformer(base_model.BaseTask):
     logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
     if p.has_final_layer and p.softmax_bias:
       logits = tf.nn.bias_add(logits, theta.softmax_bias)
+    if p.softmax_logit_cap and p.softmax_logit_cap > 0:
+      logits = py_utils.MaybeSoftCapLogits(logits, p.softmax_logit_cap)
     logits = self.logits_split.FProp(theta.logits_split, logits)
 
     # TODO(krikun): make sure this is not needed for beam search
