@@ -352,7 +352,15 @@
           <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_graph</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
             <span class="n">copied_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
             <span class="k">assert</span> <span class="n">copied_v</span><span class="o">.</span><span class="n">graph</span> <span class="ow">is</span> <span class="n">v</span><span class="o">.</span><span class="n">graph</span>
-            <span class="k">assert</span> <span class="n">copied_v</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">v</span><span class="o">.</span><span class="n">device</span>
+            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+              <span class="k">assert</span> <span class="n">copied_v</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="p">(</span>
+                  <span class="sa">f</span><span class="s2">&quot;Expecting </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">, get </span><span class="si">{</span><span class="n">copied_v</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+              <span class="c1"># When v.device is empty, the device of the copied variable is</span>
+              <span class="c1"># decided by the placer.</span>
+              <span class="c1"># TODO(laigd): this should not happen during training, find a way</span>
+              <span class="c1"># to check that.</span>
+              <span class="k">pass</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copied_v</span><span class="p">)</span>
             <span class="n">copying_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copied_v</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
       <span class="c1"># Group the ops to avoid running them directly, which will generate</span>
