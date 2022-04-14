@@ -287,7 +287,15 @@ class Saver:
           with self._var_graph.device(v.device):
             copied_v = tf.Variable(v, trainable=False)
             assert copied_v.graph is v.graph
-            assert copied_v.device == v.device
+            if v.device:
+              assert copied_v.device == v.device, (
+                  f"Expecting {v.device}, get {copied_v.device}.")
+            else:
+              # When v.device is empty, the device of the copied variable is
+              # decided by the placer.
+              # TODO(laigd): this should not happen during training, find a way
+              # to check that.
+              pass
             self._copied_vars.append(copied_v)
             copying_ops.append(copied_v.assign(v))
       # Group the ops to avoid running them directly, which will generate
