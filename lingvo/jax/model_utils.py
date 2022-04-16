@@ -20,14 +20,14 @@ import jax
 from lingvo.jax import base_input
 from lingvo.jax import base_model
 from lingvo.jax import base_model_params
+from lingvo.jax import model_imports
+from lingvo.jax import model_registry
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 from lingvo.jax import summary_utils
 from lingvo.jax import train_states
 import numpy as np
 import tensorflow.compat.v2 as tf
-from lingvo.jax import model_imports
-from lingvo.jax import model_registry
 
 BaseModelParamsT = base_model_params.BaseModelParamsT
 InstantiableParams = py_utils.InstantiableParams

@@ -31,6 +31,8 @@ from lingvo.jax import base_metrics
 from lingvo.jax import base_model_params
 from lingvo.jax import base_task
 from lingvo.jax import checkpoint_pb2
+from lingvo.jax import checkpoints
+from lingvo.jax import io_utils
 from lingvo.jax import model_utils
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
@@ -38,9 +40,6 @@ from lingvo.jax import summary_utils
 from lingvo.jax import train_states
 from lingvo.jax import trainer_lib
 import tensorflow.compat.v2 as tf
-
-from lingvo.jax import checkpoints
-from lingvo.jax import io_utils
 
 BaseModelParamsT = base_model_params.BaseModelParamsT
 CheckpointType = checkpoint_pb2.CheckpointType

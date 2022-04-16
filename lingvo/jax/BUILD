@@ -17,13 +17,13 @@ pytype_strict_binary(
     srcs_version = "PY3",
     deps = [
         ":eval",
+        ":model_imports",
         ":train",
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
         # Implicit absl.logging dependency.
         # Implicit clu dependency.
         # Implicit jax dependency.
-        "//lingvo/jax:model_imports",
         "//lingvo/jax:py_utils",
         # Implicit tensorflow dependency.
     ],
@@ -147,10 +147,12 @@ pytype_strict_library(
         ":base_input",
         ":base_layer",
         ":base_metrics",
-        ":base_model",
         ":base_model_params",
         ":base_task",
         ":checkpoint_py_pb2",
+        ":checkpoints",
+        ":io_utils",
+        ":model_imports",
         ":model_utils",
         ":py_utils",
         ":pytypes",
@@ -160,10 +162,6 @@ pytype_strict_library(
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
         # Implicit jax:mesh_utils dependency.
-        "//lingvo/jax:checkpoints",
-        "//lingvo/jax:io_utils",
-        "//lingvo/jax:model_imports",
-        # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -291,14 +289,14 @@ pytype_strict_library(
         ":base_input",
         ":base_model",
         ":base_model_params",
+        ":model_imports",
+        ":model_registry",
         ":py_utils",
         ":pytypes",
         ":summary_utils",
         ":train_states",
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
-        "//lingvo/jax:model_imports",
-        "//lingvo/jax:model_registry",
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
     ],
@@ -413,6 +411,8 @@ pytype_strict_library(
         ":base_model_params",
         ":checkpoint_managers",
         ":checkpoint_py_pb2",
+        ":checkpoints",
+        ":model_imports",
         ":model_utils",
         ":py_utils",
         ":summary_utils",
@@ -420,8 +420,6 @@ pytype_strict_library(
         # Implicit absl.logging dependency.
         # Implicit jax dependency.
         # Implicit jax:mesh_utils dependency.
-        "//lingvo/jax:checkpoints",
-        "//lingvo/jax:model_imports",
         # Implicit tensorflow dependency.
     ],
 )

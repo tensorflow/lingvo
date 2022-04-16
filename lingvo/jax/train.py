@@ -30,13 +30,12 @@ from lingvo.jax import base_input
 from lingvo.jax import base_model_params
 from lingvo.jax import checkpoint_managers
 from lingvo.jax import checkpoint_pb2
+from lingvo.jax import checkpoints
 from lingvo.jax import model_utils
 from lingvo.jax import py_utils
 from lingvo.jax import summary_utils
 from lingvo.jax import trainer_lib
 import tensorflow.compat.v2 as tf
-
-from lingvo.jax import checkpoints
 
 CheckpointType = checkpoint_pb2.CheckpointType
 InstantiableParams = py_utils.InstantiableParams
