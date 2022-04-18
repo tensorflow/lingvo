@@ -32,9 +32,11 @@ cc_library(
 gen_op_cclib(
     name = "x_ops",
     srcs = ["x_ops.cc"],
+    nonportable_deps = [
+        # Implicit tensorflow C++ proto dependency.
+    ],
     deps = [
         ":x_ops_helper",
-        # Implicit tensorflow C++ proto dependency.
     ],
 )
 

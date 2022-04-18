@@ -2,6 +2,7 @@ load("//lingvo:lingvo.bzl", "py_strict_test")
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_cuda_py_test",
+    "lingvo_portable_pytype_library",
     "lingvo_proto_cc",
     "lingvo_proto_py",
     "lingvo_py_binary",
@@ -1394,9 +1395,12 @@ py_library(
     ],
 )
 
-pytype_library(
+lingvo_portable_pytype_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
+    nonportable_deps = [
+        # Implicit tensorflow py proto dependency.
+    ],
     srcs_version = "PY3",
     deps = [
         ":cluster_factory",
@@ -1412,7 +1416,6 @@ pytype_library(
         "//lingvo/core/ops",
         # Implicit numpy dependency.
         # Implicit six dependency.
-        # Implicit tensorflow py proto dependency.
     ],
 )
 

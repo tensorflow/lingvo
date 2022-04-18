@@ -73,7 +73,7 @@ def custom_kernel_library(name, op_def_lib, srcs, hdrs = [], deps = []):
         alwayslink = 1,
     )
 
-def gen_op_cclib(name, srcs, deps = []):
+def gen_op_cclib(name, srcs, deps = [], nonportable_deps = []):
     # TODO(drpng): gpu.
     native.cc_library(
         name = name,
@@ -81,7 +81,7 @@ def gen_op_cclib(name, srcs, deps = []):
         deps = [
             "@tensorflow_includes//:includes",
             "@tensorflow_solib//:framework_lib",
-        ] + deps,
+        ] + deps + nonportable_deps,
         alwayslink = 1,
         copts = tf_copts(),
     )
@@ -182,6 +182,13 @@ def pytype_strict_library(name, **kwargs):
 
 def pytype_strict_binary(name, **kwargs):
     native.py_binary(name = name, **kwargs)
+
+def lingvo_portable_pytype_library(name, deps = [], nonportable_deps = [], **kwargs):
+    pytype_library(
+        name = name,
+        deps = deps + nonportable_deps,
+        **kwargs
+    )
 
 # Placeholder to use until bazel supports py_strict_test.
 def py_strict_test(name, **kwargs):
