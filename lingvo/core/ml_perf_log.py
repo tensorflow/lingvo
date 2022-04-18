@@ -1,4 +1,3 @@
-# Lint as: python3
 
 # Copyright 2018 MLBenchmark Group. All Rights Reserved.
 #
