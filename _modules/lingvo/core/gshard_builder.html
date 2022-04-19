@@ -3547,15 +3547,13 @@
             <span class="s1">&#39;ffw&#39;</span><span class="p">:</span> <span class="n">ffw_layer</span>
         <span class="p">}</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">:</span>
-          <span class="n">sub_layer_type_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">)</span>
-          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">%</span> <span class="n">sub_layer_type_len</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported Sub-layer types length!&#39;</span><span class="p">)</span>
-          <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[]</span>
-          <span class="k">for</span> <span class="n">sub_layer_type</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">:</span>
-            <span class="n">decoder_sub_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_type_dict</span><span class="p">[</span><span class="n">sub_layer_type</span><span class="p">])</span>
-          <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">//</span> <span class="n">sub_layer_type_len</span>
+          <span class="n">decoder_sub_layers</span><span class="p">,</span> <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDecoderLayerStackParams</span><span class="p">(</span>
+              <span class="n">p</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">layer_type_dict</span><span class="o">=</span><span class="n">layer_type_dict</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">moe_layer</span><span class="p">,</span> <span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
+          <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span>
+              <span class="n">layer_type_dict</span><span class="p">[</span><span class="s1">&#39;attn&#39;</span><span class="p">],</span> <span class="n">layer_type_dict</span><span class="p">[</span><span class="s1">&#39;moe&#39;</span><span class="p">],</span>
+              <span class="n">layer_type_dict</span><span class="p">[</span><span class="s1">&#39;attn&#39;</span><span class="p">],</span> <span class="n">layer_type_dict</span><span class="p">[</span><span class="s1">&#39;ffw&#39;</span><span class="p">]</span>
+          <span class="p">]</span>
           <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">//</span> <span class="mi">2</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">atten_layer</span><span class="p">,</span> <span class="n">ffw_layer</span><span class="p">]</span>
@@ -3589,6 +3587,16 @@
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;softmax_bias&#39;</span><span class="p">,</span> <span class="n">bias_params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="UniTransformer._GetDecoderLayerStackParams"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._GetDecoderLayerStackParams">[docs]</a>  <span class="k">def</span> <span class="nf">_GetDecoderLayerStackParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">layer_type_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">sub_layer_type_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">%</span> <span class="n">sub_layer_type_len</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported Sub-layer types length!&#39;</span><span class="p">)</span>
+    <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sub_layer_type</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">:</span>
+      <span class="n">decoder_sub_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">layer_type_dict</span><span class="p">[</span><span class="n">sub_layer_type</span><span class="p">])</span>
+    <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">//</span> <span class="n">sub_layer_type_len</span>
+    <span class="k">return</span> <span class="n">decoder_sub_layers</span><span class="p">,</span> <span class="n">num_decoder_layers</span></div>
 
 <div class="viewcode-block" id="UniTransformer._ComputeDecoderInput"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.UniTransformer._ComputeDecoderInput">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeDecoderInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -3969,6 +3977,58 @@
     <span class="n">gshard_layers</span><span class="o">.</span><span class="n">OverrideLayer</span><span class="o">.</span><span class="n">Clear</span><span class="p">()</span>
 
     <span class="k">return</span> <span class="n">logits</span><span class="p">,</span> <span class="n">dec_state</span></div></div>
+
+
+<div class="viewcode-block" id="TunableUniTransformer"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.TunableUniTransformer">[docs]</a><span class="k">class</span> <span class="nc">TunableUniTransformer</span><span class="p">(</span><span class="n">UniTransformer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Tunable LM TransformerModel with z-loss.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TunableUniTransformer.Params"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.TunableUniTransformer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;top_layer_types&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;A list of layer types that define the top layers of the model.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;bottom_layer_types&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A list of layer types that define the bottom layers of the model.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TunableUniTransformer._GetDecoderLayerStackParams"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.TunableUniTransformer._GetDecoderLayerStackParams">[docs]</a>  <span class="k">def</span> <span class="nf">_GetDecoderLayerStackParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">layer_type_dict</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">sub_layer_type_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span><span class="p">)</span>
+    <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">top_layer_types</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">bottom_layer_types</span><span class="p">:</span>
+      <span class="n">top_layer_type_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">top_layer_types</span><span class="p">)</span>
+      <span class="n">bottom_layer_type_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bottom_layer_types</span><span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">top_layer_type_len</span> <span class="o">-</span>
+          <span class="n">bottom_layer_type_len</span><span class="p">)</span> <span class="o">%</span> <span class="n">sub_layer_type_len</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Undivided Sub-layer types length!&#39;</span><span class="p">)</span>
+      <span class="n">decoder_sub_layers</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">num_mid_layer</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">-</span> <span class="n">top_layer_type_len</span> <span class="o">-</span>
+                       <span class="n">bottom_layer_type_len</span><span class="p">)</span> <span class="o">//</span> <span class="n">sub_layer_type_len</span>
+      <span class="n">decoder_sub_layers</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="n">layer_type_dict</span><span class="p">[</span><span class="n">top_layer_type</span><span class="p">]</span>
+          <span class="k">for</span> <span class="n">top_layer_type</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">top_layer_types</span>
+      <span class="p">]</span>
+      <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_mid_layer</span><span class="p">):</span>
+        <span class="n">decoder_sub_layers</span> <span class="o">+=</span> <span class="p">[</span>
+            <span class="n">layer_type_dict</span><span class="p">[</span><span class="n">sub_layer_type</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">sub_layer_type</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span>
+        <span class="p">]</span>
+      <span class="n">decoder_sub_layers</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="n">layer_type_dict</span><span class="p">[</span><span class="n">bottom_layer_type</span><span class="p">]</span>
+          <span class="k">for</span> <span class="n">bottom_layer_type</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bottom_layer_types</span>
+      <span class="p">]</span>
+      <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">%</span> <span class="n">sub_layer_type_len</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Undivided Sub-layer types length!&#39;</span><span class="p">)</span>
+      <span class="n">decoder_sub_layers</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="n">layer_type_dict</span><span class="p">[</span><span class="n">sub_layer_type</span><span class="p">]</span>
+          <span class="k">for</span> <span class="n">sub_layer_type</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_types</span>
+      <span class="p">]</span>
+      <span class="n">num_decoder_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_transformer_layers</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">//</span> <span class="n">sub_layer_type_len</span>
+
+    <span class="k">return</span> <span class="n">decoder_sub_layers</span><span class="p">,</span> <span class="n">num_decoder_layers</span></div></div>
 
 
 <span class="c1"># TODO(huangyp): Build a common BaseTransformer for [Bert|Uni|Bi]Transformer.</span>

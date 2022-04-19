@@ -1162,6 +1162,11 @@ Currently only supports ‘pre’ for pre-transformation normalzation.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer._GetDecoderLayerStackParams">
+<span class="sig-name descname"><span class="pre">_GetDecoderLayerStackParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_type_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._GetDecoderLayerStackParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._GetDecoderLayerStackParams" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer._ComputeDecoderInput">
 <span class="sig-name descname"><span class="pre">_ComputeDecoderInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._ComputeDecoderInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._ComputeDecoderInput" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -1285,6 +1290,24 @@ than the value in FProp.</p></li>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer._FlatBeamSearchCallback">
 <span class="sig-name descname"><span class="pre">_FlatBeamSearchCallback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tgt_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tgt_segment_id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tgt_pos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tgt_mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_state</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer._FlatBeamSearchCallback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer._FlatBeamSearchCallback" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.TunableUniTransformer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">TunableUniTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#TunableUniTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.TunableUniTransformer" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.UniTransformer" title="lingvo.core.gshard_builder.UniTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.UniTransformer</span></code></a></p>
+<p>Tunable LM TransformerModel with z-loss.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.TunableUniTransformer.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#TunableUniTransformer.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.TunableUniTransformer.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.TunableUniTransformer._GetDecoderLayerStackParams">
+<span class="sig-name descname"><span class="pre">_GetDecoderLayerStackParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">b</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_type_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#TunableUniTransformer._GetDecoderLayerStackParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.TunableUniTransformer._GetDecoderLayerStackParams" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 </dd></dl>
