@@ -676,11 +676,73 @@ class UniTransformerTest(test_utils.TestCase):
       golden_float = 5.761248 if use_moe else 5.635831
       test_utils.CompareToGoldenSingleFloat(self, golden_float, loss_eval)
 
+  def _testTunableUniTransformerFProp(self,
+                                      sub_layer_types=False,
+                                      top_layer_types=False,
+                                      bottom_layer_types=False):
+    length_dim = 4
+    graph = tf.Graph()
+    params = gshard_builder.TunableUniTransformer.Params().Set(
+        gated_gelu=False,
+        moe=True,
+        moe_gated_gelu=True,
+        positional_embedding=False,
+        dtype=tf.float32,
+        name='transformer',
+        builder=gshard_builder.DenseBuilder.Params().Set(
+            device_mesh_shape=[1, 1],
+            device_mesh=None,
+            relative_attention_num_buckets=32,
+            relative_attention_type='bias',
+            relative_attention_max_distance=128,
+            dtype=tf.float32,
+            num_devices=1,  # we call .Split num_devices on axis 0 (batch)
+            relative_attention_use_universal_1d_position=True,
+            e_dim=2,
+            num_groups=1,
+            c_dim=2,
+            model_dim=32,
+            attention_num_heads=8,
+            moe_hidden_dim=128,
+            ff_dim=128,
+            attention_key_value_dim=8,
+            attention_combine_dims=True),
+        batch_size=32,
+        sub_layer_types=sub_layer_types,
+        top_layer_types=top_layer_types,
+        bottom_layer_types=bottom_layer_types,
+        sequence_length=length_dim,
+        num_transformer_layers=6,
+        aux_loss_coef=0.0,
+        loss_denominator=None,
+        label_smoothing=0,
+        vocab_size=128,
+        max_length=length_dim)
+    with graph.as_default():
+      py_utils.GetOrCreateGlobalStepVar()
+      params.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      tf.random.set_seed(24332)
+      model = params.Instantiate()
+
+    with tf.Session(graph=graph) as sess:
+      input_batch = self._PreLoadInput()
+      loss = model.FPropDefaultTheta(input_batch)[0]['loss'][0]
+      sess.run(tf.global_variables_initializer())
+      loss_eval = sess.run(loss)
+      golden_float = 6.623055
+      test_utils.CompareToGoldenSingleFloat(self, golden_float, loss_eval)
+
   def testUniTransformerFProp(self):
     self._testUniTransformerFProp(use_moe=False)
 
   def testUniTransformerMoEGluFProp(self):
     self._testUniTransformerFProp(use_moe=True)
+
+  def testTunableUniTransformerMoEGluProp(self):
+    self._testTunableUniTransformerFProp(
+        sub_layer_types=['attn', 'attn'],
+        top_layer_types=['attn', 'moe'],
+        bottom_layer_types=['ffw', 'ffw'])
 
   def testUniTransformerParallelFProp(self):
     length_dim = 4

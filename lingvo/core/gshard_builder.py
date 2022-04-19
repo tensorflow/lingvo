@@ -3482,15 +3482,13 @@ class UniTransformer(base_model.BaseTask):
             'ffw': ffw_layer
         }
         if p.sub_layer_types:
-          sub_layer_type_len = len(p.sub_layer_types)
-          if p.num_transformer_layers * 2 % sub_layer_type_len != 0:
-            raise ValueError('Unsupported Sub-layer types length!')
-          decoder_sub_layers = []
-          for sub_layer_type in p.sub_layer_types:
-            decoder_sub_layers.append(layer_type_dict[sub_layer_type])
-          num_decoder_layers = p.num_transformer_layers * 2 // sub_layer_type_len
+          decoder_sub_layers, num_decoder_layers = self._GetDecoderLayerStackParams(
+              p, b, layer_type_dict=layer_type_dict)
         else:
-          decoder_sub_layers = [atten_layer, moe_layer, atten_layer, ffw_layer]
+          decoder_sub_layers = [
+              layer_type_dict['attn'], layer_type_dict['moe'],
+              layer_type_dict['attn'], layer_type_dict['ffw']
+          ]
           num_decoder_layers = p.num_transformer_layers // 2
       else:
         decoder_sub_layers = [atten_layer, ffw_layer]
@@ -3524,6 +3522,16 @@ class UniTransformer(base_model.BaseTask):
           dtype=p.dtype,
           shape=[p.vocab_size])
       self.CreateVariable('softmax_bias', bias_params)
+
+  def _GetDecoderLayerStackParams(self, p, b, layer_type_dict=None):
+    sub_layer_type_len = len(p.sub_layer_types)
+    if p.num_transformer_layers * 2 % sub_layer_type_len != 0:
+      raise ValueError('Unsupported Sub-layer types length!')
+    decoder_sub_layers = []
+    for sub_layer_type in p.sub_layer_types:
+      decoder_sub_layers.append(layer_type_dict[sub_layer_type])
+    num_decoder_layers = p.num_transformer_layers * 2 // sub_layer_type_len
+    return decoder_sub_layers, num_decoder_layers
 
   def _ComputeDecoderInput(self, theta, input_batch):
     p = self.params
@@ -3904,6 +3912,58 @@ class UniTransformer(base_model.BaseTask):
     gshard_layers.OverrideLayer.Clear()
 
     return logits, dec_state
+
+
+class TunableUniTransformer(UniTransformer):
+  """Tunable LM TransformerModel with z-loss."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('top_layer_types', None,
+             'A list of layer types that define the top layers of the model.')
+    p.Define(
+        'bottom_layer_types', None,
+        'A list of layer types that define the bottom layers of the model.')
+    return p
+
+  def _GetDecoderLayerStackParams(self, p, b, layer_type_dict=None):
+    sub_layer_type_len = len(p.sub_layer_types)
+    decoder_sub_layers = []
+
+    if p.top_layer_types and p.bottom_layer_types:
+      top_layer_type_len = len(p.top_layer_types)
+      bottom_layer_type_len = len(p.bottom_layer_types)
+      if (p.num_transformer_layers * 2 - top_layer_type_len -
+          bottom_layer_type_len) % sub_layer_type_len != 0:
+        raise ValueError('Undivided Sub-layer types length!')
+      decoder_sub_layers = []
+      num_mid_layer = (p.num_transformer_layers * 2 - top_layer_type_len -
+                       bottom_layer_type_len) // sub_layer_type_len
+      decoder_sub_layers += [
+          layer_type_dict[top_layer_type]
+          for top_layer_type in p.top_layer_types
+      ]
+      for _ in range(num_mid_layer):
+        decoder_sub_layers += [
+            layer_type_dict[sub_layer_type]
+            for sub_layer_type in p.sub_layer_types
+        ]
+      decoder_sub_layers += [
+          layer_type_dict[bottom_layer_type]
+          for bottom_layer_type in p.bottom_layer_types
+      ]
+      num_decoder_layers = 1
+    else:
+      if p.num_transformer_layers * 2 % sub_layer_type_len != 0:
+        raise ValueError('Undivided Sub-layer types length!')
+      decoder_sub_layers += [
+          layer_type_dict[sub_layer_type]
+          for sub_layer_type in p.sub_layer_types
+      ]
+      num_decoder_layers = p.num_transformer_layers * 2 // sub_layer_type_len
+
+    return decoder_sub_layers, num_decoder_layers
 
 
 # TODO(huangyp): Build a common BaseTransformer for [Bert|Uni|Bi]Transformer.
