@@ -90,6 +90,10 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.distribute</span> <span class="kn">import</span> <span class="n">tpu_values</span> <span class="k">as</span> <span class="n">tpu_values_lib</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
@@ -715,7 +719,8 @@
           <span class="s1">&#39;potentially already loaded as EMA variables.&#39;</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">MaybeUseEmaVar</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span>
+                          <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">,</span> <span class="n">tpu_values_lib</span><span class="o">.</span><span class="n">TPUDistributedVariable</span><span class="p">)):</span>
           <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;EMA is used but self._private_theta contains &#39;</span>
                            <span class="sa">f</span><span class="s1">&#39;non-variables: </span><span class="si">{</span><span class="n">x</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
         <span class="n">ema_x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
