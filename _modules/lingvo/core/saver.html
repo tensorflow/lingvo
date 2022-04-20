@@ -235,8 +235,60 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span><span class="p">,</span> <span class="s2">&quot;/ckpt-&quot;</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">as_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
     <span class="p">])</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddShardedSaveOps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">,</span>
-                                            <span class="n">_VarKey</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_copying_op</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_save</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddShardedSaveOps</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">,</span>
+                                              <span class="n">_VarKey</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars_initializer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Creating a copy of the vars. We need to add the graph ops here (during</span>
+      <span class="c1"># construction) to avoid adding duplicate functions during execution</span>
+      <span class="c1"># (b/226390414).</span>
+      <span class="c1"># Note: the copy will be created in self._var_graph regardless which graph</span>
+      <span class="c1"># is set as default, so we need to apply the device context in</span>
+      <span class="c1"># self._var_graph.</span>
+      <span class="n">copying_ops</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">:</span>
+          <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_graph</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+            <span class="c1"># Initialize with a constant scalar to avoid consuming large amount</span>
+            <span class="c1"># of memory unnecessarily.</span>
+            <span class="c1"># According to TF, use tf.TensorShape(None) (unspecified shape) so</span>
+            <span class="c1"># that the variable can later be assigned with values of different</span>
+            <span class="c1"># shapes.</span>
+            <span class="k">assert</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;:0&quot;</span><span class="p">)</span>
+            <span class="n">copied_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
+                <span class="mi">0</span><span class="p">,</span>
+                <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;async_ckpt/</span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+                <span class="n">dtype</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                <span class="n">shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="kc">None</span><span class="p">))</span>
+            <span class="k">assert</span> <span class="n">copied_v</span><span class="o">.</span><span class="n">graph</span> <span class="ow">is</span> <span class="n">v</span><span class="o">.</span><span class="n">graph</span>
+            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
+              <span class="k">assert</span> <span class="n">copied_v</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">v</span><span class="o">.</span><span class="n">device</span>
+            <span class="k">else</span><span class="p">:</span>
+              <span class="c1"># When v.device is empty, the device of the copied variable is</span>
+              <span class="c1"># decided by the placer.</span>
+              <span class="c1"># TODO(laigd): this should not happen for model variables during</span>
+              <span class="c1"># training, find a way to check that.</span>
+              <span class="k">pass</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copied_v</span><span class="p">)</span>
+            <span class="n">copying_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copied_v</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+      <span class="c1"># Group the ops to avoid running them directly, which will generate</span>
+      <span class="c1"># expensive send/recv operations.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_copying_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">copying_ops</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars_initializer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+          <span class="o">*</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">initializer</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">])</span>
+
+      <span class="n">copied_var_map</span> <span class="o">=</span> <span class="p">{</span>
+          <span class="nb">id</span><span class="p">(</span><span class="n">copied_var</span><span class="p">):</span> <span class="n">var</span>
+          <span class="k">for</span> <span class="n">copied_var</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">)</span>
+      <span class="p">}</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddShardedSaveOps</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">,</span>
+          <span class="k">lambda</span> <span class="n">copied_var</span><span class="p">:</span> <span class="n">_VarKey</span><span class="p">(</span><span class="n">copied_var_map</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">copied_var</span><span class="p">)]))</span></div>
 
 <div class="viewcode-block" id="Saver._BuildRestore"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._BuildRestore">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildRestore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Builds restore ops.&quot;&quot;&quot;</span>
@@ -329,7 +381,6 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Returns the global step and file prefix.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-
     <span class="c1"># Waiting for the previous save to finish.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">Sync</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -337,66 +388,29 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="k">raise</span> <span class="n">e</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="c1"># Creating the first copy of the vars. Doing it here and not in the</span>
-      <span class="c1"># constructor due to initialization sequence of TF.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span> <span class="o">=</span> <span class="p">[]</span>
-
-      <span class="c1"># Note: the variables below will be created in self._var_graph regardless</span>
-      <span class="c1"># which graph is set as default, so we need to apply the device context in</span>
-      <span class="c1"># self._var_graph.</span>
-      <span class="n">copying_ops</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">:</span>
-          <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_graph</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
-            <span class="n">copied_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-            <span class="k">assert</span> <span class="n">copied_v</span><span class="o">.</span><span class="n">graph</span> <span class="ow">is</span> <span class="n">v</span><span class="o">.</span><span class="n">graph</span>
-            <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">:</span>
-              <span class="k">assert</span> <span class="n">copied_v</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="p">,</span> <span class="p">(</span>
-                  <span class="sa">f</span><span class="s2">&quot;Expecting </span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">, get </span><span class="si">{</span><span class="n">copied_v</span><span class="o">.</span><span class="n">device</span><span class="si">}</span><span class="s2">.&quot;</span><span class="p">)</span>
-            <span class="k">else</span><span class="p">:</span>
-              <span class="c1"># When v.device is empty, the device of the copied variable is</span>
-              <span class="c1"># decided by the placer.</span>
-              <span class="c1"># TODO(laigd): this should not happen during training, find a way</span>
-              <span class="c1"># to check that.</span>
-              <span class="k">pass</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copied_v</span><span class="p">)</span>
-            <span class="n">copying_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">copied_v</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-      <span class="c1"># Group the ops to avoid running them directly, which will generate</span>
-      <span class="c1"># expensive send/recv operations.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_copying_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">copying_ops</span><span class="p">)</span>
-
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_copying_op</span><span class="p">)</span>
-
     <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
         <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">],</span>
         <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">})</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving asynchronously to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
 
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saving asynchronously to </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">))</span>
-
-    <span class="k">def</span> <span class="nf">_Async</span><span class="p">(</span><span class="n">prefix</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">_Async</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
       <span class="n">checkpoint_start_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
       <span class="k">try</span><span class="p">:</span>
-        <span class="n">copied_var_map</span> <span class="o">=</span> <span class="p">{</span>
-            <span class="nb">id</span><span class="p">(</span><span class="n">copied_var</span><span class="p">):</span> <span class="n">var</span>
-            <span class="k">for</span> <span class="n">copied_var</span><span class="p">,</span> <span class="n">var</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">)</span>
-        <span class="p">}</span>
-        <span class="n">save_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AddShardedSaveOps</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span>
-            <span class="k">lambda</span> <span class="n">copied_var</span><span class="p">:</span> <span class="n">_VarKey</span><span class="p">(</span><span class="n">copied_var_map</span><span class="p">[</span><span class="nb">id</span><span class="p">(</span><span class="n">copied_var</span><span class="p">)]))</span>
-        <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="n">save_op</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{})</span>
-        <span class="c1"># Many users expect this as the tf.train.Saver does this by default.</span>
-        <span class="n">prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="c1"># Use the provided prefix in case self._save_global_step is changed.</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="n">fetches</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span><span class="p">,</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">:</span> <span class="n">prefix</span><span class="p">})</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeSave</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
       <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_async_exception</span> <span class="o">=</span> <span class="n">e</span>
       <span class="n">_async_checkpoint_op_time_seconds</span><span class="o">.</span><span class="n">get_cell</span><span class="p">()</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span>
                                                        <span class="n">checkpoint_start_time</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">_Async</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">prefix</span><span class="p">,))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
+        <span class="n">target</span><span class="o">=</span><span class="n">_Async</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_async_save_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
-
-    <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span></div>
 
 <div class="viewcode-block" id="Saver._SaveSync"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._SaveSync">[docs]</a>  <span class="k">def</span> <span class="nf">_SaveSync</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Saves the graph.&quot;&quot;&quot;</span>
@@ -539,6 +553,11 @@
         <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_op</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span><span class="p">:</span> <span class="n">prefix</span><span class="p">})</span>
     <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCheckpointId</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Restored </span><span class="si">%d</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_async_save</span><span class="p">:</span>
+      <span class="c1"># Initialize the copied variables after a successful restore, to make sure</span>
+      <span class="c1"># all variables are initialized (since copied variables are not saved in</span>
+      <span class="c1"># the checkpoints).</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_copied_vars_initializer</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span></div>
 
 <div class="viewcode-block" id="Saver.Sync"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Sync">[docs]</a>  <span class="k">def</span> <span class="nf">Sync</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

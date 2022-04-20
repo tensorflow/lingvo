@@ -417,6 +417,12 @@
           <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_strategy</span><span class="o">.</span><span class="n">scope</span><span class="p">())</span>
           <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span>
               <span class="n">tpu_strategy</span><span class="o">.</span><span class="n">_TPUReplicaContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_strategy</span><span class="p">))</span>
+          <span class="k">if</span> <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">async_checkpointing</span><span class="p">:</span>
+            <span class="c1"># TODO(b/228458924): reenable async checkpointing.</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+                <span class="s1">&#39;Async checkpointing may not be compatible with TPU mirrored &#39;</span>
+                <span class="s1">&#39;variables, so disabling it for now.&#39;</span><span class="p">)</span>
+            <span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">async_checkpointing</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()))</span>
 
@@ -432,15 +438,9 @@
           <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">ClearTpuSummaryTensors</span><span class="p">()</span>
 
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
-
       <span class="n">checkpointer_models</span> <span class="o">=</span> <span class="p">[</span>
           <span class="n">program</span><span class="o">.</span><span class="n">GetModel</span><span class="p">()</span> <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_programs</span>
       <span class="p">]</span>
-
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_v2_checkpoints_in_eager</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV2</span><span class="p">(</span>
@@ -460,6 +460,11 @@
             <span class="n">models</span><span class="o">=</span><span class="n">checkpointer_models</span><span class="p">,</span>
             <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
             <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="c1"># Get the global_variables_initializer after creating the Checkpointer,</span>
+        <span class="c1"># since it may create additional variables used by async checkpointing.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_global_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
 
       <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
         <span class="n">program</span><span class="o">.</span><span class="n">SetStatusMessageFn</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">)</span>
