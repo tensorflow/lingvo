@@ -56,16 +56,18 @@ class Trainer(base_runner.BaseRunner):
       # scenario the slot variables will be lost without a dummy run due to
       # checkpoint overwrites.
       _, _ = TrainFunc()
+      global_step = py_utils.GetOrCreateGlobalStepVar()
+      # Reset global_step after the dummy run, before loading checkpoints.
+      global_step.assign(0)
       path = ckptr.Restore()
       if path:
         tf.logging.info(f'Loaded checkpoints from {path}.')
       else:
-        tf.logging.info('Did not find any checkpoints. Starting fresh.')
-        # Reset global_step manually if we could not load any checkpoints
-        global_step = py_utils.GetOrCreateGlobalStepVar()
-        global_step.assign(0)
+        tf.logging.info('Did not find checkpoints in the current directory.')
 
       global_step = model.global_step.numpy()
+      # Save at the beginning of training
+      ckptr.Save(gsteps=global_step)
       while True:
         if self._ShouldStop(global_step):
           break

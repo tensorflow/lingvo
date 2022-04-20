@@ -184,7 +184,10 @@ class Checkpointer:
       self._uninitialized_vars = tf.report_uninitialized_variables(
           tf.global_variables())
 
-    self._BuildInitFromCheckpointRules()
+    # In Eager mode, the init rules are loaded lazily to ensure slot variables
+    # can also be loaded successfully.
+    if not py_utils.IsEagerMode():
+      self._BuildInitFromCheckpointRules()
 
   @property
   def checkpoint_dir(self):
@@ -473,7 +476,19 @@ class _EagerCheckpointer(Checkpointer):
     if not isinstance(models, (list, tuple)):
       models = [models]
     self._models = models
+    self._init_rules_built = False
     super().__init__(train_dir, models, train_params, save_only)
+
+  def _MaybeBuildInitFromCheckpointRules(self):
+    """Build restore fns for init_from_checkpoint_rules."""
+    if self._init_rules_built:
+      return
+    else:
+      self._init_rules_built = True
+
+    # In Eager mode this function is called lazily.
+    # We use a guard to avoid repeated executions.
+    self._BuildInitFromCheckpointRules()
 
   def RestoreIfNeeded(self, sess):
     raise TypeError('Not supported in Eager mode')
@@ -555,6 +570,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
       # No checkpoint is loaded, we need to initialize the variables,
       # and apply the init_from_checkpoint_rules if applicable.
       try:
+        self._MaybeBuildInitFromCheckpointRules()
         for msg, fn in self._restore_fns:
           tf.logging.info(msg)
           fn(sess)
@@ -662,6 +678,7 @@ class EagerCheckpointerV2(_EagerCheckpointer):
       return path
     # No checkpoint is loaded, we need to initialize the variables,
     # and apply the init_from_checkpoint_rules if applicable.
+    self._MaybeBuildInitFromCheckpointRules()
     for msg, fn in self._restore_fns:
       tf.logging.info(msg)
       fn(sess)

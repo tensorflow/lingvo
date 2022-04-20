@@ -24,6 +24,7 @@ from unittest import mock
 from absl.testing import flagsaver
 from absl.testing import parameterized
 from lingvo import base_trial
+from lingvo import eager_runners
 from lingvo import model_registry
 from lingvo import runners
 from lingvo import trainer
@@ -33,6 +34,7 @@ from lingvo.core import base_model
 from lingvo.core import base_model_params
 from lingvo.core import hyperparams
 from lingvo.core import inference_graph_pb2
+from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core import trainer_test_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
@@ -64,14 +66,26 @@ class BaseTrainerTest(test_utils.TestCase):
                               FLAGS.tf_master, self._trial)
 
   def _CreateTrainer(self, cfg):
+    if py_utils.IsEagerMode():
+      return eager_runners.Trainer(cfg, FLAGS.model_task_name, FLAGS.logdir,
+                                   FLAGS.tf_master, self._trial)
+
     return runners.Trainer(cfg, FLAGS.model_task_name, FLAGS.logdir,
                            FLAGS.tf_master, self._trial)
 
   def _CreateEvalerDev(self, cfg):
+    if py_utils.IsEagerMode():
+      return eager_runners.Evaler('dev', cfg, FLAGS.model_task_name,
+                                  FLAGS.logdir, FLAGS.tf_master, self._trial)
+
     return runners.Evaler('dev', cfg, FLAGS.model_task_name, FLAGS.logdir,
                           FLAGS.tf_master, self._trial)
 
   def _CreateDecoderDev(self, cfg):
+    if py_utils.IsEagerMode():
+      return eager_runners.Decoder('dev', cfg, FLAGS.model_task_name,
+                                   FLAGS.logdir, FLAGS.tf_master, self._trial)
+
     return runners.Decoder('dev', cfg, FLAGS.model_task_name, FLAGS.logdir,
                            FLAGS.tf_master, self._trial)
 

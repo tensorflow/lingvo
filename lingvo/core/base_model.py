@@ -15,6 +15,7 @@
 """Base model."""
 
 import collections
+import contextlib
 import dataclasses
 import re
 
@@ -813,8 +814,11 @@ class BaseTask(base_layer.BaseLayer):
 
     tf.logging.info('ApplyExponentialMovingAverage on %s', self)
     all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
-    with tf.name_scope('moving_average'):
-      self._post_train_ops.append(ema.apply(all_vars))
+    with contextlib.ExitStack() as context_stack:
+      if py_utils.IsEagerMode():
+        context_stack.enter_context(self._EMAVariableScope())
+      with tf.name_scope('moving_average'):
+        self._post_train_ops.append(ema.apply(all_vars))
 
   # TODO(blee): Rename Decode->DecodeWithDefaultTheta, DecodeWithTheta->Decode.
   def Decode(self, input_batch):

@@ -123,6 +123,15 @@ class QuantUtilsBaseTest(test_utils.TestCase):
     [ 0.        ,  0.        ,  0.        ,  0.        ],
     [-0.02125708, -0.10454545, -0.01147466,  0.06903321],
     [ 0.0276652 , -0.14823943, -0.09726462,  0.01415125]]]
+  NO_QDOMAIN_EXPECTED_EAGER = [
+   [[ 0.00321277,  0.00818140, -0.02552385,  0.01066932],
+    [ 0.01345658, -0.06873785, -0.07171492,  0.06641106],
+    [ 0.        ,  0.        ,  0.        ,  0.        ],
+    [ 0.1642895 ,  0.04410084,  0.02281524,  0.00583461]],
+   [[ 0.        ,  0.        ,  0.        ,  0.        ],
+    [ 0.        ,  0.        ,  0.        ,  0.        ],
+    [ 0.20509389,  0.02709481,  0.09852847, -0.01793884],
+    [ 0.11026311,  0.01846472, -0.08576044,  0.06027214]]]
   # pyformat: enable
 
   def _testLayerHelper(self,
@@ -149,7 +158,10 @@ class QuantUtilsBaseTest(test_utils.TestCase):
     if global_step >= 0:
       self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
 
-    output = output.eval()
+    if tf.executing_eagerly():
+      output = output.numpy()
+    else:
+      output = output.eval()
     print('QuantizableLayerTest output', test_case, ':\n',
           np.array_repr(output))
     if expected is not None:
