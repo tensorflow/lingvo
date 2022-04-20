@@ -5872,7 +5872,7 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
     if has_paddings:
       if p.unroll == 'always' or (self.do_eval and p.unroll == 'eval_only'):
         # outputs, per_layer_states
-        x_out, padding = out[0]
+        x_out, padding = out
       else:
         x_out, padding = out
       return self.final_ln.FProp(theta.final_ln, x_out), padding
