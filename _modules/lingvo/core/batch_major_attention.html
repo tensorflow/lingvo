@@ -5935,11 +5935,8 @@
 
     <span class="n">has_paddings</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">out</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
     <span class="k">if</span> <span class="n">has_paddings</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">unroll</span> <span class="o">==</span> <span class="s1">&#39;always&#39;</span> <span class="ow">or</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">unroll</span> <span class="o">==</span> <span class="s1">&#39;eval_only&#39;</span><span class="p">):</span>
-        <span class="c1"># outputs, per_layer_states</span>
-        <span class="n">x_out</span><span class="p">,</span> <span class="n">padding</span> <span class="o">=</span> <span class="n">out</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">x_out</span><span class="p">,</span> <span class="n">padding</span> <span class="o">=</span> <span class="n">out</span>
+      <span class="c1"># outputs, per_layer_states</span>
+      <span class="n">x_out</span><span class="p">,</span> <span class="n">padding</span> <span class="o">=</span> <span class="n">out</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">x_out</span><span class="p">),</span> <span class="n">padding</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span></div>
