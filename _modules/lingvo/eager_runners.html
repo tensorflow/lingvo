@@ -121,16 +121,18 @@
       <span class="c1"># scenario the slot variables will be lost without a dummy run due to</span>
       <span class="c1"># checkpoint overwrites.</span>
       <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">TrainFunc</span><span class="p">()</span>
+      <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+      <span class="c1"># Reset global_step after the dummy run, before loading checkpoints.</span>
+      <span class="n">global_step</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
       <span class="n">path</span> <span class="o">=</span> <span class="n">ckptr</span><span class="o">.</span><span class="n">Restore</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">path</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Loaded checkpoints from </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Did not find any checkpoints. Starting fresh.&#39;</span><span class="p">)</span>
-        <span class="c1"># Reset global_step manually if we could not load any checkpoints</span>
-        <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
-        <span class="n">global_step</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Did not find checkpoints in the current directory.&#39;</span><span class="p">)</span>
 
       <span class="n">global_step</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">global_step</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+      <span class="c1"># Save at the beginning of training</span>
+      <span class="n">ckptr</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">gsteps</span><span class="o">=</span><span class="n">global_step</span><span class="p">)</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">global_step</span><span class="p">):</span>
           <span class="k">break</span>

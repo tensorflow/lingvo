@@ -249,7 +249,10 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">report_uninitialized_variables</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_BuildInitFromCheckpointRules</span><span class="p">()</span>
+    <span class="c1"># In Eager mode, the init rules are loaded lazily to ensure slot variables</span>
+    <span class="c1"># can also be loaded successfully.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_BuildInitFromCheckpointRules</span><span class="p">()</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">checkpoint_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -538,7 +541,19 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">models</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_models</span> <span class="o">=</span> <span class="n">models</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_init_rules_built</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">)</span>
+
+<div class="viewcode-block" id="_EagerCheckpointer._MaybeBuildInitFromCheckpointRules"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer._EagerCheckpointer._MaybeBuildInitFromCheckpointRules">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeBuildInitFromCheckpointRules</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Build restore fns for init_from_checkpoint_rules.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_init_rules_built</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_init_rules_built</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="c1"># In Eager mode this function is called lazily.</span>
+    <span class="c1"># We use a guard to avoid repeated executions.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_BuildInitFromCheckpointRules</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="_EagerCheckpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer._EagerCheckpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Not supported in Eager mode&#39;</span><span class="p">)</span></div>
@@ -620,6 +635,7 @@
       <span class="c1"># No checkpoint is loaded, we need to initialize the variables,</span>
       <span class="c1"># and apply the init_from_checkpoint_rules if applicable.</span>
       <span class="k">try</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeBuildInitFromCheckpointRules</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
           <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
@@ -727,6 +743,7 @@
       <span class="k">return</span> <span class="n">path</span>
     <span class="c1"># No checkpoint is loaded, we need to initialize the variables,</span>
     <span class="c1"># and apply the init_from_checkpoint_rules if applicable.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeBuildInitFromCheckpointRules</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">msg</span><span class="p">,</span> <span class="n">fn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restore_fns</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
       <span class="n">fn</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>

@@ -938,6 +938,23 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_self_variable_scope</span><span class="o">.</span><span class="n">original_name_scope</span><span class="p">))</span>
       <span class="k">yield</span> <span class="n">stack</span></div>
 
+<div class="viewcode-block" id="BaseLayer._EMAVariableScope"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._EMAVariableScope">[docs]</a>  <span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+  <span class="k">def</span> <span class="nf">_EMAVariableScope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Internal. Used to ensure that the EMA variable names are reused.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_ema_variable_scope&#39;</span><span class="p">):</span>
+      <span class="c1"># Use empty name here so no prefix is added to the EMA variable names.</span>
+      <span class="c1"># This ensures compatibility between Graph and Eager checkpoint names.</span>
+      <span class="c1"># https://www.tensorflow.org/api_docs/python/tf/compat/v1/variable_scope</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ema_variable_scope</span> <span class="o">=</span> <span class="n">scope</span>
+    <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+      <span class="c1"># Entering a variable scope so that the EMA variables can reuse the names</span>
+      <span class="c1"># in separate trainer runs. This turned out to be useful in the case of</span>
+      <span class="c1"># model fine tuning, when the same model is run multiple times in the same</span>
+      <span class="c1"># Eager context.</span>
+      <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ema_variable_scope</span><span class="p">))</span>
+      <span class="k">yield</span> <span class="n">stack</span></div>
+
 <div class="viewcode-block" id="BaseLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Override the variable scope for individual children.</span>
 
