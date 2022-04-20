@@ -25,6 +25,10 @@ from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.distribute import tpu_values as tpu_values_lib
+# pylint: enable=g-direct-tensorflow-import
+
 FLAGS = tf.flags.FLAGS
 
 
@@ -650,7 +654,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
           'potentially already loaded as EMA variables.')
 
       def MaybeUseEmaVar(x):
-        if not isinstance(x, tf.Variable):
+        if not isinstance(x,
+                          (tf.Variable, tpu_values_lib.TPUDistributedVariable)):
           raise ValueError('EMA is used but self._private_theta contains '
                            f'non-variables: {x}.')
         ema_x = self.ema.average(x)
