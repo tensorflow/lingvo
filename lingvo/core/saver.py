@@ -170,8 +170,60 @@ class Saver:
         self._logdir_ph, "/ckpt-",
         tf.as_string(self._save_global_step, width=8, fill="0")
     ])
-    self._save_op = self._AddShardedSaveOps(self._vars, self._save_prefix,
-                                            _VarKey)
+    self._copied_vars = []
+    self._copying_op = None
+
+    if not self._async_save:
+      self._save_op = self._AddShardedSaveOps(self._vars, self._save_prefix,
+                                              _VarKey)
+      self._copied_vars_initializer = tf.no_op()
+    else:
+      # Creating a copy of the vars. We need to add the graph ops here (during
+      # construction) to avoid adding duplicate functions during execution
+      # (b/226390414).
+      # Note: the copy will be created in self._var_graph regardless which graph
+      # is set as default, so we need to apply the device context in
+      # self._var_graph.
+      copying_ops = []
+      with self._var_graph.as_default():
+        for v in self._vars:
+          with self._var_graph.device(v.device):
+            # Initialize with a constant scalar to avoid consuming large amount
+            # of memory unnecessarily.
+            # According to TF, use tf.TensorShape(None) (unspecified shape) so
+            # that the variable can later be assigned with values of different
+            # shapes.
+            assert v.name.endswith(":0")
+            copied_v = tf.Variable(
+                0,
+                trainable=False,
+                name=f"async_ckpt/{v.name[:-2]}",
+                dtype=v.dtype,
+                shape=tf.TensorShape(None))
+            assert copied_v.graph is v.graph
+            if v.device:
+              assert copied_v.device == v.device
+            else:
+              # When v.device is empty, the device of the copied variable is
+              # decided by the placer.
+              # TODO(laigd): this should not happen for model variables during
+              # training, find a way to check that.
+              pass
+            self._copied_vars.append(copied_v)
+            copying_ops.append(copied_v.assign(v))
+      # Group the ops to avoid running them directly, which will generate
+      # expensive send/recv operations.
+      self._copying_op = tf.group(*copying_ops)
+      self._copied_vars_initializer = tf.group(
+          *[v.initializer for v in self._copied_vars])
+
+      copied_var_map = {
+          id(copied_var): var
+          for copied_var, var in zip(self._copied_vars, self._vars)
+      }
+      self._save_op = self._AddShardedSaveOps(
+          self._copied_vars, self._save_prefix,
+          lambda copied_var: _VarKey(copied_var_map[id(copied_var)]))
 
   def _BuildRestore(self):
     """Builds restore ops."""
@@ -264,7 +316,6 @@ class Saver:
     Returns:
       Returns the global step and file prefix.
     """
-
     # Waiting for the previous save to finish.
     self.Sync()
     if self._async_exception is not None:
@@ -272,66 +323,29 @@ class Saver:
       self._async_exception = None
       raise e
 
-    if self._copied_vars is None:
-      # Creating the first copy of the vars. Doing it here and not in the
-      # constructor due to initialization sequence of TF.
-      self._copied_vars = []
-
-      # Note: the variables below will be created in self._var_graph regardless
-      # which graph is set as default, so we need to apply the device context in
-      # self._var_graph.
-      copying_ops = []
-      with self._var_graph.as_default():
-        for v in self._vars:
-          with self._var_graph.device(v.device):
-            copied_v = tf.Variable(v, trainable=False)
-            assert copied_v.graph is v.graph
-            if v.device:
-              assert copied_v.device == v.device, (
-                  f"Expecting {v.device}, get {copied_v.device}.")
-            else:
-              # When v.device is empty, the device of the copied variable is
-              # decided by the placer.
-              # TODO(laigd): this should not happen during training, find a way
-              # to check that.
-              pass
-            self._copied_vars.append(copied_v)
-            copying_ops.append(copied_v.assign(v))
-      # Group the ops to avoid running them directly, which will generate
-      # expensive send/recv operations.
-      self._copying_op = tf.group(*copying_ops)
-
     sess.run(self._copying_op)
-
     global_step, prefix = sess.run(
         fetches=[self._save_global_step, self._save_prefix],
         feed_dict={self._logdir_ph: self._logdir})
+    prefix = tf.compat.as_text(prefix)
+    tf.logging.info("Saving asynchronously to %s", prefix)
 
-    tf.logging.info("Saving asynchronously to %s", tf.compat.as_text(prefix))
-
-    def _Async(prefix):
+    def _Async(global_step, prefix):
       checkpoint_start_time = time.perf_counter()
       try:
-        copied_var_map = {
-            id(copied_var): var
-            for copied_var, var in zip(self._copied_vars, self._vars)
-        }
-        save_op = self._AddShardedSaveOps(
-            self._copied_vars, prefix,
-            lambda copied_var: _VarKey(copied_var_map[id(copied_var)]))
-        _ = sess.run(fetches=[save_op], feed_dict={})
-        # Many users expect this as the tf.train.Saver does this by default.
-        prefix = tf.compat.as_text(prefix)
+        # Use the provided prefix in case self._save_global_step is changed.
+        _ = sess.run(
+            fetches=self._save_op, feed_dict={self._save_prefix: prefix})
         self._FinalizeSave(global_step, prefix)
       except Exception as e:  # pylint: disable=broad-except
         self._async_exception = e
       _async_checkpoint_op_time_seconds.get_cell().add(time.perf_counter() -
                                                        checkpoint_start_time)
 
-    self._async_save_thread = threading.Thread(target=_Async, args=(prefix,))
+    self._async_save_thread = threading.Thread(
+        target=_Async, args=(global_step, prefix))
     self._async_save_thread.start()
-
-    return global_step, tf.compat.as_text(prefix)
+    return global_step, prefix
 
   def _SaveSync(self, sess):
     """Saves the graph."""
@@ -474,6 +488,11 @@ class Saver:
         fetches=[self._restore_op], feed_dict={self._restore_prefix_ph: prefix})
     global_step = self.GetCheckpointId(prefix)
     tf.logging.info("Restored %d %s", global_step, prefix)
+    if self._async_save:
+      # Initialize the copied variables after a successful restore, to make sure
+      # all variables are initialized (since copied variables are not saved in
+      # the checkpoints).
+      sess.run(self._copied_vars_initializer)
     return global_step, prefix
 
   def Sync(self):

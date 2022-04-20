@@ -352,6 +352,12 @@ class ExecutorTpu(base_runner.BaseRunner):
           stack.enter_context(self._tpu_strategy.scope())
           stack.enter_context(
               tpu_strategy._TPUReplicaContext(self._tpu_strategy))
+          if train_cfg.train.async_checkpointing:
+            # TODO(b/228458924): reenable async checkpointing.
+            tf.logging.warning(
+                'Async checkpointing may not be compatible with TPU mirrored '
+                'variables, so disabling it for now.')
+            train_cfg.train.async_checkpointing = False
         else:
           stack.enter_context(tf.device(self._cluster.GetPlacer()))
 
@@ -367,15 +373,9 @@ class ExecutorTpu(base_runner.BaseRunner):
           program.BuildTpuSubgraph()
           py_utils.ClearTpuSummaryTensors()
 
-      if not py_utils.IsEagerMode():
-        self._initialize_tables = tf.tables_initializer()
-        self._initialize_local_vars = tf.local_variables_initializer()
-        self._initialize_global_vars = tf.global_variables_initializer()
-
       checkpointer_models = [
           program.GetModel() for program in self._ckpt_programs
       ]
-
       if py_utils.IsEagerMode():
         if FLAGS.use_v2_checkpoints_in_eager:
           self._checkpointer = checkpointer.EagerCheckpointerV2(
@@ -395,6 +395,11 @@ class ExecutorTpu(base_runner.BaseRunner):
             models=checkpointer_models,
             train_params=train_cfg.train,
             save_only=False)
+        # Get the global_variables_initializer after creating the Checkpointer,
+        # since it may create additional variables used by async checkpointing.
+        self._initialize_tables = tf.tables_initializer()
+        self._initialize_local_vars = tf.local_variables_initializer()
+        self._initialize_global_vars = tf.global_variables_initializer()
 
       for program in self._programs:
         program.SetStatusMessageFn(self._SetStatusMessage)

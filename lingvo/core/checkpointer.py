@@ -160,7 +160,6 @@ class Checkpointer:
     """
     self._train_dir = train_dir
     self._save_only = save_only
-    self._init_op = tf.global_variables_initializer()
     self._save_path = os.path.join(self._train_dir, 'ckpt')
 
     if not isinstance(models, (list, tuple)):
@@ -177,6 +176,9 @@ class Checkpointer:
     self._save_interval_steps = self._train_params.save_interval_steps
     self._prev_ckpt_step = None
     self._saver = self._GetSaver()
+    # self._saver may create variables used by async checkpointing, so we
+    # need to get the global_variables_initializer after its creation.
+    self._init_op = tf.global_variables_initializer()
 
     if not py_utils.IsEagerMode():
       self._uninitialized_vars = tf.report_uninitialized_variables(
