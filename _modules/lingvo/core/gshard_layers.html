@@ -100,6 +100,7 @@
 <span class="n">MeshSplit</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span>
 <span class="n">ZigzagOrderOnDeviceMesh</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">ZigzagOrderOnDeviceMesh</span>
 <span class="n">GetNonPod2dMesh</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">GetNonPod2dMesh</span>
+<span class="n">ZERO_STATE_MAX_ABS_TOLERANCE</span> <span class="o">=</span> <span class="mf">1e-5</span>
 
 
 <div class="viewcode-block" id="VarLayer"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.VarLayer">[docs]</a><span class="k">class</span> <span class="nc">VarLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -1495,6 +1496,12 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;kernel_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Spatial dimension filter size.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;skip_store_zero_state&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, all-zero inputs are not stored in the state layer. This &#39;</span>
+        <span class="s1">&#39;is helpful when dealing with padding positions that are zeroed &#39;</span>
+        <span class="s1">&#39;out before being fed into the convolution. If False, all inputs &#39;</span>
+        <span class="s1">&#39;are stored in the state layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;use_xla_dynamic_update_slice&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -1509,6 +1516,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">ran_prefix</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
@@ -1516,10 +1524,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span> <span class="o">=</span> <span class="n">beam</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_batch</span> <span class="o">=</span> <span class="n">batch</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_trailing_dims</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trailing_dims</span><span class="p">,</span>
-        <span class="n">fprop_dtype</span><span class="p">,</span>
-        <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trailing_dims</span><span class="p">,</span>
+                     <span class="n">fprop_dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">state</span></div>
 
 <div class="viewcode-block" id="Conv1DStateLayer._Step"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Conv1DStateLayer._Step">[docs]</a>  <span class="k">def</span> <span class="nf">_Step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
@@ -1546,16 +1552,28 @@
     <span class="c1"># left-shift state and append x.</span>
     <span class="n">input_shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
     <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trailing_dims</span><span class="p">)</span>
-    <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+    <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
         <span class="p">[</span><span class="n">theta</span><span class="o">.</span><span class="n">state</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">:],</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">state</span><span class="o">.</span><span class="n">dtype</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">skip_store_zero_state</span><span class="p">:</span>
+      <span class="n">input_max</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">mask</span> <span class="o">=</span> <span class="n">input_max</span> <span class="o">&lt;</span> <span class="n">ZERO_STATE_MAX_ABS_TOLERANCE</span>
+      <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">mask</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()):</span>
+        <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">new_state</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">*</span> <span class="n">mask</span> <span class="o">+</span> <span class="n">new_state</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">mask</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">new_state</span>
+
     <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">state</span><span class="p">,</span>
                    <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;y=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">y</span></div>
 
-<div class="viewcode-block" id="Conv1DStateLayer._LoadPrefix"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Conv1DStateLayer._LoadPrefix">[docs]</a>  <span class="k">def</span> <span class="nf">_LoadPrefix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Load a prefix sequence.</span>
+<div class="viewcode-block" id="Conv1DStateLayer._ProcessPrefixOrSuffix"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Conv1DStateLayer._ProcessPrefixOrSuffix">[docs]</a>  <span class="k">def</span> <span class="nf">_ProcessPrefixOrSuffix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Process prefixes and suffixes.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A NestedMap of layer weights.</span>
@@ -1572,15 +1590,33 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;x=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;t=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
-    <span class="n">new_state</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">:]</span>  <span class="c1"># Cache the last kernel-width tokens.</span>
-    <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">new_state</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-    <span class="n">tile_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_state</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span>
-    <span class="n">tile_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span>
-    <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">new_state</span><span class="p">,</span> <span class="n">tile_shape</span><span class="p">),</span>
-        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trailing_dims</span><span class="p">)</span>
+    <span class="n">batch</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">ran_prefix</span><span class="p">:</span>
+      <span class="n">new_state</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">:]</span>  <span class="c1"># Cache the last kernel-width tokens.</span>
+      <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">new_state</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">tile_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">new_state</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())</span>
+      <span class="n">tile_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">new_state</span><span class="p">,</span> <span class="n">tile_shape</span><span class="p">),</span>
+          <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trailing_dims</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">ran_prefix</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="k">return</span> <span class="n">x</span>
 
-    <span class="k">return</span> <span class="n">x</span></div>
+    <span class="n">input_shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span>
+
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">]</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trailing_dims</span><span class="p">)</span>
+    <span class="n">perm</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())))</span>
+    <span class="n">perm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+    <span class="n">perm</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="n">perm</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">&gt;</span> <span class="mi">1</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">state</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">(</span><span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):],</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">x</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">y_shape</span> <span class="o">=</span> <span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="p">[</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">y_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]]</span> <span class="o">+</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+
+    <span class="k">return</span> <span class="n">y</span></div>
 
 <div class="viewcode-block" id="Conv1DStateLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Conv1DStateLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1590,8 +1626,8 @@
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_beam</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Prefix detected. Not running single step.&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoadPrefix</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Prefix or suffix detected. Not running single step.&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessPrefixOrSuffix</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Step</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span></div></div>
 
 
@@ -1828,6 +1864,7 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ran_prefix</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">state_layer</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">state_layer</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;state_layer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">state_layer</span><span class="p">)</span>
@@ -1913,6 +1950,7 @@
 <div class="viewcode-block" id="CausalDepthwiseConv1DLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.CausalDepthwiseConv1DLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">input_shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+    <span class="n">is_suffix</span> <span class="o">=</span> <span class="kc">False</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">dilation</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
@@ -1925,13 +1963,27 @@
         <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">pre_x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">]:</span>
           <span class="c1"># Single-step, thus use &#39;VALID&#39; padding.</span>
           <span class="n">padding</span> <span class="o">=</span> <span class="s1">&#39;VALID&#39;</span>
+        <span class="n">is_suffix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ran_prefix</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ran_prefix</span> <span class="o">=</span> <span class="kc">True</span>
 
       <span class="n">pre_conv_shape</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
       <span class="n">flattened_shape</span> <span class="o">=</span> <span class="mi">1</span>
       <span class="k">for</span> <span class="n">dim</span> <span class="ow">in</span> <span class="n">pre_conv_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:]:</span>
         <span class="n">flattened_shape</span> <span class="o">*=</span> <span class="n">dim</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pre_conv_shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">flattened_shape</span><span class="p">])</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DoConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">padding</span><span class="p">),</span> <span class="n">input_shape</span><span class="p">)</span></div></div>
+      <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DoConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">padding</span><span class="p">),</span> <span class="n">input_shape</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">is_suffix</span><span class="p">:</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+            <span class="nb">int</span><span class="p">(</span><span class="n">pre_conv_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+            <span class="n">pre_conv_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">kernel_size</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="p">]</span> <span class="o">+</span> <span class="n">pre_conv_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+        <span class="n">perm</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">())))</span>
+        <span class="n">perm</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+        <span class="n">perm</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="n">perm</span><span class="p">)</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">output</span></div></div>
 
 
 <div class="viewcode-block" id="Top2GatingOnLogits"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.Top2GatingOnLogits">[docs]</a><span class="k">def</span> <span class="nf">Top2GatingOnLogits</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span>
