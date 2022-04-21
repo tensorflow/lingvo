@@ -1540,7 +1540,8 @@ class MoEBuilder(builder.Base):
         model_dims=model_dims,
         compatible_with_mtf_ckpt=True,
         state_layer=gshard_layers.Conv1DStateLayer.Params().Set(
-            shape=[None, None] + model_dims))
+            shape=[None, None] + model_dims),
+        skip_store_zero_state=True)
 
   def DepthwiseConvAutoregressive(self, name, kernel_size, model_dims=None):
     r"""Depthwise convolution for autoregressive models.

@@ -35,6 +35,7 @@ Split = gshard_utils.Split
 MeshSplit = gshard_utils.MeshSplit
 ZigzagOrderOnDeviceMesh = gshard_utils.ZigzagOrderOnDeviceMesh
 GetNonPod2dMesh = gshard_utils.GetNonPod2dMesh
+ZERO_STATE_MAX_ABS_TOLERANCE = 1e-5
 
 
 class VarLayer(base_layer.BaseLayer):
@@ -1430,6 +1431,12 @@ class Conv1DStateLayer(StateLayer):
   def Params(cls):
     p = super().Params()
     p.Define('kernel_size', 0, 'Spatial dimension filter size.')
+    p.Define(
+        'skip_store_zero_state', False,
+        'If True, all-zero inputs are not stored in the state layer. This '
+        'is helpful when dealing with padding positions that are zeroed '
+        'out before being fed into the convolution. If False, all inputs '
+        'are stored in the state layer.')
     p.Delete('use_xla_dynamic_update_slice')
     return p
 
@@ -1444,6 +1451,7 @@ class Conv1DStateLayer(StateLayer):
     """
     assert len(shape) == 3
 
+    self.ran_prefix = False
     p = self.params
     fprop_dtype = p.dtype or py_utils.FPropDtype(p)
 
@@ -1451,10 +1459,8 @@ class Conv1DStateLayer(StateLayer):
     self._beam = beam
     self._batch = batch
     self._trailing_dims = p.shape[2:]
-    state = tf.Empty(
-        [batch, beam, p.kernel_size] + self._trailing_dims,
-        fprop_dtype,
-        init=True)
+    state = tf.zeros([batch, beam, p.kernel_size] + self._trailing_dims,
+                     fprop_dtype)
     return state
 
   def _Step(self, theta, x):
@@ -1481,16 +1487,28 @@ class Conv1DStateLayer(StateLayer):
     # left-shift state and append x.
     input_shape = x.shape
     x = tf.reshape(x, [self._batch, self._beam, 1] + self._trailing_dims)
-    theta.state = tf.concat(
+    new_state = tf.concat(
         [theta.state[:, :, 1:], tf.cast(x, state.dtype)], axis=2)
+
+    if p.skip_store_zero_state:
+      input_max = tf.reduce_max(
+          tf.abs(tf.reshape(x, [self._batch, self._beam, 1, -1])), axis=-1)
+      mask = input_max < ZERO_STATE_MAX_ABS_TOLERANCE
+      while len(mask.shape.as_list()) < len(theta.state.shape.as_list()):
+        mask = tf.expand_dims(mask, axis=-1)
+      mask = tf.cast(mask, new_state.dtype)
+      theta.state = theta.state * mask + new_state * (1 - mask)
+    else:
+      theta.state = new_state
+
     y = tf.reshape(theta.state,
                    [self._batch * self._beam, p.kernel_size] + input_shape[2:])
 
     tf.logging.info('y=%r', y)
     return y
 
-  def _LoadPrefix(self, theta, x):
-    """Load a prefix sequence.
+  def _ProcessPrefixOrSuffix(self, theta, x):
+    """Process prefixes and suffixes.
 
     Args:
       theta: A NestedMap of layer weights.
@@ -1507,15 +1525,33 @@ class Conv1DStateLayer(StateLayer):
     tf.logging.info('x=%r', x)
     tf.logging.info('t=%r', t)
 
-    new_state = x[:, -p.kernel_size:]  # Cache the last kernel-width tokens.
-    new_state = tf.expand_dims(new_state, axis=1)
-    tile_shape = [1] * len(new_state.shape.as_list())
-    tile_shape[1] = self._beam
-    theta.state = tf.reshape(
-        tf.tile(new_state, tile_shape),
-        [self._batch, self._beam, p.kernel_size] + self._trailing_dims)
+    batch = x.shape.as_list()[0]
+    if not self.ran_prefix:
+      new_state = x[:, -p.kernel_size:]  # Cache the last kernel-width tokens.
+      new_state = tf.expand_dims(new_state, axis=1)
+      tile_shape = [1] * len(new_state.shape.as_list())
+      tile_shape[1] = self._beam
+      theta.state = tf.reshape(
+          tf.tile(new_state, tile_shape),
+          [batch, self._beam, p.kernel_size] + self._trailing_dims)
+      self.ran_prefix = True
+      return x
 
-    return x
+    input_shape = x.shape
+
+    x = tf.reshape(x, [batch, -1, self._beam] + self._trailing_dims)
+    perm = list(range(len(x.shape.as_list())))
+    perm[1] = 2
+    perm[2] = 1
+    x = tf.transpose(x, perm=perm)
+
+    assert p.kernel_size > 1
+    y = tf.concat(
+        [tf.cast(theta.state[:, :, (-p.kernel_size + 1):], x.dtype), x], axis=2)
+    y_shape = y.shape.as_list()
+    y = tf.reshape(y, [y_shape[0] * y_shape[1], y_shape[2]] + input_shape[2:])
+
+    return y
 
   def FProp(self, theta, x):
     p = self.params
@@ -1525,8 +1561,8 @@ class Conv1DStateLayer(StateLayer):
 
     with tf.name_scope(p.name):
       if x.shape.as_list()[1] != self._beam:
-        tf.logging.info('Prefix detected. Not running single step.')
-        return self._LoadPrefix(theta, x)
+        tf.logging.info('Prefix or suffix detected. Not running single step.')
+        return self._ProcessPrefixOrSuffix(theta, x)
       return self._Step(theta, x)
 
 
@@ -1763,6 +1799,7 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
+    self.ran_prefix = False
     if p.state_layer is not None:
       p.state_layer.kernel_size = p.kernel_size
       self.CreateChild('state_layer', p.state_layer)
@@ -1848,6 +1885,7 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
   def FProp(self, theta, x):
     p = self.params
     input_shape = x.shape.as_list()
+    is_suffix = False
 
     with tf.name_scope(p.name):
       dilation = (1, 1)
@@ -1860,13 +1898,27 @@ class CausalDepthwiseConv1DLayer(base_layer.BaseLayer):
         if x.shape.as_list()[1] != pre_x.shape.as_list()[1]:
           # Single-step, thus use 'VALID' padding.
           padding = 'VALID'
+        is_suffix = self.ran_prefix and x.shape.as_list()[1] != p.kernel_size
+        self.ran_prefix = True
 
       pre_conv_shape = x.shape.as_list()
       flattened_shape = 1
       for dim in pre_conv_shape[2:]:
         flattened_shape *= dim
       x = tf.reshape(x, pre_conv_shape[:2] + [flattened_shape])
-      return tf.reshape(self._DoConv(theta, x, padding), input_shape)
+      output = tf.reshape(self._DoConv(theta, x, padding), input_shape)
+      if is_suffix:
+        output = tf.reshape(output, [
+            input_shape[0],
+            int(pre_conv_shape[0] / input_shape[0]),
+            pre_conv_shape[1] - p.kernel_size + 1
+        ] + pre_conv_shape[2:])
+        perm = list(range(len(output.shape.as_list())))
+        perm[1] = 2
+        perm[2] = 1
+        output = tf.transpose(output, perm=perm)
+        output = tf.reshape(output, input_shape)
+      return output
 
 
 def Top2GatingOnLogits(inputs,
