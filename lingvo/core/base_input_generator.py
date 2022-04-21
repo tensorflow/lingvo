@@ -593,12 +593,15 @@ class BaseInputGenerator(base_layer.BaseLayer):
     input_batches = (
         self._per_host_emb_batches
         if p.filter_sparse_tensors else self._per_host_batches)
-    assert len(input_batches) == num_infeed_hosts
+    assert len(input_batches) == num_infeed_hosts, (
+        f'Number of input batches: {len(input_batches)}, '
+        f'number of infeed hosts: {num_infeed_hosts}.')
 
     enqueue_ops = []
     if num_tpu_hosts > 1 and not p.use_per_host_infeed:
       batch = input_batches[0]
-      assert len(batch) == 1, "Tpu Embedding doesn't support sharded inputs."
+      assert len(batch) == 1, ('Tpu Embedding does not support sharded inputs. '
+                               f'Number of input shards: {len(batch)}')
       with tf.device('/task:0/device:CPU:0'):
         batch = self.PreprocessTpuEmbeddingInputBatch(batch[0])
         # When not using per-host infeed, we use `self.tpu_number_of_shards`
@@ -616,12 +619,15 @@ class BaseInputGenerator(base_layer.BaseLayer):
         for replica_index, per_replica_data in enumerate(all_enqueue_data):
           host_device = device_assignment.host_device(replica=replica_index)
           core = device_assignment.tpu_ordinal(replica=replica_index)
-          assert core < num_cores_per_host
+          assert core < num_cores_per_host, (
+              f'core {core} vs num_cores_per_host {num_cores_per_host}')
           if host_device not in enqueue_data_per_host:
             enqueue_data_per_host[host_device] = [None] * num_cores_per_host
           assert enqueue_data_per_host[host_device][core] is None
           enqueue_data_per_host[host_device][core] = per_replica_data
-        assert len(enqueue_data_per_host) == num_tpu_hosts
+        assert len(enqueue_data_per_host) == num_tpu_hosts, (
+            f'Number of enqueue datas: {len(enqueue_data_per_host)}, '
+            f'num_tpu_hosts: {num_tpu_hosts}')
 
       for host_device, src_enqueue_data in enqueue_data_per_host.items():
         with tf.device(host_device):
@@ -646,11 +652,15 @@ class BaseInputGenerator(base_layer.BaseLayer):
           enqueue_ops += tpu_embedding.generate_enqueue_ops(
               dst_enqueue_data, mode_override=self._tpu_embedding_mode)
     else:
-      assert tpu_embedding.num_cores_per_host == self.tpu_number_of_shards
+      assert tpu_embedding.num_cores_per_host == self.tpu_number_of_shards, (
+          f'TPUEmbedding.num_cores_per_host: {tpu_embedding.num_cores_per_host}'
+          f', tpu_number_of_shards: {self.tpu_number_of_shards}')
       for task_id in range(num_tpu_hosts):
         host_device = '/task:{}/device:CPU:0'.format(task_id)
         batch = input_batches[task_id]
-        assert len(batch) == 1, "Tpu Embedding doesn't support sharded inputs."
+        assert len(batch) == 1, (
+            'Tpu Embedding does not support sharded inputs. '
+            f'Number of input shards: {len(batch)}')
         with tf.device(host_device):
           batch = self.PreprocessTpuEmbeddingInputBatch(batch[0])
           tf.logging.info('host_device: %s, batch: %r', host_device, batch)
