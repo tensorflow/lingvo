@@ -422,9 +422,10 @@
 
 <div class="viewcode-block" id="Saver._FinalizeSave"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._FinalizeSave">[docs]</a>  <span class="k">def</span> <span class="nf">_FinalizeSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs sanity check and updates status.&quot;&quot;&quot;</span>
-    <span class="c1"># Many users expect this as the tf.train.Saver does this by default.</span>
-    <span class="n">meta_graph_filename</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.meta&quot;</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">export_meta_graph</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">meta_graph_filename</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+      <span class="c1"># Many users expect this as the tf.train.Saver does this by default.</span>
+      <span class="n">meta_graph_filename</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.meta&quot;</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">export_meta_graph</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">meta_graph_filename</span><span class="p">)</span>
 
     <span class="c1"># We can do extra sanity checks.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_DoSanityCheck</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
