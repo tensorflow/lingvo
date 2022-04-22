@@ -194,7 +194,7 @@ class Saver:
             # that the variable can later be assigned with values of different
             # shapes.
             assert v.name.endswith(":0")
-            copied_v = tf.Variable(
+            copied_v = tf.compat.v2.Variable(
                 0,
                 trainable=False,
                 name=f"async_ckpt/{v.name[:-2]}",

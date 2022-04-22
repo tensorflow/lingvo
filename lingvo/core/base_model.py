@@ -218,7 +218,7 @@ class BaseTask(base_layer.BaseLayer):
               'Maximum number of recent checkpoints to keep.')
     tp.Define('save_keep_checkpoint_every_n_hours', 0.5,
               'How often to keep a checkpoint.')
-    tp.Define('async_checkpointing', False,
+    tp.Define('async_checkpointing', True,
               'Checkpointing asynchronously. Currently only support executor.')
     tp.Define(
         'checkpoint_finite_check', False,
@@ -1098,7 +1098,7 @@ class BaseModel(base_layer.BaseLayer):
               'How often to keep a checkpoint.')
     tp.Define('summary_interval_steps', 100,
               'Generates a checkpoint roughly once every this many steps.')
-    tp.Define('async_checkpointing', False,
+    tp.Define('async_checkpointing', True,
               'Checkpointing asynchronously. Currently only support executor.')
     tp.Define(
         'checkpoint_finite_check', False,
