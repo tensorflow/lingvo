@@ -5708,21 +5708,16 @@
         <span class="s1">&#39;&quot;TBC&quot;: [time, batch, input_dim] and &quot;BTC&quot;: [batch, time, input_dim].&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clip_task_ids&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, clips the given task ids to [0, p.num_tasks - 1].&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div></div>
-
-
-<div class="viewcode-block" id="MultitaskAdapterLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.MultitaskAdapterLayer">[docs]</a><span class="k">class</span> <span class="nc">MultitaskAdapterLayer</span><span class="p">(</span><span class="n">MultitaskAdapterBaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;MultitaskAdapterBaseLayer implemented with EmbeddingLayers.&quot;&quot;&quot;</span>
-
-<div class="viewcode-block" id="MultitaskAdapterLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.MultitaskAdapterLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;projection_params_init&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Weight initialization for up and down projections. Only used for &#39;</span>
         <span class="s1">&#39;weights, not biases.  If None, uses default weight init, which is &#39;</span>
         <span class="s1">&#39;typically Xavier with scale of 1.0.&#39;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">p</span></div>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="MultitaskAdapterLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.MultitaskAdapterLayer">[docs]</a><span class="k">class</span> <span class="nc">MultitaskAdapterLayer</span><span class="p">(</span><span class="n">MultitaskAdapterBaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;MultitaskAdapterBaseLayer implemented with EmbeddingLayers.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
@@ -5876,9 +5871,13 @@
 <div class="viewcode-block" id="MultitaskAdapterEinsumLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.MultitaskAdapterEinsumLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span><span class="p">:</span>
+      <span class="n">proj_params_init</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">proj_params_init</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">params_init</span>
     <span class="n">down_w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">],</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">proj_params_init</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;down_w&#39;</span><span class="p">,</span> <span class="n">down_w_pc</span><span class="p">)</span>
@@ -5890,7 +5889,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;down_b&#39;</span><span class="p">,</span> <span class="n">down_b_pc</span><span class="p">)</span>
     <span class="n">up_w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">proj_params_init</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;up_w&#39;</span><span class="p">,</span> <span class="n">up_w_pc</span><span class="p">)</span>
