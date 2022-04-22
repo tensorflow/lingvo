@@ -357,9 +357,10 @@ class Saver:
 
   def _FinalizeSave(self, global_step, prefix):
     """Runs sanity check and updates status."""
-    # Many users expect this as the tf.train.Saver does this by default.
-    meta_graph_filename = prefix + ".meta"
-    tf.train.export_meta_graph(filename=meta_graph_filename)
+    if not tf.executing_eagerly():
+      # Many users expect this as the tf.train.Saver does this by default.
+      meta_graph_filename = prefix + ".meta"
+      tf.train.export_meta_graph(filename=meta_graph_filename)
 
     # We can do extra sanity checks.
     self._DoSanityCheck(prefix)
