@@ -5643,21 +5643,16 @@ class MultitaskAdapterBaseLayer(base_layer.BaseLayer):
         '"TBC": [time, batch, input_dim] and "BTC": [batch, time, input_dim].')
     p.Define('clip_task_ids', False,
              'If True, clips the given task ids to [0, p.num_tasks - 1].')
-    return p
-
-
-class MultitaskAdapterLayer(MultitaskAdapterBaseLayer):
-  """MultitaskAdapterBaseLayer implemented with EmbeddingLayers."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
     p.Define(
         'projection_params_init', None,
         'Weight initialization for up and down projections. Only used for '
         'weights, not biases.  If None, uses default weight init, which is '
         'typically Xavier with scale of 1.0.')
     return p
+
+
+class MultitaskAdapterLayer(MultitaskAdapterBaseLayer):
+  """MultitaskAdapterBaseLayer implemented with EmbeddingLayers."""
 
   def __init__(self, params):
     super().__init__(params)
@@ -5811,9 +5806,13 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    if p.projection_params_init:
+      proj_params_init = p.projection_params_init
+    else:
+      proj_params_init = p.params_init
     down_w_pc = py_utils.WeightParams(
         shape=[p.num_tasks, p.input_dim, p.bottleneck_dim],
-        init=p.params_init,
+        init=proj_params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('down_w', down_w_pc)
@@ -5825,7 +5824,7 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     self.CreateVariable('down_b', down_b_pc)
     up_w_pc = py_utils.WeightParams(
         shape=[p.num_tasks, p.bottleneck_dim, p.input_dim],
-        init=p.params_init,
+        init=proj_params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('up_w', up_w_pc)
