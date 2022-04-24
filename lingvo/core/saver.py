@@ -195,7 +195,7 @@ class Saver:
             # shapes.
             assert v.name.endswith(":0")
             copied_v = tf.compat.v2.Variable(
-                0,
+                tf.cast(0, v.dtype),
                 trainable=False,
                 name=f"async_ckpt/{v.name[:-2]}",
                 dtype=v.dtype,
