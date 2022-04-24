@@ -260,7 +260,7 @@
             <span class="c1"># shapes.</span>
             <span class="k">assert</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;:0&quot;</span><span class="p">)</span>
             <span class="n">copied_v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span>
-                <span class="mi">0</span><span class="p">,</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
                 <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                 <span class="n">name</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;async_ckpt/</span><span class="si">{</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
                 <span class="n">dtype</span><span class="o">=</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
