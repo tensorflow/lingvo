@@ -151,6 +151,10 @@ class MoEBuilder(builder.Base):
         'and the computation.')
     p.Define('attention_combine_qkv', True, 'Attention optimization. '
              'Combine qkv matmul.')
+    p.Define(
+        'mdha_rope', False,
+        'Whether or not to use Rotational Position Embeddings in '
+        'Multi-DConv Head Attention.')
 
     p.Define('ff_dim', None, 'DenseReluDense hidden dim.')
 
@@ -1194,6 +1198,34 @@ class MoEBuilder(builder.Base):
         p.attention_key_value_dim
     ]
 
+    def _Rope(inputs, position):
+      embedding_dims = inputs.shape.as_list()[-1]
+      min_timescale = 1.0
+      max_timescale = 1.0e4
+      half_embedding_dim = embedding_dims // 2
+      fraction = 2.0 * tf.cast(tf.range(half_embedding_dim),
+                               tf.float32) / embedding_dims
+      timescale = min_timescale * (max_timescale / min_timescale)**fraction
+      position = tf.expand_dims(tf.expand_dims(position, axis=-1), axis=-1)
+      timescale = tf.expand_dims(
+          tf.expand_dims(tf.expand_dims(timescale, axis=0), axis=0), axis=0)
+      sinusoid_inp = position / tf.cast(timescale, position.dtype)
+      sin = tf.cast(tf.math.sin(sinusoid_inp), inputs.dtype)
+      cos = tf.cast(tf.math.cos(sinusoid_inp), inputs.dtype)
+      first_half, second_half = tf.split(inputs, 2, axis=-1)
+      first_part = first_half * cos - second_half * sin
+      second_part = second_half * cos + first_half * sin
+      return tf.concat([first_part, second_part], axis=-1)
+
+    def _Ident(inputs, position):
+      del position
+      return inputs
+
+    if p.mdha_rope:
+      rope_fn = _Rope
+    else:
+      rope_fn = _Ident
+
     # pyformat: disable
     return self._Graph(
         name, self._DecoderLayerInMapKeys, [
@@ -1203,12 +1235,12 @@ class MoEBuilder(builder.Base):
         ('->wq,wk,wv,wo', self._AttentionWeights(
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
         ('vec,wq,wk,wv->pre_q,pre_k,pre_v', self._ComputeQKVCombine('qkv')),
-        ('pre_q->q',
+        ('pre_q->q_no_rot',
          self.DepthwiseConvAutoregressive('q_dconv',
                                           kernel_size=3,
                                           model_dims=[p.attention_num_heads,
                                                       p.attention_key_value_dim])),
-        ('pre_k->k',
+        ('pre_k->k_no_rot',
          self.DepthwiseConvAutoregressive('k_dconv',
                                           kernel_size=3,
                                           model_dims=[p.attention_num_memory_heads or p.attention_num_heads,
@@ -1218,6 +1250,8 @@ class MoEBuilder(builder.Base):
                                           kernel_size=3,
                                           model_dims=[p.attention_num_memory_heads or p.attention_num_heads,
                                                       p.attention_key_value_dim])),
+        ('q_no_rot,segment_pos->q', self._Fn('rot_q', rope_fn)),
+        ('k_no_rot,segment_pos->k', self._Fn('rot_k', rope_fn)),
         ('k->k_full', self._AttentionState('k_state', state_shape)),
         ('v->v_full', self._AttentionState('v_state', state_shape)),
         self._DecComputeBiasGraphEdge(),
