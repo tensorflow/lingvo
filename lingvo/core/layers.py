@@ -3646,6 +3646,60 @@ class SimpleFullSoftmax(SoftmaxLayer):
     return per_example_xent, per_example_argmax
 
 
+class SimpleFullSigmoidCrossEntropy(SimpleFullSoftmax):
+  """Multi-label classification loss based on sigmoid cross entropy."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('reduction', 'sum',
+             'Reduce sum or reduce mean across class probabilities.')
+    return p
+
+  def XentLossFromLogits(self,
+                         theta,
+                         logits,
+                         class_weights,
+                         class_ids=None,
+                         class_probabilities=None):
+    """Computes multi-label sigmoid cross entroy loss from logits.
+
+    Args:
+      theta: A NestedMap object.
+      logits: A logits tensor of shape [batch, #class] as predictions.
+      class_weights: A tensor of shape [#class] specifying class weights.
+      class_ids: A tensor of shape [batch] specifying class ids.
+      class_probabilities: A tensor of shape [batch, #class] as labels.
+
+    Returns:
+      per-example sigmoid cross entropy loss with shape [batch].
+      per-example argmax over last dimension with shape [batch].
+    """
+    p = self.params
+    assert logits is not None
+    assert p.reduction in ['sum', 'mean']
+    assert class_probabilities is not None
+    per_example_xent = tf.nn.sigmoid_cross_entropy_with_logits(
+        labels=class_probabilities, logits=logits)
+    if p.reduction == 'sum':
+      per_example_xent = tf.math.reduce_sum(per_example_xent, axis=-1)
+    else:
+      per_example_xent = tf.math.reduce_mean(per_example_xent, axis=-1)
+    per_example_argmax = py_utils.ArgMax(logits)
+    return per_example_xent, per_example_argmax
+
+  def _FProp2D(self,
+               theta,
+               inputs,
+               class_weights,
+               class_ids=None,
+               class_probabilities=None):
+    out_nmap = super()._FProp2D(theta, inputs, class_weights, class_ids,
+                                class_probabilities)
+    out_nmap.log_probs = tf.math.log_sigmoid(out_nmap.logits)
+    return out_nmap
+
+
 class FocalFullSoftmax(SimpleFullSoftmax):
   """An extended softmax layer with focal loss.
 
