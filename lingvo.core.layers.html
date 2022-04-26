@@ -1894,6 +1894,46 @@ input_dim].</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.layers.SimpleFullSigmoidCrossEntropy">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></span><span class="sig-name descname"><span class="pre">SimpleFullSigmoidCrossEntropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSigmoidCrossEntropy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSigmoidCrossEntropy" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.SimpleFullSoftmax" title="lingvo.core.layers.SimpleFullSoftmax"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.SimpleFullSoftmax</span></code></a></p>
+<p>Multi-label classification loss based on sigmoid cross entropy.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.SimpleFullSigmoidCrossEntropy.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSigmoidCrossEntropy.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSigmoidCrossEntropy.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Params for SimpleFullSoftmax.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.SimpleFullSigmoidCrossEntropy.XentLossFromLogits">
+<span class="sig-name descname"><span class="pre">XentLossFromLogits</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">logits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_probabilities</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSigmoidCrossEntropy.XentLossFromLogits"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSigmoidCrossEntropy.XentLossFromLogits" title="Permalink to this definition"></a></dt>
+<dd><p>Computes multi-label sigmoid cross entroy loss from logits.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object.</p></li>
+<li><p><strong>logits</strong> – A logits tensor of shape [batch, #class] as predictions.</p></li>
+<li><p><strong>class_weights</strong> – A tensor of shape [#class] specifying class weights.</p></li>
+<li><p><strong>class_ids</strong> – A tensor of shape [batch] specifying class ids.</p></li>
+<li><p><strong>class_probabilities</strong> – A tensor of shape [batch, #class] as labels.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>per-example sigmoid cross entropy loss with shape [batch].
+per-example argmax over last dimension with shape [batch].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.SimpleFullSigmoidCrossEntropy._FProp2D">
+<span class="sig-name descname"><span class="pre">_FProp2D</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_probabilities</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSigmoidCrossEntropy._FProp2D"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSigmoidCrossEntropy._FProp2D" title="Permalink to this definition"></a></dt>
+<dd><p>Computes xent loss and log-prob logit.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.layers.FocalFullSoftmax">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.layers.</span></span><span class="sig-name descname"><span class="pre">FocalFullSoftmax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#FocalFullSoftmax"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.FocalFullSoftmax" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers.SimpleFullSoftmax" title="lingvo.core.layers.SimpleFullSoftmax"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers.SimpleFullSoftmax</span></code></a></p>
