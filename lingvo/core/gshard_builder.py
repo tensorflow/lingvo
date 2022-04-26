@@ -236,6 +236,9 @@ class MoEBuilder(builder.Base):
              'Skip applying the decoder causal mask')
     p.Define('decoder_bidirectional_relative_attention', False,
              'Use bidirectional relative attention in decoders for prefix-lm')
+    p.Define(
+        'final_norm_type', 'ln', 'Final normalization type. Options are: '
+        '[ln, pn, true_ln, jax_replica_ln, no_ln].')
 
     return p
 
@@ -618,10 +621,18 @@ class MoEBuilder(builder.Base):
           norm_type=norm_type,
           norm_policy=norm_policy)
 
-    return self._LayerStack(name, sub_layers, num, use_repeat_layer,
-                            spmd_pipeline_stages, spmd_pipeline_microbatches,
-                            self._DecoderLayerInMapKeys, _DecoderLayer,
-                            start_layer_id, has_final_layer)
+    return self._LayerStack(
+        name,
+        sub_layers,
+        num,
+        use_repeat_layer,
+        spmd_pipeline_stages,
+        spmd_pipeline_microbatches,
+        self._DecoderLayerInMapKeys,
+        _DecoderLayer,
+        start_layer_id,
+        has_final_layer,
+        final_norm_type=self.params.final_norm_type)
 
   def Repeat(self, name, body, repeat=1, per_layer_vars=True, start_layer_id=0):
     """Wrapper to call builder_layers.RepeatLayer."""
@@ -648,7 +659,8 @@ class MoEBuilder(builder.Base):
                   imap_keys,
                   layer_fn,
                   start_layer_id=0,
-                  has_final_layer=True):
+                  has_final_layer=True,
+                  final_norm_type='ln'):
     # TODO(yuanzx): Consider refactor this into a layer.
     assert 'segment_id' in imap_keys
     if use_repeat_layer:
@@ -788,10 +800,24 @@ class MoEBuilder(builder.Base):
                          self._Fn('loss_combined', tf.reduce_sum)))
 
     stack += main_stack
+    norm_name = 'final_layer_norm'  # consistent for backwards compatibility.
+    if final_norm_type == 'ln':
+      norm_layer = self._LN(norm_name)
+    elif final_norm_type == 'true_ln':
+      norm_layer = self._TrueLN(norm_name)
+    elif final_norm_type == 'jax_replica_ln':
+      norm_layer = self._JaxReplicaLN(norm_name)
+    elif final_norm_type == 'pn':
+      norm_layer = self._PN(norm_name)
+    elif final_norm_type == 'no_ln':
+      norm_layer = self._Identity(norm_name)
+    else:
+      raise ValueError('Norm type %s not supported.' % final_norm_type)
+
     if has_final_layer:
       stack += [
           (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
-          (('x_%03d->y_norm' % i), self._LN('final_layer_norm')),
+          (('x_%03d->y_norm' % i), norm_layer),
           ('y_norm->y_dropout',
            self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
           ('y_dropout,segment_id_split->o.vec', self.Mask()),
@@ -1209,7 +1235,8 @@ class MoEBuilder(builder.Base):
       position = tf.expand_dims(tf.expand_dims(position, axis=-1), axis=-1)
       timescale = tf.expand_dims(
           tf.expand_dims(tf.expand_dims(timescale, axis=0), axis=0), axis=0)
-      sinusoid_inp = position / tf.cast(timescale, position.dtype)
+      sinusoid_inp = tf.cast(position, inputs.dtype) / tf.cast(
+          timescale, inputs.dtype)
       sin = tf.cast(tf.math.sin(sinusoid_inp), inputs.dtype)
       cos = tf.cast(tf.math.cos(sinusoid_inp), inputs.dtype)
       first_half, second_half = tf.split(inputs, 2, axis=-1)
@@ -1226,6 +1253,12 @@ class MoEBuilder(builder.Base):
     else:
       rope_fn = _Ident
 
+    def _CreateConvMask(segment_id, inputs):
+      return tf.cast(
+          tf.expand_dims(
+              tf.expand_dims(tf.not_equal(segment_id, 0), axis=-1), axis=-1),
+          inputs.dtype)
+
     # pyformat: disable
     return self._Graph(
         name, self._DecoderLayerInMapKeys, [
@@ -1234,7 +1267,23 @@ class MoEBuilder(builder.Base):
         ],
         ('->wq,wk,wv,wo', self._AttentionWeights(
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
-        ('vec,wq,wk,wv->pre_q,pre_k,pre_v', self._ComputeQKVCombine('qkv')),
+        ('vec,wq,wk,wv->pre_mask_q,pre_mask_k,pre_mask_v', self._ComputeQKVCombine('qkv')),
+        ('segment_id->segment_id_split', self.Split('segment_id_split')),
+        ('segment_id_split,vec->conv_mask',
+         self._Fn('create_conv_mask',
+                  fn=_CreateConvMask)),
+        ('pre_mask_q,conv_mask->pre_q',
+         self._Fn(
+             'mask_pre_q',
+             fn=lambda x, h: x * h)),
+        ('pre_mask_k,conv_mask->pre_k',
+         self._Fn(
+             'mask_pre_k',
+             fn=lambda x, h: x * h)),
+        ('pre_mask_v,conv_mask->pre_v',
+         self._Fn(
+             'mask_pre_v',
+             fn=lambda x, h: x * h)),
         ('pre_q->q_no_rot',
          self.DepthwiseConvAutoregressive('q_dconv',
                                           kernel_size=3,
@@ -1574,8 +1623,7 @@ class MoEBuilder(builder.Base):
         model_dims=model_dims,
         compatible_with_mtf_ckpt=True,
         state_layer=gshard_layers.Conv1DStateLayer.Params().Set(
-            shape=[None, None] + model_dims),
-        skip_store_zero_state=True)
+            shape=[None, None] + model_dims, skip_store_zero_state=True))
 
   def DepthwiseConvAutoregressive(self, name, kernel_size, model_dims=None):
     r"""Depthwise convolution for autoregressive models.
@@ -3597,13 +3645,15 @@ class UniTransformer(base_model.BaseTask):
       decoded_input.expert_id = expert_id
     return decoded_input
 
-  def ComputePredictions(self, theta, input_batch):
+  def ComputePredictions(self, theta, input_batch, read_vars_from_theta=False):
     """Forward propagation through one tower of the model.
 
     Args:
       theta: A `.NestedMap` object containing variable values of this task
         copied to this tower's devices.
       input_batch: A `.NestedMap` object containing input tensors to this tower.
+      read_vars_from_theta: If true, read variables from `theta`. Else, read
+        variables from self.vars.
 
     Returns:
       A dict containing metrics pairs.
@@ -3623,7 +3673,10 @@ class UniTransformer(base_model.BaseTask):
       dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
       # TODO(lepikhin): we only support
       # shared_embedding_and_softmax_weights=True at the moment.
-      softmax_weights = self.vars.dec_emb.w.embedding.read_value()
+      if read_vars_from_theta:
+        softmax_weights = theta.dec_emb.w.embedding
+      else:
+        softmax_weights = self.vars.dec_emb.w.embedding.read_value()
       softmax_weights = self.emb_w_split.FProp(theta.emb_w_split,
                                                softmax_weights)
       if dec_outputs.dtype != softmax_weights.dtype:
