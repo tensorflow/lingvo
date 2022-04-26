@@ -13,7 +13,6 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for conformer layers as in https://arxiv.org/abs/2005.08100."""
-# Lint as: PY3
 from unittest import mock
 from absl.testing import flagsaver
 from absl.testing import parameterized
