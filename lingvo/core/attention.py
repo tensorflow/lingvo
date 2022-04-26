@@ -1609,6 +1609,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           # This could happen in cases where function is called by recurrent.py
           # (for example target_sequence_sampler.)
           t = tf.reshape(t, [])
+          # TODO(b/227528061): `alias_inplace_update` is deprecated and has
+          # non-deterministic results when running on CPU/GPU. Consider
+          # replacing it with e.g. `tf.tensor_scatter_nd_update`.
           extended_packed_src[key] = inplace_ops.alias_inplace_update(
               cached_packed_src[key], t, processed)
         else:
