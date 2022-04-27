@@ -213,7 +213,7 @@ def flat_beam_search(batch_size,
     assert buf_size > pfx_max
     pfx_pad_long = tf.pad(
         pfx_pad, [(0, 0), (0, buf_size - pfx_max)], constant_values=1)
-    pfx_mask *= tf.cast(tf.expand_dims(pfx_pad_long, axis=1), tf.float32)
+    pfx_mask *= tf.cast(tf.expand_dims(pfx_pad_long, axis=1), pfx_mask.dtype)
     pfx_segment_id = pfx_pad
     pfx_pos = pfx_indexes * pfx_pad
 
