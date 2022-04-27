@@ -1011,14 +1011,16 @@ class DecodeProgram(BaseProgram):
         'and passed to PostProcess to run only once at the end. Note that'
         ' the PostProcess of the Task should define logic for aggregating'
         'data from the list of decode_out_dict.')
-    p.Define('emails', [],
-             'The list of email addresses to send result summaries to.')
     return p
 
   def __init__(self, params, **kwargs):
     super().__init__(params, **kwargs)
     self._program_name = 'DecodeProgram'
     self._decode_out_dict_lst = []
+    self._dataset_summaries = {}
+
+  def Summary(self):
+    return self._dataset_summaries
 
   def InfeedTFFunc(self):
     """Infeed function. Only needed in tf.function."""
@@ -1222,19 +1224,7 @@ class DecodeProgram(BaseProgram):
 
     # Result is not returned as a signal for "done", unlike for training.
     self._ReportVizierMetrics(global_step, dec_metrics)
-
-    # Provide train_executions_per_eval as a possible option for email.
-    options = base_model.DecodeEmailOptions(
-        job_name=os.path.basename(self._program_dir),
-        train_executions_per_eval=self.train_executions_per_eval,
-        global_step=global_step)
-    if self.params.emails:
-      try:
-        self._task.EmailDecodeSummary(summaries, self.params.emails, options)
-      except NotImplementedError:
-        tf.logging.error('EmailDecodeSummary is not implemented yet.')
-      except Exception as e:  # pylint: disable=broad-except
-        tf.logging.error('Exception sending email %r', e)
+    self._dataset_summaries[self.params.dataset_name] = summaries
 
   def Run(self, sess=None, threadpool=None):
     """Setup and execute Decode program."""
@@ -1707,6 +1697,8 @@ class SimpleProgramSchedule:
     p.Define('eval_programs', [], 'List of eval program params.')
     p.Define('num_splits_per_client', None, '')
     p.Define('dataset_names', [], 'List of all dataset names.')
+    p.Define('emails', [], 'List of emails to send metrics.')
+    p.Define('summary_exporter', None, 'The summary exporter Params.')
     p.Define('async_postprocess', True,
              'whether to CPU postprocess asynchronously with TPU train')
     p.Define(
@@ -1773,6 +1765,13 @@ class SimpleProgramSchedule:
     else:
       self._ml_perf = None
 
+    if p.summary_exporter:
+      if 'logdir' in p.summary_exporter:
+        p.summary_exporter.logdir = p.logdir
+      if 'ckpt_path' in p.summary_exporter:
+        p.summary_exporter.ckpt_path = p.checkpoint_to_load
+      self._summary_exporter = p.summary_exporter.Instantiate()
+
   def Programs(self):
     return self._programs
 
@@ -1796,6 +1795,7 @@ class SimpleProgramSchedule:
     # Return when no more evals are needed so we can have an exit
     # for ML Perf
     evals_done = False
+    dataset_summaries = {}
     for eval_program in self.eval_programs:
       eval_program.train_executions_per_eval = p.train_executions_per_eval
       tf.logging.info(p.ml_perf)
@@ -1815,6 +1815,10 @@ class SimpleProgramSchedule:
           eval_program.Run(sess, threadpool)
         else:
           eval_program.Run(sess)
+      if isinstance(eval_program, (DecodeProgram,)):
+        dataset_summaries.update(eval_program.Summary())
+    if p.train_executions_per_eval == 0 and hasattr(self, '_summary_exporter'):
+      self._summary_exporter.Export(dataset_summaries)
     eval_time_in_secs = time.time() - train_finish_time
     tf.logging.info('Eval took %f seconds.', eval_time_in_secs)
     should_exit = (p.train_executions_per_eval == 0) or evals_done
@@ -1846,6 +1850,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  experimental_decoder=False,
                                  train_program_cls=TrainProgram,
                                  eval_program_cls=EvalProgram,
+                                 summary_exporter_cls=None,
                                  async_postprocess=True,
                                  decode_until_out_of_range=False,
                                  postprocess_all_at_once=False,
@@ -1870,6 +1875,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       TrainProgram.
     eval_program_cls: The class to use for eval programs.  Defaults to
       EvalProgram.
+    summary_exporter_cls: The class to export summaries. Default to None. If
+      not None, the class should implement Export().
     async_postprocess: bool. Whether to run CPU postprocessing for Decode in a
       separate thread to save time (i.e. concurrent with train). This avoids
       blocking training. But if the CPU postprocessing takes more time compared
@@ -1888,7 +1895,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       should define the logic of aggregating across steps/batches. Can be a
       single value or a list of values corresponding to the entries in
       eval_dataset_names.
-    emails: list. List of emails to email decode/scoring summaries.
+    emails: List of emails to email decode/scoring summaries.
     train_summary_interval_steps: Number of steps to wait before flushing
       summaries to disk.
 
@@ -1905,6 +1912,15 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   program_schedule_params.dataset_names = []
 
   program_schedule_params.async_postprocess = async_postprocess
+
+  if emails:
+    program_schedule_params.emails = emails
+
+  if summary_exporter_cls:
+    p_summary_exporter = summary_exporter_cls.Params()
+    if 'emails' in p_summary_exporter:
+      p_summary_exporter.emails = emails
+    program_schedule_params.summary_exporter = p_summary_exporter
 
   if isinstance(eval_steps_per_loop, list):
     if len(eval_steps_per_loop) != len(eval_dataset_names):
@@ -1958,9 +1974,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                            decode_steps_per_loop[idx])
       decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
     if decoder_param is not None:
-      if emails:
-        decoder_param.emails = emails
       program_schedule_params.eval_programs.append(decoder_param)
+
   return program_schedule_params
 
 
@@ -2092,9 +2107,7 @@ def UpdateProgramSchedule(ps_params,
     ps_params.checkpoint_to_load = oneoff_checkpoint_to_load
 
   if decode_summary_emails:
-    for eval_program in ps_params.eval_programs:
-      if issubclass(eval_program.cls, DecodeProgram):
-        eval_program.emails = decode_summary_emails
+    ps_params.emails = decode_summary_emails
 
   return ps_params
 
