@@ -107,7 +107,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
 
     if p.label_smoothing is None:
       xent_loss = self.softmax.FProp(
-          theta.softmax, [softmax_input],
+          theta.softmax,
+          softmax_input,
           class_weights=tf.reshape(target_weights, [-1, 1]),
           class_ids=tf.reshape(target_labels, [-1, 1]))
     else:
@@ -123,7 +124,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
         target_probs = self.smoother.FProp(
             theta.smoother, target_paddings, target_labels, target_ids=None)
       xent_loss = self.softmax.FProp(
-          theta.softmax, [softmax_input],
+          theta.softmax,
+          softmax_input,
           class_weights=tf.reshape(target_weights, [-1, 1]),
           class_probabilities=tf.reshape(target_probs,
                                          [-1, p.softmax.num_classes]))
@@ -2013,7 +2015,7 @@ class TransformerDecoder(MTBaseDecoder):
     new_states.time_step = target_time + 1
 
     softmax_input = tf.reshape(layer_out, [-1, p.softmax.input_dim])
-    logits = self.softmax.Logits(theta.softmax, [softmax_input])
+    logits = self.softmax.Logits(theta.softmax, softmax_input)
 
     num_hyps = py_utils.GetShape(step_ids)[0]
     # [time * batch, num_classes] -> [time, batch, num_classes]
@@ -2992,7 +2994,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
     softmax_input = tf.reshape(softmax_input, [target_batch, -1])
 
     # [target_batch, vocab_size]
-    logits = self.softmax.Logits(theta.softmax, [softmax_input])
+    logits = self.softmax.Logits(theta.softmax, softmax_input)
 
     # Only return logits for the last ids
     log_probs = tf.nn.log_softmax(logits)
@@ -3291,7 +3293,8 @@ class TransformerXDecoder(TransformerDecoder):
 
     if p.label_smoothing is None:
       xent_loss = self.softmax.FProp(
-          theta.softmax, [softmax_input],
+          theta.softmax,
+          softmax_input,
           class_weights=tf.reshape(target_weights, [-1, 1]),
           class_ids=tf.reshape(target_labels, [-1, 1]))
     else:
@@ -3310,7 +3313,8 @@ class TransformerXDecoder(TransformerDecoder):
         target_probs = tf.transpose(target_probs, [1, 0, 2])
 
       xent_loss = self.softmax.FProp(
-          theta.softmax, [softmax_input],
+          theta.softmax,
+          softmax_input,
           class_weights=tf.reshape(target_weights, [-1, 1]),
           class_probabilities=tf.reshape(target_probs,
                                          [-1, p.softmax.num_classes]))

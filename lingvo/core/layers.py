@@ -3848,6 +3848,15 @@ class EinsumSoftmax(base_layer.BaseLayer):
     p = self.params
     assert logits is not None
     per_example_argmax = py_utils.ArgMax(logits)
+
+    # For compatibility with other softmax implementations.
+    if (class_weights is not None and
+        py_utils.GetRank(class_weights) == py_utils.GetRank(logits)):
+      class_weights = tf.squeeze(class_weights, -1)
+    if (class_ids is not None and
+        py_utils.GetRank(class_ids) == py_utils.GetRank(logits)):
+      class_ids = tf.squeeze(class_ids, -1)
+
     per_example_xent = py_utils.SoftmaxCrossEntropyFocalLoss(
         logits=logits,
         label_ids=class_ids,
@@ -3858,11 +3867,27 @@ class EinsumSoftmax(base_layer.BaseLayer):
 
   def FProp(self, theta, inputs, class_weights, *args, **kwargs):
     logits = self.Logits(theta, inputs)
+
+    class_weights = tf.cast(class_weights, py_utils.FPropDtype(self.params))
+    # For compatibility with other softmax implementations.
+    if (class_weights is not None and
+        py_utils.GetRank(class_weights) == py_utils.GetRank(logits)):
+      class_weights = tf.squeeze(class_weights, -1)
+
     per_example_xent, per_example_argmax = self.XentLossFromLogits(
         theta, logits, class_weights, *args, **kwargs)
+
+    total_xent = tf.reduce_sum(per_example_xent * class_weights)
+    total_weight = tf.reduce_sum(class_weights)
+
     return py_utils.NestedMap(
+        logits=logits,
+        log_probs=tf.nn.log_softmax(logits),
         per_example_xent=per_example_xent,
-        per_example_argmax=per_example_argmax)
+        per_example_argmax=per_example_argmax,
+        total_xent=total_xent,
+        total_weight=total_weight,
+        avg_xent=total_xent / (total_weight + 1e-6))
 
 
 class SharedSoftmaxLayer(base_layer.BaseLayer):

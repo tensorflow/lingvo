@@ -1662,6 +1662,7 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
   def _ConstructTransformerBatchMajorDecoder(self,
                                              dtype=tf.float32,
                                              packed_input=False,
+                                             use_einsum_softmax_and_emb=False,
                                              **kwargs):
     p = decoder.TransformerBatchMajorDecoder.Params()
     p.name = 'decoder'
@@ -1669,11 +1670,19 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
     p.source_dim = 4
     p.model_dim = 4
     p.num_trans_layers = 6
+
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
+
+    if use_einsum_softmax_and_emb:
+      p.token_emb = layers.EinsumEmbeddingLayer.Params()
+      p.softmax = layers.EinsumSoftmax.Params()
+    else:
+      p.token_emb.max_num_shards = 1
+      p.softmax.num_shards = 1
+
     p.token_emb.vn = disable_vn
     p.token_emb.vocab_size = 20
     p.token_emb.embedding_dim = 4
-    p.token_emb.max_num_shards = 1
     p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
     p.position_emb.embedding_dim = 4
     p.trans_decoder_tpl.vn = disable_vn
@@ -1685,7 +1694,7 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
     p.trans_decoder_tpl.packed_input = packed_input
     p.softmax.vn = disable_vn
     p.softmax.num_classes = 20
-    p.softmax.num_shards = 1
+
     p.per_word_avg_loss = False
     p.random_seed = 12345
     p.target_seq_len = 5
@@ -1765,6 +1774,20 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       actual_loss = sess.run(loss)
       print('actual loss = ', actual_loss)
       self.assertAllClose(15.041874, actual_loss)
+
+  def testDecoderFPropEinsumSoftmax(self):
+    with self.session(use_gpu=True) as sess:
+      dec = self._ConstructTransformerBatchMajorDecoder(
+          prediction_data_format='BTC',
+          per_example_tensors=True,
+          use_einsum_softmax_and_emb=True)
+      encoder_outputs, targets = self._Inputs()
+      dec_out = dec.FPropDefaultTheta(encoder_outputs, targets)
+      dec_out = tf.nest.map_structure(tf.convert_to_tensor, dec_out)
+      tf.global_variables_initializer().run()
+      actual_dec_out = sess.run(dec_out)
+      print('actual decoder output =', actual_dec_out)
+      self.assertAllClose(25.569077, actual_dec_out.metrics['loss'][0])
 
   def testDecoderExtendStep(self):
     with self.session(use_gpu=True) as sess:
