@@ -3913,6 +3913,15 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">logits</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
     <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ArgMax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
+
+    <span class="c1"># For compatibility with other softmax implementations.</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">class_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">class_weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">logits</span><span class="p">)):</span>
+      <span class="n">class_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">class_weights</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">class_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">class_ids</span><span class="p">)</span> <span class="o">==</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">logits</span><span class="p">)):</span>
+      <span class="n">class_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">class_ids</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
     <span class="n">per_example_xent</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SoftmaxCrossEntropyFocalLoss</span><span class="p">(</span>
         <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
         <span class="n">label_ids</span><span class="o">=</span><span class="n">class_ids</span><span class="p">,</span>
@@ -3923,11 +3932,27 @@
 
 <div class="viewcode-block" id="EinsumSoftmax.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EinsumSoftmax.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">class_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+    <span class="n">class_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">class_weights</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">))</span>
+    <span class="c1"># For compatibility with other softmax implementations.</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">class_weights</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">class_weights</span><span class="p">)</span> <span class="o">==</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">logits</span><span class="p">)):</span>
+      <span class="n">class_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">class_weights</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
     <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">XentLossFromLogits</span><span class="p">(</span>
         <span class="n">theta</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">class_weights</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">total_xent</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_example_xent</span> <span class="o">*</span> <span class="n">class_weights</span><span class="p">)</span>
+    <span class="n">total_weight</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">class_weights</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span>
+        <span class="n">log_probs</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">),</span>
         <span class="n">per_example_xent</span><span class="o">=</span><span class="n">per_example_xent</span><span class="p">,</span>
-        <span class="n">per_example_argmax</span><span class="o">=</span><span class="n">per_example_argmax</span><span class="p">)</span></div></div>
+        <span class="n">per_example_argmax</span><span class="o">=</span><span class="n">per_example_argmax</span><span class="p">,</span>
+        <span class="n">total_xent</span><span class="o">=</span><span class="n">total_xent</span><span class="p">,</span>
+        <span class="n">total_weight</span><span class="o">=</span><span class="n">total_weight</span><span class="p">,</span>
+        <span class="n">avg_xent</span><span class="o">=</span><span class="n">total_xent</span> <span class="o">/</span> <span class="p">(</span><span class="n">total_weight</span> <span class="o">+</span> <span class="mf">1e-6</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="SharedSoftmaxLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer">[docs]</a><span class="k">class</span> <span class="nc">SharedSoftmaxLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
