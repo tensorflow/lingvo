@@ -15,6 +15,7 @@
 """Programs for interleaving execution on TPU."""
 
 import contextlib
+import functools
 import multiprocessing.dummy
 import os
 import queue
@@ -109,17 +110,7 @@ class BaseProgram:
     self._trial = trial
     self._ema = ema
 
-    # Program dirs are where the summaries are written to.
-    if p.task_name:
-      program_dir_name = (
-          p.task_name + '_' + p.name + '_' + p.dataset_name.lower())
-    else:
-      program_dir_name = p.name + '_' + p.dataset_name.lower()
-    self._program_dir = os.path.join(self._logdir, program_dir_name)
-    tf.io.gfile.makedirs(self._program_dir)
-    with tf.io.gfile.GFile(os.path.join(self._program_dir, 'params.txt'),
-                           'w') as f:
-      f.write(p.ToText())
+    self._SetProgramDir()
     # Initialized on use; access via self._summary_writer property only.
     self._summary_writer_obj = None
 
@@ -138,9 +129,6 @@ class BaseProgram:
     self._compile_op = None
     self._status_msg_fn = None
 
-    # Same param as in the TPU executor program schedule.
-    # Used mainly for each program to check if training is scheduled.
-    self.train_executions_per_eval = None
     # Set input repeat_steps to steps_per_loop, if repeat_steps was undefined
     # but available, and also 'resettable' is False.
     # This allows a repeating input TF Dataset (without reset) to take, for each
@@ -153,6 +141,21 @@ class BaseProgram:
       self._task_params.input.repeat_steps = self._steps_per_loop
 
     self._InitializeVizier()
+
+  def _SetProgramDir(self):
+    """Set program dir for output."""
+    p = self.params
+    # Program dirs are where the summaries are written to.
+    if p.task_name:
+      program_dir_name = (
+          p.task_name + '_' + p.name + '_' + p.dataset_name.lower())
+    else:
+      program_dir_name = p.name + '_' + p.dataset_name.lower()
+    self._program_dir = os.path.join(self._logdir, program_dir_name)
+    tf.io.gfile.makedirs(self._program_dir)
+    with tf.io.gfile.GFile(os.path.join(self._program_dir, 'params.txt'),
+                           'w') as f:
+      f.write(p.ToText())
 
   def _InitializeVizier(self):
     """Checks if this program should report metrics to vizier."""
@@ -248,19 +251,23 @@ class BaseProgram:
       self._summary_writer.add_summary(summary_str, global_step)
       self._summary_writer.flush()
 
-  def _InfeedLoop(self, sess=None):
-    """Infeed loop for input generator for batched data and input data stats."""
+  def _InfeedLoopForInput(self, dataset_name, inp_instance, sess=None):
+    """Infeed loop for specified dataset and input instance."""
     tf.logging.info(f'_InfeedLoop start {self._program_name} '
-                    f'on dataset {self.params.dataset_name}')
+                    f'on dataset {dataset_name}')
     try:
       for i in range(self._steps_per_loop):
         tf.logging.vlog(1, '_InfeedLoop %d', i)
-        sess.run(self._task.input.tpu_infeed_op)
+        sess.run(inp_instance.tpu_infeed_op)
       self._WriteInputDataStats(sess)
       tf.logging.info('_InfeedLoop done')
     except Exception as e:
       tf.logging.info('_InfeedLoop exception %r %s', e, e)
       raise
+
+  def _InfeedLoop(self, sess=None):
+    """Infeed loop for program's own dataset and input instance."""
+    self._InfeedLoopForInput(self.params.dataset_name, self._task.input, sess)
 
   def _ReportVizierMetrics(self, global_step, metrics_dict):
     """Report metrics to vizier service.
@@ -307,12 +314,14 @@ class BaseProgram:
     else:
       tf.logging.info('Status: %s', msg)
 
-  def Compile(self, sess=None):
-    """Compile the program using the given session handle."""
+  def InitInputs(self, sess=None):
     self.SetStatusMessage('Init inputs %s' % self._program_name)
     self._task.input.Initialize(sess)
     self.SetStatusMessage('Init inputs %s done.' % self._program_name)
 
+  def Compile(self, sess=None):
+    """Compile the program using the given session handle."""
+    self.InitInputs(sess)
     if not py_utils.IsEagerMode() and self._compile_op is not None:
       self.SetStatusMessage('Compiling %s' % self._program_name)
       result = sess.run(self._compile_op)
@@ -1017,32 +1026,36 @@ class DecodeProgram(BaseProgram):
     super().__init__(params, **kwargs)
     self._program_name = 'DecodeProgram'
     self._decode_out_dict_lst = []
+    self._ema_applied = False
     self._dataset_summaries = {}
 
   def Summary(self):
     return self._dataset_summaries
 
-  def InfeedTFFunc(self):
+  def InfeedTFFunc(self, inp_instance):
     """Infeed function. Only needed in tf.function."""
-    self._task.input.DeviceLoopSetupEager()
-    self._task.input.CreateTpuEnqueueOps()
+    inp_instance.DeviceLoopSetupEager()
+    inp_instance.CreateTpuEnqueueOps()
     # `CreateTpuEnqueueOps` and `CreateCpuPassthroughEnqueueOps` must be in the
     # same place, because the former enqueues `_per_host_passthrough_batches`,
     # while the latter consumes it.
-    self._task.input.CreateCpuPassthroughEnqueueOps()
+    inp_instance.CreateCpuPassthroughEnqueueOps()
     # `CreateCpuPassthroughEnqueueOps` and `DequeueCpuPassthrough` must be in
     # the same place, because the former enqueues `_host_queues`,
     # while the latter consumes it.
-    cpu_pt = self._task.input.DequeueCpuPassthrough()
+    cpu_pt = inp_instance.DequeueCpuPassthrough()
     return cpu_pt
 
-  def DecodeFunc(self):
+  def DecodeFunc(self, inp_instance):
     """Wrap the DecodeFn with split_compile_and_shard."""
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
       # Applies EMA if applicable to support running only eval/decode programs.
-      _, decode_dict = self._model.ConstructDecodeGraph(apply_ema=True)
+      _, decode_dict = self._model.ConstructDecodeGraph(
+          apply_ema=(not self._ema_applied),
+          input_batch=inp_instance.TpuDequeueBatch())
+      self._ema_applied = True
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return self.decode_nm.Flatten()
 
@@ -1059,16 +1072,20 @@ class DecodeProgram(BaseProgram):
       # The CPU pass through data will be from the infeed function.
       cpu_pt = {}
     else:
-      cpu_pt = self._task.input.DequeueCpuPassthrough()
+      cpu_pt = inp_instance.DequeueCpuPassthrough()
     return decode_tensors, cpu_pt
 
-  def _DecodeUntilOutOfRangeInfeedLoop(self, sess=None, infeed_step_queue=None):
+  def _DecodeUntilOutOfRangeInfeedLoop(self,
+                                       dataset_name,
+                                       inp_instance,
+                                       sess=None,
+                                       infeed_step_queue=None):
     """Infeed loop that stops when it runs out of data (OutOfRange error)."""
     tf.logging.info(f'_InfeedLoop start {self._program_name} '
-                    f'on dataset {self.params.dataset_name}')
+                    f'on dataset {dataset_name}')
 
     def _HandleEndOfData():
-      tf.logging.info(f'End of dataset {self.params.dataset_name}.')
+      tf.logging.info(f'End of dataset {dataset_name}.')
       infeed_step_queue.put(-1)  # -1 signals reaching end of dataset.
       self._WriteInputDataStats(sess)
       tf.logging.info('_InfeedLoop done')
@@ -1077,7 +1094,7 @@ class DecodeProgram(BaseProgram):
       loop_index = 0
       while True:
         tf.logging.vlog(1, '_InfeedLoop %d', loop_index)
-        sess.run(self._task.input.tpu_infeed_op)
+        sess.run(inp_instance.tpu_infeed_op)
         infeed_step_queue.put(loop_index)
         loop_index += 1
     except tf.errors.OutOfRangeError:
@@ -1109,13 +1126,13 @@ class DecodeProgram(BaseProgram):
 
       if py_utils.IsEagerMode():
         with self._summary_writer.as_default():
-          self.infeed_fn = tf.function(autograph=False)(
-              self.InfeedTFFunc).get_concrete_function()
+          self.infeed_fn = tf.function(autograph=False)(functools.partial(
+              self.InfeedTFFunc, self._task.input)).get_concrete_function()
           self.tpu_outs = (
-              tf.function(autograph=False)(
-                  self.DecodeFunc).get_concrete_function())
+              tf.function(autograph=False)(functools.partial(
+                  self.DecodeFunc, self._task.input)).get_concrete_function())
       else:
-        self.tpu_outs = self.DecodeFunc()
+        self.tpu_outs = self.DecodeFunc(self._task.input)
 
   def _DecodeStep(self,
                   sess,
@@ -1124,6 +1141,7 @@ class DecodeProgram(BaseProgram):
                   global_step,
                   buffered_decode_out,
                   postprocess_futures,
+                  dataset_name,
                   threadpool=None):
     """Run one iteration of decode."""
     tf.logging.info(f'Decoding step {step}')
@@ -1133,7 +1151,11 @@ class DecodeProgram(BaseProgram):
       with context.executor_scope(async_executor):
         cpu_pt = self.infeed_fn()
 
-    decode_out_dict = _FetchDecodeOut(self.tpu_outs, sess)
+    if isinstance(self.tpu_outs, dict):
+      tpu_out = self.tpu_outs[dataset_name]
+    else:
+      tpu_out = self.tpu_outs
+    decode_out_dict = _FetchDecodeOut(tpu_out, sess)
     if py_utils.IsEagerMode():
       # Ensure that the infeed ops are finished
       # This is necessary to ensure that any state in the infeed ops is
@@ -1192,6 +1214,7 @@ class DecodeProgram(BaseProgram):
           kv for kv in decode_out if not isinstance(kv[1], tf.Summary))
 
   def _FinalizeDecode(self,
+                      dataset_name,
                       dec_metrics,
                       start_time,
                       global_step,
@@ -1224,27 +1247,27 @@ class DecodeProgram(BaseProgram):
 
     # Result is not returned as a signal for "done", unlike for training.
     self._ReportVizierMetrics(global_step, dec_metrics)
-    self._dataset_summaries[self.params.dataset_name] = summaries
 
-  def Run(self, sess=None, threadpool=None):
+    self._dataset_summaries[dataset_name] = summaries
+
+  def RunForInput(self, dataset_name, inp_instance, sess=None, threadpool=None):
     """Setup and execute Decode program."""
     if py_utils.IsEagerMode():
       global_step = self._model.global_step.numpy()
     else:
       global_step = sess.run(self._model.global_step)
-    self.SetStatusMessage(
-        f'Executing decode program on dataset {self.params.dataset_name} '
-        f'at step {global_step}')
+    self.SetStatusMessage(f'Executing decode program on dataset {dataset_name} '
+                          f'at step {global_step}')
 
-    if self._task.input.params.resettable:
+    if inp_instance.params.resettable:
       tf.logging.info('Resetting input_generator.')
-      self._task.input.Reset(sess)
+      inp_instance.Reset(sess)
       if py_utils.IsEagerMode():
         with self._summary_writer.as_default():
           # In eager mode, after resetting the input generator, we need to
           # re-trace the infeed tf.function to ensure it uses the new iterator.
-          self.infeed_fn = tf.function(autograph=False)(
-              self.InfeedTFFunc).get_concrete_function()
+          self.infeed_fn = tf.function(autograph=False)(functools.partial(
+              self.InfeedTFFunc, inp_instance)).get_concrete_function()
 
     # The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop
     # (that runs _DecodeStep). As an input batch is successfully fed through
@@ -1261,13 +1284,19 @@ class DecodeProgram(BaseProgram):
       infeed_future = self._infeed_pool.apply_async(
           self._DecodeUntilOutOfRangeInfeedLoop,
           args=(
+              dataset_name,
+              inp_instance,
               sess,
               infeed_step_queue,
           ))
     else:
       if not py_utils.IsEagerMode():
         infeed_future = self._infeed_pool.apply_async(
-            self._InfeedLoop, args=(sess,))
+            self._InfeedLoopForInput, args=(
+                dataset_name,
+                inp_instance,
+                sess,
+            ))
 
     dec_metrics = self._task.CreateDecoderMetrics()
     if not dec_metrics:
@@ -1291,12 +1320,14 @@ class DecodeProgram(BaseProgram):
           break
         infeed_step_queue.task_done()
         self._DecodeStep(sess, step, dec_metrics, global_step,
-                         buffered_decode_out, postprocess_futures, threadpool)
+                         buffered_decode_out, postprocess_futures, dataset_name,
+                         threadpool)
     else:
       for step in range(self._steps_per_loop):
         tf.logging.info('Starting step %d of %d', step, self._steps_per_loop)
         self._DecodeStep(sess, step, dec_metrics, global_step,
-                         buffered_decode_out, postprocess_futures, threadpool)
+                         buffered_decode_out, postprocess_futures, dataset_name,
+                         threadpool)
     # Run postprocess after the last step if postprocess_all_at_once.
     if self.params.postprocess_all_at_once and self._decode_out_dict_lst:
       self._RunPostProcess(threadpool, step, self._decode_out_dict_lst,
@@ -1311,9 +1342,10 @@ class DecodeProgram(BaseProgram):
         raise e
 
       # Async. TPU+host processing is done and can move on to Train.
-      threadpool.apply_async(
+      return threadpool.apply_async(
           self._FinalizeDecode,
           args=(
+              dataset_name,
               dec_metrics,
               start_time,
               global_step,
@@ -1322,8 +1354,83 @@ class DecodeProgram(BaseProgram):
           ),
           error_callback=_HandleError)
     else:
-      self._FinalizeDecode(dec_metrics, start_time, global_step,
+      self._FinalizeDecode(dataset_name, dec_metrics, start_time, global_step,
                            buffered_decode_out)
+      return None
+
+  def Run(self, sess=None, threadpool=None):
+    self.RunForInput(self.params.dataset_name, self._task.input, sess,
+                     threadpool)
+
+
+class MultiInputsDecodeProgram(DecodeProgram):
+  """Decode program with multiple inputs."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Delete('dataset_name')
+    p.Define('dataset_names', [], 'List of datasets to decode.')
+    p.Define('input_params', [], 'List of input params map to the datasets')
+    return p
+
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
+    self._program_name = 'MultiInputsDecodeProgram'
+    self._inputs = []
+    self.tpu_outs = {}
+
+  def _SetProgramDir(self):
+    """Set program dir for output."""
+    p = self.params
+    # Program dirs are where the summaries are written to.
+    if p.task_name:
+      program_dir_name = p.task_name + '_' + p.name + '_multi_inputs'
+    else:
+      program_dir_name = p.name + '_multi_inputs'
+    self._program_dir = os.path.join(self._logdir, program_dir_name)
+    tf.io.gfile.makedirs(self._program_dir)
+    with tf.io.gfile.GFile(os.path.join(self._program_dir, 'params.txt'),
+                           'w') as f:
+      f.write(p.ToText())
+
+  def InitInputs(self, sess=None):
+    self.SetStatusMessage('Init inputs %s' % self._program_name)
+    for inp_instance in self._inputs:
+      inp_instance.Initialize(sess)
+    self.SetStatusMessage('Init inputs %s done.' % self._program_name)
+
+  def BuildTpuSubgraph(self):
+    tf.logging.info('MultiInputsDecodeProgram BuildTpuSubGraph')
+    with cluster_factory.SetEval(True):
+      py_utils.ResetStepSeed()
+      with py_utils.OpportunisticVariableReuseScope(True):
+        self._model = self._InstantiateTaskModel(self._task_params)
+      self._task = self._model.GetTask()
+      self._inputs = [p.Instantiate() for p in self.params.input_params]
+      # In Graph mode `InfeedSetupGraph` is called once to build the infeed ops.
+      # In tf.function the relevant methods will be called in `InfeedTFFunc`.
+      if not py_utils.IsEagerMode():
+        for i in range(len(self._inputs)):
+          dataset_name = self.params.dataset_names[i]
+          self._inputs[i].InfeedSetupGraph(cpu_passthrough=True)
+          self.tpu_outs[dataset_name] = self.DecodeFunc(self._inputs[i])
+
+      else:
+        # TODO(xingwu): Verify for the eager mode.
+        tf.logging.warning('Eager mode MultiInputsDecodeProgram is not ready!')
+        with self._summary_writer.as_default():
+          self.infeed_fn = tf.function(autograph=False)(
+              self.InfeedTFFunc).get_concrete_function()
+          self.tpu_outs[dataset_name] = (
+              tf.function(autograph=False)(functools.partial(
+                  self.DecodeFunc, self._inputs[i])).get_concrete_function())
+
+  def Run(self, sess=None, threadpool=None):
+    for i in range(len(self.params.dataset_names)):
+      dataset_name = self.params.dataset_names[i]
+      inp_instance = self._inputs[i]
+      self.RunForInput(dataset_name, inp_instance, sess, threadpool)
 
 
 class ExperimentalDecodeProgram(DecodeProgram):
@@ -1742,10 +1849,20 @@ class SimpleProgramSchedule:
 
     for eval_program_params in p.eval_programs:
       eval_program_params.logdir = p.logdir
-      if eval_program_params.dataset_name not in p.task_dict:
-        raise ValueError('could not find eval dataset %s in %s' %
-                         (eval_program_params.dataset_name, p.task_dict))
-      eval_program_params.task = p.task_dict[eval_program_params.dataset_name]
+      task_dataset = None
+      if issubclass(eval_program_params.cls, MultiInputsDecodeProgram):
+        eval_program_params.input_params = []
+        for dataset_name in eval_program_params.dataset_names:
+          eval_program_params.input_params.append(
+              p.task_dict[dataset_name].input)
+        # Use the 1st dataset's task params.
+        task_dataset = eval_program_params.dataset_names[0]
+      else:
+        if eval_program_params.dataset_name not in p.task_dict:
+          raise ValueError('could not find eval dataset %s in %s' %
+                           (eval_program_params.dataset_name, p.task_dict))
+        task_dataset = eval_program_params.dataset_name
+      eval_program_params.task = p.task_dict[task_dataset]
       eval_program_params.task_name = p.task_name
       eval_program_params.num_splits_per_client = p.num_splits_per_client
       eval_program_params.ml_perf = p.ml_perf.Copy()
@@ -1766,10 +1883,9 @@ class SimpleProgramSchedule:
       self._ml_perf = None
 
     if p.summary_exporter:
-      if 'logdir' in p.summary_exporter:
-        p.summary_exporter.logdir = p.logdir
-      if 'ckpt_path' in p.summary_exporter:
-        p.summary_exporter.ckpt_path = p.checkpoint_to_load
+      p.summary_exporter.emails = p.emails
+      p.summary_exporter.logdir = p.logdir
+      p.summary_exporter.ckpt_path = p.checkpoint_to_load
       self._summary_exporter = p.summary_exporter.Instantiate()
 
   def Programs(self):
@@ -1815,7 +1931,7 @@ class SimpleProgramSchedule:
           eval_program.Run(sess, threadpool)
         else:
           eval_program.Run(sess)
-      if isinstance(eval_program, (DecodeProgram,)):
+      if isinstance(eval_program, (DecodeProgram, MultiInputsDecodeProgram)):
         dataset_summaries.update(eval_program.Summary())
     if p.train_executions_per_eval == 0 and hasattr(self, '_summary_exporter'):
       self._summary_exporter.Export(dataset_summaries)
@@ -1832,9 +1948,14 @@ class SimpleProgramSchedule:
 
 
 def _CreateProgramParams(cls, program_name, dataset_name, steps_per_loop):
+  """Create different program param instance per inputs."""
   p = cls.Params()
   p.name = program_name
-  p.dataset_name = dataset_name
+  if issubclass(cls, MultiInputsDecodeProgram):
+    assert isinstance(dataset_name, list)
+    p.dataset_names = dataset_name
+  else:
+    p.dataset_name = dataset_name
   if program_name == 'decode_tpu':
     _SetDecodeStepsPerLoop(p, steps_per_loop)
   else:
@@ -1848,6 +1969,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  eval_steps_per_loop,
                                  decode_steps_per_loop=None,
                                  experimental_decoder=False,
+                                 multi_inputs_decoder=False,
                                  train_program_cls=TrainProgram,
                                  eval_program_cls=EvalProgram,
                                  summary_exporter_cls=None,
@@ -1871,6 +1993,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       True.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
+    multi_inputs_decoder: bool. Whether to use multi inputs decoder for all
+      datasets.
     train_program_cls: The class to use for training programs.  Defaults to
       TrainProgram.
     eval_program_cls: The class to use for eval programs.  Defaults to
@@ -1917,10 +2041,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     program_schedule_params.emails = emails
 
   if summary_exporter_cls:
-    p_summary_exporter = summary_exporter_cls.Params()
-    if 'emails' in p_summary_exporter:
-      p_summary_exporter.emails = emails
-    program_schedule_params.summary_exporter = p_summary_exporter
+    program_schedule_params.summary_exporter = summary_exporter_cls.Params()
 
   if isinstance(eval_steps_per_loop, list):
     if len(eval_steps_per_loop) != len(eval_dataset_names):
@@ -1929,25 +2050,37 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                        f'{len(eval_dataset_names)}.')
   else:
     eval_steps_per_loop = [eval_steps_per_loop] * len(eval_dataset_names)
-  if isinstance(decode_steps_per_loop, list):
-    if len(decode_steps_per_loop) != len(eval_dataset_names):
-      raise ValueError('decode_steps_per_loop doesn\'t match the size of '
-                       f'eval_dataset_names: {len(decode_steps_per_loop)} vs '
-                       f'{len(eval_dataset_names)}.')
-  elif decode_steps_per_loop is None:
-    if not decode_until_out_of_range:
-      raise ValueError('decode_until_out_of_range must be set to True if '
-                       'decode_steps_per_loop is not specified (None).')
+
+  if multi_inputs_decoder:
+    assert decode_until_out_of_range or isinstance(
+        decode_steps_per_loop, int), (
+            'MultiInputsDecodeProgram requires single decode_steps_per_loop or '
+            'decode_until_out_of_range to be True!')
+    assert isinstance(postprocess_all_at_once, (int, bool)), (
+        'MultiInputsDecodeProgram requires single postprocess_all_at_once!')
   else:
-    decode_steps_per_loop = [decode_steps_per_loop] * len(eval_dataset_names)
-  if isinstance(postprocess_all_at_once, list):
-    if len(postprocess_all_at_once) != len(eval_dataset_names):
-      raise ValueError('postprocess_all_at_once doesn\'t match the size of '
-                       f'eval_dataset_names: {len(postprocess_all_at_once)} vs '
-                       f'{len(eval_dataset_names)}.')
-  else:
-    postprocess_all_at_once = [postprocess_all_at_once
-                              ] * len(eval_dataset_names)
+    # decode_steps_per_loop for DecodeProgram.
+    if isinstance(decode_steps_per_loop, list):
+      if len(decode_steps_per_loop) != len(eval_dataset_names):
+        raise ValueError('decode_steps_per_loop doesn\'t match the size of '
+                         f'eval_dataset_names: {len(decode_steps_per_loop)} vs '
+                         f'{len(eval_dataset_names)}.')
+    elif decode_steps_per_loop is None:
+      if not decode_until_out_of_range:
+        raise ValueError('decode_until_out_of_range must be set to True if '
+                         'decode_steps_per_loop is not specified (None).')
+    else:
+      decode_steps_per_loop = [decode_steps_per_loop] * len(eval_dataset_names)
+    # postprocess_all_at_once for DecodeProgram.
+    if isinstance(postprocess_all_at_once, list):
+      if len(postprocess_all_at_once) != len(eval_dataset_names):
+        raise ValueError(
+            'postprocess_all_at_once doesn\'t match the size of '
+            f'eval_dataset_names: {len(postprocess_all_at_once)} vs '
+            f'{len(eval_dataset_names)}.')
+    else:
+      postprocess_all_at_once = [postprocess_all_at_once
+                                ] * len(eval_dataset_names)
 
   for idx, dataset_name in enumerate(eval_dataset_names):
     program_schedule_params.dataset_names.append(dataset_name)
@@ -1956,25 +2089,35 @@ def SimpleProgramScheduleForTask(train_dataset_name,
           _CreateProgramParams(eval_program_cls, 'eval_tpu', dataset_name,
                                eval_steps_per_loop[idx]))
 
-    decoder_param = None
-    if decode_until_out_of_range:
-      if decode_steps_per_loop is not None:
-        tf.logging.warning('decode_until_out_of_range set to True, ignoring '
-                           'decode_steps_per_loop setting.')
-      if experimental_decoder:
-        raise ValueError(
-            'experimental_decoder must be False for decode_until_out_of_range')
-      decoder_param = _CreateProgramParams(DecodeProgram, 'decode_tpu',
-                                           dataset_name, -1)
-      decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
-    elif decode_steps_per_loop[idx] > 0:
-      decoder = (
-          ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
-      decoder_param = _CreateProgramParams(decoder, 'decode_tpu', dataset_name,
-                                           decode_steps_per_loop[idx])
-      decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
-    if decoder_param is not None:
-      program_schedule_params.eval_programs.append(decoder_param)
+    if not multi_inputs_decoder:
+      decoder_param = None
+      if decode_until_out_of_range:
+        if decode_steps_per_loop is not None:
+          tf.logging.warning('decode_until_out_of_range set to True, ignoring '
+                             'decode_steps_per_loop setting.')
+        if experimental_decoder:
+          raise ValueError(
+              'experimental_decoder must be False for decode_until_out_of_range'
+          )
+        decoder_param = _CreateProgramParams(DecodeProgram, 'decode_tpu',
+                                             dataset_name, -1)
+        decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
+      elif decode_steps_per_loop[idx] > 0:
+        decoder = (
+            ExperimentalDecodeProgram
+            if experimental_decoder else DecodeProgram)
+        decoder_param = _CreateProgramParams(decoder, 'decode_tpu',
+                                             dataset_name,
+                                             decode_steps_per_loop[idx])
+        decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
+      if decoder_param is not None:
+        program_schedule_params.eval_programs.append(decoder_param)
+
+  if multi_inputs_decoder:
+    program_schedule_params.eval_programs.append(
+        _CreateProgramParams(
+            MultiInputsDecodeProgram, 'decode_tpu', eval_dataset_names,
+            -1 if decode_until_out_of_range else decode_steps_per_loop))
 
   return program_schedule_params
 
@@ -2013,6 +2156,7 @@ def UpdateProgramSchedule(ps_params,
   """Update ProgramSchedule params with the given new configs.
 
   Currently this override only support EvalProgram and DecodeProgram.
+  TODO(xingwu): Add support for MultiInputsDecodeProgram.
 
   Args:
     ps_params: SimpleProgramSchedule.Params(), to be overriden.
