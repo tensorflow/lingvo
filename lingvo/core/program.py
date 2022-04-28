@@ -2151,12 +2151,13 @@ def UpdateProgramSchedule(ps_params,
                           train_steps_per_loop,
                           eval_steps_per_loop,
                           decode_steps_per_loop,
+                          multi_inputs_decoder=None,
                           decode_summary_emails=None,
                           oneoff_checkpoint_to_load=None):
   """Update ProgramSchedule params with the given new configs.
 
-  Currently this override only support EvalProgram and DecodeProgram.
-  TODO(xingwu): Add support for MultiInputsDecodeProgram.
+  Currently this override only support EvalProgram, DecodeProgram and
+  MultiInputsDecodeProgram.
 
   Args:
     ps_params: SimpleProgramSchedule.Params(), to be overriden.
@@ -2171,6 +2172,8 @@ def UpdateProgramSchedule(ps_params,
     decode_steps_per_loop: Optional[int], if not None, it will override all the
       decode programs steps_per_loop. If set to -1, it will set
       decode_until_out_of_range=True. Currently list not supported.
+    multi_inputs_decoder: Optional[bool], if not None, update all testsets to
+      use MultiInputsDecodeProgram (if true) or DecodeProgram (if False).
     decode_summary_emails: List of emails to send Decode summary to.
     oneoff_checkpoint_to_load: Optional[str], if not None, it will override
       checkpoint_to_load.
@@ -2185,15 +2188,8 @@ def UpdateProgramSchedule(ps_params,
     return ps_params
   if dataset_list is not None:
     ps_params.dataset_names = dataset_list
-    # Dict for all the override datasets:
-    # - key: each dataset name
-    # - value: dict with keys ('eval_exist', 'decode_exist') and bool values,
-    #          indicate whether the dataset already exist in current
-    #          EvalProgram, DecodeProgram. If not, we will create them.
-    ds_dict = {}
-    for dataset in dataset_list:
-      ds_dict[dataset] = {'eval_exist': False, 'decode_exist': False}
-    eval_programs = []
+    eval_programs = {}
+    decode_programs = {}
     default_eval_steps_per_loop = 0
     default_decode_steps_per_loop = 0
     for eval_program in ps_params.eval_programs:
@@ -2201,23 +2197,38 @@ def UpdateProgramSchedule(ps_params,
         default_eval_steps_per_loop = eval_program.steps_per_loop
       elif issubclass(eval_program.cls, DecodeProgram):
         default_decode_steps_per_loop = _GetDecodeStepsPerLoop(eval_program)
-      if eval_program.dataset_name in ds_dict:
-        eval_programs.append(eval_program)
+        if multi_inputs_decoder is None:
+          multi_inputs_decoder = issubclass(eval_program.cls,
+                                            MultiInputsDecodeProgram)
+      if eval_program.dataset_name in dataset_list:
         if issubclass(eval_program.cls, EvalProgram):
-          ds_dict[eval_program.dataset_name]['eval_exist'] = True
+          eval_programs[eval_program.dataset_name] = eval_program
         elif issubclass(eval_program.cls, DecodeProgram):
-          ds_dict[eval_program.dataset_name]['decode_exist'] = True
+          decode_programs[eval_program.dataset_name] = eval_program
 
-    for dataset_name, exists in ds_dict.items():
-      if not exists['eval_exist']:
-        eval_programs.append(
-            _CreateProgramParams(EvalProgram, 'eval_tpu', dataset_name,
-                                 default_eval_steps_per_loop))
-      if not exists['decode_exist']:
-        eval_programs.append(
-            _CreateProgramParams(DecodeProgram, 'decode_tpu', dataset_name,
-                                 default_decode_steps_per_loop))
-    ps_params.eval_programs = eval_programs
+    # If there's no decode program in original ps_param, and we do not update
+    # it, we use DecodeProgram by default.
+    if multi_inputs_decoder is None:
+      multi_inputs_decoder = False
+    ps_params.eval_programs = []
+    # Reorder the eval/decode programs sequence.
+    for dataset_name in dataset_list:
+      if dataset_name not in eval_programs:
+        eval_programs[dataset_name] = _CreateProgramParams(
+            EvalProgram, 'eval_tpu', dataset_name, default_eval_steps_per_loop)
+      ps_params.eval_programs.append(eval_programs[dataset_name])
+
+      if not multi_inputs_decoder:
+        if dataset_name not in decode_programs:
+          decode_programs[dataset_name] = _CreateProgramParams(
+              DecodeProgram, 'decode_tpu', dataset_name,
+              default_decode_steps_per_loop)
+        ps_params.eval_programs.append(decode_programs[dataset_name])
+
+    if multi_inputs_decoder:
+      ps_params.eval_programs.append(
+          _CreateProgramParams(MultiInputsDecodeProgram, 'decode_tpu',
+                               dataset_list, default_decode_steps_per_loop))
 
   if train_executions_per_eval is not None:
     ps_params.train_executions_per_eval = train_executions_per_eval
