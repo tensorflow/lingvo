@@ -1359,8 +1359,8 @@ class DecodeProgram(BaseProgram):
       return None
 
   def Run(self, sess=None, threadpool=None):
-    self.RunForInput(self.params.dataset_name, self._task.input, sess,
-                     threadpool)
+    return self.RunForInput(self.params.dataset_name, self._task.input, sess,
+                            threadpool)
 
 
 class MultiInputsDecodeProgram(DecodeProgram):
@@ -1427,10 +1427,14 @@ class MultiInputsDecodeProgram(DecodeProgram):
                   self.DecodeFunc, self._inputs[i])).get_concrete_function())
 
   def Run(self, sess=None, threadpool=None):
+    futures = []
     for i in range(len(self.params.dataset_names)):
       dataset_name = self.params.dataset_names[i]
       inp_instance = self._inputs[i]
-      self.RunForInput(dataset_name, inp_instance, sess, threadpool)
+      future = self.RunForInput(dataset_name, inp_instance, sess, threadpool)
+      if future:
+        futures.append(future)
+    return futures
 
 
 class ExperimentalDecodeProgram(DecodeProgram):
@@ -1843,7 +1847,6 @@ class SimpleProgramSchedule:
       p.train_program.task = p.task_dict[p.train_program.dataset_name]
       p.train_program.num_splits_per_client = p.num_splits_per_client
       p.train_program.task_name = p.task_name
-      p.train_program.ml_perf = p.ml_perf.Copy()
       self.train_program = p.train_program.Instantiate(**kwargs)
       self._programs.append(self.train_program)
 
@@ -1865,22 +1868,11 @@ class SimpleProgramSchedule:
       eval_program_params.task = p.task_dict[task_dataset]
       eval_program_params.task_name = p.task_name
       eval_program_params.num_splits_per_client = p.num_splits_per_client
-      eval_program_params.ml_perf = p.ml_perf.Copy()
 
     self.eval_programs = []
     for eval_program in p.eval_programs:
       self.eval_programs.append(eval_program.Instantiate(**kwargs))
     self._programs += self.eval_programs
-
-    if p.ml_perf is not None:
-      self._ml_perf = p.ml_perf.Copy()
-      if self._ml_perf.submission_metadata is not None:
-        for key, value in self._ml_perf.submission_metadata.items():
-          mlp_log.mlperf_print(key, value)
-      mlp_log.mlperf_print('init_start', None)
-      self._ml_perf_run_start = None
-    else:
-      self._ml_perf = None
 
     if p.summary_exporter:
       p.summary_exporter.emails = p.emails
@@ -1893,11 +1885,6 @@ class SimpleProgramSchedule:
 
   def Run(self, sess=None, threadpool=None):
     """Execute the program schedule."""
-    if self._ml_perf:
-      if not self._ml_perf_run_start:
-        mlp_log.mlperf_print(key='init_stop', value=None)
-        self._ml_perf_run_start = mlp_log.mlperf_print(
-            key='run_start', value=None)
     p = self.params
     start_time = time.time()
     for _ in range(p.train_executions_per_eval):
@@ -1908,36 +1895,28 @@ class SimpleProgramSchedule:
     train_time_in_secs = train_finish_time - start_time
     tf.logging.info('Train took %f seconds.', train_time_in_secs)
 
-    # Return when no more evals are needed so we can have an exit
-    # for ML Perf
-    evals_done = False
     dataset_summaries = {}
     for eval_program in self.eval_programs:
+      futures = None
       eval_program.train_executions_per_eval = p.train_executions_per_eval
-      tf.logging.info(p.ml_perf)
-      tf.logging.info(self._ml_perf)
-      if self._ml_perf:
-        one_eval_done = None
-        if p.async_postprocess and isinstance(eval_program, DecodeProgram):
-          # For now, Post-process is only in Decode, other Eval programs do not
-          # take or use threadpool.
-          one_eval_done = eval_program.Run(sess, threadpool)
-        else:
-          one_eval_done = eval_program.Run(sess)
-        if one_eval_done is not None:
-          evals_done |= one_eval_done
+      if p.async_postprocess and isinstance(eval_program, DecodeProgram):
+        futures = eval_program.Run(sess, threadpool)
       else:
-        if p.async_postprocess and isinstance(eval_program, DecodeProgram):
-          eval_program.Run(sess, threadpool)
-        else:
-          eval_program.Run(sess)
+        eval_program.Run(sess)
       if isinstance(eval_program, (DecodeProgram, MultiInputsDecodeProgram)):
+        # Wait for async postprocess to be done.
+        if futures:
+          if isinstance(futures, list):
+            for future in futures:
+              future.get()
+          else:
+            futures.get()
         dataset_summaries.update(eval_program.Summary())
     if p.train_executions_per_eval == 0 and hasattr(self, '_summary_exporter'):
       self._summary_exporter.Export(dataset_summaries)
     eval_time_in_secs = time.time() - train_finish_time
     tf.logging.info('Eval took %f seconds.', eval_time_in_secs)
-    should_exit = (p.train_executions_per_eval == 0) or evals_done
+    should_exit = (p.train_executions_per_eval == 0)
     return should_exit, train_time_in_secs, eval_time_in_secs
 
   def Shutdown(self):
