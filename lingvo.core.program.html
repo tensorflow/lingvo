@@ -108,6 +108,12 @@ available to be executed on demand without significant delay.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._SetProgramDir">
+<span class="sig-name descname"><span class="pre">_SetProgramDir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._SetProgramDir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._SetProgramDir" title="Permalink to this definition"></a></dt>
+<dd><p>Set program dir for output.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._InitializeVizier">
 <span class="sig-name descname"><span class="pre">_InitializeVizier</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InitializeVizier"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InitializeVizier" title="Permalink to this definition"></a></dt>
 <dd><p>Checks if this program should report metrics to vizier.</p>
@@ -151,9 +157,15 @@ available to be executed on demand without significant delay.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._InfeedLoopForInput">
+<span class="sig-name descname"><span class="pre">_InfeedLoopForInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inp_instance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InfeedLoopForInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InfeedLoopForInput" title="Permalink to this definition"></a></dt>
+<dd><p>Infeed loop for specified dataset and input instance.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._InfeedLoop">
 <span class="sig-name descname"><span class="pre">_InfeedLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InfeedLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InfeedLoop" title="Permalink to this definition"></a></dt>
-<dd><p>Infeed loop for input generator for batched data and input data stats.</p>
+<dd><p>Infeed loop for program’s own dataset and input instance.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -199,6 +211,11 @@ available to be executed on demand without significant delay.</p>
 <span class="sig-name descname"><span class="pre">SetStatusMessage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">msg</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.SetStatusMessage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.SetStatusMessage" title="Permalink to this definition"></a></dt>
 <dd><p>Write to borglet status.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.BaseProgram.InitInputs">
+<span class="sig-name descname"><span class="pre">InitInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram.InitInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram.InitInputs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.BaseProgram.Compile">
@@ -516,19 +533,19 @@ graph mode, or a callable returning such in eager mode.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.InfeedTFFunc">
-<span class="sig-name descname"><span class="pre">InfeedTFFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.InfeedTFFunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.InfeedTFFunc" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">InfeedTFFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inp_instance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.InfeedTFFunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.InfeedTFFunc" title="Permalink to this definition"></a></dt>
 <dd><p>Infeed function. Only needed in tf.function.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.DecodeFunc">
-<span class="sig-name descname"><span class="pre">DecodeFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.DecodeFunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.DecodeFunc" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">DecodeFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inp_instance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.DecodeFunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.DecodeFunc" title="Permalink to this definition"></a></dt>
 <dd><p>Wrap the DecodeFn with split_compile_and_shard.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._DecodeUntilOutOfRangeInfeedLoop">
-<span class="sig-name descname"><span class="pre">_DecodeUntilOutOfRangeInfeedLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infeed_step_queue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._DecodeUntilOutOfRangeInfeedLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._DecodeUntilOutOfRangeInfeedLoop" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_DecodeUntilOutOfRangeInfeedLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inp_instance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">infeed_step_queue</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._DecodeUntilOutOfRangeInfeedLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._DecodeUntilOutOfRangeInfeedLoop" title="Permalink to this definition"></a></dt>
 <dd><p>Infeed loop that stops when it runs out of data (OutOfRange error).</p>
 </dd></dl>
 
@@ -542,7 +559,7 @@ graph mode, or a callable returning such in eager mode.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._DecodeStep">
-<span class="sig-name descname"><span class="pre">_DecodeStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffered_decode_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_futures</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._DecodeStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._DecodeStep" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_DecodeStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffered_decode_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_futures</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._DecodeStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._DecodeStep" title="Permalink to this definition"></a></dt>
 <dd><p>Run one iteration of decode.</p>
 </dd></dl>
 
@@ -560,14 +577,86 @@ graph mode, or a callable returning such in eager mode.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._FinalizeDecode">
-<span class="sig-name descname"><span class="pre">_FinalizeDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffered_decode_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">futures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._FinalizeDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._FinalizeDecode" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_FinalizeDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start_time</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffered_decode_out</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">futures</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._FinalizeDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._FinalizeDecode" title="Permalink to this definition"></a></dt>
 <dd><p>Finalize and summarize the results of this Decode program run.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.RunForInput">
+<span class="sig-name descname"><span class="pre">RunForInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inp_instance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.RunForInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.RunForInput" title="Permalink to this definition"></a></dt>
+<dd><p>Setup and execute Decode program.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.Run">
 <span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.Run" title="Permalink to this definition"></a></dt>
-<dd><p>Setup and execute Decode program.</p>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – TF Session.</p></li>
+<li><p><strong>threadpool</strong> – A ThreadPool on the executor for running async functions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.program.MultiInputsDecodeProgram">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">MultiInputsDecodeProgram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiInputsDecodeProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiInputsDecodeProgram" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.DecodeProgram" title="lingvo.core.program.DecodeProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.DecodeProgram</span></code></a></p>
+<p>Decode program with multiple inputs.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.MultiInputsDecodeProgram.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiInputsDecodeProgram.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiInputsDecodeProgram.Params" title="Permalink to this definition"></a></dt>
+<dd><p>“Defaults parameters for Programs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.MultiInputsDecodeProgram._SetProgramDir">
+<span class="sig-name descname"><span class="pre">_SetProgramDir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiInputsDecodeProgram._SetProgramDir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiInputsDecodeProgram._SetProgramDir" title="Permalink to this definition"></a></dt>
+<dd><p>Set program dir for output.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.MultiInputsDecodeProgram.InitInputs">
+<span class="sig-name descname"><span class="pre">InitInputs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiInputsDecodeProgram.InitInputs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiInputsDecodeProgram.InitInputs" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.MultiInputsDecodeProgram.BuildTpuSubgraph">
+<span class="sig-name descname"><span class="pre">BuildTpuSubgraph</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiInputsDecodeProgram.BuildTpuSubgraph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiInputsDecodeProgram.BuildTpuSubgraph" title="Permalink to this definition"></a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.MultiInputsDecodeProgram.Run">
+<span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiInputsDecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiInputsDecodeProgram.Run" title="Permalink to this definition"></a></dt>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – TF Session.</p></li>
+<li><p><strong>threadpool</strong> – A ThreadPool on the executor for running async functions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -626,7 +715,21 @@ batch size).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.Run">
 <span class="sig-name descname"><span class="pre">Run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.Run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.Run" title="Permalink to this definition"></a></dt>
-<dd><p>Setup and execute Decode program.</p>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – TF Session.</p></li>
+<li><p><strong>threadpool</strong> – A ThreadPool on the executor for running async functions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
@@ -659,7 +762,7 @@ batch size).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.MLPerfTrainDecodeProgram._InfeedLoop">
 <span class="sig-name descname"><span class="pre">_InfeedLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram._InfeedLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram._InfeedLoop" title="Permalink to this definition"></a></dt>
-<dd><p>Infeed loop for input generator for batched data and input data stats.</p>
+<dd><p>Infeed loop for program’s own dataset and input instance.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -736,11 +839,12 @@ Run all the eval_programs</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program._CreateProgramParams">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_CreateProgramParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">program_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps_per_loop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_CreateProgramParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._CreateProgramParams" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
+<dd><p>Create different program param instance per inputs.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program.SimpleProgramScheduleForTask">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_dataset_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary_exporter_cls=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_postprocess=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_until_out_of_range=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_all_at_once=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emails=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_summary_interval_steps=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_dataset_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_inputs_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary_exporter_cls=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_postprocess=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_until_out_of_range=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_all_at_once=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emails=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_summary_interval_steps=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
 <dd><p>Convenient helper method for common case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -757,6 +861,8 @@ eval_dataset_names. If it is None, then decode_until_out_of_range must be
 True.</p></li>
 <li><p><strong>experimental_decoder</strong> – bool. Whether to use experimental deocder which is
 placed in a tpu loop.</p></li>
+<li><p><strong>multi_inputs_decoder</strong> – bool. Whether to use multi inputs decoder for all
+datasets.</p></li>
 <li><p><strong>train_program_cls</strong> – The class to use for training programs.  Defaults to
 TrainProgram.</p></li>
 <li><p><strong>eval_program_cls</strong> – The class to use for eval programs.  Defaults to
@@ -811,7 +917,8 @@ summaries to disk.</p></li>
 <dt class="sig sig-object py" id="lingvo.core.program.UpdateProgramSchedule">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">UpdateProgramSchedule</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ps_params</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_executions_per_eval</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_summary_emails</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oneoff_checkpoint_to_load</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#UpdateProgramSchedule"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.UpdateProgramSchedule" title="Permalink to this definition"></a></dt>
 <dd><p>Update ProgramSchedule params with the given new configs.</p>
-<p>Currently this override only support EvalProgram and DecodeProgram.</p>
+<p>Currently this override only support EvalProgram and DecodeProgram.
+TODO(xingwu): Add support for MultiInputsDecodeProgram.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">

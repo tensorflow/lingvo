@@ -80,6 +80,7 @@
 <span class="sd">&quot;&quot;&quot;Programs for interleaving execution on TPU.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">multiprocessing.dummy</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">queue</span>
@@ -174,17 +175,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span> <span class="o">=</span> <span class="n">trial</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span> <span class="o">=</span> <span class="n">ema</span>
 
-    <span class="c1"># Program dirs are where the summaries are written to.</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
-      <span class="n">program_dir_name</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">task_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">program_dir_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="n">program_dir_name</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">),</span>
-                           <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SetProgramDir</span><span class="p">()</span>
     <span class="c1"># Initialized on use; access via self._summary_writer property only.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_obj</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -203,9 +194,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_status_msg_fn</span> <span class="o">=</span> <span class="kc">None</span>
 
-    <span class="c1"># Same param as in the TPU executor program schedule.</span>
-    <span class="c1"># Used mainly for each program to check if training is scheduled.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="c1"># Set input repeat_steps to steps_per_loop, if repeat_steps was undefined</span>
     <span class="c1"># but available, and also &#39;resettable&#39; is False.</span>
     <span class="c1"># This allows a repeating input TF Dataset (without reset) to take, for each</span>
@@ -218,6 +206,21 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">repeat_steps</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_InitializeVizier</span><span class="p">()</span>
+
+<div class="viewcode-block" id="BaseProgram._SetProgramDir"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._SetProgramDir">[docs]</a>  <span class="k">def</span> <span class="nf">_SetProgramDir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set program dir for output.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Program dirs are where the summaries are written to.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
+      <span class="n">program_dir_name</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">task_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">())</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">program_dir_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="n">program_dir_name</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">),</span>
+                           <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="BaseProgram._InitializeVizier"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._InitializeVizier">[docs]</a>  <span class="k">def</span> <span class="nf">_InitializeVizier</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Checks if this program should report metrics to vizier.&quot;&quot;&quot;</span>
@@ -313,19 +316,23 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary_str</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseProgram._InfeedLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._InfeedLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_InfeedLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Infeed loop for input generator for batched data and input data stats.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BaseProgram._InfeedLoopForInput"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._InfeedLoopForInput">[docs]</a>  <span class="k">def</span> <span class="nf">_InfeedLoopForInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">inp_instance</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Infeed loop for specified dataset and input instance.&quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_InfeedLoop start </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="si">}</span><span class="s1"> &#39;</span>
-                    <span class="sa">f</span><span class="s1">&#39;on dataset </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s1">&#39;on dataset </span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;_InfeedLoop </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">)</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">inp_instance</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop done&#39;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop exception </span><span class="si">%r</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
       <span class="k">raise</span></div>
+
+<div class="viewcode-block" id="BaseProgram._InfeedLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._InfeedLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_InfeedLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Infeed loop for program&#39;s own dataset and input instance.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoopForInput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseProgram._ReportVizierMetrics"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._ReportVizierMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">_ReportVizierMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">metrics_dict</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Report metrics to vizier service.</span>
@@ -372,12 +379,14 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Status: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseProgram.Compile"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.Compile">[docs]</a>  <span class="k">def</span> <span class="nf">Compile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Compile the program using the given session handle.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BaseProgram.InitInputs"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.InitInputs">[docs]</a>  <span class="k">def</span> <span class="nf">InitInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1"> done.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1"> done.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="BaseProgram.Compile"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.Compile">[docs]</a>  <span class="k">def</span> <span class="nf">Compile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compile the program using the given session handle.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">InitInputs</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Compiling </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
       <span class="n">result</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">)</span>
@@ -1082,32 +1091,36 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;DecodeProgram&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_out_dict_lst</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ema_applied</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="DecodeProgram.Summary"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.Summary">[docs]</a>  <span class="k">def</span> <span class="nf">Summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span></div>
 
-<div class="viewcode-block" id="DecodeProgram.InfeedTFFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.InfeedTFFunc">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedTFFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="DecodeProgram.InfeedTFFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.InfeedTFFunc">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedTFFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp_instance</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Infeed function. Only needed in tf.function.&quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DeviceLoopSetupEager</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="n">inp_instance</span><span class="o">.</span><span class="n">DeviceLoopSetupEager</span><span class="p">()</span>
+    <span class="n">inp_instance</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
     <span class="c1"># `CreateTpuEnqueueOps` and `CreateCpuPassthroughEnqueueOps` must be in the</span>
     <span class="c1"># same place, because the former enqueues `_per_host_passthrough_batches`,</span>
     <span class="c1"># while the latter consumes it.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
+    <span class="n">inp_instance</span><span class="o">.</span><span class="n">CreateCpuPassthroughEnqueueOps</span><span class="p">()</span>
     <span class="c1"># `CreateCpuPassthroughEnqueueOps` and `DequeueCpuPassthrough` must be in</span>
     <span class="c1"># the same place, because the former enqueues `_host_queues`,</span>
     <span class="c1"># while the latter consumes it.</span>
-    <span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
+    <span class="n">cpu_pt</span> <span class="o">=</span> <span class="n">inp_instance</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">cpu_pt</span></div>
 
-<div class="viewcode-block" id="DecodeProgram.DecodeFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.DecodeFunc">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="DecodeProgram.DecodeFunc"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.DecodeFunc">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeFunc</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inp_instance</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wrap the DecodeFn with split_compile_and_shard.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
       <span class="c1"># Applies EMA if applicable to support running only eval/decode programs.</span>
-      <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span><span class="n">apply_ema</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">decode_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructDecodeGraph</span><span class="p">(</span>
+          <span class="n">apply_ema</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ema_applied</span><span class="p">),</span>
+          <span class="n">input_batch</span><span class="o">=</span><span class="n">inp_instance</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ema_applied</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">decode_dict</span><span class="p">)</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decode_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
@@ -1124,16 +1137,20 @@
       <span class="c1"># The CPU pass through data will be from the infeed function.</span>
       <span class="n">cpu_pt</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
+      <span class="n">cpu_pt</span> <span class="o">=</span> <span class="n">inp_instance</span><span class="o">.</span><span class="n">DequeueCpuPassthrough</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">decode_tensors</span><span class="p">,</span> <span class="n">cpu_pt</span></div>
 
-<div class="viewcode-block" id="DecodeProgram._DecodeUntilOutOfRangeInfeedLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._DecodeUntilOutOfRangeInfeedLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_DecodeUntilOutOfRangeInfeedLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">infeed_step_queue</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DecodeProgram._DecodeUntilOutOfRangeInfeedLoop"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._DecodeUntilOutOfRangeInfeedLoop">[docs]</a>  <span class="k">def</span> <span class="nf">_DecodeUntilOutOfRangeInfeedLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                       <span class="n">dataset_name</span><span class="p">,</span>
+                                       <span class="n">inp_instance</span><span class="p">,</span>
+                                       <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                       <span class="n">infeed_step_queue</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Infeed loop that stops when it runs out of data (OutOfRange error).&quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;_InfeedLoop start </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="si">}</span><span class="s1"> &#39;</span>
-                    <span class="sa">f</span><span class="s1">&#39;on dataset </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                    <span class="sa">f</span><span class="s1">&#39;on dataset </span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_HandleEndOfData</span><span class="p">():</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;End of dataset </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;End of dataset </span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
       <span class="n">infeed_step_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># -1 signals reaching end of dataset.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop done&#39;</span><span class="p">)</span>
@@ -1142,7 +1159,7 @@
       <span class="n">loop_index</span> <span class="o">=</span> <span class="mi">0</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;_InfeedLoop </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">loop_index</span><span class="p">)</span>
-        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">)</span>
+        <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">inp_instance</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">)</span>
         <span class="n">infeed_step_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">loop_index</span><span class="p">)</span>
         <span class="n">loop_index</span> <span class="o">+=</span> <span class="mi">1</span>
     <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">:</span>
@@ -1174,13 +1191,13 @@
 
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedTFFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedTFFunc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="p">))</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-                  <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="p">))</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">()</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DecodeProgram._DecodeStep"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._DecodeStep">[docs]</a>  <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                   <span class="n">sess</span><span class="p">,</span>
@@ -1189,6 +1206,7 @@
                   <span class="n">global_step</span><span class="p">,</span>
                   <span class="n">buffered_decode_out</span><span class="p">,</span>
                   <span class="n">postprocess_futures</span><span class="p">,</span>
+                  <span class="n">dataset_name</span><span class="p">,</span>
                   <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run one iteration of decode.&quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Decoding step </span><span class="si">{</span><span class="n">step</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
@@ -1198,7 +1216,11 @@
       <span class="k">with</span> <span class="n">context</span><span class="o">.</span><span class="n">executor_scope</span><span class="p">(</span><span class="n">async_executor</span><span class="p">):</span>
         <span class="n">cpu_pt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span><span class="p">()</span>
 
-    <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+      <span class="n">tpu_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">tpu_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span>
+    <span class="n">decode_out_dict</span> <span class="o">=</span> <span class="n">_FetchDecodeOut</span><span class="p">(</span><span class="n">tpu_out</span><span class="p">,</span> <span class="n">sess</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="c1"># Ensure that the infeed ops are finished</span>
       <span class="c1"># This is necessary to ensure that any state in the infeed ops is</span>
@@ -1257,6 +1279,7 @@
           <span class="n">kv</span> <span class="k">for</span> <span class="n">kv</span> <span class="ow">in</span> <span class="n">decode_out</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">kv</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="DecodeProgram._FinalizeDecode"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._FinalizeDecode">[docs]</a>  <span class="k">def</span> <span class="nf">_FinalizeDecode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">dataset_name</span><span class="p">,</span>
                       <span class="n">dec_metrics</span><span class="p">,</span>
                       <span class="n">start_time</span><span class="p">,</span>
                       <span class="n">global_step</span><span class="p">,</span>
@@ -1289,27 +1312,27 @@
 
     <span class="c1"># Result is not returned as a signal for &quot;done&quot;, unlike for training.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ReportVizierMetrics</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">summaries</span></div>
 
-<div class="viewcode-block" id="DecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">summaries</span></div>
+
+<div class="viewcode-block" id="DecodeProgram.RunForInput"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.RunForInput">[docs]</a>  <span class="k">def</span> <span class="nf">RunForInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">inp_instance</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Setup and execute Decode program.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s1">&#39;Executing decode program on dataset </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1"> &#39;</span>
-        <span class="sa">f</span><span class="s1">&#39;at step </span><span class="si">{</span><span class="n">global_step</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Executing decode program on dataset </span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1"> &#39;</span>
+                          <span class="sa">f</span><span class="s1">&#39;at step </span><span class="si">{</span><span class="n">global_step</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">inp_instance</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">resettable</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="n">inp_instance</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
           <span class="c1"># In eager mode, after resetting the input generator, we need to</span>
           <span class="c1"># re-trace the infeed tf.function to ensure it uses the new iterator.</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedTFFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedTFFunc</span><span class="p">,</span> <span class="n">inp_instance</span><span class="p">))</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
 
     <span class="c1"># The infeed_step_queue synchronizes the _InfeedLoop with the Decoding loop</span>
     <span class="c1"># (that runs _DecodeStep). As an input batch is successfully fed through</span>
@@ -1326,13 +1349,19 @@
       <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeUntilOutOfRangeInfeedLoop</span><span class="p">,</span>
           <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+              <span class="n">dataset_name</span><span class="p">,</span>
+              <span class="n">inp_instance</span><span class="p">,</span>
               <span class="n">sess</span><span class="p">,</span>
               <span class="n">infeed_step_queue</span><span class="p">,</span>
           <span class="p">))</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
         <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoopForInput</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+                <span class="n">dataset_name</span><span class="p">,</span>
+                <span class="n">inp_instance</span><span class="p">,</span>
+                <span class="n">sess</span><span class="p">,</span>
+            <span class="p">))</span>
 
     <span class="n">dec_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">dec_metrics</span><span class="p">:</span>
@@ -1356,12 +1385,14 @@
           <span class="k">break</span>
         <span class="n">infeed_step_queue</span><span class="o">.</span><span class="n">task_done</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeStep</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
-                         <span class="n">buffered_decode_out</span><span class="p">,</span> <span class="n">postprocess_futures</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
+                         <span class="n">buffered_decode_out</span><span class="p">,</span> <span class="n">postprocess_futures</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span>
+                         <span class="n">threadpool</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting step </span><span class="si">%d</span><span class="s1"> of </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecodeStep</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
-                         <span class="n">buffered_decode_out</span><span class="p">,</span> <span class="n">postprocess_futures</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
+                         <span class="n">buffered_decode_out</span><span class="p">,</span> <span class="n">postprocess_futures</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span>
+                         <span class="n">threadpool</span><span class="p">)</span>
     <span class="c1"># Run postprocess after the last step if postprocess_all_at_once.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_out_dict_lst</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_RunPostProcess</span><span class="p">(</span><span class="n">threadpool</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_out_dict_lst</span><span class="p">,</span>
@@ -1376,9 +1407,10 @@
         <span class="k">raise</span> <span class="n">e</span>
 
       <span class="c1"># Async. TPU+host processing is done and can move on to Train.</span>
-      <span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
+      <span class="k">return</span> <span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeDecode</span><span class="p">,</span>
           <span class="n">args</span><span class="o">=</span><span class="p">(</span>
+              <span class="n">dataset_name</span><span class="p">,</span>
               <span class="n">dec_metrics</span><span class="p">,</span>
               <span class="n">start_time</span><span class="p">,</span>
               <span class="n">global_step</span><span class="p">,</span>
@@ -1387,8 +1419,83 @@
           <span class="p">),</span>
           <span class="n">error_callback</span><span class="o">=</span><span class="n">_HandleError</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeDecode</span><span class="p">(</span><span class="n">dec_metrics</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
-                           <span class="n">buffered_decode_out</span><span class="p">)</span></div></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeDecode</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
+                           <span class="n">buffered_decode_out</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="DecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">RunForInput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span>
+                     <span class="n">threadpool</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MultiInputsDecodeProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram">[docs]</a><span class="k">class</span> <span class="nc">MultiInputsDecodeProgram</span><span class="p">(</span><span class="n">DecodeProgram</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Decode program with multiple inputs.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiInputsDecodeProgram.Params"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Delete</span><span class="p">(</span><span class="s1">&#39;dataset_name&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dataset_names&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of datasets to decode.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_params&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of input params map to the datasets&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;MultiInputsDecodeProgram&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="MultiInputsDecodeProgram._SetProgramDir"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram._SetProgramDir">[docs]</a>  <span class="k">def</span> <span class="nf">_SetProgramDir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Set program dir for output.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Program dirs are where the summaries are written to.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
+      <span class="n">program_dir_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_multi_inputs&#39;</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">program_dir_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_multi_inputs&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="n">program_dir_name</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">),</span>
+                           <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="MultiInputsDecodeProgram.InitInputs"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.InitInputs">[docs]</a>  <span class="k">def</span> <span class="nf">InitInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">inp_instance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">:</span>
+      <span class="n">inp_instance</span><span class="o">.</span><span class="n">Initialize</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1"> done.&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiInputsDecodeProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;MultiInputsDecodeProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InstantiateTaskModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_params</span><span class="p">]</span>
+      <span class="c1"># In Graph mode `InfeedSetupGraph` is called once to build the infeed ops.</span>
+      <span class="c1"># In tf.function the relevant methods will be called in `InfeedTFFunc`.</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">)):</span>
+          <span class="n">dataset_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">InfeedSetupGraph</span><span class="p">(</span><span class="n">cpu_passthrough</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># TODO(xingwu): Verify for the eager mode.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Eager mode MultiInputsDecodeProgram is not ready!&#39;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedTFFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="MultiInputsDecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">)):</span>
+      <span class="n">dataset_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">inp_instance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">RunForInput</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">inp_instance</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="ExperimentalDecodeProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.ExperimentalDecodeProgram">[docs]</a><span class="k">class</span> <span class="nc">ExperimentalDecodeProgram</span><span class="p">(</span><span class="n">DecodeProgram</span><span class="p">):</span>
@@ -1807,10 +1914,20 @@
 
     <span class="k">for</span> <span class="n">eval_program_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
-      <span class="k">if</span> <span class="n">eval_program_params</span><span class="o">.</span><span class="n">dataset_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;could not find eval dataset </span><span class="si">%s</span><span class="s1"> in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                         <span class="p">(</span><span class="n">eval_program_params</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">))</span>
-      <span class="n">eval_program_params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">eval_program_params</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">]</span>
+      <span class="n">task_dataset</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">eval_program_params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">MultiInputsDecodeProgram</span><span class="p">):</span>
+        <span class="n">eval_program_params</span><span class="o">.</span><span class="n">input_params</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">dataset_name</span> <span class="ow">in</span> <span class="n">eval_program_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
+          <span class="n">eval_program_params</span><span class="o">.</span><span class="n">input_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+        <span class="c1"># Use the 1st dataset&#39;s task params.</span>
+        <span class="n">task_dataset</span> <span class="o">=</span> <span class="n">eval_program_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">eval_program_params</span><span class="o">.</span><span class="n">dataset_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;could not find eval dataset </span><span class="si">%s</span><span class="s1"> in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                           <span class="p">(</span><span class="n">eval_program_params</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">))</span>
+        <span class="n">task_dataset</span> <span class="o">=</span> <span class="n">eval_program_params</span><span class="o">.</span><span class="n">dataset_name</span>
+      <span class="n">eval_program_params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_dict</span><span class="p">[</span><span class="n">task_dataset</span><span class="p">]</span>
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_splits_per_client</span>
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">ml_perf</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -1831,10 +1948,9 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="kc">None</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="p">:</span>
-      <span class="k">if</span> <span class="s1">&#39;logdir&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
-      <span class="k">if</span> <span class="s1">&#39;ckpt_path&#39;</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">checkpoint_to_load</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">emails</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emails</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">checkpoint_to_load</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_exporter</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
 
 <div class="viewcode-block" id="SimpleProgramSchedule.Programs"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Programs">[docs]</a>  <span class="k">def</span> <span class="nf">Programs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1880,7 +1996,7 @@
           <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_program</span><span class="p">,</span> <span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,)):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_program</span><span class="p">,</span> <span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,</span> <span class="n">MultiInputsDecodeProgram</span><span class="p">)):</span>
         <span class="n">dataset_summaries</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">eval_program</span><span class="o">.</span><span class="n">Summary</span><span class="p">())</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_summary_exporter&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_exporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">dataset_summaries</span><span class="p">)</span>
@@ -1897,9 +2013,14 @@
 
 
 <div class="viewcode-block" id="_CreateProgramParams"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program._CreateProgramParams">[docs]</a><span class="k">def</span> <span class="nf">_CreateProgramParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">program_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">steps_per_loop</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Create different program param instance per inputs.&quot;&quot;&quot;</span>
   <span class="n">p</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">program_name</span>
-  <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span> <span class="o">=</span> <span class="n">dataset_name</span>
+  <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">MultiInputsDecodeProgram</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">dataset_names</span> <span class="o">=</span> <span class="n">dataset_name</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">dataset_name</span> <span class="o">=</span> <span class="n">dataset_name</span>
   <span class="k">if</span> <span class="n">program_name</span> <span class="o">==</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">:</span>
     <span class="n">_SetDecodeStepsPerLoop</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">steps_per_loop</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
@@ -1913,6 +2034,7 @@
                                  <span class="n">eval_steps_per_loop</span><span class="p">,</span>
                                  <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">experimental_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">multi_inputs_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                  <span class="n">train_program_cls</span><span class="o">=</span><span class="n">TrainProgram</span><span class="p">,</span>
                                  <span class="n">eval_program_cls</span><span class="o">=</span><span class="n">EvalProgram</span><span class="p">,</span>
                                  <span class="n">summary_exporter_cls</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1936,6 +2058,8 @@
 <span class="sd">      True.</span>
 <span class="sd">    experimental_decoder: bool. Whether to use experimental deocder which is</span>
 <span class="sd">      placed in a tpu loop.</span>
+<span class="sd">    multi_inputs_decoder: bool. Whether to use multi inputs decoder for all</span>
+<span class="sd">      datasets.</span>
 <span class="sd">    train_program_cls: The class to use for training programs.  Defaults to</span>
 <span class="sd">      TrainProgram.</span>
 <span class="sd">    eval_program_cls: The class to use for eval programs.  Defaults to</span>
@@ -1982,10 +2106,7 @@
     <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">emails</span> <span class="o">=</span> <span class="n">emails</span>
 
   <span class="k">if</span> <span class="n">summary_exporter_cls</span><span class="p">:</span>
-    <span class="n">p_summary_exporter</span> <span class="o">=</span> <span class="n">summary_exporter_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="k">if</span> <span class="s1">&#39;emails&#39;</span> <span class="ow">in</span> <span class="n">p_summary_exporter</span><span class="p">:</span>
-      <span class="n">p_summary_exporter</span><span class="o">.</span><span class="n">emails</span> <span class="o">=</span> <span class="n">emails</span>
-    <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">summary_exporter</span> <span class="o">=</span> <span class="n">p_summary_exporter</span>
+    <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">summary_exporter</span> <span class="o">=</span> <span class="n">summary_exporter_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
 
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_steps_per_loop</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_steps_per_loop</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">):</span>
@@ -1994,25 +2115,37 @@
                        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">eval_steps_per_loop</span> <span class="o">=</span> <span class="p">[</span><span class="n">eval_steps_per_loop</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span>
-  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decode_steps_per_loop</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">decode_steps_per_loop</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;decode_steps_per_loop doesn</span><span class="se">\&#39;</span><span class="s1">t match the size of &#39;</span>
-                       <span class="sa">f</span><span class="s1">&#39;eval_dataset_names: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decode_steps_per_loop</span><span class="p">)</span><span class="si">}</span><span class="s1"> vs &#39;</span>
-                       <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-  <span class="k">elif</span> <span class="n">decode_steps_per_loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">decode_until_out_of_range</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;decode_until_out_of_range must be set to True if &#39;</span>
-                       <span class="s1">&#39;decode_steps_per_loop is not specified (None).&#39;</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">multi_inputs_decoder</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">decode_until_out_of_range</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span>
+        <span class="n">decode_steps_per_loop</span><span class="p">,</span> <span class="nb">int</span><span class="p">),</span> <span class="p">(</span>
+            <span class="s1">&#39;MultiInputsDecodeProgram requires single decode_steps_per_loop or &#39;</span>
+            <span class="s1">&#39;decode_until_out_of_range to be True!&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)),</span> <span class="p">(</span>
+        <span class="s1">&#39;MultiInputsDecodeProgram requires single postprocess_all_at_once!&#39;</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">decode_steps_per_loop</span> <span class="o">=</span> <span class="p">[</span><span class="n">decode_steps_per_loop</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span>
-  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;postprocess_all_at_once doesn</span><span class="se">\&#39;</span><span class="s1">t match the size of &#39;</span>
-                       <span class="sa">f</span><span class="s1">&#39;eval_dataset_names: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">)</span><span class="si">}</span><span class="s1"> vs &#39;</span>
-                       <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="p">[</span><span class="n">postprocess_all_at_once</span>
-                              <span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span>
+    <span class="c1"># decode_steps_per_loop for DecodeProgram.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decode_steps_per_loop</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">decode_steps_per_loop</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;decode_steps_per_loop doesn</span><span class="se">\&#39;</span><span class="s1">t match the size of &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;eval_dataset_names: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">decode_steps_per_loop</span><span class="p">)</span><span class="si">}</span><span class="s1"> vs &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">decode_steps_per_loop</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">decode_until_out_of_range</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;decode_until_out_of_range must be set to True if &#39;</span>
+                         <span class="s1">&#39;decode_steps_per_loop is not specified (None).&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">decode_steps_per_loop</span> <span class="o">=</span> <span class="p">[</span><span class="n">decode_steps_per_loop</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span>
+    <span class="c1"># postprocess_all_at_once for DecodeProgram.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;postprocess_all_at_once doesn</span><span class="se">\&#39;</span><span class="s1">t match the size of &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;eval_dataset_names: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">postprocess_all_at_once</span><span class="p">)</span><span class="si">}</span><span class="s1"> vs &#39;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="p">[</span><span class="n">postprocess_all_at_once</span>
+                                <span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">)</span>
 
   <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dataset_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">eval_dataset_names</span><span class="p">):</span>
     <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
@@ -2021,25 +2154,35 @@
           <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">eval_program_cls</span><span class="p">,</span> <span class="s1">&#39;eval_tpu&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span>
                                <span class="n">eval_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
 
-    <span class="n">decoder_param</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">decode_until_out_of_range</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">decode_steps_per_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;decode_until_out_of_range set to True, ignoring &#39;</span>
-                           <span class="s1">&#39;decode_steps_per_loop setting.&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">experimental_decoder</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="s1">&#39;experimental_decoder must be False for decode_until_out_of_range&#39;</span><span class="p">)</span>
-      <span class="n">decoder_param</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span>
-                                           <span class="n">dataset_name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
-    <span class="k">elif</span> <span class="n">decode_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">decoder</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">ExperimentalDecodeProgram</span> <span class="k">if</span> <span class="n">experimental_decoder</span> <span class="k">else</span> <span class="n">DecodeProgram</span><span class="p">)</span>
-      <span class="n">decoder_param</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">decoder</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span>
-                                           <span class="n">decode_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
-      <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">decoder_param</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decoder_param</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">multi_inputs_decoder</span><span class="p">:</span>
+      <span class="n">decoder_param</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">decode_until_out_of_range</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">decode_steps_per_loop</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;decode_until_out_of_range set to True, ignoring &#39;</span>
+                             <span class="s1">&#39;decode_steps_per_loop setting.&#39;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">experimental_decoder</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+              <span class="s1">&#39;experimental_decoder must be False for decode_until_out_of_range&#39;</span>
+          <span class="p">)</span>
+        <span class="n">decoder_param</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span>
+                                             <span class="n">dataset_name</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+      <span class="k">elif</span> <span class="n">decode_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">decoder</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">ExperimentalDecodeProgram</span>
+            <span class="k">if</span> <span class="n">experimental_decoder</span> <span class="k">else</span> <span class="n">DecodeProgram</span><span class="p">)</span>
+        <span class="n">decoder_param</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">decoder</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span>
+                                             <span class="n">dataset_name</span><span class="p">,</span>
+                                             <span class="n">decode_steps_per_loop</span><span class="p">[</span><span class="n">idx</span><span class="p">])</span>
+        <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+      <span class="k">if</span> <span class="n">decoder_param</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decoder_param</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">multi_inputs_decoder</span><span class="p">:</span>
+    <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+        <span class="n">_CreateProgramParams</span><span class="p">(</span>
+            <span class="n">MultiInputsDecodeProgram</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span> <span class="n">eval_dataset_names</span><span class="p">,</span>
+            <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">decode_until_out_of_range</span> <span class="k">else</span> <span class="n">decode_steps_per_loop</span><span class="p">))</span>
 
   <span class="k">return</span> <span class="n">program_schedule_params</span></div>
 
@@ -2078,6 +2221,7 @@
   <span class="sd">&quot;&quot;&quot;Update ProgramSchedule params with the given new configs.</span>
 
 <span class="sd">  Currently this override only support EvalProgram and DecodeProgram.</span>
+<span class="sd">  TODO(xingwu): Add support for MultiInputsDecodeProgram.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    ps_params: SimpleProgramSchedule.Params(), to be overriden.</span>
