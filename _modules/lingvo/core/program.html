@@ -2216,12 +2216,13 @@
                           <span class="n">train_steps_per_loop</span><span class="p">,</span>
                           <span class="n">eval_steps_per_loop</span><span class="p">,</span>
                           <span class="n">decode_steps_per_loop</span><span class="p">,</span>
+                          <span class="n">multi_inputs_decoder</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">decode_summary_emails</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                           <span class="n">oneoff_checkpoint_to_load</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Update ProgramSchedule params with the given new configs.</span>
 
-<span class="sd">  Currently this override only support EvalProgram and DecodeProgram.</span>
-<span class="sd">  TODO(xingwu): Add support for MultiInputsDecodeProgram.</span>
+<span class="sd">  Currently this override only support EvalProgram, DecodeProgram and</span>
+<span class="sd">  MultiInputsDecodeProgram.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    ps_params: SimpleProgramSchedule.Params(), to be overriden.</span>
@@ -2236,6 +2237,8 @@
 <span class="sd">    decode_steps_per_loop: Optional[int], if not None, it will override all the</span>
 <span class="sd">      decode programs steps_per_loop. If set to -1, it will set</span>
 <span class="sd">      decode_until_out_of_range=True. Currently list not supported.</span>
+<span class="sd">    multi_inputs_decoder: Optional[bool], if not None, update all testsets to</span>
+<span class="sd">      use MultiInputsDecodeProgram (if true) or DecodeProgram (if False).</span>
 <span class="sd">    decode_summary_emails: List of emails to send Decode summary to.</span>
 <span class="sd">    oneoff_checkpoint_to_load: Optional[str], if not None, it will override</span>
 <span class="sd">      checkpoint_to_load.</span>
@@ -2250,15 +2253,8 @@
     <span class="k">return</span> <span class="n">ps_params</span>
   <span class="k">if</span> <span class="n">dataset_list</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">ps_params</span><span class="o">.</span><span class="n">dataset_names</span> <span class="o">=</span> <span class="n">dataset_list</span>
-    <span class="c1"># Dict for all the override datasets:</span>
-    <span class="c1"># - key: each dataset name</span>
-    <span class="c1"># - value: dict with keys (&#39;eval_exist&#39;, &#39;decode_exist&#39;) and bool values,</span>
-    <span class="c1">#          indicate whether the dataset already exist in current</span>
-    <span class="c1">#          EvalProgram, DecodeProgram. If not, we will create them.</span>
-    <span class="n">ds_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">dataset_list</span><span class="p">:</span>
-      <span class="n">ds_dict</span><span class="p">[</span><span class="n">dataset</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;eval_exist&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;decode_exist&#39;</span><span class="p">:</span> <span class="kc">False</span><span class="p">}</span>
-    <span class="n">eval_programs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">eval_programs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">decode_programs</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">default_eval_steps_per_loop</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">default_decode_steps_per_loop</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="n">ps_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
@@ -2266,23 +2262,38 @@
         <span class="n">default_eval_steps_per_loop</span> <span class="o">=</span> <span class="n">eval_program</span><span class="o">.</span><span class="n">steps_per_loop</span>
       <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">eval_program</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">DecodeProgram</span><span class="p">):</span>
         <span class="n">default_decode_steps_per_loop</span> <span class="o">=</span> <span class="n">_GetDecodeStepsPerLoop</span><span class="p">(</span><span class="n">eval_program</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">eval_program</span><span class="o">.</span><span class="n">dataset_name</span> <span class="ow">in</span> <span class="n">ds_dict</span><span class="p">:</span>
-        <span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">eval_program</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">multi_inputs_decoder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">multi_inputs_decoder</span> <span class="o">=</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">eval_program</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
+                                            <span class="n">MultiInputsDecodeProgram</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">eval_program</span><span class="o">.</span><span class="n">dataset_name</span> <span class="ow">in</span> <span class="n">dataset_list</span><span class="p">:</span>
         <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">eval_program</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">EvalProgram</span><span class="p">):</span>
-          <span class="n">ds_dict</span><span class="p">[</span><span class="n">eval_program</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">][</span><span class="s1">&#39;eval_exist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+          <span class="n">eval_programs</span><span class="p">[</span><span class="n">eval_program</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">eval_program</span>
         <span class="k">elif</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">eval_program</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">DecodeProgram</span><span class="p">):</span>
-          <span class="n">ds_dict</span><span class="p">[</span><span class="n">eval_program</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">][</span><span class="s1">&#39;decode_exist&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+          <span class="n">decode_programs</span><span class="p">[</span><span class="n">eval_program</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">eval_program</span>
 
-    <span class="k">for</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">exists</span> <span class="ow">in</span> <span class="n">ds_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">exists</span><span class="p">[</span><span class="s1">&#39;eval_exist&#39;</span><span class="p">]:</span>
-        <span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">EvalProgram</span><span class="p">,</span> <span class="s1">&#39;eval_tpu&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span>
-                                 <span class="n">default_eval_steps_per_loop</span><span class="p">))</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">exists</span><span class="p">[</span><span class="s1">&#39;decode_exist&#39;</span><span class="p">]:</span>
-        <span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span>
-                                 <span class="n">default_decode_steps_per_loop</span><span class="p">))</span>
-    <span class="n">ps_params</span><span class="o">.</span><span class="n">eval_programs</span> <span class="o">=</span> <span class="n">eval_programs</span>
+    <span class="c1"># If there&#39;s no decode program in original ps_param, and we do not update</span>
+    <span class="c1"># it, we use DecodeProgram by default.</span>
+    <span class="k">if</span> <span class="n">multi_inputs_decoder</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">multi_inputs_decoder</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">ps_params</span><span class="o">.</span><span class="n">eval_programs</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Reorder the eval/decode programs sequence.</span>
+    <span class="k">for</span> <span class="n">dataset_name</span> <span class="ow">in</span> <span class="n">dataset_list</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">dataset_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">eval_programs</span><span class="p">:</span>
+        <span class="n">eval_programs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span>
+            <span class="n">EvalProgram</span><span class="p">,</span> <span class="s1">&#39;eval_tpu&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">default_eval_steps_per_loop</span><span class="p">)</span>
+      <span class="n">ps_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">eval_programs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">])</span>
+
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">multi_inputs_decoder</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dataset_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">decode_programs</span><span class="p">:</span>
+          <span class="n">decode_programs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span>
+              <span class="n">DecodeProgram</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span>
+              <span class="n">default_decode_steps_per_loop</span><span class="p">)</span>
+        <span class="n">ps_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decode_programs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">multi_inputs_decoder</span><span class="p">:</span>
+      <span class="n">ps_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">_CreateProgramParams</span><span class="p">(</span><span class="n">MultiInputsDecodeProgram</span><span class="p">,</span> <span class="s1">&#39;decode_tpu&#39;</span><span class="p">,</span>
+                               <span class="n">dataset_list</span><span class="p">,</span> <span class="n">default_decode_steps_per_loop</span><span class="p">))</span>
 
   <span class="k">if</span> <span class="n">train_executions_per_eval</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">ps_params</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">=</span> <span class="n">train_executions_per_eval</span>

@@ -118,6 +118,9 @@
     <span class="s1">&#39;executor_decode_steps_per_loop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
     <span class="s1">&#39;To override ProgramSchedule.decode_steps_per_loop, &#39;</span>
     <span class="s1">&#39;-1 indicate decode_until_out_of_range.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;executor_multi_inputs_decoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;Whether to use MultiInputsDecodeProgram for decoding datasets.&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;executor_oneoff_checkpoint_to_load&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
     <span class="s1">&#39;Typically used for oneoff eval/decode executor run, to override &#39;</span>
@@ -381,7 +384,8 @@
         <span class="n">program_schedule_cfg</span><span class="p">,</span> <span class="n">datasets_to_eval</span><span class="p">,</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_train_executions_per_eval</span><span class="p">,</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_train_steps_per_loop</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_eval_steps_per_loop</span><span class="p">,</span>
-        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_decode_steps_per_loop</span><span class="p">,</span> <span class="n">decode_summary_emails</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_decode_steps_per_loop</span><span class="p">,</span>
+        <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_multi_inputs_decoder</span><span class="p">,</span> <span class="n">decode_summary_emails</span><span class="p">,</span>
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">executor_oneoff_checkpoint_to_load</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">program_schedule_cfg</span></div>
 
