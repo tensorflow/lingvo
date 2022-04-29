@@ -256,6 +256,11 @@
     <span class="k">if</span> <span class="s1">&#39;is_real&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
       <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;is_real&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">is_real</span>
 
+    <span class="k">if</span> <span class="s1">&#39;language.raw&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+      <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;language&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">language</span><span class="o">.</span><span class="n">raw</span>
+    <span class="k">if</span> <span class="s1">&#39;testset_name&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+      <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;testset_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="p">[</span><span class="s1">&#39;testset_name&#39;</span><span class="p">]</span>
+
     <span class="n">ret_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">AddAdditionalDecoderMetricsToGraph</span><span class="p">(</span><span class="n">topk</span><span class="p">,</span> <span class="n">filtered_hyps</span><span class="p">,</span>
                                                 <span class="n">filtered_refs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span>
