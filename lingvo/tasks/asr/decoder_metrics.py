@@ -191,6 +191,11 @@ class DecoderMetrics(base_layer.BaseLayer):
     if 'is_real' in input_batch:
       ret_dict['is_real'] = input_batch.is_real
 
+    if 'language.raw' in input_batch:
+      ret_dict['language'] = input_batch.language.raw
+    if 'testset_name' in input_batch:
+      ret_dict['testset_name'] = input_batch['testset_name']
+
     ret_dict.update(
         self.AddAdditionalDecoderMetricsToGraph(topk, filtered_hyps,
                                                 filtered_refs, input_batch,
