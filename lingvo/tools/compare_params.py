@@ -91,17 +91,19 @@ def print_hyperparams_text_diff(path1, path2, cfg1_not_cfg2, cfg2_not_cfg1,
       respectively.
   """
   if cfg1_not_cfg2:
-    print("\n\nKeys in %s but not %s: \n%s\n\n" %
-          (path1, path2, "\n".join(cfg1_not_cfg2)))
+    print("\n\nKeys in %s but not %s:" % (path1, path2))
+    for elem in cfg1_not_cfg2:
+      print("  %s" % elem)
   if cfg2_not_cfg1:
-    print("\n\nKeys in %s but not %s: \n%s\n\n" %
-          (path2, path1, "\n".join(cfg2_not_cfg1)))
+    print("\n\nKeys in %s but not %s:" % (path2, path1))
+    for elem in cfg2_not_cfg1:
+      print("  %s" % elem)
 
   if cfg1_and_cfg2_diff:
     print("\n\nKeys with differences and their values: \n\n")
     for k, v in sorted(cfg1_and_cfg2_diff.items()):
       v1, v2 = v
-      print("%s: [%s] vs. [%s]" % (k, v1, v2))
+      print("%s:\n      [%s]\n  vs. [%s]" % (k, v1, v2))
     print("\n\n")
 
 
