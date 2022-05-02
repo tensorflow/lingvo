@@ -2179,7 +2179,8 @@ def UpdateProgramSchedule(ps_params,
         if multi_inputs_decoder is None:
           multi_inputs_decoder = issubclass(eval_program.cls,
                                             MultiInputsDecodeProgram)
-      if eval_program.dataset_name in dataset_list:
+      if ('dataset_name' in eval_program) and (eval_program.dataset_name
+                                               in dataset_list):
         if issubclass(eval_program.cls, EvalProgram):
           eval_programs[eval_program.dataset_name] = eval_program
         elif issubclass(eval_program.cls, DecodeProgram):
