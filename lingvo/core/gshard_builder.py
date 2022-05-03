@@ -3618,6 +3618,12 @@ class UniTransformer(base_model.BaseTask):
 
   def _ComputeDecoderInput(self, theta, input_batch):
     p = self.params
+    if 'tgt' not in input_batch:
+      input_batch.tgt = py_utils.NestedMap()
+      input_batch.tgt.ids = input_batch.ids
+      input_batch.tgt.labels = input_batch.labels
+      input_batch.tgt.segment_ids = input_batch.segment_ids
+      input_batch.tgt.segment_pos = input_batch.segment_pos
     if p.moe and p.builder.gating_func == 'hashing':
       expert_id = tf.math.floormod(input_batch.tgt.ids, p.builder.e_dim)
     if p.has_embedding_layer:
