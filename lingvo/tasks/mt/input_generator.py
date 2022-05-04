@@ -855,11 +855,19 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
       return features, self._GetBucketKey(features, filtered)
 
+    kwargs = self.CommonInputOpArgs()
+    if py_utils.IsEagerMode():
+      # In pure Eager or tf.function mode, add this kwarg so `GenericInputV2`
+      # ops get used instead of `GenericInput`.
+      kwargs['allow_eager'] = True
+      # Pass `extra_input_kwargs` into GenericInput calls.
+      kwargs = {**kwargs, **extra_input_kwargs}
+
     batch, _ = generic_input.GenericInput(
         processor=Processor,
         file_pattern=file_pattern,
         input_source_weights=input_source_weights,
-        **self.CommonInputOpArgs())
+        **kwargs)
     return self._Pack(batch)
 
   def _ApplyPacking(self, batch):
