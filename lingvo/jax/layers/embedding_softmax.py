@@ -244,7 +244,7 @@ class SingleShardSharedEmbeddingSoftmax(SingleShardFullSoftmax):
     return embs
 
 
-class GShardSharedEmebeddingSoftmax(base_layer.BaseLayer):
+class GShardSharedEmbeddingSoftmax(base_layer.BaseLayer):
   """Softmax layer with embedding lookup and Gaussian init used in gshard.
 
   Features:

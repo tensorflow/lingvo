@@ -150,7 +150,7 @@ class TransformerLm(base_layer.BaseLayer):
         name='rms_norm', input_dims=model_dim)
 
     p.softmax_tpl = (
-        embedding_softmax.GShardSharedEmebeddingSoftmax.Params().Set(
+        embedding_softmax.GShardSharedEmbeddingSoftmax.Params().Set(
             name='emb',
             input_dims=model_dim,
             num_classes=vocab_size,
@@ -239,7 +239,7 @@ class TransformerLm(base_layer.BaseLayer):
       ngrammer_p.weight_split_dims_mapping.wt = [mdl_axis, data_axis]
 
     softmax_p = lm_p.softmax_tpl
-    if softmax_p.cls == embedding_softmax.GShardSharedEmebeddingSoftmax:
+    if softmax_p.cls == embedding_softmax.GShardSharedEmbeddingSoftmax:
       # Softmax weight is of shape [vocab_size, input_dim].
       softmax_p.weight_split_dims_mapping.wt = [mdl_axis, data_axis]
     else:
