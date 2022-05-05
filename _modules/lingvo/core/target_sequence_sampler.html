@@ -115,6 +115,12 @@
         <span class="s1">&#39;nucleus_p&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
         <span class="s1">&#39;If &lt; 1.0, use Nucleus Sampling (https://arxiv.org/abs/1904.09751)&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+        <span class="s1">&#39;If &gt; 0.0, masks all the tokens with probabilities less than epsilon.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;eps_fail_safe&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;Resort to top-1 sampling when epsilon exceeds max token probability.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;temperature&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;If &gt; 1, a smoother distribution than logits; &#39;</span>
         <span class="s1">&#39;if &lt; 1, a sharper distribution than logits. &#39;</span>
         <span class="s1">&#39;Must be &gt; 0.&#39;</span><span class="p">)</span>
@@ -228,6 +234,21 @@
           <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">sample_logits</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">,</span>
                                    <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">sorted_logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">min_logit</span><span class="p">,</span>
                                    <span class="n">sample_logits</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+          <span class="n">min_logit</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1e10</span>
+          <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">sample_logits</span><span class="p">)</span>
+          <span class="c1"># If epsilon is chosen so high that it exceed max token probability,</span>
+          <span class="c1"># replace it with max token probability to avoid sampling degeneration</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">eps_fail_safe</span><span class="p">:</span>
+            <span class="n">prob_thresh</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">prob_thresh</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">prob_thresh</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+            <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">prob_thresh</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">sample_logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">min_logit</span><span class="p">,</span> <span class="n">sample_logits</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">sample_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">probs</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">,</span>
+                                     <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">sample_logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">min_logit</span><span class="p">,</span>
+                                     <span class="n">sample_logits</span><span class="p">)</span>
         <span class="c1"># Note that here, we retain the possibility of applying both top_k</span>
         <span class="c1"># and nucleus filtering.</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">top_k</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
