@@ -50,6 +50,12 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         'nucleus_p', 1.0,
         'If < 1.0, use Nucleus Sampling (https://arxiv.org/abs/1904.09751)')
     p.Define(
+        'epsilon', 0.0,
+        'If > 0.0, masks all the tokens with probabilities less than epsilon.')
+    p.Define(
+        'eps_fail_safe', True,
+        'Resort to top-1 sampling when epsilon exceeds max token probability.')
+    p.Define(
         'temperature', 1., 'If > 1, a smoother distribution than logits; '
         'if < 1, a sharper distribution than logits. '
         'Must be > 0.')
@@ -163,6 +169,21 @@ class TargetSequenceSampler(base_layer.BaseLayer):
           sample_logits = tf.where(sample_logits < threshold,
                                    tf.ones_like(sorted_logits) * min_logit,
                                    sample_logits)
+        if p.epsilon > 0.0:
+          min_logit = -1e10
+          probs = tf.nn.softmax(sample_logits)
+          # If epsilon is chosen so high that it exceed max token probability,
+          # replace it with max token probability to avoid sampling degeneration
+          if p.eps_fail_safe:
+            prob_thresh = tf.reduce_max(probs, axis=-1, keepdims=True)
+            prob_thresh = tf.minimum(prob_thresh, p.epsilon)
+            sample_logits = tf.where(
+                tf.math.less(probs, prob_thresh),
+                tf.ones_like(sample_logits) * min_logit, sample_logits)
+          else:
+            sample_logits = tf.where(probs < p.epsilon,
+                                     tf.ones_like(sample_logits) * min_logit,
+                                     sample_logits)
         # Note that here, we retain the possibility of applying both top_k
         # and nucleus filtering.
         if p.top_k > 0:
