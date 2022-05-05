@@ -703,6 +703,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     WrapOp('qsigmoid', tf.sigmoid, dist=QDistribution.SIGMOID)
     WrapOp('qsoftmax', tf.nn.softmax, dist=QDistribution.SOFTMAX)
     WrapOp('qlog', tf.math.log)
+    WrapOp('qlogsigmoid', tf.math.log_sigmoid, dist=QDistribution.LOG_SOFTMAX)
     WrapOp('qlogsoftmax', tf.nn.log_softmax, dist=QDistribution.LOG_SOFTMAX)
     WrapOp('qrelu', tf.nn.relu, dist=QDistribution.RELU)
     WrapOp('qrelu6', tf.nn.relu6, dist=QDistribution.RELU6)

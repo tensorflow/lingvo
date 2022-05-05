@@ -461,6 +461,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'It can be used to pad inputs to a fixed batch size.')
     p.Define('zero_token_embs_first_time_step', False,
              'If True, the first time step uses zeros as the post-emb lookup.')
+    p.Define('use_sigmoid_activation', False,
+             'If True, replace softmax with sigmoid activation.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
     default_params_init = py_utils.WeightInit.Uniform(0.04)
@@ -1078,7 +1080,12 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     atten_probs = tf.reshape(atten_probs, tf.shape(prev_atten_probs))
 
     logits = self.softmax.Logits(theta.softmax, [step_out])
-    log_probs = self.fns.qlogsoftmax(logits)
+    if p.use_sigmoid_activation:
+      tf.logging.info('Replacing softmax with sigmoid activations.')
+      log_probs = self.fns.qlogsigmoid(logits)
+    else:
+      log_probs = self.fns.qlogsoftmax(logits)
+
     if p.force_alignment:
       if 'num_sentences' not in encoder_outputs:
         raise ValueError('Model does not support p.force_alignment as '

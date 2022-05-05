@@ -4508,6 +4508,62 @@ class FocalFullSoftmaxLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual([8], py_utils.GetShape(per_example_argmax))
 
 
+class SconesLayerTest(test_utils.TestCase):
+  """Testing Scones layer."""
+
+  def _Loss(self, params, batch_size=2, class_ids=None, logits=None, alpha=1.0):
+    with self.session(use_gpu=True, graph=tf.Graph()):
+      np.random.seed(12345)
+      tf.random.set_seed(1234)
+
+      params.name = 'scones'
+      params.input_dim = 3
+      if logits is None:
+        params.num_classes = 4
+        logits = np.random.rand(batch_size, params.num_classes)
+      else:
+        params.num_classes = logits.shape[1]
+      if class_ids is None:
+        class_ids = np.zeros((batch_size, 1), dtype=np.int32)
+
+      params.alpha = alpha
+      params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
+      scones = params.Instantiate()
+
+      logits = tf.constant(logits, dtype=py_utils.FPropDtype(params))
+      class_ids = tf.constant(class_ids)
+      loss, _ = scones.XentLossFromLogits(
+          scones.theta, logits, None, class_ids=class_ids)
+      self.evaluate(tf.global_variables_initializer())
+      return self.evaluate(loss)
+
+  def testLossRandomInput(self):
+    params = layers.Scones.Params()
+    self.assertAllClose([0.33268312, 0.449044], self._Loss(params, alpha=0.0))
+    self.assertAllClose([-0.32969007, -0.03776243],
+                        self._Loss(params, alpha=0.5))
+    self.assertAllClose([-0.9920633, -0.52456886],
+                        self._Loss(params, alpha=1.0))
+
+  def testLossTertiaryLogits(self):
+    params = layers.Scones.Params()
+    logits = np.array([[-99.0, 0.0, -99.0], [99.0, 0.0, -99.0], [0.0, 0.0,
+                                                                 0.0]])
+    class_ids = np.array([[1], [0], [2]], dtype=np.int32)
+    self.assertAllClose([-np.log(0.5), 0.0, -np.log(0.5)],
+                        self._Loss(
+                            params,
+                            logits=logits,
+                            class_ids=class_ids,
+                            alpha=0.0))
+    self.assertAllClose([-2.0 - np.log(0.5), -1.5, -np.log(0.5) - 1.0],
+                        self._Loss(
+                            params,
+                            logits=logits,
+                            class_ids=class_ids,
+                            alpha=1.0))
+
+
 class FeedForwardNetTest(test_utils.TestCase):
 
   def testFeedForwardNetConstruction(self):

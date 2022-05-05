@@ -3737,6 +3737,39 @@ class FocalFullSoftmax(SimpleFullSoftmax):
     return per_example_xent, per_example_argmax
 
 
+class Scones(SimpleFullSoftmax):
+  """A SCONES output layer (http://arxiv.org/abs/2205.00704)."""
+
+  EPS = 1e-30
+
+  @classmethod
+  def Params(cls):
+    """Params for the Scones output layer."""
+    p = super().Params()
+    p.Define('alpha', 1.0, 'SCONES loss scaling factor for negative component.')
+    return p
+
+  def XentLossFromLogits(self,
+                         theta,
+                         logits,
+                         class_weights,
+                         class_ids=None,
+                         class_probabilities=None):
+    """Computes SCONES loss, argmax etc. from logits."""
+    p = self.params
+    if class_probabilities is not None or p.num_sampled != 0:
+      raise ValueError('This set of arguments is not supported for SCONES.')
+
+    true_logprob = tf.math.log_sigmoid(logits)
+    false_logprob = tf.maximum(1.0 - tf.exp(true_logprob), Scones.EPS)
+    class_true_logprob = tf.gather(true_logprob, class_ids, batch_dims=1)
+    class_false_logprob = tf.gather(false_logprob, class_ids, batch_dims=1)
+    other_false_logprob = tf.math.reduce_sum(
+        false_logprob, axis=-1, keepdims=True) - class_false_logprob
+    per_example_loss = -class_true_logprob - p.alpha * other_false_logprob
+    return tf.squeeze(per_example_loss, -1), py_utils.ArgMax(logits)
+
+
 class EinsumSoftmax(base_layer.BaseLayer):
   """A simple softmax layer implemented with Einsum to avoid reshape ops."""
 
