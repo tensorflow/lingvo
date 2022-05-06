@@ -124,14 +124,14 @@ class ImageModuleTest(test_utils.TestCase):
     count_variable = [v for v in layer.variables if v.name == 'count:0'][0]
     count_value = count_variable.read_value()
 
-    with self.session() as sess:
-      sess.run(tf.compat.v1.global_variables_initializer())
-      self.assertEqual(0, sess.run(count_value))
-      sess.run(training_mode_features)
-      self.assertEqual(1, sess.run(count_value))
+    with self.session():
+      self.evaluate(tf.compat.v1.global_variables_initializer())
+      self.assertEqual(0, self.evaluate(count_value))
+      self.evaluate(training_mode_features)
+      self.assertEqual(1, self.evaluate(count_value))
 
-      sess.run(eval_mode_features)
-      self.assertEqual(1, sess.run(count_value))
+      self.evaluate(eval_mode_features)
+      self.assertEqual(1, self.evaluate(count_value))
 
 
 class ImageModuleV2Test(test_utils.TestCase):
@@ -142,9 +142,9 @@ class ImageModuleV2Test(test_utils.TestCase):
     # real one from tf-hub.
     export_dir = self.create_tempdir().full_path
 
-    with self.session() as sess:
+    with self.session():
       encoder = FakeTF2ImageModule(output_dim=42)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       tf.saved_model.save(encoder, export_dir)
 
     params = tf_hub_layers.ImageModuleV2.Params().Set(
@@ -154,22 +154,22 @@ class ImageModuleV2Test(test_utils.TestCase):
     features = layer(images)
     self.assertEqual([2, 42], features.shape.as_list())
 
-    with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+    with self.session():
+      self.evaluate(tf.global_variables_initializer())
       # Verify that calling the layer in train mode (lingvo's default) causes
       # the module's update ops to run.
       counter = layer.theta['foo/counter']
       self.assertEqual(0, counter.eval())
-      _ = sess.run(features)
-      _ = sess.run(features)
+      _ = self.evaluate(features)
+      _ = self.evaluate(features)
       self.assertEqual(2, counter.eval())
 
       # In eval mode, the layer should call the underlying module with
       # `training=False` and thus not run the update ops.
       with cluster_factory.SetEval(True):
         features = layer(images)
-        _ = sess.run(features)
-        _ = sess.run(features)
+        _ = self.evaluate(features)
+        _ = self.evaluate(features)
       self.assertEqual(2, counter.eval())
 
 

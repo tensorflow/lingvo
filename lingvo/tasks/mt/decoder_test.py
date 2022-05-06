@@ -1753,7 +1753,7 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
 
   @parameterized.named_parameters(('TBC', 'TBC'), ('BTC', 'BTC'))
   def testDecoderFProp(self, prediction_data_format):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       dec = self._ConstructTransformerBatchMajorDecoder(
           prediction_data_format=prediction_data_format,
           per_example_tensors=True)
@@ -1761,17 +1761,17 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       dec_out = dec.FPropDefaultTheta(encoder_outputs, targets)
       dec_out = tf.nest.map_structure(tf.convert_to_tensor, dec_out)
       tf.global_variables_initializer().run()
-      actual_dec_out = sess.run(dec_out)
+      actual_dec_out = self.evaluate(dec_out)
       print('actual decoder output =', actual_dec_out)
       self.assertAllClose(27.047781, actual_dec_out.metrics['loss'][0])
 
   def testDecoderFPropPackedInput(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       dec = self._ConstructTransformerBatchMajorDecoder(packed_input=True)
       encoder_outputs, targets = self._Inputs(packed_input=True)
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
       tf.global_variables_initializer().run()
-      actual_loss = sess.run(loss)
+      actual_loss = self.evaluate(loss)
       print('actual loss = ', actual_loss)
       self.assertAllClose(15.041874, actual_loss)
 
@@ -1790,7 +1790,7 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       self.assertAllClose(25.569077, actual_dec_out.metrics['loss'][0])
 
   def testDecoderExtendStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       dec = self._ConstructTransformerBatchMajorDecoder()
       encoder_outputs, targets = self._Inputs()
 
@@ -1812,20 +1812,21 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       layer_out2 = tf.stack(layer_out2)
 
       tf.global_variables_initializer().run()
-      actual_layer_out1, actual_layer_out2 = sess.run([layer_out1, layer_out2])
+      actual_layer_out1, actual_layer_out2 = self.evaluate(
+          [layer_out1, layer_out2])
       self.assertAllClose(actual_layer_out1, actual_layer_out2)
 
   def testBeamSearchDecode(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       dec = self._ConstructTransformerBatchMajorDecoder()
       encoder_outputs, _ = self._Inputs()
       decode = dec.BeamSearchDecode(encoder_outputs)
       # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-      # sess.run(decode).
+      # self.evaluate(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
       tf.global_variables_initializer().run()
-      actual_decode = sess.run(decode)
+      actual_decode = self.evaluate(decode)
 
       source_batch = 4
       source_time = 5
@@ -1919,7 +1920,7 @@ class TransformerXDecoderTest(test_utils.TestCase):
     p.Instantiate()
 
   def testForwardPassWithSingleBatch(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
       p = self._DecoderParams()
       mt_dec = p.Instantiate()
@@ -1932,7 +1933,7 @@ class TransformerXDecoderTest(test_utils.TestCase):
       dec_out_sum = tf.reduce_sum(out.softmax_input, 0)
       out_loss = out_metrics['loss'][0]
       tf.global_variables_initializer().run()
-      actual_dec_out, actual_dec_out_sum, actual_loss = sess.run(
+      actual_dec_out, actual_dec_out_sum, actual_loss = self.evaluate(
           [out.softmax_input, dec_out_sum, out_loss])
       expected_enc_out_sum = [
           [-23.059402, -32.492645, 9.186216, -48.663956, -43.15247,
@@ -1950,7 +1951,7 @@ class TransformerXDecoderTest(test_utils.TestCase):
       self.assertAllClose(expected_loss, actual_loss, rtol=1e-05, atol=1e-05)
 
   def testForwardPassWithDoubleBatch(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       tf.random.set_seed(8372749040)
       p = self._DecoderParams()
       mt_dec = p.Instantiate()
@@ -1981,7 +1982,7 @@ class TransformerXDecoderTest(test_utils.TestCase):
       dec_out_sum = tf.reduce_sum(out.softmax_input, 0)
       out_loss = out_metrics['loss'][0]
       tf.global_variables_initializer().run()
-      actual_dec_out, actual_dec_out_sum, actual_loss = sess.run(
+      actual_dec_out, actual_dec_out_sum, actual_loss = self.evaluate(
           [out.softmax_input, dec_out_sum, out_loss])
       print(actual_loss)
       print(actual_dec_out_sum)

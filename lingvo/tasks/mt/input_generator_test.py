@@ -264,12 +264,12 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
     p.source_max_length = 22
     p.target_max_length = 24
     p.bucket_batch_limit = [2]
-    with self.session() as sess:
+    with self.session():
       inp = p.Instantiate()
       batch_tensor = inp.GetPreprocessedInputBatch()
       for k, x in batch_tensor.FlattenItems():
         self.assertTrue(x.shape.is_fully_defined(), k)
-      batch = sess.run(batch_tensor)
+      batch = self.evaluate(batch_tensor)
     self.assertLen(batch.src, 8)
     self.assertAllEqual(batch.src.strs,
                         [b'I love paragliding!', b'vol biv paragliding'])
@@ -338,7 +338,7 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
       p.target_max_length = 32
       p.bucket_batch_limit = [128]
       p.packing_factor = packing_factor
-      with self.session() as sess:
+      with self.session():
         inp = p.Instantiate()
         # GlobalBatchSize is batch_size (128) * num_splits_per_client (4).
         # num_splits_per_client is 4, because num_splits_per_replica is 4.
@@ -367,7 +367,7 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
         batch_tensor = inp.GetPreprocessedInputBatch()
         for k, x in batch_tensor.FlattenItems():
           self.assertTrue(x.shape.is_fully_defined(), k)
-        batch = sess.run(batch_tensor)
+        batch = self.evaluate(batch_tensor)
         self.assertEqual(batch.src.ids.shape,
                          (expected_packed_infeed_batch_size, 32))
 
@@ -384,10 +384,10 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
     p.source_max_length = 12
     p.target_max_length = 15
     p.bucket_batch_limit = [2]
-    with self.session() as sess:
+    with self.session():
       inp = p.Instantiate()
       batch_tensor = inp.GetPreprocessedInputBatch()
-      batch = sess.run(batch_tensor)
+      batch = self.evaluate(batch_tensor)
       print(batch)
     self.assertAllEqual(
         batch.src.ids,
@@ -421,10 +421,10 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
     p.target_max_length = 5
     p.keep_truncated = True
 
-    with self.session() as sess:
+    with self.session():
       inp = p.Instantiate()
       batch_tensor = inp.GetPreprocessedInputBatch()
-      batch = sess.run(batch_tensor)
+      batch = self.evaluate(batch_tensor)
       print(batch)
     self.assertAllEqual(
         batch.src.ids,
@@ -451,10 +451,10 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
     p.target_max_length = 20
     p.bucket_batch_limit = [2]
     p.packing_factor = 2
-    with self.session() as sess:
+    with self.session():
       inp = p.Instantiate()
       batch_tensor = inp.GetPreprocessedInputBatch()
-      batch = sess.run(batch_tensor)
+      batch = self.evaluate(batch_tensor)
     self.assertAllEqual(
         batch.src.ids,
         np.array([
@@ -540,10 +540,10 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
     p.bucket_batch_limit = [8]
     p.packing_factor = packing_factor
     with cluster_factory.ForTestingWorker(add_summary=True):
-      with self.session() as sess:
+      with self.session():
         inp = p.Instantiate()
         inp.GetPreprocessedInputBatch()
-        summary_str = sess.run(tf.summary.merge_all(scope='examples'))
+        summary_str = self.evaluate(tf.summary.merge_all(scope='examples'))
         summary = tf.summary.Summary.FromString(summary_str)
 
         self.assertLen(summary.value, 3)
@@ -592,10 +592,10 @@ class DoubleInputTest(test_utils.TestCase, parameterized.TestCase):
   def testBasicInput(self):
     self.skipTest('TODO(b/196852574): Reenable.')
     p = self._CreateNmtInputParams()
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = p.Instantiate()
       batch_tensor = inp.GetPreprocessedInputBatch()
-      batch = sess.run(batch_tensor)
+      batch = self.evaluate(batch_tensor)
     self.assertAllEqual([2, 20], batch.src.ids.shape)
     self.assertAllEqual(
         batch.src.ids,
@@ -631,11 +631,11 @@ class DoubleInputTest(test_utils.TestCase, parameterized.TestCase):
   def testPackedInput(self):
     self.skipTest('TODO(b/196852574): Reenable.')
     p = self._CreatePackedNmtInputParams()
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = p.Instantiate()
       batch_tensor = inp.GetPreprocessedInputBatch()
       for _ in range(7):
-        batch = sess.run(batch_tensor)
+        batch = self.evaluate(batch_tensor)
     self.assertAllEqual([1, 40], batch.src.ids.shape)
     self.assertAllEqual(batch.src.segment_ids, [[
         1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.,

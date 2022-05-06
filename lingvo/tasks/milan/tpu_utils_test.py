@@ -59,8 +59,8 @@ class TpuUtilsTest(test_utils.TestCase):
       self.assertEqual(tf.int32, call_kwargs['input'].dtype)
 
     self.assertEqual(outputs.dtype, tf.int64)
-    with self.session() as sess:
-      self.assertAllEqual(expected_outputs, sess.run(outputs))
+    with self.session():
+      self.assertAllEqual(expected_outputs, self.evaluate(outputs))
 
 
 if __name__ == '__main__':

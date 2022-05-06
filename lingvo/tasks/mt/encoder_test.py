@@ -270,9 +270,9 @@ class TransformerEncoderTest(test_utils.TestCase):
       enc_padding = out.padding
 
       self.evaluate(tf.global_variables_initializer())
-      actual_enc_out, actual_enc_out_sum, actual_emb_out_sum, \
-          actual_padding = self.evaluate(
-              [out.encoded, enc_out_sum, emb_out_sum, enc_padding])
+      (actual_enc_out, actual_enc_out_sum, actual_emb_out_sum,
+       actual_padding) = self.evaluate(
+           [out.encoded, enc_out_sum, emb_out_sum, enc_padding])
 
       # pyformat: disable
       # pylint: disable=bad-whitespace
@@ -487,9 +487,9 @@ class TransformerEncoderTest(test_utils.TestCase):
       emb_out2 = out2.embedded_inputs
 
       self.evaluate(tf.global_variables_initializer())
-      actual_enc_out, actual_enc_out1, actual_enc_out2, \
-          actual_emb_out, actual_emb_out1, actual_emb_out2 = self.evaluate(
-              [enc_out, enc_out1, enc_out2, emb_out, emb_out1, emb_out2])
+      (actual_enc_out, actual_enc_out1, actual_enc_out2, actual_emb_out,
+       actual_emb_out1, actual_emb_out2) = self.evaluate(
+           [enc_out, enc_out1, enc_out2, emb_out, emb_out1, emb_out2])
       self.assertAllClose(actual_enc_out,
                           np.concatenate([actual_enc_out1, actual_enc_out2], 1))
       self.assertAllClose(actual_emb_out,
@@ -537,7 +537,7 @@ class TransformerBatchMajorEncoderTest(test_utils.TestCase):
     p.Instantiate()
 
   def testForwardPass(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       bs = 2
       sl = 21
       d = 16
@@ -552,13 +552,14 @@ class TransformerBatchMajorEncoderTest(test_utils.TestCase):
       enc_out_sum = tf.reduce_sum(out.encoded)
 
       tf.global_variables_initializer().run()
-      actual_enc_out, actual_enc_out_sum = sess.run([out.encoded, enc_out_sum])
+      actual_enc_out, actual_enc_out_sum = self.evaluate(
+          [out.encoded, enc_out_sum])
 
       self.assertAllEqual([sl, bs, d], actual_enc_out.shape)
       self.assertAllClose(306.010132, actual_enc_out_sum)
 
   def testForwardPassPackedInput(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       bs = 2
       sl = 21
       d = 16
@@ -587,7 +588,8 @@ class TransformerBatchMajorEncoderTest(test_utils.TestCase):
       enc_out_sum = tf.reduce_sum(out.encoded)
 
       tf.global_variables_initializer().run()
-      actual_enc_out, actual_enc_out_sum = sess.run([out.encoded, enc_out_sum])
+      actual_enc_out, actual_enc_out_sum = self.evaluate(
+          [out.encoded, enc_out_sum])
 
       self.assertAllEqual([packed_sl, packed_bs, d], actual_enc_out.shape)
       self.assertAllClose(306.010132, actual_enc_out_sum)
@@ -627,7 +629,7 @@ class TransformerXEncoderTest(test_utils.TestCase):
     p.Instantiate()
 
   def testForwardPassWithSingleBatch(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = self._EncoderParams()
       bs = 2
       seq_len = 16
@@ -641,7 +643,8 @@ class TransformerXEncoderTest(test_utils.TestCase):
       enc_out_sum = tf.reduce_sum(out.encoded, 0)
 
       tf.global_variables_initializer().run()
-      actual_enc_out, actual_enc_out_sum = sess.run([out.encoded, enc_out_sum])
+      actual_enc_out, actual_enc_out_sum = self.evaluate(
+          [out.encoded, enc_out_sum])
       expected_enc_out_sum = [
           [-32.978672, -10.379181, 8.519216, -38.483955, -50.17593,
            8.633557, 31.622324, 20.088394, 26.17001, 26.835281,
@@ -657,7 +660,7 @@ class TransformerXEncoderTest(test_utils.TestCase):
           expected_enc_out_sum, actual_enc_out_sum, rtol=1e-05, atol=1e-05)
 
   def testForwardPassWithDoubleBatch(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = self._EncoderParams()
       bs = 2
       seq_len = 16
@@ -687,7 +690,8 @@ class TransformerXEncoderTest(test_utils.TestCase):
       enc_out_sum = tf.reduce_sum(out.encoded, 0)
 
       tf.global_variables_initializer().run()
-      actual_enc_out, actual_enc_out_sum = sess.run([out.encoded, enc_out_sum])
+      actual_enc_out, actual_enc_out_sum = self.evaluate(
+          [out.encoded, enc_out_sum])
 
       expected_enc_out_sum = [
           [-38.089085, -22.181915, 3.3765068, -45.2483, -58.186905,

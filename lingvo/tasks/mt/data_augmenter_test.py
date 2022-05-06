@@ -40,7 +40,7 @@ class MassLayerTest(test_utils.TestCase):
     return p
 
   def testMassLayer(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       batch_size = 3
       seq_len = 10
       p = self._MassParams()
@@ -49,7 +49,7 @@ class MassLayerTest(test_utils.TestCase):
       weights = tf.ones([batch_size, seq_len])
       actual_seq_len = tf.fill([batch_size], 10)
       mass_out = mass_layer.Mask(seq_ids, weights, actual_seq_len)
-      (src_ids, tgt_ids, tgt_labels, tgt_weights) = sess.run([
+      (src_ids, tgt_ids, tgt_labels, tgt_weights) = self.evaluate([
           mass_out.src.ids, mass_out.tgt.ids, mass_out.tgt.labels,
           mass_out.tgt.weights
       ])

@@ -109,8 +109,8 @@ class DualEncoderTest(test_utils.TestCase):
       metrics, _ = model.ComputeLoss(model.theta, preds, input_batch)
     loss, _ = metrics['loss']
 
-    with self.session() as sess:
-      loss = sess.run(loss)
+    with self.session():
+      loss = self.evaluate(loss)
     self.assertAllClose(expected_average_loss, loss)
 
 

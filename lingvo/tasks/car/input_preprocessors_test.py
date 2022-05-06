@@ -84,10 +84,10 @@ class InputPreprocessorsTest(test_utils.TestCase):
     new_features = preprocessor.TransformFeatures(features)
 
     counts = [0, 0, 0, 0]
-    with self.session() as sess:
+    with self.session():
       # Run 10000 times to get probability distribution.
       for _ in range(10000):
-        new_features_np = sess.run(new_features)
+        new_features_np = self.evaluate(new_features)
         counts[new_features_np.value - 1] += 1
 
       # Check distribution roughly matches [0.1, 0.2, 0.3, 0.4]
@@ -154,8 +154,8 @@ class InputPreprocessorsTest(test_utils.TestCase):
     self.assertEqual(new_dtypes.foo, tf.int64)
     self.assertEqual(new_dtypes.bar, tf.int64)
 
-    with self.session() as sess:
-      np_new_features = sess.run(new_features)
+    with self.session():
+      np_new_features = self.evaluate(new_features)
       # Check the new constants exist in the features for both preprocessors
       self.assertEqual(np_new_features.foo, 1)
       self.assertEqual(np_new_features.bar, 2)

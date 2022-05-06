@@ -45,8 +45,8 @@ class InputGeneratorTest(test_utils.TestCase):
 
     batch = params.Instantiate().GetPreprocessedInputBatch()
     self.assertAllEqual(['image/encoded'], list(batch.keys()))
-    with self.session() as sess:
-      feature_values = sess.run(batch['image/encoded'])
+    with self.session():
+      feature_values = self.evaluate(batch['image/encoded'])
     self.assertAllEqual([42] * params.batch_size, feature_values)
 
 

@@ -115,10 +115,10 @@ class NormalizeTrailingEosTest(test_utils.TestCase, parameterized.TestCase):
     ids = tf.convert_to_tensor(data[0], dtype=tf.int32)
     id_lens = tf.convert_to_tensor(data[1], dtype=tf.int32)
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       new_ids, new_id_lens = eos_normalization.NormalizeTrailingEos(
           ids, id_lens, need_trailing_eos=need_trailing_eos, eos_id=2)
-      new_ids_np, ids_np, new_id_lens_np, id_lens_np = sess.run(
+      new_ids_np, ids_np, new_id_lens_np, id_lens_np = self.evaluate(
           [new_ids, ids, new_id_lens, id_lens])
       self.assertAllEqual(new_id_lens_np, results)
       self._assert_label_equivalence(ids_np, id_lens_np, new_ids_np,
@@ -142,8 +142,8 @@ class NormalizeTrailingEosTest(test_utils.TestCase, parameterized.TestCase):
           tf.convert_to_tensor(id_lens, dtype=tf.int32),
           need_trailing_eos=need_trailing_eos,
           eos_id=2)
-      with self.session(use_gpu=False) as sess:
-        new_ids, new_id_lens = sess.run([new_ids_v, new_id_lens_v])
+      with self.session(use_gpu=False):
+        new_ids, new_id_lens = self.evaluate([new_ids_v, new_id_lens_v])
 
       (new_ids_ref, new_id_lens_ref) = (
           eos_normalization.NumpyNormalizeTrailingEos(
