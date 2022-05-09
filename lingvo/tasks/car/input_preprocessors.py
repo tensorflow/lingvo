@@ -1771,6 +1771,8 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
 
   Adds the following features:
     world_rot_z which contains the rotation applied to the example.
+    `customized variable name` (according to rot_save_key param) which also
+      contains the rotation applied to the example.
   """
 
   @classmethod
@@ -1789,6 +1791,10 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
     p.Define(
         'extra_points_keys', [], 'Keys to additional xyz tensors to apply '
         'the transformation to.')
+    p.Define(
+        'rot_save_key', None,
+        'Save the rot variable for inverse augmentation. Similar to '
+        'include_world_rot_z but the dest variable can be customized.')
     return p
 
   def __init__(self, params):
@@ -1827,16 +1833,24 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
                                           axis=-1)
     if p.include_world_rot_z:
       features.world_rot_z = rot
+    if p.rot_save_key:
+      features.Set(p.rot_save_key, rot)
     return features
 
   def TransformShapes(self, shapes):
     if self.params.include_world_rot_z:
       shapes.world_rot_z = tf.TensorShape([])
+    p = self.params
+    if p.rot_save_key:
+      shapes.Set(p.rot_save_key, tf.TensorShape([]))
     return shapes
 
   def TransformDTypes(self, dtypes):
     if self.params.include_world_rot_z:
       dtypes.world_rot_z = tf.float32
+    p = self.params
+    if p.rot_save_key:
+      dtypes.Set(p.rot_save_key, tf.float32)
     return dtypes
 
 
@@ -2080,6 +2094,8 @@ class WorldScaling(Preprocessor):
 
   Modifies the following features:
     lasers.points_xyz, labels.bboxes_3d with the same scaling applied to both.
+    `customized variable name` (according to scaling_save_key param) which
+      contains the random generated scaling varialbe applied to the example.
   """
 
   @classmethod
@@ -2089,6 +2105,7 @@ class WorldScaling(Preprocessor):
     p.Define(
         'extra_points_keys', [], 'Keys to additional xyz tensors to apply '
         'the transformation to.')
+    p.Define('scaling_save_key', None, 'The dest to save the scaling variable.')
     return p
 
   def __init__(self, params):
@@ -2106,6 +2123,8 @@ class WorldScaling(Preprocessor):
                                 maxval=p.scaling[1],
                                 seed=p.random_seed,
                                 dtype=features.lasers.points_xyz.dtype)
+    if p.scaling_save_key:
+      features.Set(p.scaling_save_key, scaling)
 
     # Scale points [num_points, 3].
     features.lasers.points_xyz *= scaling
@@ -2122,9 +2141,15 @@ class WorldScaling(Preprocessor):
     return features
 
   def TransformShapes(self, shapes):
+    p = self.params
+    if p.scaling_save_key:
+      shapes.Set(p.scaling_save_key, tf.TensorShape([]))
     return shapes
 
   def TransformDTypes(self, dtypes):
+    p = self.params
+    if p.scaling_save_key:
+      dtypes.Set(p.scaling_save_key, tf.float32)
     return dtypes
 
 
@@ -2189,6 +2214,8 @@ class RandomFlipY(Preprocessor):
 
   Modifies the following features:
     lasers.points_xyz, labels.bboxes_3d with the same flipping applied to both.
+    `customized variable name` (according to flip_save_key param) which
+      contains the random generated flip choice applied to the example.
   """
 
   @classmethod
@@ -2198,6 +2225,8 @@ class RandomFlipY(Preprocessor):
     p.Define(
         'extra_points_keys', [], 'Keys to additional xyz tensors to apply '
         'the transformation to.')
+    p.Define('flip_save_key', None,
+             'The dest to save the flip choice variable.')
     return p
 
   def _FlipY(self, points_xyz, choice):
@@ -2210,6 +2239,9 @@ class RandomFlipY(Preprocessor):
     threshold = 1. - p.flip_probability
     choice = tf.random.uniform(
         (), minval=0.0, maxval=1.0, seed=p.random_seed) >= threshold
+    # Record flip choice
+    if p.flip_save_key:
+      features.Set(p.flip_save_key, choice)
 
     # Flip points
     features.lasers.points_xyz = self._FlipY(features.lasers.points_xyz, choice)
@@ -2231,9 +2263,15 @@ class RandomFlipY(Preprocessor):
     return features
 
   def TransformShapes(self, shapes):
+    p = self.params
+    if p.flip_save_key:
+      shapes.Set(p.flip_save_key, tf.TensorShape([]))
     return shapes
 
   def TransformDTypes(self, dtypes):
+    p = self.params
+    if p.flip_save_key:
+      dtypes.Set(p.flip_save_key, tf.bool)
     return dtypes
 
 
@@ -2247,6 +2285,8 @@ class GlobalTranslateNoise(Preprocessor):
   Modifies the following features:
     lasers.points_xyz, labels.bboxes_3d with the same
       random translation noise applied to both.
+    `customized variable name` (according to noise_save_key param) which also
+      contains the random generated noise applied to the example.
   """
 
   @classmethod
@@ -2257,6 +2297,8 @@ class GlobalTranslateNoise(Preprocessor):
     p.Define(
         'extra_points_keys', [], 'Keys to additional xyz tensors to apply '
         'the transformation to.')
+    p.Define('noise_save_key', None,
+             'The dest to save the translation noise variables.')
     return p
 
   def TransformFeatures(self, features):
@@ -2279,6 +2321,10 @@ class GlobalTranslateNoise(Preprocessor):
                                           mean=0.0,
                                           stddev=p.noise_std[2],
                                           seed=z_seed)
+    if p.noise_save_key:
+      noise = tf.stack(
+          [random_translate_x, random_translate_y, random_translate_z], axis=0)
+      features.Set(p.noise_save_key, noise)
 
     pose = tf.stack([
         random_translate_x, random_translate_y, random_translate_z, 0.0, 0.0,
@@ -2300,9 +2346,15 @@ class GlobalTranslateNoise(Preprocessor):
     return features
 
   def TransformShapes(self, shapes):
+    p = self.params
+    if p.noise_save_key:
+      shapes.Set(p.noise_save_key, tf.TensorShape([3]))
     return shapes
 
   def TransformDTypes(self, dtypes):
+    p = self.params
+    if p.noise_save_key:
+      dtypes.Set(p.noise_save_key, tf.float32)
     return dtypes
 
 
@@ -3255,6 +3307,7 @@ class RandomApplyPreprocessor(Preprocessor):
     p = super().Params()
     p.Define('prob', 1.0, 'The probability the subprocessor being executed.')
     p.Define('subprocessor', None, 'Params for an input preprocessor.')
+    p.Define('choice_save_prefix', None, 'Save the choice for later use.')
     return p
 
   def __init__(self, params):
@@ -3277,13 +3330,28 @@ class RandomApplyPreprocessor(Preprocessor):
     # versions. Note that we need one copy for each branch in case the branches
     # further modify features.
     features_0, features_1 = features.DeepCopy(), features.DeepCopy()
-    features = tf.cond(choice,
-                       lambda: self.subprocessor.TransformFeatures(features_0),
-                       lambda: features_1)
+
+    features_0 = self.subprocessor.TransformFeatures(features_0)
+
+    if p.choice_save_prefix and features_0.Get(
+        p.choice_save_prefix) is not None:
+      # Set p.choice_save_prefix for features_1 to make the structure of
+      # features_0 and features_1 consistent. However, the actually value for
+      # features_1 will not be used.
+      features_1.Set(p.choice_save_prefix, features_0.Get(p.choice_save_prefix))
+    features = tf.cond(choice, lambda: features_0, lambda: features_1)
+    if p.choice_save_prefix:
+      features.Set(p.choice_save_prefix + '.' + 'choice', choice)
     return features
 
   def TransformShapes(self, shapes):
     shapes_transformed = self.subprocessor.TransformShapes(shapes)
+
+    p = self.params
+    if p.choice_save_prefix and shapes_transformed.Get(
+        p.choice_save_prefix) is not None:
+      shapes.Set(p.choice_save_prefix,
+                 shapes_transformed.Get(p.choice_save_prefix))
 
     if not shapes.IsCompatible(shapes_transformed):
       raise ValueError(
@@ -3301,15 +3369,29 @@ class RandomApplyPreprocessor(Preprocessor):
           'Shapes after transformation - {} are different from original '
           'shapes - {}.'.format(shapes_transformed, shapes))
 
+    if p.choice_save_prefix:
+      shapes.Set(p.choice_save_prefix + '.' + 'choice', tf.TensorShape([]))
+
     return shapes
 
   def TransformDTypes(self, dtypes):
     transformed_dtypes = self.subprocessor.TransformDTypes(dtypes)
+
+    p = self.params
+    if p.choice_save_prefix and transformed_dtypes.Get(
+        p.choice_save_prefix) is not None:
+      dtypes.Set(p.choice_save_prefix,
+                 transformed_dtypes.Get(p.choice_save_prefix))
+
     if transformed_dtypes != dtypes:
       raise ValueError(
           'DTypes after transformation of preprocessor - {} should be '
           'the same as {}, but get {}.'.format(self.params.subprocessor, dtypes,
                                                transformed_dtypes))
+
+    if p.choice_save_prefix:
+      dtypes.Set(p.choice_save_prefix + '.' + 'choice', tf.bool)
+
     return dtypes
 
 
