@@ -722,10 +722,14 @@ effective learning rate.</p>
 <p>Cosine learning rate decay.</p>
 <p>First proposed in <a class="reference external" href="https://arxiv.org/pdf/1608.03983.pdf">https://arxiv.org/pdf/1608.03983.pdf</a>, which only uses
 multiple cycles with angle from 0 to pi/2. Later people use only one cycle
-with angle from 0 to pi (e.g., <a class="reference external" href="https://arxiv.org/pdf/1711.09224.pdf">https://arxiv.org/pdf/1711.09224.pdf</a>), which
-is implemented here.</p>
+with angle from 0 to pi (e.g., <a class="reference external" href="https://arxiv.org/pdf/1711.09224.pdf">https://arxiv.org/pdf/1711.09224.pdf</a>), which is
+implemented here. When p.cyclical is set to False, which is the default
+behavior, the schedule retains the final learning rate when the angle has gone
+past pi. When p.cyclical is set to True, the schedule allows the learning rate
+to cycle back up to its initial value and down again according to the angle.</p>
 <dl class="simple">
-<dt>where:</dt><dd><p>angle = pi * min(1, current_step / total_steps)
+<dt>where:</dt><dd><p>angle = min(pi, pi * current_step / total_steps)  if cyclical == False
+angle = pi * current_step / total_steps           if cyclical == True
 decay_gap = initial_value - final_value
 value = final_value + decay_gap * (1 + cosine(angle)) / 2</p>
 </dd>

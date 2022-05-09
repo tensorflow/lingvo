@@ -721,6 +721,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_value&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Initial decay value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;final_value&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;Final decay value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;total_steps&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of steps to reach full decay.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cyclical&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If False, at the end of the cycle, stay at the&#39;</span>
+             <span class="s1">&#39;final value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;num_splits&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Specifies the intended number of splits for the &#39;</span>
         <span class="s1">&#39;LR. Overrides num_splits_per_client if non-zero. Uses &#39;</span>
@@ -751,7 +753,8 @@
         <span class="n">CosineSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">initial_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_value</span> <span class="o">*</span> <span class="n">splits</span><span class="p">,</span>
             <span class="n">final_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">final_value</span> <span class="o">*</span> <span class="n">splits</span><span class="p">,</span>
-            <span class="n">total_steps</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">total_steps</span> <span class="o">//</span> <span class="n">splits</span><span class="p">),</span>
+            <span class="n">total_steps</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">total_steps</span> <span class="o">//</span> <span class="n">splits</span><span class="p">,</span>
+            <span class="n">cyclical</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">cyclical</span><span class="p">),</span>
     <span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;combine&#39;</span><span class="p">,</span>
                      <span class="n">CombinedMinimumSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="n">schedules</span><span class="p">))</span>
@@ -840,11 +843,15 @@
 
 <span class="sd">  First proposed in https://arxiv.org/pdf/1608.03983.pdf, which only uses</span>
 <span class="sd">  multiple cycles with angle from 0 to pi/2. Later people use only one cycle</span>
-<span class="sd">  with angle from 0 to pi (e.g., https://arxiv.org/pdf/1711.09224.pdf), which</span>
-<span class="sd">  is implemented here.</span>
+<span class="sd">  with angle from 0 to pi (e.g., https://arxiv.org/pdf/1711.09224.pdf), which is</span>
+<span class="sd">  implemented here. When p.cyclical is set to False, which is the default</span>
+<span class="sd">  behavior, the schedule retains the final learning rate when the angle has gone</span>
+<span class="sd">  past pi. When p.cyclical is set to True, the schedule allows the learning rate</span>
+<span class="sd">  to cycle back up to its initial value and down again according to the angle.</span>
 
 <span class="sd">  where:</span>
-<span class="sd">    angle = pi * min(1, current_step / total_steps)</span>
+<span class="sd">    angle = min(pi, pi * current_step / total_steps)  if cyclical == False</span>
+<span class="sd">    angle = pi * current_step / total_steps           if cyclical == True</span>
 <span class="sd">    decay_gap = initial_value - final_value</span>
 <span class="sd">    value = final_value + decay_gap * (1 + cosine(angle)) / 2</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -855,6 +862,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_value&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Initial decay value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;final_value&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;Final decay value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;total_steps&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of steps to reach full decay.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cyclical&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If False, at the end of the cycle, stay at the&#39;</span>
+             <span class="s1">&#39;final value.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="CosineSchedule.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CosineSchedule.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -862,9 +871,10 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">total_steps</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">decay_gap</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_value</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">final_value</span>
-      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">final_value</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">decay_gap</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
-          <span class="mf">1.0</span><span class="p">,</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">GetStep</span><span class="p">(</span><span class="n">step</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">total_steps</span><span class="p">)))</span></div></div>
+      <span class="n">angle</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">GetStep</span><span class="p">(</span><span class="n">step</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">total_steps</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">cyclical</span><span class="p">:</span>
+        <span class="n">angle</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">angle</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">final_value</span> <span class="o">+</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">decay_gap</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">angle</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="PiecewiseSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseSchedule">[docs]</a><span class="k">class</span> <span class="nc">PiecewiseSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
