@@ -542,6 +542,9 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info('Sampled %s', model_task)
           program_schedule = self._program_schedule_dict[model_task]
 
+        if hasattr(program_schedule, 'SetCheckpointer'):
+          program_schedule.SetCheckpointer(self._checkpointer)
+
         done, train_time_in_secs, eval_time_in_secs = program_schedule.Run(
             sess, program_threadpool)
 
