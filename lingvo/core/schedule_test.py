@@ -16,6 +16,7 @@
 
 import math
 import os
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import early_stop
@@ -24,7 +25,7 @@ from lingvo.core import schedule
 from lingvo.core import test_utils
 
 
-class LearningRateScheduleTest(test_utils.TestCase):
+class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
 
   def testConstant(self):
     with self.session(use_gpu=False):
@@ -348,7 +349,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [20000, 2.0],
           ])
       with py_utils.GlobalStepContext(42):
-        self.assertEqual(len(lrs.Value().shape), 0)
+        self.assertEmpty(lrs.Value().shape)
 
   def testPolynomialLimitOriginLRSchedule(self):
     p = schedule.PolynomialSchedule.Params().Set(
@@ -369,7 +370,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [20000, 2.0],
           ])
       with py_utils.GlobalStepContext(42):
-        self.assertEqual(len(lrs.Value().shape), 0)
+        self.assertEmpty(lrs.Value().shape)
 
   def testCombinedLRSchedule(self):
     p = schedule.CombinedMinimumSchedule.Params().Set(schedules=[
@@ -691,51 +692,84 @@ class LearningRateScheduleTest(test_utils.TestCase):
                 [6, 8.0], [7, 8.0], [8, 0.8], [9, 0.8], [10, 0.08], [11, 0.08],
                 [12, 0.008], [13, 0.008], [14, 0.008]])
 
-  def testCosineSchedule(self):
+  @parameterized.parameters(False, True)
+  def testCosineSchedule(self, cyclical):
     p = schedule.CosineSchedule.Params().Set(
-        initial_value=3.0, final_value=1.0, total_steps=400000)
+        initial_value=3.0,
+        final_value=1.0,
+        total_steps=400000,
+        cyclical=cyclical)
     with self.session():
       lrs = p.Instantiate()
       pts = []
       for step in range(0, 600000, 100000):
         with py_utils.GlobalStepContext(step):
           pts.append([step, lrs.Value().eval()])
-      self.assertAllClose(
-          pts,
-          [
-              [0, 3.0],
-              [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
-              [200000, 2.0],  # angle=pi/2, half-way
-              [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
-              [400000, 1.0],
-              [500000, 1.0],
-          ])
+      if not cyclical:
+        self.assertAllClose(
+            pts,
+            [
+                [0, 3.0],
+                [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+                [200000, 2.0],  # angle=pi/2, half-way
+                [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+                [400000, 1.0],
+                [500000, 1.0],  # Stay 1.0.
+            ])
+      else:
+        self.assertAllClose(
+            pts,
+            [
+                [0, 3.0],
+                [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+                [200000, 2.0],  # angle=pi/2, half-way
+                [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+                [400000, 1.0],
+                [500000, math.cos(math.pi * 3 / 4) + 2.],  # Does not stay 1.0.
+            ])
 
-  def testLinearRampupCosineSchedule(self):
+  @parameterized.parameters(False, True)
+  def testLinearRampupCosineSchedule(self, cyclical):
     p = schedule.LinearRampupCosineSchedule.Params().Set(
         warmup_steps=200,
         initial_value=3.0,
         final_value=1.0,
         total_steps=400000,
+        cyclical=cyclical,
         num_splits=1)
     with self.session():
       lrs = p.Instantiate()
 
       pts = []
-      for step in [0, 100, 200, 100000, 200000, 300000, 400000]:
+      for step in [0, 100, 200, 100000, 200000, 300000, 400000, 500000]:
         with py_utils.GlobalStepContext(step):
           pts.append([step, lrs.Value().eval()])
-      self.assertAllClose(
-          pts,
-          [
-              [0, 0.0],
-              [100, 1.5],
-              [200, 3.0],
-              [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
-              [200000, 2.0],  # angle=pi/2, half-way
-              [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
-              [400000, 1.0],
-          ])
+      if not cyclical:
+        self.assertAllClose(
+            pts,
+            [
+                [0, 0.0],
+                [100, 1.5],
+                [200, 3.0],
+                [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+                [200000, 2.0],  # angle=pi/2, half-way
+                [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+                [400000, 1.0],
+                [500000, 1.0],  # Stay 1.0.
+            ])
+      else:
+        self.assertAllClose(
+            pts,
+            [
+                [0, 0.0],
+                [100, 1.5],
+                [200, 3.0],
+                [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+                [200000, 2.0],  # angle=pi/2, half-way
+                [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+                [400000, 1.0],
+                [500000, math.cos(math.pi * 3 / 4) + 2.],  # Does not stay 1.0.
+            ])
 
   def testPiecewiseSchedule(self):
     # Linear ramp-up in 20000 steps, cosine decay in 40000 steps.

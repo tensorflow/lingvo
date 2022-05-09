@@ -1129,6 +1129,7 @@ py_test(
         ":py_utils",
         ":schedule",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
     ],
 )

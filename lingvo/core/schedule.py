@@ -656,6 +656,8 @@ class LinearRampupCosineSchedule(BaseSchedule):
     p.Define('initial_value', 1.0, 'Initial decay value.')
     p.Define('final_value', 0., 'Final decay value.')
     p.Define('total_steps', 0, 'Number of steps to reach full decay.')
+    p.Define('cyclical', False, 'If False, at the end of the cycle, stay at the'
+             'final value.')
     p.Define(
         'num_splits', 1, 'Specifies the intended number of splits for the '
         'LR. Overrides num_splits_per_client if non-zero. Uses '
@@ -686,7 +688,8 @@ class LinearRampupCosineSchedule(BaseSchedule):
         CosineSchedule.Params().Set(
             initial_value=p.initial_value * splits,
             final_value=p.final_value * splits,
-            total_steps=p.total_steps // splits),
+            total_steps=p.total_steps // splits,
+            cyclical=p.cyclical),
     ]
     self.CreateChild('combine',
                      CombinedMinimumSchedule.Params().Set(schedules=schedules))
@@ -775,11 +778,15 @@ class CosineSchedule(BaseSchedule):
 
   First proposed in https://arxiv.org/pdf/1608.03983.pdf, which only uses
   multiple cycles with angle from 0 to pi/2. Later people use only one cycle
-  with angle from 0 to pi (e.g., https://arxiv.org/pdf/1711.09224.pdf), which
-  is implemented here.
+  with angle from 0 to pi (e.g., https://arxiv.org/pdf/1711.09224.pdf), which is
+  implemented here. When p.cyclical is set to False, which is the default
+  behavior, the schedule retains the final learning rate when the angle has gone
+  past pi. When p.cyclical is set to True, the schedule allows the learning rate
+  to cycle back up to its initial value and down again according to the angle.
 
   where:
-    angle = pi * min(1, current_step / total_steps)
+    angle = min(pi, pi * current_step / total_steps)  if cyclical == False
+    angle = pi * current_step / total_steps           if cyclical == True
     decay_gap = initial_value - final_value
     value = final_value + decay_gap * (1 + cosine(angle)) / 2
   """
@@ -790,6 +797,8 @@ class CosineSchedule(BaseSchedule):
     p.Define('initial_value', 1.0, 'Initial decay value.')
     p.Define('final_value', 0., 'Final decay value.')
     p.Define('total_steps', 0, 'Number of steps to reach full decay.')
+    p.Define('cyclical', False, 'If False, at the end of the cycle, stay at the'
+             'final value.')
     return p
 
   def Value(self, step=None):
@@ -797,9 +806,10 @@ class CosineSchedule(BaseSchedule):
     assert p.total_steps > 0
     with tf.name_scope(p.name):
       decay_gap = p.initial_value - p.final_value
-      return p.final_value + 0.5 * decay_gap * (1 + tf.cos(math.pi * tf.minimum(
-          1.0,
-          tf.cast(self.GetStep(step), tf.float32) / p.total_steps)))
+      angle = math.pi * tf.cast(self.GetStep(step), tf.float32) / p.total_steps
+      if not p.cyclical:
+        angle = tf.minimum(math.pi, angle)
+      return p.final_value + 0.5 * decay_gap * (1 + tf.cos(angle))
 
 
 class PiecewiseSchedule(BaseSchedule):
