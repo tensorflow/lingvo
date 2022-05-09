@@ -607,6 +607,9 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Sampled </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">model_task</span><span class="p">)</span>
           <span class="n">program_schedule</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">model_task</span><span class="p">]</span>
 
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">program_schedule</span><span class="p">,</span> <span class="s1">&#39;SetCheckpointer&#39;</span><span class="p">):</span>
+          <span class="n">program_schedule</span><span class="o">.</span><span class="n">SetCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="p">)</span>
+
         <span class="n">done</span><span class="p">,</span> <span class="n">train_time_in_secs</span><span class="p">,</span> <span class="n">eval_time_in_secs</span> <span class="o">=</span> <span class="n">program_schedule</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span>
             <span class="n">sess</span><span class="p">,</span> <span class="n">program_threadpool</span><span class="p">)</span>
 
