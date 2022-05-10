@@ -858,6 +858,8 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     p.Define('pre_layer_norm', True, 'Pre or post layer norm')
     p.Define('residual_droppath_prob', 0.0,
              'Probability at which we drop the entire residual path.')
+    p.Define('gating_func', 'top_2',
+             'Gating function, can be top2 or expert_choice.')
     p.Define('num_experts', 0, 'Total number of experts in this layer.')
     p.Define(
         'num_groups', 0,
@@ -1058,7 +1060,6 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       reshaped_paddings = _split(reshaped_paddings, ap.gs)
 
       fprop_dtype = py_utils.FPropDtype(p)
-      logits = tf.einsum('gsm,me->gse', reshaped_inputs, theta.gate)
 
       # Here and below, we assume num devices equals num groups.
       # TODO(yonghui): Expose some of the options below through params.
@@ -1066,24 +1067,28 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       # due to much smaller group size.
       # TODO(yonghui): Avoid explicitly casting everything to fp32 once
       # Top2GatingOnLogits is stable in low-precision mode.
-      aux_loss, combine_tensor, dispatch_tensor = gshard_layers.Top2GatingOnLogits(
-          inputs=None,
+      gating_output = gshard_layers.ComputeGating(
+          w=theta.gate,
+          inputs=reshaped_inputs,
           paddings=tf.cast(reshaped_paddings, tf.float32),
-          logits=tf.cast(logits, tf.float32),
           num_devices=p.num_groups,
           experts_dim=p.num_experts,
           expert_capacity_dim=0,  # automatically decided.
+          local_dispatch=False,
           fprop_dtype=tf.float32,
+          gating_func=p.gating_func,
           use_xla_sharding=False,
           second_expert_policy=p.second_expert_policy,
           second_expert_threshold=0.0,
-          # legacy_mtf_behavior=True doesn't normalize gates when one expert is
-          # being dropped. This is more appropriate for routing decisions like
-          # 'random'.
+          # legacy_mtf_behavior=True doesn't normalize gates when one expert
+          # is being dropped. This is more appropriate for routing decisions
+          # like 'random'.
           legacy_mtf_behavior=True,
           # x 2.0 because we choose top-2 experts per example.
           capacity_factor=2.0 * p.expert_capacity_factor)
-
+      aux_loss, combine_tensor, dispatch_tensor = (
+          gating_output.aux_loss, gating_output.combine_tensor,
+          gating_output.dispatch_tensor)
       if fprop_dtype != tf.float32:
         aux_loss = tf.cast(aux_loss, fprop_dtype)
         dispatch_tensor = tf.cast(dispatch_tensor, fprop_dtype)

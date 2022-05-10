@@ -2518,7 +2518,7 @@ def TokenShufflingOnlogits(inputs,
   seq_len = logits.shape[1]
   # number of ffn layers for each expert.
   # Number of tokens per expert (C).
-  bucket_size = seq_len // experts_dim * 2
+  bucket_size = seq_len // experts_dim * experts_dim
 
   # Tensor shape: G`EC.
   gate, indices = tf.math.top_k(
