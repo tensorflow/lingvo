@@ -1074,7 +1074,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
           num_devices=p.num_groups,
           experts_dim=p.num_experts,
           expert_capacity_dim=0,  # automatically decided.
-          local_dispatch=False,
+          local_dispatch=True,
           fprop_dtype=tf.float32,
           gating_func=p.gating_func,
           use_xla_sharding=False,
