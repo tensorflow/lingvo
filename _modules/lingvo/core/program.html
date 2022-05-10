@@ -93,6 +93,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ml_perf_log</span> <span class="k">as</span> <span class="n">mlp_log</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">program_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 
@@ -1094,6 +1095,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_ema_applied</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span> <span class="o">=</span> <span class="p">{}</span>
 
+<div class="viewcode-block" id="DecodeProgram.FinalizeCallback"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.FinalizeCallback">[docs]</a>  <span class="k">def</span> <span class="nf">FinalizeCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_finalize_ret</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Callback after _FinalizeDecode thread done.&quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;DecodeProgram skip FinalizeCallback.&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="DecodeProgram.Summary"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.Summary">[docs]</a>  <span class="k">def</span> <span class="nf">Summary</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span></div>
 
@@ -1291,6 +1296,7 @@
       <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">:</span>
         <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
     <span class="n">num_examples_metric</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
+    <span class="c1"># TODO(xingwu): simplify summaries format.</span>
     <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="n">summaries</span><span class="p">[</span><span class="s1">&#39;cumulative_num_examples&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="p">[</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span>
@@ -1303,7 +1309,8 @@
         <span class="n">value</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="n">example_rate</span><span class="p">)])</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteSummaries</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">),</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">)</span>
+        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span><span class="si">}</span><span class="s1">@</span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
+        <span class="n">summaries</span><span class="p">)</span>
     <span class="n">decode_out_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">,</span>
                                    <span class="s1">&#39;decoder_out_</span><span class="si">%09d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">global_step</span><span class="p">)</span>
     <span class="n">decode_finalize_args</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">DecodeFinalizeArgs</span><span class="p">(</span>
@@ -1312,8 +1319,8 @@
 
     <span class="c1"># Result is not returned as a signal for &quot;done&quot;, unlike for training.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ReportVizierMetrics</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">summaries</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">summaries</span>
+    <span class="k">return</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">summaries</span></div>
 
 <div class="viewcode-block" id="DecodeProgram.RunForInput"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.RunForInput">[docs]</a>  <span class="k">def</span> <span class="nf">RunForInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">inp_instance</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Setup and execute Decode program.&quot;&quot;&quot;</span>
@@ -1417,10 +1424,12 @@
               <span class="n">buffered_decode_out</span><span class="p">,</span>
               <span class="n">postprocess_futures</span><span class="p">,</span>
           <span class="p">),</span>
+          <span class="n">callback</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">FinalizeCallback</span><span class="p">,</span>
           <span class="n">error_callback</span><span class="o">=</span><span class="n">_HandleError</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeDecode</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
-                           <span class="n">buffered_decode_out</span><span class="p">)</span>
+      <span class="n">finalize_ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FinalizeDecode</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">,</span> <span class="n">start_time</span><span class="p">,</span>
+                                          <span class="n">global_step</span><span class="p">,</span> <span class="n">buffered_decode_out</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">FinalizeCallback</span><span class="p">(</span><span class="n">finalize_ret</span><span class="p">)</span>
       <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="DecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -1440,7 +1449,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>  <span class="c1"># _SetProgramDir called here.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;MultiInputsDecodeProgram&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1457,7 +1466,13 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">,</span> <span class="s1">&#39;params.txt&#39;</span><span class="p">),</span>
                            <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
-      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span></div>
+      <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">status_cache</span> <span class="o">=</span> <span class="n">program_utils</span><span class="o">.</span><span class="n">DecodeStatusCache</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiInputsDecodeProgram.FinalizeCallback"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.FinalizeCallback">[docs]</a>  <span class="k">def</span> <span class="nf">FinalizeCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">finalize_ret</span><span class="p">):</span>
+    <span class="n">dataset_name</span><span class="p">,</span> <span class="n">summaries</span> <span class="o">=</span> <span class="n">finalize_ret</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">status_cache</span><span class="o">.</span><span class="n">UpdateDataset</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">summaries</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MultiInputsDecodeProgram.InitInputs"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.InitInputs">[docs]</a>  <span class="k">def</span> <span class="nf">InitInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;Init inputs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
@@ -1493,8 +1508,19 @@
 
 <div class="viewcode-block" id="MultiInputsDecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">futures</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># TODO(xingwu): move global_step to attribute.</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+      <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="o">.</span><span class="n">numpy</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+    <span class="n">ckpt_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;ckpt-</span><span class="si">{</span><span class="n">global_step</span><span class="si">}</span><span class="s1">&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">status_cache</span><span class="o">.</span><span class="n">UpdateCkpt</span><span class="p">(</span><span class="n">ckpt_key</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">)):</span>
       <span class="n">dataset_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">summaries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_cache</span><span class="o">.</span><span class="n">TryLoadCache</span><span class="p">(</span><span class="n">ckpt_key</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">summaries</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">summaries</span>
+        <span class="k">continue</span>
       <span class="n">inp_instance</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
       <span class="n">future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">RunForInput</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">inp_instance</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">future</span><span class="p">:</span>
@@ -1942,7 +1968,6 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">emails</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emails</span>
       <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">ckpt_path</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">checkpoint_to_load</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_exporter</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">summary_exporter</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
 
 <div class="viewcode-block" id="SimpleProgramSchedule.Programs"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Programs">[docs]</a>  <span class="k">def</span> <span class="nf">Programs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1960,25 +1985,26 @@
     <span class="n">train_time_in_secs</span> <span class="o">=</span> <span class="n">train_finish_time</span> <span class="o">-</span> <span class="n">start_time</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Train took </span><span class="si">%f</span><span class="s1"> seconds.&#39;</span><span class="p">,</span> <span class="n">train_time_in_secs</span><span class="p">)</span>
 
-    <span class="n">dataset_summaries</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">program_futures</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="n">futures</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="n">eval_program</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">async_postprocess</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_program</span><span class="p">,</span> <span class="n">DecodeProgram</span><span class="p">):</span>
         <span class="n">futures</span> <span class="o">=</span> <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">threadpool</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">futures</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+          <span class="n">futures</span> <span class="o">=</span> <span class="p">[</span><span class="n">futures</span><span class="p">]</span>
+        <span class="n">program_futures</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">futures</span><span class="p">,</span> <span class="n">eval_program</span><span class="p">))</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">eval_program</span><span class="p">,</span> <span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,</span> <span class="n">MultiInputsDecodeProgram</span><span class="p">)):</span>
-        <span class="c1"># Wait for async postprocess to be done.</span>
-        <span class="k">if</span> <span class="n">futures</span><span class="p">:</span>
-          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">futures</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-            <span class="k">for</span> <span class="n">future</span> <span class="ow">in</span> <span class="n">futures</span><span class="p">:</span>
-              <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-          <span class="k">else</span><span class="p">:</span>
-            <span class="n">futures</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
-        <span class="n">dataset_summaries</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">eval_program</span><span class="o">.</span><span class="n">Summary</span><span class="p">())</span>
+        <span class="n">program_futures</span><span class="o">.</span><span class="n">append</span><span class="p">(([],</span> <span class="n">eval_program</span><span class="p">))</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_summary_exporter&#39;</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_exporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">dataset_summaries</span><span class="p">)</span>
+      <span class="n">dataset_summaries</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">program_futures</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">p</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+          <span class="n">f</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+        <span class="n">dataset_summaries</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">Summary</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_exporter</span><span class="o">.</span><span class="n">Export</span><span class="p">(</span><span class="n">dataset_summaries</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">checkpoint_to_load</span><span class="p">)</span>
     <span class="n">eval_time_in_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">train_finish_time</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Eval took </span><span class="si">%f</span><span class="s1"> seconds.&#39;</span><span class="p">,</span> <span class="n">eval_time_in_secs</span><span class="p">)</span>
     <span class="n">should_exit</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span> <span class="o">==</span> <span class="mi">0</span><span class="p">)</span>
