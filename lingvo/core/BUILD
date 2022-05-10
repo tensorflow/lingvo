@@ -2399,6 +2399,15 @@ py_library(
 )
 
 py_library(
+    name = "program_utils",
+    srcs = ["program_utils.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "program_lib",
     srcs = ["program.py"],
     srcs_version = "PY3",
@@ -2408,6 +2417,7 @@ py_library(
         ":hyperparams",
         ":metrics",
         ":ml_perf_log",
+        ":program_utils",
         ":py_utils",
         ":summary_utils",
         "//lingvo:base_trial",

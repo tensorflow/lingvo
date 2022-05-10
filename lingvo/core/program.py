@@ -28,6 +28,7 @@ from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import metrics
 from lingvo.core import ml_perf_log as mlp_log
+from lingvo.core import program_utils
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
 
@@ -1029,6 +1030,10 @@ class DecodeProgram(BaseProgram):
     self._ema_applied = False
     self._dataset_summaries = {}
 
+  def FinalizeCallback(self, unused_finalize_ret):
+    """Callback after _FinalizeDecode thread done."""
+    tf.logging.info('DecodeProgram skip FinalizeCallback.')
+
   def Summary(self):
     return self._dataset_summaries
 
@@ -1226,6 +1231,7 @@ class DecodeProgram(BaseProgram):
       for future in futures:
         future.get()
     num_examples_metric = dec_metrics['num_samples_in_batch']
+    # TODO(xingwu): simplify summaries format.
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
     summaries['cumulative_num_examples'] = tf.Summary(value=[
         tf.Summary.Value(
@@ -1238,7 +1244,8 @@ class DecodeProgram(BaseProgram):
         value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
 
     self._WriteSummaries(
-        os.path.basename(self._program_dir), global_step, summaries)
+        f'{os.path.basename(self._program_dir)}@{dataset_name}', global_step,
+        summaries)
     decode_out_path = os.path.join(self._program_dir,
                                    'decoder_out_%09d' % global_step)
     decode_finalize_args = base_model.DecodeFinalizeArgs(
@@ -1247,8 +1254,8 @@ class DecodeProgram(BaseProgram):
 
     # Result is not returned as a signal for "done", unlike for training.
     self._ReportVizierMetrics(global_step, dec_metrics)
-
     self._dataset_summaries[dataset_name] = summaries
+    return dataset_name, summaries
 
   def RunForInput(self, dataset_name, inp_instance, sess=None, threadpool=None):
     """Setup and execute Decode program."""
@@ -1352,10 +1359,12 @@ class DecodeProgram(BaseProgram):
               buffered_decode_out,
               postprocess_futures,
           ),
+          callback=self.FinalizeCallback,
           error_callback=_HandleError)
     else:
-      self._FinalizeDecode(dataset_name, dec_metrics, start_time, global_step,
-                           buffered_decode_out)
+      finalize_ret = self._FinalizeDecode(dataset_name, dec_metrics, start_time,
+                                          global_step, buffered_decode_out)
+      self.FinalizeCallback(finalize_ret)
       return None
 
   def Run(self, sess=None, threadpool=None):
@@ -1375,7 +1384,7 @@ class MultiInputsDecodeProgram(DecodeProgram):
     return p
 
   def __init__(self, params, **kwargs):
-    super().__init__(params, **kwargs)
+    super().__init__(params, **kwargs)  # _SetProgramDir called here.
     self._program_name = 'MultiInputsDecodeProgram'
     self._inputs = []
     self.tpu_outs = {}
@@ -1393,6 +1402,12 @@ class MultiInputsDecodeProgram(DecodeProgram):
     with tf.io.gfile.GFile(os.path.join(self._program_dir, 'params.txt'),
                            'w') as f:
       f.write(p.ToText())
+
+    self.status_cache = program_utils.DecodeStatusCache(self._program_dir)
+
+  def FinalizeCallback(self, finalize_ret):
+    dataset_name, summaries = finalize_ret
+    self.status_cache.UpdateDataset(dataset_name, summaries)
 
   def InitInputs(self, sess=None):
     self.SetStatusMessage('Init inputs %s' % self._program_name)
@@ -1428,8 +1443,19 @@ class MultiInputsDecodeProgram(DecodeProgram):
 
   def Run(self, sess=None, threadpool=None):
     futures = []
+    # TODO(xingwu): move global_step to attribute.
+    if py_utils.IsEagerMode():
+      global_step = self._model.global_step.numpy()
+    else:
+      global_step = sess.run(self._model.global_step)
+    ckpt_key = f'ckpt-{global_step}'
+    self.status_cache.UpdateCkpt(ckpt_key)
     for i in range(len(self.params.dataset_names)):
       dataset_name = self.params.dataset_names[i]
+      summaries = self.status_cache.TryLoadCache(ckpt_key, dataset_name)
+      if summaries:
+        self._dataset_summaries[dataset_name] = summaries
+        continue
       inp_instance = self._inputs[i]
       future = self.RunForInput(dataset_name, inp_instance, sess, threadpool)
       if future:
@@ -1877,7 +1903,6 @@ class SimpleProgramSchedule:
     if p.summary_exporter:
       p.summary_exporter.emails = p.emails
       p.summary_exporter.logdir = p.logdir
-      p.summary_exporter.ckpt_path = p.checkpoint_to_load
       self._summary_exporter = p.summary_exporter.Instantiate()
 
   def Programs(self):
@@ -1895,25 +1920,26 @@ class SimpleProgramSchedule:
     train_time_in_secs = train_finish_time - start_time
     tf.logging.info('Train took %f seconds.', train_time_in_secs)
 
-    dataset_summaries = {}
+    program_futures = []
     for eval_program in self.eval_programs:
       futures = None
       eval_program.train_executions_per_eval = p.train_executions_per_eval
       if p.async_postprocess and isinstance(eval_program, DecodeProgram):
         futures = eval_program.Run(sess, threadpool)
+        if not isinstance(futures, list):
+          futures = [futures]
+        program_futures.append((futures, eval_program))
       else:
         eval_program.Run(sess)
-      if isinstance(eval_program, (DecodeProgram, MultiInputsDecodeProgram)):
-        # Wait for async postprocess to be done.
-        if futures:
-          if isinstance(futures, list):
-            for future in futures:
-              future.get()
-          else:
-            futures.get()
-        dataset_summaries.update(eval_program.Summary())
+        program_futures.append(([], eval_program))
+
     if p.train_executions_per_eval == 0 and hasattr(self, '_summary_exporter'):
-      self._summary_exporter.Export(dataset_summaries)
+      dataset_summaries = {}
+      for p in program_futures:
+        for f in p[0]:
+          f.get()
+        dataset_summaries.update(p[1].Summary())
+      self._summary_exporter.Export(dataset_summaries, p.checkpoint_to_load)
     eval_time_in_secs = time.time() - train_finish_time
     tf.logging.info('Eval took %f seconds.', eval_time_in_secs)
     should_exit = (p.train_executions_per_eval == 0)
