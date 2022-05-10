@@ -923,6 +923,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Pre or post layer norm&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_droppath_prob&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
              <span class="s1">&#39;Probability at which we drop the entire residual path.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gating_func&#39;</span><span class="p">,</span> <span class="s1">&#39;top_2&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;Gating function, can be top2 or expert_choice.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_experts&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of experts in this layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;num_groups&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
@@ -1123,7 +1125,6 @@
       <span class="n">reshaped_paddings</span> <span class="o">=</span> <span class="n">_split</span><span class="p">(</span><span class="n">reshaped_paddings</span><span class="p">,</span> <span class="n">ap</span><span class="o">.</span><span class="n">gs</span><span class="p">)</span>
 
       <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;gsm,me-&gt;gse&#39;</span><span class="p">,</span> <span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">gate</span><span class="p">)</span>
 
       <span class="c1"># Here and below, we assume num devices equals num groups.</span>
       <span class="c1"># TODO(yonghui): Expose some of the options below through params.</span>
@@ -1131,24 +1132,28 @@
       <span class="c1"># due to much smaller group size.</span>
       <span class="c1"># TODO(yonghui): Avoid explicitly casting everything to fp32 once</span>
       <span class="c1"># Top2GatingOnLogits is stable in low-precision mode.</span>
-      <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">Top2GatingOnLogits</span><span class="p">(</span>
-          <span class="n">inputs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="n">gating_output</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ComputeGating</span><span class="p">(</span>
+          <span class="n">w</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">gate</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="n">reshaped_inputs</span><span class="p">,</span>
           <span class="n">paddings</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">reshaped_paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-          <span class="n">logits</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
           <span class="n">num_devices</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span>
           <span class="n">experts_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_experts</span><span class="p">,</span>
           <span class="n">expert_capacity_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>  <span class="c1"># automatically decided.</span>
+          <span class="n">local_dispatch</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
           <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+          <span class="n">gating_func</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">gating_func</span><span class="p">,</span>
           <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
           <span class="n">second_expert_policy</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">second_expert_policy</span><span class="p">,</span>
           <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-          <span class="c1"># legacy_mtf_behavior=True doesn&#39;t normalize gates when one expert is</span>
-          <span class="c1"># being dropped. This is more appropriate for routing decisions like</span>
-          <span class="c1"># &#39;random&#39;.</span>
+          <span class="c1"># legacy_mtf_behavior=True doesn&#39;t normalize gates when one expert</span>
+          <span class="c1"># is being dropped. This is more appropriate for routing decisions</span>
+          <span class="c1"># like &#39;random&#39;.</span>
           <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
           <span class="c1"># x 2.0 because we choose top-2 experts per example.</span>
           <span class="n">capacity_factor</span><span class="o">=</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">expert_capacity_factor</span><span class="p">)</span>
-
+      <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">gating_output</span><span class="o">.</span><span class="n">aux_loss</span><span class="p">,</span> <span class="n">gating_output</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span>
+          <span class="n">gating_output</span><span class="o">.</span><span class="n">dispatch_tensor</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">fprop_dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
         <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">aux_loss</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
         <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
