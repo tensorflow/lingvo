@@ -213,7 +213,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     num_pd_bboxes = feed_data.pd.imgid.shape[0]
     gt_class_ids = tf.constant(classid, dtype=tf.uint8, shape=[num_gt_bboxes])
     pd_class_ids = tf.constant(classid, dtype=tf.uint8, shape=[num_pd_bboxes])
-    ap, ap_ha, pr, pr_ha, _ = py_metrics_ops.detection_metrics(
+    ap, ap_ha, _, pr, pr_ha, _, _ = py_metrics_ops.detection_metrics(
         prediction_bbox=f_pd_bbox,
         prediction_type=pd_class_ids,
         prediction_score=f_pd_score,
