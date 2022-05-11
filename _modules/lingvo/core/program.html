@@ -300,7 +300,7 @@
                               <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">simple_value</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseProgram._WriteInputDataStats"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._WriteInputDataStats">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteInputDataStats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseProgram._WriteInputDataStats"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._WriteInputDataStats">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteInputDataStats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">unused_kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Write input data stats for model training as TF summaries.</span>
 
 <span class="sd">    Args:</span>
@@ -325,7 +325,8 @@
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;_InfeedLoop </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">inp_instance</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span>
+          <span class="n">sess</span><span class="p">,</span> <span class="n">dataset_name</span><span class="o">=</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">inp_instance</span><span class="o">=</span><span class="n">inp_instance</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop done&#39;</span><span class="p">)</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop exception </span><span class="si">%r</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
@@ -1095,6 +1096,66 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_ema_applied</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dataset_summaries</span> <span class="o">=</span> <span class="p">{}</span>
 
+<div class="viewcode-block" id="DecodeProgram._DatasetSummaryWriter"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._DatasetSummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_DatasetSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_dataset_name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the FileWriter object to use for summaries.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span></div>
+
+<div class="viewcode-block" id="DecodeProgram._WriteSummaries"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._WriteSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write summaries to be viewed by TensorBoard.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      job_name: The name of this job (&#39;trainer&#39;, &#39;evaler&#39;, etc.)</span>
+<span class="sd">      dataset_name: The dataset name that&#39;s decoded.</span>
+<span class="sd">      global_step: Integer number of trainer steps (not a tensor).</span>
+<span class="sd">      summaries: Dict of {summary_name: tf.Summary()}.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">summaries</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="k">with</span> <span class="n">contextlib</span><span class="o">.</span><span class="n">ExitStack</span><span class="p">()</span> <span class="k">as</span> <span class="n">stack</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+        <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetSummaryWriter</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span><span class="o">.</span><span class="n">as_default</span><span class="p">())</span>
+      <span class="k">for</span> <span class="n">unused_name</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">summaries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+          <span class="c1"># TODO(laigd): make this work with v1 summaries.</span>
+          <span class="c1"># tf.compat.v2.summary.scalar(tag, value, step=steps)</span>
+          <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetSummaryWriter</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span>
+              <span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+          <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;simple_value&#39;</span><span class="p">):</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">@</span><span class="si">%s</span><span class="s1"> summary on checkpoint@</span><span class="si">%d</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> = </span><span class="si">%.8g</span><span class="s1">&#39;</span><span class="p">,</span>
+                              <span class="n">job_name</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span>
+                              <span class="n">value</span><span class="o">.</span><span class="n">simple_value</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetSummaryWriter</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DecodeProgram._WriteInputDataStats"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._WriteInputDataStats">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteInputDataStats</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Write input data stats for model training as TF summaries.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: The Tensorflow session.</span>
+<span class="sd">      **kwargs: dict of extra args, can include,</span>
+<span class="sd">        - dataset_name: the dataset name to run infeed.</span>
+<span class="sd">        - inp_instance: the input instance that will run infeed op.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="s1">&#39;dataset_name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span> <span class="ow">or</span> <span class="s1">&#39;inp_instance&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;dataset_name and inp_instance must be set for &#39;</span>
+                       <span class="s1">&#39;DecodeProgram._WriteInputDataStats.&#39;</span><span class="p">)</span>
+    <span class="n">dataset_name</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;dataset_name&#39;</span><span class="p">]</span>
+    <span class="n">inp_instance</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;inp_instance&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">inp_instance</span><span class="o">.</span><span class="n">merged_input_data_summary_op</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span>
+        <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_write_train_input_stats</span><span class="p">):</span>
+      <span class="k">return</span>
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">global_step</span> <span class="o">%</span>
+        <span class="n">inp_instance</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_stats_summary_interval_steps</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+      <span class="n">summary_str</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">inp_instance</span><span class="o">.</span><span class="n">merged_input_data_summary_op</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetSummaryWriter</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span>
+          <span class="n">summary_str</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetSummaryWriter</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="DecodeProgram.FinalizeCallback"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.FinalizeCallback">[docs]</a>  <span class="k">def</span> <span class="nf">FinalizeCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_finalize_ret</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Callback after _FinalizeDecode thread done.&quot;&quot;&quot;</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;DecodeProgram skip FinalizeCallback.&#39;</span><span class="p">)</span></div>
@@ -1157,7 +1218,8 @@
     <span class="k">def</span> <span class="nf">_HandleEndOfData</span><span class="p">():</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;End of dataset </span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
       <span class="n">infeed_step_queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># -1 signals reaching end of dataset.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_WriteInputDataStats</span><span class="p">(</span>
+          <span class="n">sess</span><span class="p">,</span> <span class="n">dataset_name</span><span class="o">=</span><span class="n">dataset_name</span><span class="p">,</span> <span class="n">inp_instance</span><span class="o">=</span><span class="n">inp_instance</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;_InfeedLoop done&#39;</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
@@ -1309,7 +1371,7 @@
         <span class="n">value</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="n">example_rate</span><span class="p">)])</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteSummaries</span><span class="p">(</span>
-        <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span><span class="si">}</span><span class="s1">@</span><span class="si">{</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">),</span> <span class="n">dataset_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span>
         <span class="n">summaries</span><span class="p">)</span>
     <span class="n">decode_out_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">,</span>
                                    <span class="s1">&#39;decoder_out_</span><span class="si">%09d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">global_step</span><span class="p">)</span>
@@ -1335,7 +1397,7 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Resetting input_generator.&#39;</span><span class="p">)</span>
       <span class="n">inp_instance</span><span class="o">.</span><span class="n">Reset</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetSummaryWriter</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
           <span class="c1"># In eager mode, after resetting the input generator, we need to</span>
           <span class="c1"># re-trace the infeed tf.function to ensure it uses the new iterator.</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
@@ -1453,6 +1515,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;MultiInputsDecodeProgram&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_objs</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># one writer per dataset</span>
 
 <div class="viewcode-block" id="MultiInputsDecodeProgram._SetProgramDir"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram._SetProgramDir">[docs]</a>  <span class="k">def</span> <span class="nf">_SetProgramDir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Set program dir for output.&quot;&quot;&quot;</span>
@@ -1469,6 +1532,19 @@
       <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">status_cache</span> <span class="o">=</span> <span class="n">program_utils</span><span class="o">.</span><span class="n">DecodeStatusCache</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiInputsDecodeProgram._DatasetSummaryWriter"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram._DatasetSummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_DatasetSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dataset_name</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_objs</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_objs</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">ds_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">:</span>
+        <span class="n">ds_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">,</span> <span class="n">ds_name</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">ds_dir</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
+          <span class="n">file_writer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">create_file_writer</span><span class="p">(</span><span class="n">ds_dir</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">file_writer</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">FileWriter</span><span class="p">(</span><span class="n">ds_dir</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_objs</span><span class="p">[</span><span class="n">ds_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">file_writer</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer_objs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="MultiInputsDecodeProgram.FinalizeCallback"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.FinalizeCallback">[docs]</a>  <span class="k">def</span> <span class="nf">FinalizeCallback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">finalize_ret</span><span class="p">):</span>
     <span class="n">dataset_name</span><span class="p">,</span> <span class="n">summaries</span> <span class="o">=</span> <span class="n">finalize_ret</span>
@@ -1499,12 +1575,14 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="c1"># TODO(xingwu): Verify for the eager mode.</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Eager mode MultiInputsDecodeProgram is not ready!&#39;</span><span class="p">)</span>
-        <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">InfeedTFFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-                  <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span></div>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">)):</span>
+          <span class="n">dataset_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+          <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetSummaryWriter</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">infeed_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">InfeedTFFunc</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">tpu_outs</span><span class="p">[</span><span class="n">dataset_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)(</span><span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">DecodeFunc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="MultiInputsDecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiInputsDecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">futures</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1650,7 +1728,8 @@
     <span class="n">summaries</span><span class="p">[</span><span class="s1">&#39;examples/sec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span>
         <span class="n">value</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="n">example_rate</span><span class="p">)])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteSummaries</span><span class="p">(</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">),</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span>
+        <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReportVizierMetrics</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span></div></div>
 

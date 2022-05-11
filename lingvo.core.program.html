@@ -147,7 +147,7 @@ available to be executed on demand without significant delay.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.BaseProgram._WriteInputDataStats">
-<span class="sig-name descname"><span class="pre">_WriteInputDataStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._WriteInputDataStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._WriteInputDataStats" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_WriteInputDataStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">unused_kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._WriteInputDataStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._WriteInputDataStats" title="Permalink to this definition"></a></dt>
 <dd><p>Write input data stats for model training as TF summaries.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -527,6 +527,44 @@ graph mode, or a callable returning such in eager mode.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._DatasetSummaryWriter">
+<span class="sig-name descname"><span class="pre">_DatasetSummaryWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unused_dataset_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._DatasetSummaryWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._DatasetSummaryWriter" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the FileWriter object to use for summaries.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._WriteSummaries">
+<span class="sig-name descname"><span class="pre">_WriteSummaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">job_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summaries</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._WriteSummaries"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._WriteSummaries" title="Permalink to this definition"></a></dt>
+<dd><p>Write summaries to be viewed by TensorBoard.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_name</strong> – The name of this job (‘trainer’, ‘evaler’, etc.)</p></li>
+<li><p><strong>dataset_name</strong> – The dataset name that’s decoded.</p></li>
+<li><p><strong>global_step</strong> – Integer number of trainer steps (not a tensor).</p></li>
+<li><p><strong>summaries</strong> – Dict of {summary_name: tf.Summary()}.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram._WriteInputDataStats">
+<span class="sig-name descname"><span class="pre">_WriteInputDataStats</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._WriteInputDataStats"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._WriteInputDataStats" title="Permalink to this definition"></a></dt>
+<dd><p>Write input data stats for model training as TF summaries.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – The Tensorflow session.</p></li>
+<li><p><strong>**kwargs</strong> – dict of extra args, can include,
+- dataset_name: the dataset name to run infeed.
+- inp_instance: the input instance that will run infeed op.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.DecodeProgram.FinalizeCallback">
 <span class="sig-name descname"><span class="pre">FinalizeCallback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unused_finalize_ret</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.FinalizeCallback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.FinalizeCallback" title="Permalink to this definition"></a></dt>
 <dd><p>Callback after _FinalizeDecode thread done.</p>
@@ -630,6 +668,12 @@ graph mode, or a callable returning such in eager mode.</p></li>
 <dt class="sig sig-object py" id="lingvo.core.program.MultiInputsDecodeProgram._SetProgramDir">
 <span class="sig-name descname"><span class="pre">_SetProgramDir</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiInputsDecodeProgram._SetProgramDir"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiInputsDecodeProgram._SetProgramDir" title="Permalink to this definition"></a></dt>
 <dd><p>Set program dir for output.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.MultiInputsDecodeProgram._DatasetSummaryWriter">
+<span class="sig-name descname"><span class="pre">_DatasetSummaryWriter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MultiInputsDecodeProgram._DatasetSummaryWriter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.MultiInputsDecodeProgram._DatasetSummaryWriter" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the FileWriter object to use for summaries.</p>
 </dd></dl>
 
 <dl class="py method">
