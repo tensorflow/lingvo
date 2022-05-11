@@ -235,7 +235,7 @@ class BaseProgram:
                               global_step, value.tag, value.simple_value)
         self._summary_writer.flush()
 
-  def _WriteInputDataStats(self, sess=None):
+  def _WriteInputDataStats(self, sess=None, **unused_kwargs):
     """Write input data stats for model training as TF summaries.
 
     Args:
@@ -260,7 +260,8 @@ class BaseProgram:
       for i in range(self._steps_per_loop):
         tf.logging.vlog(1, '_InfeedLoop %d', i)
         sess.run(inp_instance.tpu_infeed_op)
-      self._WriteInputDataStats(sess)
+      self._WriteInputDataStats(
+          sess, dataset_name=dataset_name, inp_instance=inp_instance)
       tf.logging.info('_InfeedLoop done')
     except Exception as e:
       tf.logging.info('_InfeedLoop exception %r %s', e, e)
@@ -1030,6 +1031,66 @@ class DecodeProgram(BaseProgram):
     self._ema_applied = False
     self._dataset_summaries = {}
 
+  def _DatasetSummaryWriter(self, unused_dataset_name):
+    """Returns the FileWriter object to use for summaries."""
+    return self._summary_writer
+
+  def _WriteSummaries(self, job_name, dataset_name, global_step, summaries):
+    """Write summaries to be viewed by TensorBoard.
+
+    Args:
+      job_name: The name of this job ('trainer', 'evaler', etc.)
+      dataset_name: The dataset name that's decoded.
+      global_step: Integer number of trainer steps (not a tensor).
+      summaries: Dict of {summary_name: tf.Summary()}.
+    """
+    if not summaries:
+      return
+    with contextlib.ExitStack() as stack:
+      if py_utils.IsEagerMode():
+        stack.enter_context(
+            self._DatasetSummaryWriter(dataset_name).as_default())
+      for unused_name, summary in sorted(summaries.items()):
+        if py_utils.IsEagerMode():
+          # TODO(laigd): make this work with v1 summaries.
+          # tf.compat.v2.summary.scalar(tag, value, step=steps)
+          pass
+        else:
+          self._DatasetSummaryWriter(dataset_name).add_summary(
+              summary, global_step)
+        if summary.value:
+          for value in summary.value:
+            if value.HasField('simple_value'):
+              tf.logging.info('%s@%s summary on checkpoint@%d %s = %.8g',
+                              job_name, dataset_name, global_step, value.tag,
+                              value.simple_value)
+        self._DatasetSummaryWriter(dataset_name).flush()
+
+  def _WriteInputDataStats(self, sess=None, **kwargs):
+    """Write input data stats for model training as TF summaries.
+
+    Args:
+      sess: The Tensorflow session.
+      **kwargs: dict of extra args, can include,
+        - dataset_name: the dataset name to run infeed.
+        - inp_instance: the input instance that will run infeed op.
+    """
+    if 'dataset_name' not in kwargs or 'inp_instance' not in kwargs:
+      raise ValueError('dataset_name and inp_instance must be set for '
+                       'DecodeProgram._WriteInputDataStats.')
+    dataset_name = kwargs['dataset_name']
+    inp_instance = kwargs['inp_instance']
+    if (inp_instance.merged_input_data_summary_op is None or
+        not self._write_train_input_stats):
+      return
+    global_step = sess.run(self._model.global_step)
+    if (global_step %
+        inp_instance.params.input_stats_summary_interval_steps == 0):
+      summary_str = sess.run(inp_instance.merged_input_data_summary_op)
+      self._DatasetSummaryWriter(dataset_name).add_summary(
+          summary_str, global_step)
+      self._DatasetSummaryWriter(dataset_name).flush()
+
   def FinalizeCallback(self, unused_finalize_ret):
     """Callback after _FinalizeDecode thread done."""
     tf.logging.info('DecodeProgram skip FinalizeCallback.')
@@ -1092,7 +1153,8 @@ class DecodeProgram(BaseProgram):
     def _HandleEndOfData():
       tf.logging.info(f'End of dataset {dataset_name}.')
       infeed_step_queue.put(-1)  # -1 signals reaching end of dataset.
-      self._WriteInputDataStats(sess)
+      self._WriteInputDataStats(
+          sess, dataset_name=dataset_name, inp_instance=inp_instance)
       tf.logging.info('_InfeedLoop done')
 
     try:
@@ -1244,7 +1306,7 @@ class DecodeProgram(BaseProgram):
         value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
 
     self._WriteSummaries(
-        f'{os.path.basename(self._program_dir)}@{dataset_name}', global_step,
+        os.path.basename(self._program_dir), dataset_name, global_step,
         summaries)
     decode_out_path = os.path.join(self._program_dir,
                                    'decoder_out_%09d' % global_step)
@@ -1270,7 +1332,7 @@ class DecodeProgram(BaseProgram):
       tf.logging.info('Resetting input_generator.')
       inp_instance.Reset(sess)
       if py_utils.IsEagerMode():
-        with self._summary_writer.as_default():
+        with self._DatasetSummaryWriter(dataset_name).as_default():
           # In eager mode, after resetting the input generator, we need to
           # re-trace the infeed tf.function to ensure it uses the new iterator.
           self.infeed_fn = tf.function(autograph=False)(functools.partial(
@@ -1388,6 +1450,7 @@ class MultiInputsDecodeProgram(DecodeProgram):
     self._program_name = 'MultiInputsDecodeProgram'
     self._inputs = []
     self.tpu_outs = {}
+    self._summary_writer_objs = {}  # one writer per dataset
 
   def _SetProgramDir(self):
     """Set program dir for output."""
@@ -1404,6 +1467,19 @@ class MultiInputsDecodeProgram(DecodeProgram):
       f.write(p.ToText())
 
     self.status_cache = program_utils.DecodeStatusCache(self._program_dir)
+
+  def _DatasetSummaryWriter(self, dataset_name):
+    if not self._summary_writer_objs:
+      self._summary_writer_objs = {}
+      for ds_name in self.params.dataset_names:
+        ds_dir = os.path.join(self._program_dir, ds_name)
+        tf.io.gfile.makedirs(ds_dir)
+        if py_utils.IsEagerMode():
+          file_writer = tf.compat.v2.summary.create_file_writer(ds_dir)
+        else:
+          file_writer = tf.summary.FileWriter(ds_dir)
+        self._summary_writer_objs[ds_name] = file_writer
+    return self._summary_writer_objs[dataset_name]
 
   def FinalizeCallback(self, finalize_ret):
     dataset_name, summaries = finalize_ret
@@ -1434,12 +1510,14 @@ class MultiInputsDecodeProgram(DecodeProgram):
       else:
         # TODO(xingwu): Verify for the eager mode.
         tf.logging.warning('Eager mode MultiInputsDecodeProgram is not ready!')
-        with self._summary_writer.as_default():
-          self.infeed_fn = tf.function(autograph=False)(
-              self.InfeedTFFunc).get_concrete_function()
-          self.tpu_outs[dataset_name] = (
-              tf.function(autograph=False)(functools.partial(
-                  self.DecodeFunc, self._inputs[i])).get_concrete_function())
+        for i in range(len(self._inputs)):
+          dataset_name = self.params.dataset_names[i]
+          with self._DatasetSummaryWriter(dataset_name).as_default():
+            self.infeed_fn = tf.function(autograph=False)(
+                self.InfeedTFFunc).get_concrete_function()
+            self.tpu_outs[dataset_name] = (
+                tf.function(autograph=False)(functools.partial(
+                    self.DecodeFunc, self._inputs[i])).get_concrete_function())
 
   def Run(self, sess=None, threadpool=None):
     futures = []
@@ -1585,7 +1663,8 @@ class ExperimentalDecodeProgram(DecodeProgram):
     summaries['examples/sec'] = tf.Summary(
         value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
     self._WriteSummaries(
-        os.path.basename(self._program_dir), global_step, summaries)
+        os.path.basename(self._program_dir), self.params.dataset_name,
+        global_step, summaries)
 
     return self._ReportVizierMetrics(global_step, dec_metrics)
 
