@@ -2569,8 +2569,7 @@
 <span class="sd">    - combine_tensor: G`EC Tensor for combining expert outputs.</span>
 <span class="sd">    - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to experts.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">mask_dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">mask_dtype</span> <span class="o">=</span> <span class="n">fprop_dtype</span>
+  <span class="k">del</span> <span class="n">mask_dtype</span>
   <span class="k">if</span> <span class="n">use_xla_sharding</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Sharding propagation should be sufficient and Splits &#39;</span>
                        <span class="s1">&#39;within Top2GatingOnLogits are generally redundant.&#39;</span><span class="p">)</span>
@@ -2578,7 +2577,7 @@
   <span class="c1"># logits.dtype could be tf.float32</span>
   <span class="c1"># Tensor shape: G`SE</span>
   <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>  <span class="c1"># along E dim</span>
-  <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+  <span class="n">scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
 
   <span class="n">seq_len</span> <span class="o">=</span> <span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
   <span class="c1"># number of ffn layers for each expert.</span>
@@ -2591,8 +2590,8 @@
   <span class="c1"># b x num_experts(k) x bucket_size(c) x seq_len(n)</span>
   <span class="c1"># Tensor shpae: G`ECS</span>
   <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">)</span>
-  <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">),</span> <span class="n">gate</span><span class="p">,</span> <span class="n">perm</span></div>
+  <span class="n">perm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">perm</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">),</span> <span class="n">gate</span><span class="p">,</span> <span class="n">perm</span></div>
 
 
 <div class="viewcode-block" id="OptimalTransportOnlogits"><a class="viewcode-back" href="../../../lingvo.core.gshard_layers.html#lingvo.core.gshard_layers.OptimalTransportOnlogits">[docs]</a><span class="k">def</span> <span class="nf">OptimalTransportOnlogits</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
