@@ -2504,8 +2504,7 @@ def TokenShufflingOnlogits(inputs,
     - combine_tensor: G`EC Tensor for combining expert outputs.
     - dispatch_tensor: G`ECS Tensor, scattering/dispatching inputs to experts.
   """
-  if mask_dtype is None:
-    mask_dtype = fprop_dtype
+  del mask_dtype
   if use_xla_sharding:
     tf.logging.warning('Sharding propagation should be sufficient and Splits '
                        'within Top2GatingOnLogits are generally redundant.')
@@ -2513,7 +2512,7 @@ def TokenShufflingOnlogits(inputs,
   # logits.dtype could be tf.float32
   # Tensor shape: G`SE
   scores = tf.nn.softmax(logits)  # along E dim
-  scores = tf.cast(scores, tf.bfloat16)
+  scores = tf.cast(scores, fprop_dtype)
 
   seq_len = logits.shape[1]
   # number of ffn layers for each expert.
@@ -2526,8 +2525,8 @@ def TokenShufflingOnlogits(inputs,
   # b x num_experts(k) x bucket_size(c) x seq_len(n)
   # Tensor shpae: G`ECS
   perm = tf.one_hot(indices, seq_len)
-  perm = tf.cast(perm, tf.bfloat16)
-  return tf.constant(0.0, dtype=tf.bfloat16), gate, perm
+  perm = tf.cast(perm, fprop_dtype)
+  return tf.constant(0.0, dtype=fprop_dtype), gate, perm
 
 
 def OptimalTransportOnlogits(logits, experts_dim, use_xla_sharding=False):
