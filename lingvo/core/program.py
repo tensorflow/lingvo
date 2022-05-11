@@ -1935,10 +1935,10 @@ class SimpleProgramSchedule:
 
     if p.train_executions_per_eval == 0 and hasattr(self, '_summary_exporter'):
       dataset_summaries = {}
-      for p in program_futures:
-        for f in p[0]:
+      for pf in program_futures:
+        for f in pf[0]:
           f.get()
-        dataset_summaries.update(p[1].Summary())
+        dataset_summaries.update(pf[1].Summary())
       self._summary_exporter.Export(dataset_summaries, p.checkpoint_to_load)
     eval_time_in_secs = time.time() - train_finish_time
     tf.logging.info('Eval took %f seconds.', eval_time_in_secs)
