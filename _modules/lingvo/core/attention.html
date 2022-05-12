@@ -1499,9 +1499,9 @@
               <span class="n">weight</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">source_proj</span><span class="p">,</span>
               <span class="n">w_feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
           <span class="n">w_source_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">w_source_proj</span><span class="p">)</span>
-          <span class="n">source_projected</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
-                  <span class="n">source_vecs</span><span class="p">,</span> <span class="n">w_source_proj</span><span class="p">,</span> <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">))</span>
+          <span class="n">source_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">w_source_proj</span><span class="p">)</span>
+          <span class="n">source_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">,</span>
+                                          <span class="n">source_projected</span><span class="p">)</span>
           <span class="n">source_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="s1">&#39;source_proj&#39;</span><span class="p">,</span> <span class="n">source_projected</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
             <span class="n">source_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
@@ -1538,8 +1538,9 @@
               <span class="n">w_feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
           <span class="n">w_ctx_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">w_ctx_proj</span><span class="p">)</span>
 
-          <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
-              <span class="n">source_contexts</span><span class="p">,</span> <span class="n">w_ctx_proj</span><span class="p">,</span> <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">)</span>
+          <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">,</span> <span class="n">w_ctx_proj</span><span class="p">)</span>
+          <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">,</span>
+                                                   <span class="n">source_contexts_projected</span><span class="p">)</span>
           <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span>
               <span class="s1">&#39;ctx_proj&#39;</span><span class="p">,</span> <span class="n">source_contexts_projected</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
@@ -1766,8 +1767,9 @@
           <span class="n">weight</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">query_proj</span><span class="p">,</span>
           <span class="n">w_feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">w_query_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">w_query_proj</span><span class="p">)</span>
-      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
-          <span class="n">query_vec</span><span class="p">,</span> <span class="n">w_query_proj</span><span class="p">,</span> <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">)</span>
+      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">w_query_proj</span><span class="p">)</span>
+      <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">,</span>
+                                         <span class="n">query_vec_projected</span><span class="p">)</span>
       <span class="n">query_vec_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="s1">&#39;query_proj&#39;</span><span class="p">,</span>
                                                <span class="n">query_vec_projected</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
@@ -1832,8 +1834,8 @@
             <span class="n">weight</span><span class="o">=</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_post_proj</span><span class="p">,</span>
             <span class="n">w_feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">w_ctx_post_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">w_ctx_post_proj</span><span class="p">)</span>
-        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
-            <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">w_ctx_post_proj</span><span class="p">,</span> <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">)</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">w_ctx_post_proj</span><span class="p">)</span>
+        <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
         <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj&#39;</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
           <span class="n">ctx_vec</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
@@ -2042,10 +2044,9 @@
 
       <span class="c1"># =&gt; [sl, sb, hd]</span>
       <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">location_feats</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-      <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
-          <span class="n">CollapseOutDim</span><span class="p">(</span><span class="n">location_feats</span><span class="p">),</span>
-          <span class="n">inputs</span><span class="o">.</span><span class="n">location_var</span><span class="p">,</span>
-          <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;logits_mul&#39;</span><span class="p">)</span>
+      <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
+          <span class="n">CollapseOutDim</span><span class="p">(</span><span class="n">location_feats</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">location_var</span><span class="p">)</span>
+      <span class="n">location_hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits_mul&#39;</span><span class="p">,</span> <span class="n">location_hidden</span><span class="p">)</span>
 
       <span class="n">sl</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">tb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
@@ -2065,10 +2066,10 @@
       <span class="c1"># logits is of shape [sl * tb/sb * sb, 1]. Computes dot product</span>
       <span class="c1"># between v with every rows in &#39;summed&#39;. Then we reshape the</span>
       <span class="c1"># result to be of shape [sl, tb/sb, sb].</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">]),</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">hidden_v</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-          <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;logits&#39;</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">hidden_v</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">summed</span><span class="p">)[:</span><span class="mi">3</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">logits</span>
 
@@ -2096,10 +2097,9 @@
       <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
       <span class="c1"># =&gt; [sl, sb, hd]</span>
       <span class="n">location_feats</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">location_feats</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-      <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
-          <span class="n">CollapseOutDim</span><span class="p">(</span><span class="n">location_feats</span><span class="p">),</span>
-          <span class="n">inputs</span><span class="o">.</span><span class="n">location_var</span><span class="p">,</span>
-          <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;logits_mul&#39;</span><span class="p">)</span>
+      <span class="n">location_hidden</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
+          <span class="n">CollapseOutDim</span><span class="p">(</span><span class="n">location_feats</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">location_var</span><span class="p">)</span>
+      <span class="n">location_hidden</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits_mul&#39;</span><span class="p">,</span> <span class="n">location_hidden</span><span class="p">)</span>
       <span class="n">sl</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">tb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">location_feats</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">hd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">location_var</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
@@ -2117,10 +2117,10 @@
       <span class="c1"># logits is of shape [sl * sb, 1]. Computes dot product</span>
       <span class="c1"># between v with every rows in &#39;summed&#39;. Then we reshape the</span>
       <span class="c1"># result to be of shape [sl, tb].</span>
-      <span class="n">logits</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">]),</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">hidden_v</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
-          <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;logits&#39;</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">hidden_v</span><span class="p">,</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">summed</span><span class="p">)[:</span><span class="mi">2</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">logits</span>
 
@@ -2134,7 +2134,6 @@
       <span class="n">attention_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span>
                                           <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-      <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
       <span class="n">location_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">location_filter_var</span><span class="p">)</span>
 
       <span class="c1"># concated_source_vecs is of shape [sl, sb, dims]</span>
@@ -2145,8 +2144,9 @@
       <span class="n">multiplier</span> <span class="o">=</span> <span class="n">tb</span> <span class="o">//</span> <span class="n">sb</span>
       <span class="c1"># concated_source_vecs is reshaped to [sl, 1, sb, hidden_dims]</span>
       <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-      <span class="n">query_vec_transformed</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
-          <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_var</span><span class="p">,</span> <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;atten_matmul&#39;</span><span class="p">)</span>
+      <span class="n">query_vec_transformed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">query_var</span><span class="p">)</span>
+      <span class="n">query_vec_transformed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;atten_matmul&#39;</span><span class="p">,</span>
+                                           <span class="n">query_vec_transformed</span><span class="p">)</span>
       <span class="c1"># query_vec is reshaped to [1, tb/sb, sb, hidden_dims].</span>
       <span class="n">query_vec_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">query_vec_transformed</span><span class="p">,</span>
                                       <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">multiplier</span><span class="p">,</span> <span class="n">sb</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">])</span>
@@ -2179,10 +2179,10 @@
       <span class="c1"># Transpose probs to be of shape [sb, tb/sb, sl]</span>
       <span class="n">probs_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs_reshaped</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
       <span class="c1"># [sb, tb/sb, sl] * [sb, sl, context_dim] = [sb, tb/sb, context_dim]</span>
-      <span class="n">summed</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
+      <span class="n">summed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">probs_reshaped</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
-          <span class="n">concated_source_contexts</span><span class="p">,</span>
-          <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;atten_context&#39;</span><span class="p">)</span>
+          <span class="n">concated_source_contexts</span><span class="p">)</span>
+      <span class="n">summed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;atten_context&#39;</span><span class="p">,</span> <span class="n">summed</span><span class="p">)</span>
       <span class="c1"># summed is of shape [tb/sb, sb, context_dim]</span>
       <span class="n">summed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="p">[</span><span class="n">tb</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">probs</span>
@@ -2202,10 +2202,10 @@
       <span class="n">attention_state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span>
                                           <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">location_features</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
-      <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
       <span class="n">location_feats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">attention_state</span><span class="p">,</span> <span class="n">location_filter_var</span><span class="p">)</span>
-      <span class="n">query_vec_transformed</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
-          <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_var</span><span class="p">,</span> <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;atten_matmul&#39;</span><span class="p">)</span>
+      <span class="n">query_vec_transformed</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="n">query_var</span><span class="p">)</span>
+      <span class="n">query_vec_transformed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;atten_matmul&#39;</span><span class="p">,</span>
+                                           <span class="n">query_vec_transformed</span><span class="p">)</span>
       <span class="c1"># logits is of shape [sl, sb]</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">_ConditionalCallDefun</span><span class="p">(</span>
           <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_quantized</span><span class="p">,</span> <span class="n">AttenLogitsSameBatchSize</span><span class="p">,</span>
@@ -2222,10 +2222,10 @@
       <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
       <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)</span>
       <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PaddedSoftmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">source_padding</span><span class="p">)</span>
-      <span class="n">summed</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
+      <span class="n">summed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">concated_source_contexts</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
-          <span class="n">concated_source_contexts</span><span class="p">,</span>
-          <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;atten_context&#39;</span><span class="p">)</span>
+          <span class="n">concated_source_contexts</span><span class="p">)</span>
+      <span class="n">summed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;atten_context&#39;</span><span class="p">,</span> <span class="n">summed</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">summed</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">probs</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">same_batch_size</span><span class="p">:</span>
@@ -2234,14 +2234,12 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span> <span class="o">=</span> <span class="n">Atten</span>
 
     <span class="k">def</span> <span class="nf">EncodeSource</span><span class="p">(</span><span class="n">src_w</span><span class="p">,</span> <span class="n">vecs</span><span class="p">,</span> <span class="n">ctxs</span><span class="p">):</span>
-      <span class="n">fns</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fns</span>
       <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
       <span class="n">ctxs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="n">transformed_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">fns</span><span class="o">.</span><span class="n">qmatmul</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">]),</span>
-              <span class="n">src_w</span><span class="p">,</span>
-              <span class="n">qout_name</span><span class="o">=</span><span class="s1">&#39;encode_matmul&#39;</span><span class="p">),</span> <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">]),</span> <span class="n">src_w</span><span class="p">),</span>
+          <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">transformed_vecs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;encode_matmul&#39;</span><span class="p">,</span> <span class="n">transformed_vecs</span><span class="p">)</span>
       <span class="n">transposed_ctxs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
       <span class="k">return</span> <span class="n">transformed_vecs</span><span class="p">,</span> <span class="n">transposed_ctxs</span>
 

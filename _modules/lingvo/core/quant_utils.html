@@ -188,12 +188,10 @@
 
 <span class="sd">    - qout_name: Name of QTensor (setup with TrackQTensor) for dynamic range</span>
 <span class="sd">      tracking.</span>
-<span class="sd">    - qmin/qmax/qdomain: Constant min/max range plus optional QDomain name to</span>
-<span class="sd">      resolve against. Typically, only qmin/qmax are used.</span>
 
 <span class="sd">  Functions that have a natural output range will have default values for</span>
 <span class="sd">  qmin/qmax so that they just work. Functions that do not have a natural</span>
-<span class="sd">  output range must have either qout_name or qmin/qmax specified manually.</span>
+<span class="sd">  output range must use qout_name.</span>
 
 <span class="sd">  Natural or configurable range functions</span>
 
@@ -210,9 +208,6 @@
 <span class="sd">  - qadd</span>
 <span class="sd">  - qsubtract</span>
 <span class="sd">  - qmultiply</span>
-<span class="sd">  - qmatmul (defers to `.py_utils.Matmul` and only accepts rank-2 tensors)</span>
-<span class="sd">  - qbatchmatmul (defers to `tf.matmul` directly)</span>
-<span class="sd">  - qconv1d</span>
 <span class="sd">  - qlog</span>
 
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -363,11 +358,15 @@
               <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
               <span class="n">lhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">rhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">ensure2d</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
               <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">ensure2d</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QMatmul</span><span class="p">(</span>
           <span class="n">lhs</span><span class="p">,</span>
@@ -376,6 +375,7 @@
           <span class="n">rhs_name</span><span class="o">=</span><span class="n">rhs_name</span><span class="p">,</span>
           <span class="n">lhs_dist</span><span class="o">=</span><span class="n">lhs_dist</span><span class="p">,</span>
           <span class="n">rhs_dist</span><span class="o">=</span><span class="n">rhs_dist</span><span class="p">,</span>
+          <span class="n">ensure2d</span><span class="o">=</span><span class="n">ensure2d</span><span class="p">,</span>
           <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.QConv1D"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QConv1D">[docs]</a>  <span class="k">def</span> <span class="nf">QConv1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -757,17 +757,22 @@
 
       <span class="bp">self</span><span class="o">.</span><span class="n">AddFunction</span><span class="p">(</span><span class="n">op_name</span><span class="p">,</span> <span class="n">Wrapped</span><span class="p">)</span>
 
-    <span class="c1"># Supported quantized functions.</span>
+    <span class="c1"># Quantize output activations based on tracked tensors.</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qadd&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qsubtract&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qmultiply&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">)</span>
+    <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qlog&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
+
+    <span class="c1"># TODO(shivaniagrawal): delete the following wrappers, as they are</span>
+    <span class="c1"># duplicated with self.QMatmul, self.QConv.</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qmatmul&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qbatchmatmul&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qconv1d&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv1d</span><span class="p">)</span>
+
+    <span class="c1"># Quantizing activations based on distribution</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qtanh&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">TANH</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qsigmoid&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">SIGMOID</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qsoftmax&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">SOFTMAX</span><span class="p">)</span>
-    <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qlog&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qlogsigmoid&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log_sigmoid</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">LOG_SOFTMAX</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qlogsoftmax&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">log_softmax</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">LOG_SOFTMAX</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qrelu&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span> <span class="n">dist</span><span class="o">=</span><span class="n">QDistribution</span><span class="o">.</span><span class="n">RELU</span><span class="p">)</span>
@@ -814,8 +819,12 @@
               <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
               <span class="n">lhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">rhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
+              <span class="n">out_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">ensure2d</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
               <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
-    <span class="k">del</span> <span class="n">lhs_name</span><span class="p">,</span> <span class="n">rhs_name</span><span class="p">,</span> <span class="n">lhs_dist</span><span class="p">,</span> <span class="n">rhs_dist</span>
+    <span class="k">del</span> <span class="n">lhs_name</span><span class="p">,</span> <span class="n">rhs_name</span><span class="p">,</span> <span class="n">lhs_dist</span><span class="p">,</span> <span class="n">rhs_dist</span><span class="p">,</span> <span class="n">out_name</span>
+    <span class="k">if</span> <span class="n">ensure2d</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QDomain.QConv1D"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QConv1D">[docs]</a>  <span class="k">def</span> <span class="nf">QConv1D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
