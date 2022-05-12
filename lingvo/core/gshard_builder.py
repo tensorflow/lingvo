@@ -239,6 +239,8 @@ class MoEBuilder(builder.Base):
     p.Define(
         'final_norm_type', 'ln', 'Final normalization type. Options are: '
         '[ln, pn, true_ln, jax_replica_ln, no_ln].')
+    p.Define('skip_output_dropout', False, 'Whether to skip the output '
+             'dropout layer.')
 
     return p
 
@@ -814,12 +816,15 @@ class MoEBuilder(builder.Base):
     else:
       raise ValueError('Norm type %s not supported.' % final_norm_type)
 
+    if self.params.skip_output_dropout:
+      y_drop_fn = self._Identity('outputs_dropout')
+    else:
+      y_drop_fn = self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)
     if has_final_layer:
       stack += [
           (('loss_%03d->o.aux_loss' % i), self._Identity('output_loss')),
           (('x_%03d->y_norm' % i), norm_layer),
-          ('y_norm->y_dropout',
-           self._Dropout('outputs_dropout', 1 - self.params.dropout_rate)),
+          ('y_norm->y_dropout', y_drop_fn),
           ('y_dropout,segment_id_split->o.vec', self.Mask()),
       ]
     else:
