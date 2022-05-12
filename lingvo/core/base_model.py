@@ -1260,9 +1260,10 @@ class SingleTaskBase(BaseModel):
     with py_utils.TaskCallScope(self._task):
       if not input_batch:
         input_batch = self._task.GetInputBatch()
-        if isinstance(input_batch, list):  # Non-TPU case.
-          assert len(input_batch) == 1
-          input_batch = input_batch[0]
+      if isinstance(input_batch, list):  # Non-TPU case.
+        assert len(input_batch) == 1, (
+            'Running multiple decoder replicas is not yet supported.')
+        input_batch = input_batch[0]
       return input_batch, self._task.Decode(input_batch)
 
   def ConstructPostTrainingLoop(self, outfeed=None):
