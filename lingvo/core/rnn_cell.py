@@ -619,7 +619,8 @@ class LSTMCellSimple(RNNCell):
         w_proj = tf.multiply(w_proj, theta.proj_mask, 'masked_projection')
       w_proj = self.QWeight(w_proj, domain='m_state')
 
-      new_m = fns.qmatmul(new_m, w_proj, qout_name='m_output_projection')
+      new_m = py_utils.Matmul(new_m, w_proj)
+      new_m = self.QTensor('m_output_projection', new_m)
 
     # Apply Zoneout.
     return self._ApplyZoneOut(state0, inputs, new_c, new_m)

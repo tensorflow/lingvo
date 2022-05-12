@@ -123,12 +123,10 @@ class QuantizableLayer(base_layer.BaseLayer):
 
     - qout_name: Name of QTensor (setup with TrackQTensor) for dynamic range
       tracking.
-    - qmin/qmax/qdomain: Constant min/max range plus optional QDomain name to
-      resolve against. Typically, only qmin/qmax are used.
 
   Functions that have a natural output range will have default values for
   qmin/qmax so that they just work. Functions that do not have a natural
-  output range must have either qout_name or qmin/qmax specified manually.
+  output range must use qout_name.
 
   Natural or configurable range functions
 
@@ -145,9 +143,6 @@ class QuantizableLayer(base_layer.BaseLayer):
   - qadd
   - qsubtract
   - qmultiply
-  - qmatmul (defers to `.py_utils.Matmul` and only accepts rank-2 tensors)
-  - qbatchmatmul (defers to `tf.matmul` directly)
-  - qconv1d
   - qlog
 
   """
@@ -298,11 +293,15 @@ class QuantizableLayer(base_layer.BaseLayer):
               rhs_name: Optional[str],
               lhs_dist: QDistribution = QDistribution.SYMMETRIC,
               rhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              ensure2d: bool = False,
               qdomain=None,
               **op_kwargs):
     qd = self._GetQDomain(qdomain)
     if qd is None:
-      return tf.matmul(lhs, rhs, **op_kwargs)
+      if ensure2d:
+        return py_utils.Matmul(lhs, rhs, **op_kwargs)
+      else:
+        return tf.matmul(lhs, rhs, **op_kwargs)
     else:
       return qd.QMatmul(
           lhs,
@@ -311,6 +310,7 @@ class QuantizableLayer(base_layer.BaseLayer):
           rhs_name=rhs_name,
           lhs_dist=lhs_dist,
           rhs_dist=rhs_dist,
+          ensure2d=ensure2d,
           **op_kwargs)
 
   def QConv1D(self,
@@ -692,17 +692,22 @@ class QuantizableLayer(base_layer.BaseLayer):
 
       self.AddFunction(op_name, Wrapped)
 
-    # Supported quantized functions.
+    # Quantize output activations based on tracked tensors.
     WrapOp('qadd', tf.add)
     WrapOp('qsubtract', tf.subtract)
     WrapOp('qmultiply', tf.multiply)
+    WrapOp('qlog', tf.math.log)
+
+    # TODO(shivaniagrawal): delete the following wrappers, as they are
+    # duplicated with self.QMatmul, self.QConv.
     WrapOp('qmatmul', py_utils.Matmul)
     WrapOp('qbatchmatmul', tf.matmul)
     WrapOp('qconv1d', tf.nn.conv1d)
+
+    # Quantizing activations based on distribution
     WrapOp('qtanh', tf.tanh, dist=QDistribution.TANH)
     WrapOp('qsigmoid', tf.sigmoid, dist=QDistribution.SIGMOID)
     WrapOp('qsoftmax', tf.nn.softmax, dist=QDistribution.SOFTMAX)
-    WrapOp('qlog', tf.math.log)
     WrapOp('qlogsigmoid', tf.math.log_sigmoid, dist=QDistribution.LOG_SOFTMAX)
     WrapOp('qlogsoftmax', tf.nn.log_softmax, dist=QDistribution.LOG_SOFTMAX)
     WrapOp('qrelu', tf.nn.relu, dist=QDistribution.RELU)
@@ -749,8 +754,12 @@ class QDomain(base_layer.BaseLayer):
               rhs_name: Optional[str],
               lhs_dist: QDistribution = QDistribution.SYMMETRIC,
               rhs_dist: QDistribution = QDistribution.SYMMETRIC,
+              out_name: Optional[str],
+              ensure2d: bool = False,
               **op_kwargs):
-    del lhs_name, rhs_name, lhs_dist, rhs_dist
+    del lhs_name, rhs_name, lhs_dist, rhs_dist, out_name
+    if ensure2d:
+      return py_utils.Matmul(lhs, rhs, **op_kwargs)
     return tf.matmul(lhs, rhs, **op_kwargs)
 
   def QConv1D(self,

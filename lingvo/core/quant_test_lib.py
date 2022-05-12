@@ -84,7 +84,8 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
 
     # Note the use of the qmatmul from the function library. This will
     # automatically track the output against the qtensor 'transformed'.
-    out = fns.qmatmul(reshaped_inputs, w, qout_name='transformed')
+    out = py_utils.Matmul(reshaped_inputs, w)
+    out = self.QTensor('transformed', out)
     out = self.FromAqtMatmul('w', out)
 
     out = tf.reshape(out, tf.concat([tf.shape(inputs)[:-1], [p.output_dim]], 0))
