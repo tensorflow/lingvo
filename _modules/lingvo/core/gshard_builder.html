@@ -304,6 +304,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;final_norm_type&#39;</span><span class="p">,</span> <span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="s1">&#39;Final normalization type. Options are: &#39;</span>
         <span class="s1">&#39;[ln, pn, true_ln, jax_replica_ln, no_ln].&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_output_dropout&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to skip the output &#39;</span>
+             <span class="s1">&#39;dropout layer.&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -879,12 +881,15 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Norm type </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">final_norm_type</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">skip_output_dropout</span><span class="p">:</span>
+      <span class="n">y_drop_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">y_drop_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">has_final_layer</span><span class="p">:</span>
       <span class="n">stack</span> <span class="o">+=</span> <span class="p">[</span>
           <span class="p">((</span><span class="s1">&#39;loss_</span><span class="si">%03d</span><span class="s1">-&gt;o.aux_loss&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Identity</span><span class="p">(</span><span class="s1">&#39;output_loss&#39;</span><span class="p">)),</span>
           <span class="p">((</span><span class="s1">&#39;x_</span><span class="si">%03d</span><span class="s1">-&gt;y_norm&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">),</span> <span class="n">norm_layer</span><span class="p">),</span>
-          <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span>
-           <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;outputs_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;y_norm-&gt;y_dropout&#39;</span><span class="p">,</span> <span class="n">y_drop_fn</span><span class="p">),</span>
           <span class="p">(</span><span class="s1">&#39;y_dropout,segment_id_split-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Mask</span><span class="p">()),</span>
       <span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
