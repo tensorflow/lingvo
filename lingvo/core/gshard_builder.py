@@ -3940,6 +3940,44 @@ class UniTransformer(base_model.BaseTask):
       bs.topk_hyps_shape = tf.shape(topk_scores)
       return bs
 
+  def _SplitDecoderOutputAndSoftmax(self, theta, all_dec_outputs, dec_state):
+    p = self.params
+    dec_outputs = all_dec_outputs.vec
+    if p.scale_decoder_outputs:
+      dec_outputs *= (p.builder.model_dim**-0.5)
+    dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
+    if ('model_dim_reshape_segments' in p.builder and
+        p.builder.model_dim_reshape_segments is not None):
+      dec_outputs = tf.reshape(dec_outputs,
+                               [dec_outputs.shape[0], dec_outputs.shape[1], -1])
+    # TODO(lepikhin): we only support
+    # shared_embedding_and_softmax_weights=True at the moment.
+    softmax_weights = self.vars.dec_emb.w.embedding.read_value()
+    softmax_weights = self.emb_w_split.FProp(theta.emb_w_split, softmax_weights)
+    if dec_outputs.dtype != softmax_weights.dtype:
+      # to enable fprop_dtype = tf.bfloat16
+      softmax_weights = tf.cast(softmax_weights, dec_outputs.dtype)
+    logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
+    if p.has_final_layer and p.softmax_bias:
+      logits = tf.nn.bias_add(logits, theta.softmax_bias)
+    if p.softmax_logit_cap and p.softmax_logit_cap > 0:
+      logits = py_utils.MaybeSoftCapLogits(logits, p.softmax_logit_cap)
+    logits = self.logits_split.FProp(theta.logits_split, logits)
+
+    # TODO(krikun): make sure this is not needed for beam search
+    # if p.logits_abs_max is not None:
+    #   logits = py_utils.clip_by_value(logits, -p.logits_abs_max,
+    #                                   p.logits_abs_max)
+
+    logits = tf.nn.log_softmax(logits)
+    logits = self.logits_split.FProp(theta.logits_split, logits)
+
+    dec_state = gshard_layers.StateLayer.UpdateState(self.dec, theta.dec,
+                                                     dec_state)
+    gshard_layers.OverrideLayer.Clear()
+
+    return logits, dec_state
+
   def _FlatBeamSearchCallback(self, theta, input_batch, tgt_id, tgt_segment_id,
                               tgt_pos, tgt_mask, dec_state, t):
     p = self.params
@@ -3976,41 +4014,7 @@ class UniTransformer(base_model.BaseTask):
         aux_loss=aux_loss)
     all_outputs = self.dec.FProp(theta_with_state, dec_inputs)
     del enc_output, src_segment_ids, src_segment_pos, aux_loss
-    dec_outputs = all_outputs.vec
-    if p.scale_decoder_outputs:
-      dec_outputs *= (p.builder.model_dim**-0.5)
-    dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
-    if ('model_dim_reshape_segments' in p.builder and
-        p.builder.model_dim_reshape_segments is not None):
-      dec_outputs = tf.reshape(dec_outputs,
-                               [dec_outputs.shape[0], dec_outputs.shape[1], -1])
-    # TODO(lepikhin): we only support
-    # shared_embedding_and_softmax_weights=True at the moment.
-    softmax_weights = self.vars.dec_emb.w.embedding.read_value()
-    softmax_weights = self.emb_w_split.FProp(theta.emb_w_split, softmax_weights)
-    if dec_outputs.dtype != softmax_weights.dtype:
-      # to enable fprop_dtype = tf.bfloat16
-      softmax_weights = tf.cast(softmax_weights, dec_outputs.dtype)
-    logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
-    if p.has_final_layer and p.softmax_bias:
-      logits = tf.nn.bias_add(logits, theta.softmax_bias)
-    if p.softmax_logit_cap and p.softmax_logit_cap > 0:
-      logits = py_utils.MaybeSoftCapLogits(logits, p.softmax_logit_cap)
-    logits = self.logits_split.FProp(theta.logits_split, logits)
-
-    # TODO(krikun): make sure this is not needed for beam search
-    # if p.logits_abs_max is not None:
-    #   logits = py_utils.clip_by_value(logits, -p.logits_abs_max,
-    #                                   p.logits_abs_max)
-
-    logits = tf.nn.log_softmax(logits)
-    logits = self.logits_split.FProp(theta.logits_split, logits)
-
-    dec_state = gshard_layers.StateLayer.UpdateState(self.dec, theta.dec,
-                                                     dec_state)
-    gshard_layers.OverrideLayer.Clear()
-
-    return logits, dec_state
+    return self._SplitDecoderOutputAndSoftmax(theta, all_outputs, dec_state)
 
 
 class TunableUniTransformer(UniTransformer):
