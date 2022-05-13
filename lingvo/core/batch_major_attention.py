@@ -5981,7 +5981,7 @@ class TransformerFeedForwardLayerWithTaskId(
 class GPipeBatchMajorTransformerLayer(TransformerLayer):
   """GPipe compatible batch majortransformer layer.
 
-  To be used with the new GPipeBatchMajorStack.
+  To be used with the new GPipeBatchMajorTransformerStack.
   """
 
   @classmethod

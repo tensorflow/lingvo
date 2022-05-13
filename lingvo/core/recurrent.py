@@ -42,7 +42,7 @@ Recurrent computes, roughly::
 
     state = state0
     for t in inputs' sequence length:
-      state = cell_fn(theta, state, inputs[t, :])
+      state, extras = cell_fn(theta, state, inputs[t, :])
       accumulate_state[t, :] = state
     return accumulate_state, state
 
@@ -329,7 +329,7 @@ class _Recurrent:
         state to the other devices.
       backward_cleanup: An optional callback function (no argument) to be
         invoked after the backward pass. It returns a list of ops, which will
-        run as control dependencies of d(inputs) on the backward path. Could be
+        run as control dependencies of d_inputs on the backward path. Could be
         used to clean up side effects during recompute.
     """
     self._theta = theta
@@ -998,7 +998,7 @@ def Recurrent(theta,
 
       state = state0
       for t in inputs' sequence length:
-        state = cell_fn(theta, state, inputs[t, :])
+        state, extras = cell_fn(theta, state, inputs[t, :])
         accumulate_state[t, :] = state
       return accumulate_state, state
 
