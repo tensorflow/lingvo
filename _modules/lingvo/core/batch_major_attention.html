@@ -5439,10 +5439,15 @@
 
 <div class="viewcode-block" id="RepeatedTransformerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_dropout_prob</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">relu_dropout_prob</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span>
+    <span class="c1"># TODO(jiahuiyu): Support auto-replacing deterministic dropout.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">StackedTransformerLayers</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">dropout_prob</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_dropout_prob</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">relu_dropout_prob</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">tr_fflayer_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="c1"># iterative: query_vec</span>
       <span class="c1"># common_input: **kwargs</span>
