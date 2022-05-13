@@ -107,7 +107,7 @@
 
 <span class="sd">    state = state0</span>
 <span class="sd">    for t in inputs&#39; sequence length:</span>
-<span class="sd">      state = cell_fn(theta, state, inputs[t, :])</span>
+<span class="sd">      state, extras = cell_fn(theta, state, inputs[t, :])</span>
 <span class="sd">      accumulate_state[t, :] = state</span>
 <span class="sd">    return accumulate_state, state</span>
 
@@ -394,7 +394,7 @@
 <span class="sd">        state to the other devices.</span>
 <span class="sd">      backward_cleanup: An optional callback function (no argument) to be</span>
 <span class="sd">        invoked after the backward pass. It returns a list of ops, which will</span>
-<span class="sd">        run as control dependencies of d(inputs) on the backward path. Could be</span>
+<span class="sd">        run as control dependencies of d_inputs on the backward path. Could be</span>
 <span class="sd">        used to clean up side effects during recompute.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span> <span class="o">=</span> <span class="n">theta</span>
@@ -1063,7 +1063,7 @@
 
 <span class="sd">      state = state0</span>
 <span class="sd">      for t in inputs&#39; sequence length:</span>
-<span class="sd">        state = cell_fn(theta, state, inputs[t, :])</span>
+<span class="sd">        state, extras = cell_fn(theta, state, inputs[t, :])</span>
 <span class="sd">        accumulate_state[t, :] = state</span>
 <span class="sd">      return accumulate_state, state</span>
 

@@ -113,7 +113,7 @@ gradients of the final loss w.r.t. state1.</p>
 <p>Recurrent computes, roughly:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">state0</span>
 <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">inputs</span><span class="s1">&#39; sequence length:</span>
-  <span class="n">state</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:])</span>
+  <span class="n">state</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:])</span>
   <span class="n">accumulate_state</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">state</span>
 <span class="k">return</span> <span class="n">accumulate_state</span><span class="p">,</span> <span class="n">state</span>
 </pre></div>
@@ -509,7 +509,7 @@ representing the recurrent neural net’s cell function, i.e.:</p>
 <p>Roughly, <a class="reference internal" href="#lingvo.core.recurrent.Recurrent" title="lingvo.core.recurrent.Recurrent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Recurrent()</span></code></a> computes the following:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">state0</span>
 <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">inputs</span><span class="s1">&#39; sequence length:</span>
-  <span class="n">state</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:])</span>
+  <span class="n">state</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:])</span>
   <span class="n">accumulate_state</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">state</span>
 <span class="k">return</span> <span class="n">accumulate_state</span><span class="p">,</span> <span class="n">state</span>
 </pre></div>
