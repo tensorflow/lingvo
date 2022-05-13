@@ -5374,10 +5374,15 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
 
   def FProp(self, theta, query_vec, **kwargs):
     p = self.params
-    assert not p.body.tr_atten_tpl.atten_dropout_prob
-    assert not p.body.tr_atten_tpl.residual_dropout_prob
-    assert not p.body.tr_fflayer_tpl.relu_dropout_prob
-    assert not p.body.tr_fflayer_tpl.residual_dropout_prob
+    # TODO(jiahuiyu): Support auto-replacing deterministic dropout.
+    if p.body.cls == StackedTransformerLayers:
+      assert not p.body.dropout_prob
+    else:
+      assert not p.body.tr_atten_tpl.atten_dropout_prob
+      assert not p.body.tr_atten_tpl.residual_dropout_prob
+      assert not p.body.tr_fflayer_tpl.relu_dropout_prob
+      assert not p.body.tr_fflayer_tpl.residual_dropout_prob
+
     with tf.name_scope(p.name):
       # iterative: query_vec
       # common_input: **kwargs
