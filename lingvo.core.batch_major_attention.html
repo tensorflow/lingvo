@@ -2812,33 +2812,27 @@ output proj: ‘BTNH,DNH-&gt;BTD’ -&gt; (2*N-1)*(2*H-1)*D*B*T</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp">
-<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#RepeatedTransformerLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp" title="Permalink to this definition"></a></dt>
-<dd><p>Forward propagation.</p>
-<p>The central interface that subclasses should implement. The caller
-calls <a class="reference internal" href="#lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp" title="lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-<span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The implementation of <a class="reference internal" href="#lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp" title="lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
-the theta and the inputs. E.g.:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
-<span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-<span class="n">a0</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-<span class="n">a1</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="n">a0</span><span class="p">)</span>
-<span class="c1"># The same layer applied twice.</span>
-<span class="n">a2</span> <span class="o">=</span> <span class="n">subs</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">linear</span><span class="p">,</span> <span class="n">a1</span><span class="p">)</span>
-<span class="k">return</span> <span class="n">a2</span>
-</pre></div>
-</div>
+<span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#RepeatedTransformerLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.RepeatedTransformerLayer.FProp" title="Permalink to this definition"></a></dt>
+<dd><p>Compute result of Repeat Transformer layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+<li><p><strong>theta</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> object containing weights’ values of this layer and
 its children layers.</p></li>
-<li><p><strong>*args</strong> – List args.</p></li>
-<li><p><strong>**kwargs</strong> – Keyward args.</p></li>
+<li><p><strong>query_vec</strong> – [batch, target_time, dim].</p></li>
+<li><p><strong>paddings</strong> – [batch, target_time].</p></li>
+<li><p><strong>**kwargs</strong> – a NestedMap with common inputs for every repeat-layer.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>query_vec:      [batch, target_time, dim].</p></li>
+<li><p>atten_probs:    [batch, num heads, target_time, target_time]</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>(query_vec, atten_probs)</p>
 </dd>
 </dl>
 </dd></dl>
