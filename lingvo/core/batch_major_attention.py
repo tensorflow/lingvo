@@ -5372,7 +5372,21 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
         'mean: return the mean attention probabilities across layers.')
     return p
 
-  def FProp(self, theta, query_vec, **kwargs):
+  def FProp(self, theta, query_vec, paddings, **kwargs):
+    """Compute result of Repeat Transformer layer.
+
+    Args:
+      theta: A `NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec:      [batch, target_time, dim].
+      paddings:       [batch, target_time].
+      **kwargs: a NestedMap with common inputs for every repeat-layer.
+
+    Returns:
+      (query_vec, atten_probs):
+        - query_vec:      [batch, target_time, dim].
+        - atten_probs:    [batch, num heads, target_time, target_time]
+    """
     p = self.params
     # TODO(jiahuiyu): Support auto-replacing deterministic dropout.
     if p.body.cls == StackedTransformerLayers:
@@ -5391,9 +5405,13 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
       def _Fn(theta, *, common_input, layerwise_input, iterative):
         del layerwise_input
         layer_out, layer_atten_probs = self._body.FProp(
-            theta.body, query_vec=iterative.query_vec, **common_input)
+            theta.body,
+            query_vec=iterative.query_vec,
+            paddings=iterative.paddings,
+            **common_input)
         return py_utils.NestedMap(
-            iterative=py_utils.NestedMap(query_vec=layer_out),
+            iterative=py_utils.NestedMap(
+                query_vec=layer_out, paddings=iterative.paddings),
             layerwise_output=py_utils.NestedMap(atten_probs=layer_atten_probs))
 
       repeat_results = self._Repeat(
@@ -5401,7 +5419,8 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
           _Fn,
           common_input=py_utils.NestedMap(kwargs),
           layerwise_inputs=py_utils.NestedMap(),
-          iterative_input_0=py_utils.NestedMap(query_vec=query_vec))
+          iterative_input_0=py_utils.NestedMap(
+              query_vec=query_vec, paddings=paddings))
       atten_probs = repeat_results.layerwise.atten_probs
       assert p.atten_prob_aggregation in (None, 'mean')
       if p.atten_prob_aggregation == 'mean':
