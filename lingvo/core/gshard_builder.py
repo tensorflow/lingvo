@@ -155,6 +155,8 @@ class MoEBuilder(builder.Base):
         'mdha_rope', False,
         'Whether or not to use Rotational Position Embeddings in '
         'Multi-DConv Head Attention.')
+    p.Define('rope_emb_max_timescale', 10000.0,
+             'Maximum timescale for ROPE transformation.')
 
     p.Define('ff_dim', None, 'DenseReluDense hidden dim.')
 
@@ -1232,7 +1234,7 @@ class MoEBuilder(builder.Base):
     def _Rope(inputs, position):
       embedding_dims = inputs.shape.as_list()[-1]
       min_timescale = 1.0
-      max_timescale = 1.0e4
+      max_timescale = p.rope_emb_max_timescale
       half_embedding_dim = embedding_dims // 2
       fraction = 2.0 * tf.cast(tf.range(half_embedding_dim),
                                tf.float32) / embedding_dims
@@ -1240,8 +1242,7 @@ class MoEBuilder(builder.Base):
       position = tf.expand_dims(tf.expand_dims(position, axis=-1), axis=-1)
       timescale = tf.expand_dims(
           tf.expand_dims(tf.expand_dims(timescale, axis=0), axis=0), axis=0)
-      sinusoid_inp = tf.cast(position, inputs.dtype) / tf.cast(
-          timescale, inputs.dtype)
+      sinusoid_inp = position / tf.cast(timescale, position.dtype)
       sin = tf.cast(tf.math.sin(sinusoid_inp), inputs.dtype)
       cos = tf.cast(tf.math.cos(sinusoid_inp), inputs.dtype)
       first_half, second_half = tf.split(inputs, 2, axis=-1)
@@ -3461,6 +3462,8 @@ class UniTransformer(base_model.BaseTask):
     # num_transformer_layer = 4, start_layer_id = 2 * num_transformer_layer *
     # num_sub_layer = 16, has_embedding_layer = False, has_final_layer = True;
     p.Define('start_layer_id', 0, 'Start layer id.')
+    p.Define('pos_emb_max_timescale', 10000.0,
+             'Maximum timescale for embedding transformation.')
     p.Define('has_embedding_layer', True, 'Model has embedding layer or not.')
     p.Define('has_final_layer', True, 'The model has the final layer such as '
              'feedforward net.')
@@ -3498,7 +3501,8 @@ class UniTransformer(base_model.BaseTask):
       if p.positional_embedding:
         if p.sinusoid_positional_embedding:
           dec_pos_emb = layers.PositionalEmbeddingLayer.Params().Set(
-              embedding_dim=p.builder.model_dim)
+              embedding_dim=p.builder.model_dim,
+              max_timescale=p.pos_emb_max_timescale)
         else:
           dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
         self.CreateChild('dec_pos_emb', dec_pos_emb)
