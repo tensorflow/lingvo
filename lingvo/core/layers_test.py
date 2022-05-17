@@ -4540,10 +4540,8 @@ class SconesLayerTest(test_utils.TestCase):
   def testLossRandomInput(self):
     params = layers.Scones.Params()
     self.assertAllClose([0.33268312, 0.449044], self._Loss(params, alpha=0.0))
-    self.assertAllClose([-0.32969007, -0.03776243],
-                        self._Loss(params, alpha=0.5))
-    self.assertAllClose([-0.9920633, -0.52456886],
-                        self._Loss(params, alpha=1.0))
+    self.assertAllClose([1.559569, 2.146145], self._Loss(params, alpha=0.5))
+    self.assertAllClose([2.7864556, 3.8432457], self._Loss(params, alpha=1.0))
 
   def testLossTertiaryLogits(self):
     params = layers.Scones.Params()
@@ -4556,7 +4554,7 @@ class SconesLayerTest(test_utils.TestCase):
                             logits=logits,
                             class_ids=class_ids,
                             alpha=0.0))
-    self.assertAllClose([-2.0 - np.log(0.5), -1.5, -np.log(0.5) - 1.0],
+    self.assertAllClose([-np.log(0.5), -np.log(0.5), -3 * np.log(0.5)],
                         self._Loss(
                             params,
                             logits=logits,

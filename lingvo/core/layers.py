@@ -3740,8 +3740,6 @@ class FocalFullSoftmax(SimpleFullSoftmax):
 class Scones(SimpleFullSoftmax):
   """A SCONES output layer (http://arxiv.org/abs/2205.00704)."""
 
-  EPS = 1e-30
-
   @classmethod
   def Params(cls):
     """Params for the Scones output layer."""
@@ -3761,7 +3759,7 @@ class Scones(SimpleFullSoftmax):
       raise ValueError('This set of arguments is not supported for SCONES.')
 
     true_logprob = tf.math.log_sigmoid(logits)
-    false_logprob = tf.maximum(1.0 - tf.exp(true_logprob), Scones.EPS)
+    false_logprob = -logits + true_logprob
     class_true_logprob = tf.gather(true_logprob, class_ids, batch_dims=1)
     class_false_logprob = tf.gather(false_logprob, class_ids, batch_dims=1)
     other_false_logprob = tf.math.reduce_sum(
