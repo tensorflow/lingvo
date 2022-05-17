@@ -3805,8 +3805,6 @@
 <div class="viewcode-block" id="Scones"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Scones">[docs]</a><span class="k">class</span> <span class="nc">Scones</span><span class="p">(</span><span class="n">SimpleFullSoftmax</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A SCONES output layer (http://arxiv.org/abs/2205.00704).&quot;&quot;&quot;</span>
 
-  <span class="n">EPS</span> <span class="o">=</span> <span class="mf">1e-30</span>
-
 <div class="viewcode-block" id="Scones.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Scones.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Params for the Scones output layer.&quot;&quot;&quot;</span>
@@ -3826,7 +3824,7 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;This set of arguments is not supported for SCONES.&#39;</span><span class="p">)</span>
 
     <span class="n">true_logprob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log_sigmoid</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>
-    <span class="n">false_logprob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">true_logprob</span><span class="p">),</span> <span class="n">Scones</span><span class="o">.</span><span class="n">EPS</span><span class="p">)</span>
+    <span class="n">false_logprob</span> <span class="o">=</span> <span class="o">-</span><span class="n">logits</span> <span class="o">+</span> <span class="n">true_logprob</span>
     <span class="n">class_true_logprob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">true_logprob</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">,</span> <span class="n">batch_dims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">class_false_logprob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">false_logprob</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">,</span> <span class="n">batch_dims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">other_false_logprob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
