@@ -3023,27 +3023,17 @@
 
   <span class="c1"># Uniqify and remove None.</span>
   <span class="n">filtered_vmap</span> <span class="o">=</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">_Unique</span><span class="p">())</span>
-  <span class="k">assert</span> <span class="n">filtered_vmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+  <span class="k">assert</span> <span class="n">filtered_vmap</span>
 
-  <span class="c1"># Filter out variables not contributing to &#39;loss_or_activations&#39;.</span>
-  <span class="c1"># This doesn&#39;t work if the training loop is wrapped inside a tf.function,</span>
-  <span class="c1"># since all variables will be lifted out and trainable_variables will be</span>
-  <span class="c1"># empty. In that case we skip the check.</span>
-  <span class="n">trainable_variables</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span><span class="n">v</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">()])</span>
-  <span class="k">if</span> <span class="n">trainable_variables</span><span class="p">:</span>
+  <span class="c1"># Skip non-trainable variables. Otherwise, tf.Optimizer.apply_gradients throws</span>
+  <span class="c1"># up an exception instead of skipping the update.</span>
+  <span class="k">def</span> <span class="nf">Needed</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">trainable</span>
+    <span class="k">return</span> <span class="kc">True</span>
 
-    <span class="k">def</span> <span class="nf">Needed</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">trainable_variables</span><span class="p">:</span>
-          <span class="c1"># Skip non-trainable variables. Otherwise,</span>
-          <span class="c1"># tf.Optimizer.apply_gradients throws up an exception instead</span>
-          <span class="c1"># of skipping the update.</span>
-          <span class="k">return</span> <span class="kc">False</span>
-      <span class="k">return</span> <span class="kc">True</span>
-
-    <span class="n">filtered_vmap</span> <span class="o">=</span> <span class="n">filtered_vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">Needed</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="n">filtered_vmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-
+  <span class="n">filtered_vmap</span> <span class="o">=</span> <span class="n">filtered_vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">Needed</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="n">filtered_vmap</span>
   <span class="n">filtered_vlist</span> <span class="o">=</span> <span class="n">filtered_vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
   <span class="c1"># Use caller-supplied gradient function if supplied.</span>
