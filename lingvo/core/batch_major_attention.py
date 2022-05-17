@@ -869,19 +869,15 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       paddings = tf.logical_or(paddings, tf.squeeze(per_step_padding, 1))
 
     query = tf.reshape(query, [b, n, h])
-    pad = tf.reshape(
-        tf.tile(tf.expand_dims(tf.transpose(paddings), 2), [1, 1, n]), [s, -1])
+    pad = tf.tile(tf.expand_dims(tf.transpose(paddings), 2), [1, 1, n])
 
     def _LongSeq():
       """For long sequence, directly apply to the entire tensor with padding."""
       logits = self._AttenLogitsOneStep(theta, query, key, time_step)
-
-      logits = tf.reshape(logits, [s, -1])
       padded_logits = py_utils.ApplyPadding(pad, logits,
                                             GetDtypeMin(logits.dtype))
       probs = py_utils.Softmax(
           padded_logits, axis=0, extra_logit=p.atten_extra_logit)
-      probs = tf.reshape(probs, [s, b, n])
 
       encoded = self._AttenContextOneStep(theta, probs, value, time_step, h)
       return tf.expand_dims(encoded, 1)
@@ -920,7 +916,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       logits = self.FromAqtActActMatmul(logits)
       logits = self._CapLogits(logits)
 
-      padded_logits = py_utils.ApplyPadding(pad, logits,
+      reshaped_pad = tf.reshape(pad, [s, -1])
+      padded_logits = py_utils.ApplyPadding(reshaped_pad, logits,
                                             GetDtypeMin(logits.dtype))
       probs = py_utils.Softmax(
           padded_logits, axis=0, extra_logit=p.atten_extra_logit)
@@ -1130,6 +1127,13 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     new_value_proj = self.value.FProp(theta.value, query_vec)
     query_proj = self.query.FProp(theta.query, query_vec)
 
+    new_key_proj = gshard_utils.MeshSplit(new_key_proj, p.device_mesh,
+                                          p.activation_split_dims_mapping.blnh)
+    new_value_proj = gshard_utils.MeshSplit(
+        new_value_proj, p.device_mesh, p.activation_split_dims_mapping.blnh)
+    query_proj = gshard_utils.MeshSplit(query_proj, p.device_mesh,
+                                        p.activation_split_dims_mapping.blnh)
+
     # Using a if condition, in case it's more efficient to update the same index
     new_key_proj = tf.cast(
         tf.reshape(new_key_proj, [b, n, h]), dtype=cached_states.key.dtype)
@@ -1170,6 +1174,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
 
     # Post projection.
     encoded = self.post.FProp(theta.post, encoded)
+    encoded = gshard_utils.MeshSplit(encoded, p.device_mesh,
+                                     p.activation_split_dims_mapping.bld)
     return encoded, updated_state
 
   @classmethod
