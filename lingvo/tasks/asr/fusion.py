@@ -55,6 +55,9 @@ class FusionBase(base_layer.BaseLayer):
     state0.lm_states = self.lm.zero_state(theta.lm, batch_size)
     return state0
 
+  def _FPropLmInternal(self, theta, ids, paddings, lm_states):
+    return self.lm.FProp(theta, ids, paddings, lm_states)
+
   def _FPropLm(self, theta, state0, ids, paddings, misc=None):
     """LM FProp.
 
@@ -93,8 +96,8 @@ class FusionBase(base_layer.BaseLayer):
     with tf.name_scope('lm'):
       ids = tf.reshape(ids, [seq_len, -1], name='reshape_ids')
       paddings = tf.reshape(paddings, [seq_len, -1], name='reshape_paddings')
-      lm_output, state1.lm_states = self.lm.FProp(theta.lm, ids, paddings,
-                                                  state0.lm_states)
+      lm_output, state1.lm_states = self._FPropLmInternal(
+          theta.lm, ids, paddings, state0.lm_states)
 
     if is_single_step:
       # lm outputs have dimension [time, batch, dim]. Since this is only one
