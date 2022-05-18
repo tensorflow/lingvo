@@ -74,11 +74,6 @@ class Controller(base_runner.BaseRunner):
     self._checkpoint_in_controller = True
     if FLAGS.checkpoint_in_trainer_tpu:
       self._checkpoint_in_controller = False
-      if self._early_stop:
-        tf.logging.warning('Controller ignoring early_stop since '
-                           'TrainerTpu is driving training.')
-        self._early_stop = None
-
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
         self._summary_writer = self._CreateSummaryWriter(self._control_dir)
