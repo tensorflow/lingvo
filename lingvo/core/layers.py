@@ -877,7 +877,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         '(b/146421936)')
     p.Define(
         'use_blocked_matmul', False, 'Whether to use blocked matrix '
-        'multiplications. This allows for weight updates to be paralellized '
+        'multiplications. This allows for weight updates to be parallelized '
         'across the cores for Shampoo optimizer.')
     p.Define('block_dim', 1024, 'Dimension of the block')
     p.Define('use_block_diagonal_matmul', False, 'If True, use block diagonal '
@@ -3662,7 +3662,7 @@ class SimpleFullSigmoidCrossEntropy(SimpleFullSoftmax):
                          class_weights,
                          class_ids=None,
                          class_probabilities=None):
-    """Computes multi-label sigmoid cross entroy loss from logits.
+    """Computes multi-label sigmoid cross entropy loss from logits.
 
     Args:
       theta: A NestedMap object.
@@ -4361,7 +4361,7 @@ class ConvSoftmax(quant_utils.QuantizableLayer):
 
 
 class DropoutLayer(base_layer.BaseLayer):
-  """Apply dropout during trainig."""
+  """Apply dropout during training."""
 
   @classmethod
   def Params(cls):
@@ -4433,7 +4433,7 @@ class DropoutLayer(base_layer.BaseLayer):
 
 
 class DeterministicDropoutLayer(DropoutLayer):
-  """Apply dropout during trainig."""
+  """Apply dropout during training."""
 
   def _Dropout(self, theta, inputs, noise_shape):
     return py_utils.DeterministicDropout(
@@ -6003,7 +6003,7 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
 
 
 class CCTGatingNetwork(quant_utils.QuantizableLayer):
-  """A gating network that is continous for training and discrete for eval.
+  """A gating network that is continuous for training and discrete for eval.
 
   Based on the gating network from https://arxiv.org/abs/2002.07106.
   """

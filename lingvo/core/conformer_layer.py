@@ -313,7 +313,7 @@ class LConvLayer(base_layer.BaseLayer):
         gated_inputs, act_inputs = tf.split(inputs, 2, axis=-1)
       inputs = self._GLU(gated_inputs, act_inputs)
 
-      # TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.
+      # TODO(jamesqin): introduce depthwise conv2d with 3d inputs.
       # [b, t, d] --> [b, t, 1, d]
       inputs = tf.expand_dims(inputs, 2)
       adapted_blf_dims_mapping = None
@@ -416,7 +416,7 @@ class LConvLayer(base_layer.BaseLayer):
         gated_inputs, act_inputs = tf.split(inputs, 2, axis=-1)
       inputs = self._GLU(gated_inputs, act_inputs)
 
-      # TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.
+      # TODO(jamesqin): introduce depthwise conv2d with 3d inputs.
       # TODO(jamesqin): optimize DepthwiseConv1D.StreamStep()
       # [b, t, d] --> [b, t, 1, d]
       inputs = tf.expand_dims(inputs, 2)
