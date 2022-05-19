@@ -474,6 +474,49 @@ class AUCMetric(BaseMetric):
     ret.value.add(tag=name, simple_value=self.value)
     return ret
 
+  def _PrecisionAtRecall(self, recall):
+    # calculate precision@recall metric
+    assert self._mode == 'pr'
+    p, r, t = self._curve_fn(
+        self._label, self._prob, sample_weight=self._weight)
+    last_p = 0.0
+    for pp, rr, _ in zip(p, r, t):
+      if rr >= recall:
+        last_p = pp
+    return last_p
+
+  def _RecallAtPrecision(self, precision):
+    # calculate recall@precision metric
+    assert self._mode == 'pr'
+    p, r, t = self._curve_fn(
+        self._label, self._prob, sample_weight=self._weight)
+    for pp, rr, _ in zip(p, r, t):
+      if pp >= precision:
+        return rr
+    return 0.0
+
+
+class PrecisionAtRecall(AUCMetric):
+
+  def __init__(self, recall_threshold, samples=-1):
+    super().__init__(mode='pr', samples=samples)
+    self._recall_threshold = recall_threshold
+
+  @property
+  def value(self):
+    return self._PrecisionAtRecall(self._recall_threshold)
+
+
+class RecallAtPrecision(AUCMetric):
+
+  def __init__(self, precision_threshold, samples=-1):
+    super().__init__(mode='pr', samples=samples)
+    self._precision_threshold = precision_threshold
+
+  @property
+  def value(self):
+    return self._RecallAtPrecision(self._precision_threshold)
+
 
 class MultiClassAUCMetric(BaseMetric):
   """Class to compute mAP or mAUC for multiclass/multilabel classification.

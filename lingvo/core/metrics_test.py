@@ -195,6 +195,32 @@ class MetricsTest(test_utils.TestCase):
     m.Update(label=[0, 0], prob=[0.1, 0.2], weight=[1.0, 1.0])
     self.assertEqual(0.5, m.value)
 
+  def testPrecisionAtRecall(self):
+    if not metrics.HAS_SKLEARN:
+      self.skipTest('sklearn is not installed.')
+    m = metrics.PrecisionAtRecall(recall_threshold=0.5)
+    m.Update(label=[1, 1], prob=[0.15, 0.25], weight=[1.0, 1.0])
+    m.Update(label=[0, 0], prob=[0.1, 0.2], weight=[1.0, 1.0])
+    self.assertEqual(1.0, m.value)
+
+    m = metrics.PrecisionAtRecall(recall_threshold=1.0)
+    m.Update(label=[1, 1], prob=[0.15, 0.25], weight=[1.0, 1.0])
+    m.Update(label=[0, 0], prob=[0.1, 0.2], weight=[1.0, 1.0])
+    self.assertEqual(2.0 / 3, m.value)
+
+  def testRecallAtPrecision(self):
+    if not metrics.HAS_SKLEARN:
+      self.skipTest('sklearn is not installed.')
+    m = metrics.RecallAtPrecision(precision_threshold=0.5)
+    m.Update(label=[1, 1], prob=[0.15, 0.25], weight=[1.0, 1.0])
+    m.Update(label=[0, 0], prob=[0.1, 0.2], weight=[1.0, 1.0])
+    self.assertEqual(1.0, m.value)
+
+    m = metrics.RecallAtPrecision(precision_threshold=1.0)
+    m.Update(label=[1, 1], prob=[0.15, 0.25], weight=[1.0, 1.0])
+    m.Update(label=[0, 0], prob=[0.1, 0.2], weight=[1.0, 1.0])
+    self.assertAlmostEqual(0.5, m.value)
+
   def testMultiClassAUCMetric(self):
     if not metrics.HAS_SKLEARN:
       self.skipTest('sklearn is not installed.')
