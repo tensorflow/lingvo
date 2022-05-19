@@ -579,7 +579,8 @@ class BaseTask(base_layer.BaseLayer):
         # Always reset step seed at the start of a new global_step.
         py_utils.ResetStepSeed()
         metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
-        self._FPropResult(metrics, per_example)
+        self._FPropResult(metrics, per_example, input_batch)
+
     return metrics, per_example
 
   def _FPropTpu(self, theta, input_batch):
@@ -630,12 +631,28 @@ class BaseTask(base_layer.BaseLayer):
     return py_utils.WeightedAvgOfMetrics(
         all_metrics), py_utils.ConcatPerExampleTensors(all_per_example_tensors)
 
-  def _FPropResult(self, metrics, per_example):
+  def _FPropResult(self, metrics, per_example, input_batch):
     # Adds stats about the input batch.
     p = self._params
     if p.input is not None and 'num_samples_in_batch' not in metrics:
-      metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
-          self.input_generator.GlobalBatchSize()), tf.constant(1.0))
+      per_batch_size = None
+      if py_utils.use_tpu():
+        # In tpu mode, attempt to calculate the batch size dynamically.
+        # Here, `input_batch` is the result after splitting the client-side
+        # batch. We multiply the result by `num_splits_per_client`, so that
+        # the final result is the client-size batch size.
+        per_batch_size = self.input_generator.GetBatchSize(input_batch)
+
+      if per_batch_size is not None:
+        metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
+            per_batch_size * self.cluster.num_splits_per_client),
+                                           tf.constant(1.0))
+      else:
+        # By default `GetBatchSize` returns None. In that case, fall back to
+        # using `GlobalBatchSize`.
+        metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
+            self.input_generator.GlobalBatchSize()), tf.constant(1.0))
+
     # Generates summaries.
     for name, (value, weight) in metrics.items():
       self.AddEvalMetric(

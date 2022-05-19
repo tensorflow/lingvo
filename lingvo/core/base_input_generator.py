@@ -241,6 +241,29 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """Get the current bprop type of the input generator batch."""
     return self._bprop_onehot
 
+  def GetBatchSize(self, input_batch):
+    """Returns the number of examples in input_batch.
+
+    This is useful when the batch size needs to be calculated dynamically as
+    input_batch changes.
+
+    The implementation should not depend on any other implicit/side input
+    tensors, as this method will be used inside a tf.function and value changes
+    of those inputs may not be captured.
+    TODO(b/229158150): add a check to ensure this.
+
+    Args:
+      input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch
+        spiltting is used, a list of `NestedMap`, one for each split.
+
+    Returns:
+      A NestedMap containing preprocessed inputs to feed to the model.
+    """
+    # Derived classes should implement this method because the batch calculation
+    # logics vary. By default this returns None and the input pipeline falls
+    # back to `GlobalBatchSize`.
+    return None
+
   def GlobalBatchSize(self):
     """Returns the total batch size (for stats), int or dynamic int tensor."""
     # Uses `InfeedBatchSize()` instead of calculating it from `p.batch_size`
