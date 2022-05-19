@@ -6102,6 +6102,30 @@ def ClearTpuSummaryTensors():
   del tpu_summary_tensors[:]
 
 
+_SAVED_MODEL_ASSETS = ThreadLocalStack()
+
+
+def AddSavedModelAssets(asset):
+  if tf.executing_eagerly_outside_functions():
+    _SAVED_MODEL_ASSETS.stack.append(asset)
+  else:
+    # Yes, graph collections are bad, however this seems to be the
+    # easiest way to get this assets registered from
+    # TextFileInitializer.
+    tf.compat.v1.add_to_collection(tf.GraphKeys.ASSET_FILEPATHS,
+                                   asset.asset_path)
+
+
+def GetSavedModelAssets():
+  if tf.executing_eagerly_outside_functions():
+    return _SAVED_MODEL_ASSETS.stack
+  else:
+    # Yes, graph collections are bad, however this seems to be the
+    # easiest way to get this assets registered from
+    # TextFileInitializer.
+    return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.ASSET_FILEPATHS)
+
+
 def ComputationShape(split_size, topology=None):
   """Decides the computation shape based on the split_size.
 

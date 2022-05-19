@@ -880,6 +880,14 @@ class BaseTask(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
+  def InferenceEager(self):
+    """Constructs the inference function graphs for running on TPUs in TF2.
+
+    Returns:
+      A map between signatures and the tf.function/concrete functions.
+    """
+    raise NotImplementedError('Abstract method')
+
   def CreateDecoderMetrics(self):
     """Creates a dict of decoder metrics for `PostProcessDecodeOut` to update.
 
@@ -1174,6 +1182,9 @@ class BaseModel(base_layer.BaseLayer):
   def ConstructPostTrainingLoop(self, outfeed=None):
     raise NotImplementedError('Abstract method')
 
+  def ApplyExponentialMovingAverage(self):
+    raise NotImplementedError('Abstract method')
+
   @property
   def tasks(self):
     """Returns a list of all tasks."""
@@ -1250,30 +1261,29 @@ class SingleTaskBase(BaseModel):
   def SampleTask(self, global_step):
     return self._task
 
-  def ConstructFPropBPropGraph(self):
+  def ApplyExponentialMovingAverage(self):
     if self.ema:
       self._task.ApplyExponentialMovingAverage(self.ema)
+      # ConstructFPropGraph/ConstructDecodeGraph also need this to ensure that
+      # ema vars are loaded from checkpoint even when no training is done.
       self._MakeEMAVariablesDict()
+
+  def ConstructFPropBPropGraph(self):
+    self.ApplyExponentialMovingAverage()
     self._task.FPropDefaultTheta()
     self._task.BProp()
 
   def ConstructFPropGraph(self, apply_ema=False):
-    if self.ema and apply_ema:
-      self._task.ApplyExponentialMovingAverage(self.ema)
-      # This is needed in order to load ema vars from checkpoint using
-      # init_from_checkpoint_rules in eval/decode only exeuctor runs.
-      self._MakeEMAVariablesDict()
+    if apply_ema:
+      self.ApplyExponentialMovingAverage()
     self._task.FPropDefaultTheta()
 
   def ConstructDecodeGraph(self,
                            task_name=None,
                            apply_ema=False,
                            input_batch=None):
-    if self.ema and apply_ema:
-      self._task.ApplyExponentialMovingAverage(self.ema)
-      # This is needed in order to load ema vars from checkpoint using
-      # init_from_checkpoint_rules in eval/decode only exeuctor runs.
-      self._MakeEMAVariablesDict()
+    if apply_ema:
+      self.ApplyExponentialMovingAverage()
     with py_utils.TaskCallScope(self._task):
       if not input_batch:
         input_batch = self._task.GetInputBatch()
@@ -1496,16 +1506,21 @@ class MultiTaskModel(BaseModel):
     tf.logging.info('Sampled task: %s', sampled_task)
     return self.children[sampled_task]
 
+  def ApplyExponentialMovingAverage(self):
+    if self.ema:
+      for task_name in self.task_names:
+        with tf.name_scope(task_name):
+          task = self.GetTask(task_name)
+          task.ApplyExponentialMovingAverage(self.ema)
+      self._MakeEMAVariablesDict()
+
   def ConstructFPropBPropGraph(self):
     for task_name in self.task_names:
       with tf.name_scope(task_name):
+        self.ApplyExponentialMovingAverage()
         task = self.GetTask(task_name)
-        if self.ema:
-          task.ApplyExponentialMovingAverage(self.ema)
         task.FPropDefaultTheta()
         task.BProp()
-    if self.ema:
-      self._MakeEMAVariablesDict()
 
   def ConstructFPropGraph(self, apply_ema=False):
     assert not apply_ema

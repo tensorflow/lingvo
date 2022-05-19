@@ -467,11 +467,7 @@ class InferenceGraphExporter:
                 'subgraphs. Defined subgraphs: '
                 f'{list(subgraphs_proto.subgraphs.keys())}')
 
-          # Yes, graph collections are bad, however this seems to be the
-          # easiest way to get this assets registered from
-          # TextFileInitializer.
-          assets_collection = tf.compat.v1.get_collection(
-              tf.compat.v1.GraphKeys.ASSET_FILEPATHS)
+          assets_collection = py_utils.GetSavedModelAssets()
           for asset in assets_collection:
             if asset.op.type == 'Const' and asset.op.get_attr(
                 'dtype') == tf.dtypes.string:
