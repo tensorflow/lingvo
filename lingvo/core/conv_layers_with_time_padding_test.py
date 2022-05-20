@@ -761,10 +761,16 @@ class CausalConv2DLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
     channel = kwargs['input_dim']
     kernel = kwargs['kernel']
     bias = kwargs['bias']
+    filter_stride = kwargs['filter_stride']
+    dilation = kwargs['dilation']
+    use_stride_for_pad = kwargs['use_stride_for_pad']
+
     p = conv_layers.CausalConv2DLayerWithPadding.Params().Set(
         name='conv',
-        filter_stride=[1, 1],
+        filter_stride=[filter_stride, 1],
+        dilation_rate=[dilation, 1],
         filter_shape=[kernel, 1, channel, channel],
+        use_stride_for_pad=use_stride_for_pad,
         params_init=py_utils.WeightInit.Gaussian(0.1),
         bias=bias,
         bias_init=py_utils.WeightInit.Gaussian(0.1))
@@ -787,9 +793,33 @@ class CausalConv2DLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
       ('SkipNormS4', True, 4),
   )
   def testCommon(self, testonly_skip_norm_layers=False, stride=1, bias=False):
-    kwargs = dict(input_dim=3, kernel=5, stride=stride, bias=bias)
+    kwargs = dict(
+        input_dim=3,
+        kernel=5,
+        use_stride_for_pad=False,
+        stride=stride,
+        filter_stride=1,
+        bias=bias,
+        dilation=1)
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
+      self._TestStreamStepHelper(**kwargs)
+
+  @parameterized.named_parameters(
+      ('Stride2', 2),
+      ('Stride4', 4),
+      ('Daliation2', 1, 2),
+  )
+  def testStrideDilationStreaming(self, stride=1, dilation=1):
+    kwargs = dict(
+        input_dim=3,
+        kernel=5,
+        use_stride_for_pad=True,
+        stride=stride,  # It control stride of the input data feed
+        filter_stride=stride,  # It control stride of the convolution
+        bias=True,
+        dilation=dilation)
+    with flagsaver.flagsaver(testonly_skip_norm_layers=False):
       self._TestStreamStepHelper(**kwargs)
 
 

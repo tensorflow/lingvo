@@ -114,26 +114,33 @@ def ComputeConvOutputPadding(paddings,
   return tf.squeeze(out_padding, -1)
 
 
-def ComputeExplicitPaddingForCausalConv(filter_shape, dilation_rate):
+def ComputeExplicitPaddingForCausalConv(filter_shape,
+                                        dilation_rate,
+                                        strides=None):
   """Computes the explicit paddings for causal convolutions.
 
   Args:
     filter_shape: a sequence of length 4. Elements are in the order of height
       (time), width (frequency), in_channel, out_channel.
     dilation_rate: a pair of int: dilations on height and width axises.
+    strides: None or a pair of int: strides on height and width axises.
 
   Returns:
     explicit_padding: a list of pairs in the form of :
       [[0, 0], [pad_top, pad_bottom], [pad_left, pad_right], [0, 0]]
   """
   assert filter_shape[1] == 1, 'Only 1D causal convolutions supported.'
+  stride = 1
+  if strides is not None:
+    assert len(strides) == 2, 'strides has to have 2 dimensions.'
+    stride = strides[0]
   # Use VALID padding and shift the inputs to the right to ensure that the
   # first output only depends on the first input and so on. The output is
   # the same size as the input, as if the convolution used SAME padding.
   # The effective spatial filter width for dilated convolutions is
   # (kernel_width - 1) * dilation_rate + 1 as according to
   # https://www.tensorflow.org/api_docs/python/tf/nn/convolution.
-  causal_pad_size = (filter_shape[0] - 1) * dilation_rate[0]
+  causal_pad_size = (filter_shape[0] - 1) * dilation_rate[0] - (stride - 1)
   explicit_padding = [[0, 0], [causal_pad_size, 0], [0, 0], [0, 0]]
   return explicit_padding
 
@@ -206,7 +213,7 @@ def _PadForLengthCompatibleStridesV2(tensor, stride, padding_algorithm,
     constant_values: Value to pad 0. for data tensor and 1.0 for padding tensor.
 
   Returns:
-    A tuple (tensor, padded_length) where tensor is the potentionally padded
+    A tuple (tensor, padded_length) where tensor is the potentially padded
     tensor and padded_length is the number paddings.
   """
   if padding_algorithm == 'VALID':
@@ -404,7 +411,7 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
     """Returns the padding algorithm for tf.*conv2d api.
 
     The default value is 'SAME' for non-causal layers. Causal layers may
-      override and return a explicit padding.
+      override and return an explicit padding.
     """
     return 'SAME'
 
@@ -490,6 +497,18 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
 class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
   """2D conv layer with causal dependency on the time axis."""
 
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'use_stride_for_pad', False,
+        'Use stride values to pad input sequence in non streaming mode. '
+        'It will be used for time dimension only.'
+        'This flag is added for backward compatibility '
+        'with previous padding logic.'
+        'use_stride_for_pad=True enables streaming strided convolution.')
+    return p
+
   def __init__(self, params):
     super().__init__(params)
     p = self.params
@@ -497,7 +516,11 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
 
   def _MaybeCausalPadding(self):
     p = self.params
-    return ComputeExplicitPaddingForCausalConv(p.filter_shape, p.dilation_rate)
+
+    # It is for backward compatibility with the previous logic of padding.
+    strides = p.filter_stride if p.use_stride_for_pad else None
+    return ComputeExplicitPaddingForCausalConv(p.filter_shape, p.dilation_rate,
+                                               strides)
 
   def zero_state(self, batch_size):
     """Returns the initial state given the batch size.
@@ -512,10 +535,16 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
     p = self.params
     assert p.filter_shape[1] == 1, (
         'zero_state() only supports 1d causal convolution.')
+    assert p.dilation_rate[1] == 1, (
+        'zero_state() only supports 1d dilation convolution.')
+    assert p.filter_stride[1] == 1, (
+        'zero_state() only supports 1d strided convolution.')
 
     context = tf.zeros(
-        shape=[batch_size] +
-        [p.filter_shape[0] - 1, p.filter_shape[1], p.filter_shape[2]],
+        shape=[batch_size] + [
+            p.dilation_rate[0] * (p.filter_shape[0] - 1) -
+            (p.filter_stride[0] - 1), p.filter_shape[1], p.filter_shape[2]
+        ],
         dtype=py_utils.FPropDtype(p))
     return py_utils.NestedMap(context=context)
 
@@ -539,9 +568,10 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
     p = self.params
     assert p.filter_shape[1] == 1, (
         'StreamStep only supports 1d causal convolution.')
-    assert all(stride == 1 for stride in p.filter_stride), (
-        f'StreamStep doesn\'t support striding: {p.filter_stride}')
-    assert p.dilation_rate == (1, 1), ('StreamStep doesn\'t support dilation')
+    assert p.filter_stride[1] == 1, (
+        'StreamStep doesn\'t support striding in second dimension')
+    assert p.dilation_rate[1] == 1, (
+        'StreamStep doesn\'t support dilation in second dimension')
 
     with tf.name_scope(p.name):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
@@ -752,7 +782,8 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     p = super().Params()
     p.Define('dropconnect_prob', 0.0,
              'Prob at which DropConnect regularization is performed.')
-    p.Define('deterministic_dropout', False, 'Use determnisitc dropout or not.')
+    p.Define('deterministic_dropout', False,
+             'Use deterministic dropout or not.')
     p.Define('temperature', 1.0,
              'Temperature for the softmax normalization of the weights.')
     p.Define('weight_tiling_factor', 1,
