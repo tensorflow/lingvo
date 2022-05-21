@@ -644,7 +644,8 @@
         <span class="c1"># Always reset step seed at the start of a new global_step.</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
         <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropSplitInputBatch</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_FPropResult</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_FPropResult</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span></div>
 
 <div class="viewcode-block" id="BaseTask._FPropTpu"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._FPropTpu">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropTpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
@@ -695,12 +696,28 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvgOfMetrics</span><span class="p">(</span>
         <span class="n">all_metrics</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ConcatPerExampleTensors</span><span class="p">(</span><span class="n">all_per_example_tensors</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseTask._FPropResult"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._FPropResult">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropResult</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTask._FPropResult"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._FPropResult">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropResult</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="c1"># Adds stats about the input batch.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;num_samples_in_batch&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
-      <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GlobalBatchSize</span><span class="p">()),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+      <span class="n">per_batch_size</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+        <span class="c1"># In tpu mode, attempt to calculate the batch size dynamically.</span>
+        <span class="c1"># Here, `input_batch` is the result after splitting the client-side</span>
+        <span class="c1"># batch. We multiply the result by `num_splits_per_client`, so that</span>
+        <span class="c1"># the final result is the client-size batch size.</span>
+        <span class="n">per_batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetBatchSize</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">per_batch_size</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+            <span class="n">per_batch_size</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">),</span>
+                                           <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># By default `GetBatchSize` returns None. In that case, fall back to</span>
+        <span class="c1"># using `GlobalBatchSize`.</span>
+        <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GlobalBatchSize</span><span class="p">()),</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
+
     <span class="c1"># Generates summaries.</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span>
@@ -925,6 +942,14 @@
 
 <span class="sd">    Returns:</span>
 <span class="sd">      An `inference_graph_pb2.InferenceGraph` message.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTask.InferenceEager"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.InferenceEager">[docs]</a>  <span class="k">def</span> <span class="nf">InferenceEager</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the inference function graphs for running on TPUs in TF2.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A map between signatures and the tf.function/concrete functions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
@@ -1222,6 +1247,9 @@
 <div class="viewcode-block" id="BaseModel.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">outfeed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="BaseModel.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a list of all tasks.&quot;&quot;&quot;</span>
@@ -1298,30 +1326,29 @@
 <div class="viewcode-block" id="SingleTaskBase.SampleTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.SampleTask">[docs]</a>  <span class="k">def</span> <span class="nf">SampleTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span></div>
 
-<div class="viewcode-block" id="SingleTaskBase.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="SingleTaskBase.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span>
+      <span class="c1"># ConstructFPropGraph/ConstructDecodeGraph also need this to ensure that</span>
+      <span class="c1"># ema vars are loaded from checkpoint even when no training is done.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SingleTaskBase.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="SingleTaskBase.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">apply_ema</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span> <span class="ow">and</span> <span class="n">apply_ema</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
-      <span class="c1"># This is needed in order to load ema vars from checkpoint using</span>
-      <span class="c1"># init_from_checkpoint_rules in eval/decode only exeuctor runs.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">apply_ema</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="SingleTaskBase.ConstructDecodeGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructDecodeGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructDecodeGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                            <span class="n">task_name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                            <span class="n">apply_ema</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                            <span class="n">input_batch</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span> <span class="ow">and</span> <span class="n">apply_ema</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
-      <span class="c1"># This is needed in order to load ema vars from checkpoint using</span>
-      <span class="c1"># init_from_checkpoint_rules in eval/decode only exeuctor runs.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">apply_ema</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">TaskCallScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">):</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">input_batch</span><span class="p">:</span>
         <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">GetInputBatch</span><span class="p">()</span>
@@ -1544,16 +1571,21 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Sampled task: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">sampled_task</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">sampled_task</span><span class="p">]</span></div>
 
+<div class="viewcode-block" id="MultiTaskModel.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+          <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
+          <span class="n">task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="MultiTaskModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">()</span>
         <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
-          <span class="n">task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
         <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_MakeEMAVariablesDict</span><span class="p">()</span></div>
+        <span class="n">task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MultiTaskModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">apply_ema</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">apply_ema</span>

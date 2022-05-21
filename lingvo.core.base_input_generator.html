@@ -140,6 +140,27 @@ otherwise num_infeed_hosts is 1.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator.GetBatchSize">
+<span class="sig-name descname"><span class="pre">GetBatchSize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GetBatchSize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetBatchSize" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the number of examples in input_batch.</p>
+<p>This is useful when the batch size needs to be calculated dynamically as
+input_batch changes.</p>
+<p>The implementation should not depend on any other implicit/side input
+tensors, as this method will be used inside a tf.function and value changes
+of those inputs may not be captured.
+TODO(b/229158150): add a check to ensure this.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_batch</strong> – The input batch. A <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code> of tensors. Or, if input batch
+spiltting is used, a list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code>, one for each split.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap containing preprocessed inputs to feed to the model.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize">
 <span class="sig-name descname"><span class="pre">GlobalBatchSize</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GlobalBatchSize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the total batch size (for stats), int or dynamic int tensor.</p>

@@ -306,6 +306,29 @@
     <span class="sd">&quot;&quot;&quot;Get the current bprop type of the input generator batch.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span></div>
 
+<div class="viewcode-block" id="BaseInputGenerator.GetBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GetBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">GetBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the number of examples in input_batch.</span>
+
+<span class="sd">    This is useful when the batch size needs to be calculated dynamically as</span>
+<span class="sd">    input_batch changes.</span>
+
+<span class="sd">    The implementation should not depend on any other implicit/side input</span>
+<span class="sd">    tensors, as this method will be used inside a tf.function and value changes</span>
+<span class="sd">    of those inputs may not be captured.</span>
+<span class="sd">    TODO(b/229158150): add a check to ensure this.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch</span>
+<span class="sd">        spiltting is used, a list of `NestedMap`, one for each split.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap containing preprocessed inputs to feed to the model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Derived classes should implement this method because the batch calculation</span>
+    <span class="c1"># logics vary. By default this returns None and the input pipeline falls</span>
+    <span class="c1"># back to `GlobalBatchSize`.</span>
+    <span class="k">return</span> <span class="kc">None</span></div>
+
 <div class="viewcode-block" id="BaseInputGenerator.GlobalBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">GlobalBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the total batch size (for stats), int or dynamic int tensor.&quot;&quot;&quot;</span>
     <span class="c1"># Uses `InfeedBatchSize()` instead of calculating it from `p.batch_size`</span>

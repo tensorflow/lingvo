@@ -6167,6 +6167,30 @@
   <span class="k">del</span> <span class="n">tpu_summary_tensors</span><span class="p">[:]</span></div>
 
 
+<span class="n">_SAVED_MODEL_ASSETS</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="AddSavedModelAssets"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.AddSavedModelAssets">[docs]</a><span class="k">def</span> <span class="nf">AddSavedModelAssets</span><span class="p">(</span><span class="n">asset</span><span class="p">):</span>
+  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly_outside_functions</span><span class="p">():</span>
+    <span class="n">_SAVED_MODEL_ASSETS</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">asset</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Yes, graph collections are bad, however this seems to be the</span>
+    <span class="c1"># easiest way to get this assets registered from</span>
+    <span class="c1"># TextFileInitializer.</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">ASSET_FILEPATHS</span><span class="p">,</span>
+                                   <span class="n">asset</span><span class="o">.</span><span class="n">asset_path</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetSavedModelAssets"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetSavedModelAssets">[docs]</a><span class="k">def</span> <span class="nf">GetSavedModelAssets</span><span class="p">():</span>
+  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly_outside_functions</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">_SAVED_MODEL_ASSETS</span><span class="o">.</span><span class="n">stack</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># Yes, graph collections are bad, however this seems to be the</span>
+    <span class="c1"># easiest way to get this assets registered from</span>
+    <span class="c1"># TextFileInitializer.</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">ASSET_FILEPATHS</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="ComputationShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ComputationShape">[docs]</a><span class="k">def</span> <span class="nf">ComputationShape</span><span class="p">(</span><span class="n">split_size</span><span class="p">,</span> <span class="n">topology</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Decides the computation shape based on the split_size.</span>
 

@@ -378,7 +378,7 @@
         <span class="n">gated_inputs</span><span class="p">,</span> <span class="n">act_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GLU</span><span class="p">(</span><span class="n">gated_inputs</span><span class="p">,</span> <span class="n">act_inputs</span><span class="p">)</span>
 
-      <span class="c1"># TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.</span>
+      <span class="c1"># TODO(jamesqin): introduce depthwise conv2d with 3d inputs.</span>
       <span class="c1"># [b, t, d] --&gt; [b, t, 1, d]</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
       <span class="n">adapted_blf_dims_mapping</span> <span class="o">=</span> <span class="kc">None</span>
@@ -481,7 +481,7 @@
         <span class="n">gated_inputs</span><span class="p">,</span> <span class="n">act_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GLU</span><span class="p">(</span><span class="n">gated_inputs</span><span class="p">,</span> <span class="n">act_inputs</span><span class="p">)</span>
 
-      <span class="c1"># TODO(jamesqin): inroduce depthwise conv2d with 3d inputs.</span>
+      <span class="c1"># TODO(jamesqin): introduce depthwise conv2d with 3d inputs.</span>
       <span class="c1"># TODO(jamesqin): optimize DepthwiseConv1D.StreamStep()</span>
       <span class="c1"># [b, t, d] --&gt; [b, t, 1, d]</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>

@@ -332,7 +332,7 @@ index.</p></li>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_model.BaseTask._FPropResult">
-<span class="sig-name descname"><span class="pre">_FPropResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_example</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._FPropResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._FPropResult" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_FPropResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">per_example</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_batch</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._FPropResult"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._FPropResult" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -448,6 +448,17 @@ case, the graph will be constructed with only those pieces.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns</dt>
 <dd class="field-odd"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">inference_graph_pb2.InferenceGraph</span></code> message.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_model.BaseTask.InferenceEager">
+<span class="sig-name descname"><span class="pre">InferenceEager</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.InferenceEager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.InferenceEager" title="Permalink to this definition"></a></dt>
+<dd><p>Constructs the inference function graphs for running on TPUs in TF2.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A map between signatures and the tf.function/concrete functions.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -654,6 +665,11 @@ is also the same directory where checkpoints will be written.</p>
 <span class="sig-name descname"><span class="pre">ConstructPostTrainingLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">outfeed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructPostTrainingLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_model.BaseModel.ApplyExponentialMovingAverage">
+<span class="sig-name descname"><span class="pre">ApplyExponentialMovingAverage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ApplyExponentialMovingAverage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ApplyExponentialMovingAverage" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.base_model.BaseModel.tasks">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">tasks</span></span><a class="headerlink" href="#lingvo.core.base_model.BaseModel.tasks" title="Permalink to this definition"></a></dt>
@@ -746,6 +762,11 @@ is also the same directory where checkpoints will be written.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_model.SingleTaskBase.SampleTask">
 <span class="sig-name descname"><span class="pre">SampleTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskBase.SampleTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase.SampleTask" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_model.SingleTaskBase.ApplyExponentialMovingAverage">
+<span class="sig-name descname"><span class="pre">ApplyExponentialMovingAverage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskBase.ApplyExponentialMovingAverage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase.ApplyExponentialMovingAverage" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -881,6 +902,11 @@ keyed by a child name.</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.base_model.MultiTaskModel.ApplyExponentialMovingAverage">
+<span class="sig-name descname"><span class="pre">ApplyExponentialMovingAverage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.ApplyExponentialMovingAverage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.ApplyExponentialMovingAverage" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_model.MultiTaskModel.ConstructFPropBPropGraph">

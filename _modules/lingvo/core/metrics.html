@@ -537,7 +537,50 @@
       <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span> <span class="o">=</span> <span class="n">ys</span><span class="p">,</span> <span class="n">xs</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">Curve</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span> <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="n">_Setter</span><span class="p">)</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ret</span></div></div>
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="AUCMetric._PrecisionAtRecall"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.AUCMetric._PrecisionAtRecall">[docs]</a>  <span class="k">def</span> <span class="nf">_PrecisionAtRecall</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recall</span><span class="p">):</span>
+    <span class="c1"># calculate precision@recall metric</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">==</span> <span class="s1">&#39;pr&#39;</span>
+    <span class="n">p</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_curve_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prob</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight</span><span class="p">)</span>
+    <span class="n">last_p</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="k">for</span> <span class="n">pp</span><span class="p">,</span> <span class="n">rr</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">rr</span> <span class="o">&gt;=</span> <span class="n">recall</span><span class="p">:</span>
+        <span class="n">last_p</span> <span class="o">=</span> <span class="n">pp</span>
+    <span class="k">return</span> <span class="n">last_p</span></div>
+
+<div class="viewcode-block" id="AUCMetric._RecallAtPrecision"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.AUCMetric._RecallAtPrecision">[docs]</a>  <span class="k">def</span> <span class="nf">_RecallAtPrecision</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">precision</span><span class="p">):</span>
+    <span class="c1"># calculate recall@precision metric</span>
+    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">==</span> <span class="s1">&#39;pr&#39;</span>
+    <span class="n">p</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_curve_fn</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_label</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prob</span><span class="p">,</span> <span class="n">sample_weight</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">pp</span><span class="p">,</span> <span class="n">rr</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">pp</span> <span class="o">&gt;=</span> <span class="n">precision</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">rr</span>
+    <span class="k">return</span> <span class="mf">0.0</span></div></div>
+
+
+<div class="viewcode-block" id="PrecisionAtRecall"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.PrecisionAtRecall">[docs]</a><span class="k">class</span> <span class="nc">PrecisionAtRecall</span><span class="p">(</span><span class="n">AUCMetric</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">recall_threshold</span><span class="p">,</span> <span class="n">samples</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;pr&#39;</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_recall_threshold</span> <span class="o">=</span> <span class="n">recall_threshold</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PrecisionAtRecall</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recall_threshold</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RecallAtPrecision"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.RecallAtPrecision">[docs]</a><span class="k">class</span> <span class="nc">RecallAtPrecision</span><span class="p">(</span><span class="n">AUCMetric</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">precision_threshold</span><span class="p">,</span> <span class="n">samples</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">&#39;pr&#39;</span><span class="p">,</span> <span class="n">samples</span><span class="o">=</span><span class="n">samples</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_precision_threshold</span> <span class="o">=</span> <span class="n">precision_threshold</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RecallAtPrecision</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_threshold</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MultiClassAUCMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.MultiClassAUCMetric">[docs]</a><span class="k">class</span> <span class="nc">MultiClassAUCMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>

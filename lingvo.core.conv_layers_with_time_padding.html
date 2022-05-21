@@ -131,7 +131,7 @@ strided convolutions.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.ComputeExplicitPaddingForCausalConv">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">ComputeExplicitPaddingForCausalConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filter_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dilation_rate</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#ComputeExplicitPaddingForCausalConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.ComputeExplicitPaddingForCausalConv" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">ComputeExplicitPaddingForCausalConv</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filter_shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dilation_rate</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strides</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#ComputeExplicitPaddingForCausalConv"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.ComputeExplicitPaddingForCausalConv" title="Permalink to this definition"></a></dt>
 <dd><p>Computes the explicit paddings for causal convolutions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -139,6 +139,7 @@ strided convolutions.</p></li>
 <li><p><strong>filter_shape</strong> – a sequence of length 4. Elements are in the order of height
 (time), width (frequency), in_channel, out_channel.</p></li>
 <li><p><strong>dilation_rate</strong> – a pair of int: dilations on height and width axises.</p></li>
+<li><p><strong>strides</strong> – None or a pair of int: strides on height and width axises.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -199,7 +200,7 @@ the first convolution starts in the first position.</p>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A tuple (tensor, padded_length) where tensor is the potentionally padded
+<dd class="field-even"><p>A tuple (tensor, padded_length) where tensor is the potentially padded
 tensor and padded_length is the number paddings.</p>
 </dd>
 </dl>
@@ -282,7 +283,7 @@ width dimension as in images.</p></li>
 <span class="sig-name descname"><span class="pre">_MaybeCausalPadding</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#BaseConv2DLayerWithPadding._MaybeCausalPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._MaybeCausalPadding" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
 <dl class="simple">
-<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return an explicit padding.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -346,11 +347,17 @@ tf.variable_scope(self.params.name).</p>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding" title="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding</span></code></a></p>
 <p>2D conv layer with causal dependency on the time axis.</p>
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding.Params">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalConv2DLayerWithPadding.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding.Params" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding._MaybeCausalPadding">
 <span class="sig-name descname"><span class="pre">_MaybeCausalPadding</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalConv2DLayerWithPadding._MaybeCausalPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding._MaybeCausalPadding" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
 <dl class="simple">
-<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return an explicit padding.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -468,7 +475,7 @@ tf.variable_scope(self.params.name).</p>
 <span class="sig-name descname"><span class="pre">_MaybeCausalPadding</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalDepthwiseConv2DLayer._MaybeCausalPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer._MaybeCausalPadding" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
 <dl class="simple">
-<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return an explicit padding.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -607,7 +614,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <span class="sig-name descname"><span class="pre">_MaybeCausalPadding</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalNormalizedDepthwiseConv2DLayer._MaybeCausalPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer._MaybeCausalPadding" title="Permalink to this definition"></a></dt>
 <dd><p>Returns the padding algorithm for tf.*conv2d api.</p>
 <dl class="simple">
-<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return a explicit padding.</p>
+<dt>The default value is ‘SAME’ for non-causal layers. Causal layers may</dt><dd><p>override and return an explicit padding.</p>
 </dd>
 </dl>
 </dd></dl>
