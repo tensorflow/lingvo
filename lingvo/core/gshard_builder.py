@@ -1354,11 +1354,14 @@ class MoEBuilder(builder.Base):
     fprop_dtype = py_utils.FPropDtype(self.params)
 
     if p.relative_attention_use_universal_1d_position:
-      assert (int(key_segment_pos.shape[-1]) == int(
-          query_segment_pos.shape[-1])), (key_segment_pos.shape,
-                                          query_segment_pos.shape)
-      batch_size = query_segment_pos.shape.as_list()[0]
-      len_dim = key_segment_pos.shape.as_list()[-1]
+      key_segment_pos = py_utils.with_dependencies([
+          py_utils.assert_equal(
+              py_utils.GetShape(key_segment_pos)[-1],
+              py_utils.GetShape(query_segment_pos)[-1])
+      ], key_segment_pos)
+
+      batch_size = py_utils.GetShape(query_segment_pos)[0]
+      len_dim = py_utils.GetShape(key_segment_pos)[-1]
       key_segment_pos = query_segment_pos = tf.expand_dims(
           tf.range(len_dim), axis=0)
 
