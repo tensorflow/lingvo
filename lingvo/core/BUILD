@@ -2273,6 +2273,20 @@ py_test(
     ],
 )
 
+py_test(
+    name = "gshard_gating_test",
+    srcs = ["gshard_gating_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":gshard_layers",
+        ":test_utils",
+        # Implicit absl.logging dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
 pytype_library(
     name = "gshard_utils",
     srcs = ["gshard_utils.py"],
