@@ -29,6 +29,7 @@ from lingvo.core import py_utils
 from lingvo.core import test_utils
 
 FLAGS = tf.flags.FLAGS
+test_utils.DisableEagerAdapter()  # Tests below runs in both Session/eager mode.
 
 
 def _GetCheckpointKeys(save_path):

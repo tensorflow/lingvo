@@ -19,6 +19,7 @@ import inspect
 import os
 import re
 import sys
+from typing import Callable, Union
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -40,6 +41,145 @@ FLAGS = tf.flags.FLAGS
 py_utils.SetEagerMode(False)
 
 
+# Decorator to skip a test if in eager mode.
+def SkipIfEager(test_func):
+
+  def _Wrap(self, *args, **kwargs):
+    if py_utils.IsEagerMode():
+      self.skipTest('Not compatible with eager execution, skipping.')
+    return test_func(self, *args, **kwargs)
+
+  return _Wrap
+
+
+def DefineAndTrace(
+    *tensor_specs_or_placeholders: Union[tf.TensorSpec, tf.Tensor]
+) -> Callable:  # pylint: disable=g-bare-generic
+  """Returns a function that will trace the decorated function when called.
+
+  It will have different behavior depending on the execution mode.
+
+  In eager mode, tensor_specs_or_placeholders is a list of tf.TensorSpec.
+  When called, the returned decorator will wrap the input function in a
+  tf.function with input_signature set to the these tf.TensorSpec, and
+  trace it by creating and returning a concrete function.
+
+  In graph mode, tensor_specs_or_placeholders is a list of tf.placeholder.
+  When called, the returned decorator will call the input function using these
+  tf.placeholder as input, and build the graph.
+
+  Args:
+    *tensor_specs_or_placeholders: A list of tf.placeholder or tf.TensorSpec.
+
+  Returns:
+    A function that will trace the decorated function when called.
+  """
+  if py_utils.IsEagerMode():
+    tensor_specs = tensor_specs_or_placeholders
+    assert all(isinstance(spec, tf.TensorSpec) for spec in tensor_specs)
+    decorator = tf.function(input_signature=list(tensor_specs), autograph=False)
+    return lambda fn: decorator(fn).get_concrete_function()
+  else:
+    placehoders = tensor_specs_or_placeholders
+    assert all(ph.op.type == 'Placeholder' for ph in placehoders)
+    return lambda fn: fn(*placehoders)
+
+
+_TENSOR_SPEC_COUNTER = 0
+
+
+def _PlaceholderAdapter(dtype, shape=None):
+  """Redirect all `tf.placehoders` usage to `tf.TensorSpec` in eager mode.
+
+  This is designed to be used with the @DefineAndTrace decorator above.
+
+  Args:
+    dtype: A tf.DType.
+    shape: The shape.
+
+  Returns:
+    A `tf.TensorSpec`.
+  """
+  global _TENSOR_SPEC_COUNTER
+  # Creates a unique name for the spec. This name will be used by
+  # _EagerSessionAdaptor.run to identify and order the inputs.
+  name = f'eager_adapter_spec_{_TENSOR_SPEC_COUNTER}'
+  _TENSOR_SPEC_COUNTER += 1
+  tf.logging.info('Using placeholder adapter. '
+                  f'Name: {name}, dtype: {dtype}, shape: {shape}.')
+  return tf.TensorSpec(shape, dtype, name=name)
+
+
+class _EagerSessionAdaptor:
+  """An adapter providing `tf.Session`-like interface in eager mode.
+
+  This adapter is designed to be used with the @DefineAndTrace decorator above,
+  and in eager mode only. Its `run` method can take a @DefineAndTrace decorated
+  function and run it with inputs provided by `feed_dict`.
+  """
+
+  def __init__(self, run_fn):
+    """Constructor.
+
+    Args:
+      run_fn: The function used to evaluate the values of given tensors. This
+        should be set to tf.test.TestCase.evaluate.
+    """
+    self._run_fn = run_fn
+
+  def run(self, function_or_fetches, feed_dict=None):  # pylint: disable=invalid-name
+    """Evaluates `function_or_fetches` with `feed_dict` as input.
+
+    Args:
+      function_or_fetches: Either an eager tensor, or a function decorated by
+        @DefineAndTrace.
+      feed_dict: A dict of `tf.TensorSpec` -> value as input, where the keys are
+        specs created by `_PlaceholderAdapter`. Applicable only when
+        `function_or_fetches` is a function.
+
+    Returns:
+      The evaluation result.
+    """
+    if not callable(function_or_fetches):
+      fetches = function_or_fetches
+      return self._run_fn(fetches)
+
+    # In this case, function_or_fetches is a callable
+    func = function_or_fetches
+    if not feed_dict:
+      return self._run_fn(func())
+
+    # In this case, function_or_fetches is a callable and feed_dict is provided.
+    assert isinstance(feed_dict, dict)
+    assert all(isinstance(k, tf.TensorSpec) for k in feed_dict)
+
+    assert isinstance(func, tf.types.experimental.ConcreteFunction)
+    assert not func.structured_input_signature[1]  # Disallow **kwargs.
+    args_signature = func.structured_input_signature[0]  # This is *args
+    assert len(feed_dict) == len(args_signature)
+
+    # Reorder the inputs to match the input signature.
+    feeds = []
+    for i, spec in enumerate(args_signature):
+      for k, v in feed_dict.items():
+        if k.name == spec.name:
+          feeds.append(v)
+          break
+      else:
+        raise ValueError(f'Cannot find value for argument {i+1} ({spec.name}).')
+    return self._run_fn(func(*feeds))
+
+
+# Whether to use _PlaceholderAdapter and _EagerSessionAdaptor above for testing
+# in eager mode.
+_EAGER_ADAPTER_ENABLED = True
+
+
+def DisableEagerAdapter():
+  global _EAGER_ADAPTER_ENABLED
+  _EAGER_ADAPTER_ENABLED = False
+
+
 class TestCase(tf.test.TestCase):
   """TestCase that performs Lingvo-specific setup."""
 
@@ -53,6 +193,18 @@ class TestCase(tf.test.TestCase):
     cluster = cluster_factory.SetRequireSequentialInputOrder(True)
     cluster.params.in_unit_test = True
     cluster.__enter__()
+
+    if py_utils.IsEagerMode() and _EAGER_ADAPTER_ENABLED:
+      # Redirect all self.session usage to _EagerSessionAdaptor.
+      @contextlib.contextmanager
+      def _EagerSessionAdaptorContext(*args, **kwargs):
+        del args, kwargs
+        yield _EagerSessionAdaptor(self.evaluate)
+
+      self.session = _EagerSessionAdaptorContext
+
+      # Redirect tf.placeholder calls to tf.TensorSpec.
+      tf.placeholder = _PlaceholderAdapter
 
   def _create_session(self, *args, **kwargs):
     sess = super()._create_session(*args, **kwargs)

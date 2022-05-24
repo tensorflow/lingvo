@@ -1866,8 +1866,21 @@ py_library(
 )
 
 py_test(
+    name = "test_utils_eager_test",
+    srcs = ["test_utils_eager_test.py"],
+    args = ["--enable_eager_execution"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.py"],
+    args = ["--noenable_eager_execution"],
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
