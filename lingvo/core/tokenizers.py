@@ -91,6 +91,46 @@ class BaseTokenizer(base_layer.BaseLayer):
 
     return self._StringsToIdsImpl(strs, max_length, append_eos, languages)
 
+  def StringsToIdsWithSegments(self,
+                               strs,
+                               max_length,
+                               external_append_eos=None,
+                               languages=None):
+    """Same as StringsToIds, but can process strs that contain segments...
+
+    separated by <segment> delimiter, and return the segment ids corresponding
+    to each label.
+
+    Args:
+      strs: A vector of strings.
+      max_length: An int providing the max_length for strs.
+      external_append_eos: Bool or None. If None, will be ignored and
+        `params.append_eos` will be used. If bool, will determine if an eos
+        symbol will be added to tokens.
+      languages: A vector of strings with the same length as `strs`.
+
+    Returns:
+      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].
+
+      - ids[i, j] is the input token id of i-th sample for j-th step.
+      - labels[i, j] is the target token id of i-th sample for j-th step.
+      - paddings[i, j] is 1 iff i-th sample's j-th step is padded.
+      - segment_ids[i, j] is the segment id of i-th sample for j-th step.
+
+    Raises:
+      ValueError: If unknown token type.
+    """
+    # TODO(cjzheng) make segment delimiter configurable
+    p = self.params
+
+    if external_append_eos is None:
+      append_eos = p.append_eos
+    else:
+      append_eos = external_append_eos
+
+    return self._StringsToIdsWithSegmentsImpl(strs, max_length, append_eos,
+                                              languages)
+
   def StringsToIdsWithOffsets(self,
                               strs,
                               max_length,
@@ -136,6 +176,10 @@ class BaseTokenizer(base_layer.BaseLayer):
 
   def _StringsToIdsWithOffsetsImpl(self, strs, max_length, append_eos,
                                    languages):
+    raise NotImplementedError('Abstract method.')
+
+  def _StringsToIdsWithSegmentsImpl(self, strs, max_length, append_eos,
+                                    languages):
     raise NotImplementedError('Abstract method.')
 
   def IdsToStrings(self, ids, lens, languages=None):
