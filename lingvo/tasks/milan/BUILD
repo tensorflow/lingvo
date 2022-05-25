@@ -217,6 +217,7 @@ pytype_strict_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
+        "//lingvo/core:py_utils",
     ],
 )
 

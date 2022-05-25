@@ -19,6 +19,7 @@ Based on implementations in TensorFlow cloud TPU models repo.
 
 from lingvo import compat as tf
 from lingvo.core import base_layer
+from lingvo.core import py_utils
 
 
 def _DistortBrightnessAndColor(image):
@@ -152,7 +153,7 @@ class ImagePreprocessor(base_layer.BaseLayer):
       else:
         return self._PreprocessForTraining(image)
 
-    input_shape = encoded_images.shape
+    input_shape = py_utils.GetShape(encoded_images)
     encoded_images = tf.reshape(encoded_images, [-1])
     images = tf.map_fn(
         _DecodeAndPreprocessOne,
