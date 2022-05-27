@@ -311,8 +311,8 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     """
     p.emb.vocab_size = vocab_size
     p.softmax.num_classes = vocab_size
-    p.fusion.lm = p.fusion.lm.cls.UpdateTargetVocabSize(p.fusion.lm, vocab_size,
-                                                        wpm_model)
+    p.fusion.lm = p.fusion.lm.cls.UpdateTargetVocabSize(
+        p.fusion.lm, vocab_size, wpm_model=wpm_model)
     if p.label_smoothing:
       p.label_smoothing.num_classes = vocab_size
     return p
