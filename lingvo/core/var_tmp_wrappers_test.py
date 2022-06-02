@@ -45,4 +45,4 @@ class VarTmpWrappersTest(test_utils.TestCase):
 
 if __name__ == '__main__':
   py_utils.SetEagerMode(False)
-  tf.test.main()
+  test_utils.main()

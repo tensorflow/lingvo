@@ -14,7 +14,6 @@
 # ==============================================================================
 """Tests for lingvo.core.tshape."""
 
-import lingvo.compat as tf
 from lingvo.core import test_utils
 from lingvo.core.tshape import Shape
 
@@ -45,4 +44,4 @@ class TshapeTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

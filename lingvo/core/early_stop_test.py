@@ -203,4 +203,4 @@ class EarlyStopTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

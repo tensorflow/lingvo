@@ -14,7 +14,6 @@
 # ==============================================================================
 """Tests for simple_wer."""
 
-import lingvo.compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.asr.tools import simple_wer
 
@@ -30,4 +29,4 @@ class SimpleWerTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

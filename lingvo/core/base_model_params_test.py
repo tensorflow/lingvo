@@ -14,7 +14,6 @@
 # ==============================================================================
 """Tests for base_model_params."""
 
-import lingvo.compat as tf
 from lingvo.core import base_model_params
 from lingvo.core import test_utils
 
@@ -50,4 +49,4 @@ class BaseModelParamsTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

@@ -17,7 +17,6 @@
 import json
 import os
 
-from lingvo import compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.milan.params import generic_datasets
 
@@ -51,4 +50,4 @@ class ImageTextTFRecordsTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

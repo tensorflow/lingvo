@@ -14,7 +14,6 @@
 # ==============================================================================
 """Tests for routing_config_helper."""
 
-from lingvo import compat as tf
 from lingvo.core import routing_config_helper
 from lingvo.core import test_utils
 
@@ -41,4 +40,4 @@ class RoutingTransformerEncoderParamsTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

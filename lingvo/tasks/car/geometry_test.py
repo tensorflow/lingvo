@@ -539,4 +539,4 @@ class GeometryTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected, bbox_area)
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

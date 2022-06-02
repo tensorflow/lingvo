@@ -14,7 +14,6 @@
 # ==============================================================================
 """Tests for simple_vocab."""
 
-from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
 
@@ -159,4 +158,4 @@ class VocabOpsTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

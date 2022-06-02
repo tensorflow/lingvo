@@ -790,4 +790,4 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

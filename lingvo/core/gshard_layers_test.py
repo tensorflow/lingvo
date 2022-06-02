@@ -434,4 +434,4 @@ class Conv1DStateLayerTest(test_utils.TestCase):
       self.assertAllClose(suffix_expected, suffix_actual)
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()

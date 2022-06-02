@@ -413,5 +413,6 @@ def ComputeNumericGradient(sess,
 def main(*args, **kwargs):
   FLAGS(sys.argv, known_only=True)
   py_utils.SetEagerMode(FLAGS.enable_eager_execution)
+  # py_utils.SetEagerMode(True)
   FLAGS.unparse_flags()
   tf.test.main(*args, **kwargs)

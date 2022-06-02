@@ -14,7 +14,6 @@
 # ==============================================================================
 """Tests for calibration_processing."""
 
-from lingvo import compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.car import calibration_processing
 from lingvo.tasks.car import kitti_metadata
@@ -134,4 +133,4 @@ class CalibrationProcessingTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()
