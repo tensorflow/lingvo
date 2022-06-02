@@ -1181,6 +1181,15 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             ret.Set(k, tf.expand_dims(v, axis=[1]))
     return ret
 
+  def _CheckIdsMap(self, ids_map: py_utils.NestedMap) -> None:
+    """Check that the keys in `ids_map` is valid for embedding lookup."""
+    assert isinstance(ids_map, py_utils.NestedMap)
+    valid_keys = set().union(*[table.input_keys for table in self.tables])
+    for key, _ in ids_map.FlattenItems():
+      if key not in valid_keys:
+        raise ValueError(
+            f'Invalid input key: {key}. Valid keys are: {valid_keys}')
+
   def EmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """Looks up embedding vectors for each entry in dense Tensor ids_map.
 
@@ -1201,7 +1210,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
       float32 Tensor.
     """
-    assert isinstance(ids_map, py_utils.NestedMap)
+    self._CheckIdsMap(ids_map)
     p = self.params
 
     def CpuEmbLookup(ids_map):
@@ -1242,7 +1251,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       For sequence embeddings: [batch, max_sequence_length, embedding_dim]
       float32 Tensor.
     """
-    assert isinstance(ids_map, py_utils.NestedMap)
+    self._CheckIdsMap(ids_map)
     p = self.params
 
     def CpuEmbLookupSparse(ids_map):
@@ -1265,3 +1274,22 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       return self._TpuEmbLookup(ids_map)
     else:
       return CpuEmbLookupSparse(ids_map)
+
+  def GetIdsMap(self, input_batch):
+    """Returns a NestedMap containing the embedding ids to lookup.
+
+    Args:
+      input_batch: The input batch to get the embedding id tensors from.
+
+    Returns:
+      A py_utils.NestedMap containing the embedding id tensors.
+    """
+    valid_keys = set().union(*[table.input_keys for table in self.tables])
+    ids_map = py_utils.NestedMap()
+    for key in valid_keys:
+      item = input_batch.Get(key)
+      if item is None:
+        raise ValueError(f'Input key {key} not found. All keys in input_batch: '
+                         f'{input_batch.keys()}')
+      ids_map.Set(key, item)
+    return ids_map
