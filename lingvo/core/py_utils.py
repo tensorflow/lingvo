@@ -57,7 +57,6 @@ from tensorflow.python.framework import func_graph
 from tensorflow.python.framework import function
 from tensorflow.python.ops import init_ops
 from tensorflow.python.ops import stateless_random_ops
-from tensorflow.python.tf2 import enabled as tf2_enabled
 from tensorflow.python.tpu import topology as tf_topology
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
@@ -5568,7 +5567,7 @@ def _UseTfFunction():
   """Whether to use tf.function instead of tf.Defun."""
   if _USE_TF_FUNCTION.stack:
     return _USE_TF_FUNCTION.stack[-1]
-  return tf2_enabled()
+  return True
 
 
 class Function(object):
