@@ -139,8 +139,7 @@ class BaseModelsTest(test_utils.TestCase):
           except NotImplementedError:
             pass
 
-      p = model_params.Model()
-      p.input = all_datasets['Train']
+      p = registry.GetParams(name, 'Train')
       self.assertTrue(issubclass(p.cls, base_model.BaseModel))
       self.assertIsNot(p.model, None)
       p.cluster.mode = 'sync'
