@@ -153,8 +153,12 @@ class MoEBuilder(builder.Base):
              'Combine qkv matmul.')
     p.Define(
         'mdha_rope', False,
-        'Whether or not to use Rotational Position Embeddings in '
-        'Multi-DConv Head Attention.')
+        'Deprecated. Please use `use_rotary_position_emb`. Whether or not to use'
+        'Rotational Position Embeddings in Multi-DConv Head Attention.')
+    p.Define(
+        'use_rotary_position_emb', False,
+        'Whether or not to use Rotational Position Embeddings in'
+        'Multi-Head Attention.')
     p.Define('rope_emb_max_timescale', 10000.0,
              'Maximum timescale for ROPE transformation.')
 
@@ -364,6 +368,45 @@ class MoEBuilder(builder.Base):
                       shape=[vocab_dim, self.params.model_dim],
                       tensor_split_dims_mapping=w_mesh_split))],
         device_mesh=device_mesh)
+
+  def _GetRopeFn(self, enable_rope, rope_emb_max_timescale):
+    """Gets the scaled Rotary position embedding function.
+
+    Args:
+      enable_rope: if true, returns ROPE function, otherwise Identify.
+      rope_emb_max_timescale: Maximum timescale for ROPE transformation.
+
+    Returns:
+      The ROPE function if enable_rope=True, otherwise Identify function.
+    """
+
+    def _Rope(inputs, position):
+      embedding_dims = inputs.shape.as_list()[-1]
+      min_timescale = 1.0
+      max_timescale = rope_emb_max_timescale
+      half_embedding_dim = embedding_dims // 2
+      fraction = 2.0 * tf.cast(tf.range(half_embedding_dim),
+                               tf.float32) / embedding_dims
+      timescale = min_timescale * (max_timescale / min_timescale)**fraction
+      position = tf.expand_dims(tf.expand_dims(position, axis=-1), axis=-1)
+      timescale = tf.expand_dims(
+          tf.expand_dims(tf.expand_dims(timescale, axis=0), axis=0), axis=0)
+      sinusoid_inp = position / tf.cast(timescale, position.dtype)
+      sin = tf.cast(tf.math.sin(sinusoid_inp), inputs.dtype)
+      cos = tf.cast(tf.math.cos(sinusoid_inp), inputs.dtype)
+      first_half, second_half = tf.split(inputs, 2, axis=-1)
+      first_part = first_half * cos - second_half * sin
+      second_part = second_half * cos + first_half * sin
+      return tf.concat([first_part, second_part], axis=-1)
+
+    def _Ident(inputs, position):
+      del position
+      return inputs
+
+    if enable_rope:
+      return _Rope
+    else:
+      return _Ident
 
   def SharedEmbSoftmax(self,
                        name,
@@ -1191,6 +1234,9 @@ class MoEBuilder(builder.Base):
         p.attention_key_value_dim
     ]
 
+    rope_fn = self._GetRopeFn(p.use_rotary_position_emb,
+                              p.rope_emb_max_timescale)
+
     # pyformat: disable
     return self._Graph(
         name, self._DecoderLayerInMapKeys, [
@@ -1199,7 +1245,9 @@ class MoEBuilder(builder.Base):
         ],
         ('->wq,wk,wv,wo', self._AttentionWeights(
             'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split)),
-        ('vec,wq,wk,wv->q,k,v', self._ComputeQKVCombine('qkv')),
+        ('vec,wq,wk,wv->q_no_rot,k_no_rot,v', self._ComputeQKVCombine('qkv')),
+        ('q_no_rot,segment_pos->q', self._Fn('rot_q', rope_fn)),
+        ('k_no_rot,segment_pos->k', self._Fn('rot_k', rope_fn)),
         ('k->k_full', self._AttentionState('k_state', state_shape)),
         ('v->v_full', self._AttentionState('v_state', state_shape)),
         self._DecComputeBiasGraphEdge(),
@@ -1231,33 +1279,8 @@ class MoEBuilder(builder.Base):
         p.attention_key_value_dim
     ]
 
-    def _Rope(inputs, position):
-      embedding_dims = inputs.shape.as_list()[-1]
-      min_timescale = 1.0
-      max_timescale = p.rope_emb_max_timescale
-      half_embedding_dim = embedding_dims // 2
-      fraction = 2.0 * tf.cast(tf.range(half_embedding_dim),
-                               tf.float32) / embedding_dims
-      timescale = min_timescale * (max_timescale / min_timescale)**fraction
-      position = tf.expand_dims(tf.expand_dims(position, axis=-1), axis=-1)
-      timescale = tf.expand_dims(
-          tf.expand_dims(tf.expand_dims(timescale, axis=0), axis=0), axis=0)
-      sinusoid_inp = position / tf.cast(timescale, position.dtype)
-      sin = tf.cast(tf.math.sin(sinusoid_inp), inputs.dtype)
-      cos = tf.cast(tf.math.cos(sinusoid_inp), inputs.dtype)
-      first_half, second_half = tf.split(inputs, 2, axis=-1)
-      first_part = first_half * cos - second_half * sin
-      second_part = second_half * cos + first_half * sin
-      return tf.concat([first_part, second_part], axis=-1)
-
-    def _Ident(inputs, position):
-      del position
-      return inputs
-
-    if p.mdha_rope:
-      rope_fn = _Rope
-    else:
-      rope_fn = _Ident
+    rope_fn = self._GetRopeFn(p.mdha_rope or p.use_rotary_position_emb,
+                              p.rope_emb_max_timescale)
 
     def _CreateConvMask(segment_id, inputs):
       return tf.cast(
