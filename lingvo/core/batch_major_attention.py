@@ -3110,6 +3110,16 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
     msg = 'Not implemented yet'
     raise NotImplementedError(msg)
 
+  def zero_state(self, batch_size):
+    """Returns the initial state given the batch size."""
+    del batch_size
+    p = self.params
+    if p.left_context != 1 or p.right_context != 0:
+      msg = ('Streaming implementation of chunkwise attention with left context'
+             'or right context is not supported yet')
+      raise NotImplementedError(msg)
+    return py_utils.NestedMap()
+
 
 class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
   """Chunkwise Self Attention with relative position embedding."""
