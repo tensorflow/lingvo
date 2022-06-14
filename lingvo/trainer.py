@@ -126,6 +126,10 @@ tf.flags.DEFINE_list(
     'graph_def_filename', [],
     'Output inference graph_def filenames. Defaults to CPU graph if '
     'inference_graph_filename and inference_graph_device are not specified.')
+tf.flags.DEFINE_list(
+    'inspect_params_dataset_name', None,
+    'Which dataset params to inspect. If None, all the dataset params will be '
+    'output')
 tf.flags.DEFINE_string(
     'inference_dataset_name', 'Test',
     'Name of the dataset whose params to be extracted inference graph with.')
@@ -622,6 +626,9 @@ class RunnerManager:
     cls = self.model_registry.GetClass(self._model_name)
     tf.io.gfile.makedirs(FLAGS.logdir)
     for dataset in datasets.GetDatasets(cls):
+      if FLAGS.inspect_params_dataset_name is not None:
+        if dataset not in FLAGS.inspect_params_dataset_name:
+          continue
       p = self.GetParamsForDataset('controller', dataset)
       outf = os.path.join(FLAGS.logdir, dataset.lower() + '-params.txt')
       tf.logging.info('Write all params for {} to {}'.format(dataset, outf))
