@@ -70,9 +70,13 @@ def _compute_xent_loss_helper(
     labels = input_batch.labels
     weights = input_batch.weights
   predicted_labels = predictions.per_example_argmax.astype(labels.dtype)
-  num_preds = predictions.total_weight
+  # To improve aggregation stability for large topologies we compute stats in
+  # f32 as well. Since we already do f32 logits, this is little overhead.
+  weights = weights.astype(jnp.float32)
+  num_preds = predictions.total_weight.astype(jnp.float32)
   mean_acc = jnp.sum(
-      (labels == predicted_labels) * weights) / jnp.maximum(num_preds, 1)
+      (labels == predicted_labels).astype(jnp.float32) * weights) / jnp.maximum(
+          num_preds, 1)
   metric_weight = jnp.array(num_preds, predictions.avg_xent.dtype)
 
   if hasattr(predictions, 'avg_xent_weight'):
@@ -80,11 +84,14 @@ def _compute_xent_loss_helper(
   else:
     avg_xent_weight = metric_weight
 
+  assert mean_acc.dtype == jnp.float32, mean_acc.dtype
+  total_loss = predictions.total_loss.astype(jnp.float32)
+  avg_xent = predictions.avg_xent.astype(jnp.float32)
+  aux_loss = predictions.aux_loss.astype(jnp.float32)
   metrics = NestedMap(
-      total_loss=(predictions.total_loss, metric_weight),
-      avg_xent=(predictions.avg_xent, avg_xent_weight),
-      aux_loss=(predictions.aux_loss, jnp.array(1.0,
-                                                predictions.aux_loss.dtype)),
+      total_loss=(total_loss, metric_weight),
+      avg_xent=(avg_xent, avg_xent_weight),
+      aux_loss=(aux_loss, jnp.array(1.0, aux_loss.dtype)),
       log_pplx=(predictions.avg_xent, avg_xent_weight),
       fraction_of_correct_next_step_preds=(mean_acc, metric_weight),
       num_predictions=(num_preds, jnp.array(1.0, num_preds.dtype)),
