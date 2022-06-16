@@ -14,6 +14,7 @@
 # ==============================================================================
 """Library of useful for functions for working with 3D object detection."""
 
+import functools
 from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.tasks.car import geometry
@@ -812,6 +813,476 @@ class Utils3D:
     corners_in_image_plane = py_utils.HasShape(corners_in_image_plane,
                                                [batch_size, num_boxes, 8, 2])
     return corners_in_image_plane
+
+  def AngleToBin(self,
+                 assigned_gt_bboxes,
+                 angle_bins,
+                 min_angle_val=0,
+                 max_angle_val=(2 * np.pi)):
+    """Compute the groundtruth angle-bin/angle-res for every anchor boxes.
+
+    Args:
+      assigned_gt_bboxes: A [..., 7] floating point Tensor of bounding boxes in
+        [x, y, z, dx, dy, dz, phi] format.
+      angle_bins: a integer indicating the number of angle bins.
+      min_angle_val: The minimum value of a bounding box orientation. By
+        default, it is set to 0.
+      max_angle_val: The maximum value of a bounding box orientation. By
+        default, it is set to (np.pi * 2).
+
+    Returns:
+      class_id: a integer tensor with shape [...], indicating
+        the classification target of the angle prediction.
+      residual angle: a float tensor with shape [...], indicating
+        the residual angle based on the angle classification target.
+    """
+    assigned_gt_bboxes_shape = py_utils.GetShape(assigned_gt_bboxes)
+    assigned_gt_bboxes = py_utils.with_dependencies(
+        [py_utils.assert_equal(assigned_gt_bboxes_shape[-1], 7)],
+        assigned_gt_bboxes)
+
+    # limit the range of angle to [min_angle_val, max_angle_val]
+    angle = assigned_gt_bboxes[..., -1]
+    interval_angle_val = max_angle_val - min_angle_val
+    angle = geometry.WrapAngleRad(
+        angle, min_val=min_angle_val, max_val=max_angle_val)
+
+    angle_bin_width = interval_angle_val / float(angle_bins)
+
+    angle = geometry.WrapAngleRad(
+        angle + angle_bin_width / 2,
+        min_val=min_angle_val,
+        max_val=max_angle_val)
+    angle = angle - min_angle_val
+    class_id = tf.floor(angle / angle_bin_width)
+    class_id = tf.cast(class_id, tf.int32)
+    residual_angle = (
+        angle - (tf.cast(class_id, tf.float32) + 0.5) * angle_bin_width)
+
+    # Normalize residual angle to [0, 1]
+    residual_angle = residual_angle / angle_bin_width
+
+    return class_id, residual_angle
+
+  def BinToAngle(self,
+                 predicted_angle_cls,
+                 predicted_angle_res,
+                 angle_bins,
+                 min_angle_val=0,
+                 max_angle_val=(2 * np.pi)):
+    """Decode the angle-bin prediction to angle.
+
+    Args:
+      predicted_angle_cls: a float tensor with shape [..., angle_bins],
+        indicating the confidence of current angle can be classified in this
+        bin.
+      predicted_angle_res: a float tensor with shape [..., angle_bins], the
+        predicted residual based on the classified angle bin.
+      angle_bins: The number of split angle bin.
+      min_angle_val: The minimum value of a bounding box orientation. By
+        default, it is set to 0.
+      max_angle_val: The maximum value of a bounding box orientation. By
+        default, it is set to (np.pi * 2).
+
+    Returns:
+      predicted_angle: a float tensor with shape [...], indicating the
+        predicted angle.
+
+    """
+    interval_angle_val = max_angle_val - min_angle_val
+    angle_bin_width = interval_angle_val / float(angle_bins)
+
+    predicted_angle_cls_shape = py_utils.GetShape(predicted_angle_cls)
+    predicted_angle_cls = py_utils.HasShape(
+        predicted_angle_cls, predicted_angle_cls_shape[:-1] + [angle_bins])
+
+    predicted_angle_res = py_utils.HasShape(predicted_angle_res,
+                                            predicted_angle_cls_shape)
+
+    # first get the predicted angle_cls_bin
+    predicted_angle_cls = tf.argmax(predicted_angle_cls, axis=-1)
+    predicted_angle_cls_onehot = tf.one_hot(
+        predicted_angle_cls,
+        depth=angle_bins,
+        on_value=1,
+        off_value=0,
+        axis=-1,
+        dtype=tf.float32)
+
+    predicted_angle_res_norm = predicted_angle_res * predicted_angle_cls_onehot
+    predicted_angle_res_norm = tf.reduce_sum(predicted_angle_res_norm, axis=-1)
+
+    predicted_angle = (
+        tf.cast(predicted_angle_cls, tf.float32) + predicted_angle_res_norm)
+    predicted_angle = predicted_angle * angle_bin_width
+    predicted_angle = predicted_angle + min_angle_val
+    return predicted_angle
+
+  def ResidualsToBBoxesAnchorFree(self, points, residuals, angle_cls,
+                                  angle_res):
+    r"""Converts points and predictions to predicted bboxes.
+
+    This converts predicted residuals into bboxes using the following formulae::
+
+      x_predicted = x + x_residual
+      y_predicted = y + y_residual
+      z_predicted = z + z_residual
+
+      dx_predicted = dx_residual
+      dy_predicted = dy_residual
+      dz_predicted = dz_residual
+
+      The angle prediction is computed as follows:
+      - angle_predicted = (angle_cls + angle_res) * (2 * pi / angle_bins)
+
+    These equations follow from those in LocalizationResidualsAnchorFree,
+      where we solve for the \*_gt variables.
+
+    Args:
+      points: tf.float32. where [..., :3] contains (x, y, z)
+      residuals: tf.float32 of the shape as [..., :6] contains [x_residual,
+        y_residual, z_residual, dx_residual, dy_residual, dz_residual]
+      angle_cls: tf.float32 of the shape as [..., :angle_bins] contains the
+        probability of a bounding box has this anchor angle.
+      angle_res: tf.float32 of the shape as [..., :angle_bins] contains the
+        predicted angle residuals of this anchor angle.
+
+    Returns:
+      A tf.float32 tensor of the shape as [..., :7] contains
+        (x, y, z, l, w, h, ry)
+    """
+    points_shape = py_utils.GetShape(points)
+    points = py_utils.with_dependencies(
+        [py_utils.assert_equal(points_shape[-1], 3)], points)
+    residuals = py_utils.HasShape(residuals, points_shape[:-1] + [6])
+
+    angle_bins = py_utils.GetShape(angle_cls)[-1]
+    angle_cls = py_utils.HasShape(angle_cls, points_shape[:-1] + [angle_bins])
+    angle_res = py_utils.HasShape(angle_res, points_shape[:-1] + [angle_bins])
+
+    residuals, dimensions = tf.split(residuals, [3, 3], axis=-1)
+
+    location_predicted = residuals + points
+    dimension_predicted = dimensions
+    phi_predicted = self.BinToAngle(angle_cls, angle_res, angle_bins)
+
+    return tf.concat([
+        location_predicted,
+        dimension_predicted,
+        phi_predicted[..., tf.newaxis],
+    ], axis=-1)  # pyformat: disable
+
+  def LocalizationResidualsAnchorFree(self, points, assigned_gt_bboxes):
+    """Compute target_predictions for every point.
+
+    For a given point, compute residuals in the following way:
+
+      Let ``points = (x, y, z)``
+      and ``assigned_gt_bbox = (x_gt, y_gt, z_gt, dx_gt, dy_gt, dz_gt, phi_gt)``
+
+      Then the corresponding residuals are given by:
+
+        x_residual = x_gt - x
+        y_residual = y_gt - y
+        z_residual = z_gt - z
+
+        dx_residual = dx_gt
+        dy_residual = dy_gt
+        dz_residual = dz_gt
+
+        phi_residual = phi_gt
+
+    The Huber (SmoothL1) loss can then be applied to the delta between these
+    target residuals and the model predicted residuals.
+
+    Args:
+      points: tf.float32. where [..., :3] contains (x, y, z)
+      assigned_gt_bboxes: tf.float32 of the shape as [..., :7] contains (x_gt,
+        y_gt, z_gt, dx_gt, dy_gt, dz_gt, phi_gt)
+
+    Returns:
+      A tf.float32 tensor of the same shape as assigned_gt_bboxes with target
+      residuals for every corresponding bbox.
+    """
+    points_shape = py_utils.GetShape(points)
+    points = py_utils.with_dependencies(
+        [py_utils.assert_equal(points_shape[-1], 3)], points)
+    assigned_gt_bboxes = py_utils.HasShape(assigned_gt_bboxes,
+                                           points_shape[:-1] + [7])
+
+    assigned_residuals, assigned_dimensions, assigned_phi = tf.split(
+        assigned_gt_bboxes, [3, 3, 1], axis=-1)
+
+    target_residuals = assigned_residuals - points
+
+    return tf.concat([
+        target_residuals,
+        assigned_dimensions,
+        assigned_phi,
+    ], axis=-1)  # pyformat: disable
+
+  def FindCenterPoints(self,
+                       points,
+                       gt_bboxes,
+                       gt_bboxes_mask,
+                       random_seed,
+                       random_chosen=False):
+    """Find the center points of each gt_bbox from points.
+
+    Args:
+      points: A float tensor with shape [N, 3] containing the XYZ coordinates of
+        each point.
+      gt_bboxes: A float tensor with shape [M, 7] containing the location,
+        dimension and phi for each gt_bbox.
+      gt_bboxes_mask: A float tensor with shape [M] containing values between
+        {0, 1}. Mask for ground truth boxes, 1 iff the gt_bbox is a real bbox.
+      random_seed: The seed for random uniform generation.
+      random_chosen: A boolean scalar. If True, we randomly choose an interior
+        point of a gt_bboxes as the closest one. Otherwise, we directly choose
+        the pillar with nearest distance to the center.
+
+    Returns:
+      values: A float tensor with shape [M, 3] containing the coordinates of the
+        center point of a groundtruth.
+      indices: A integer tensor with shape [M] containing the indices of the
+        center point of a groundtruth bbox.
+    """
+    num_points, _ = py_utils.GetShape(points)
+    points = py_utils.HasShape(points, [num_points, 3])
+
+    num_gt_bboxes, _ = py_utils.GetShape(gt_bboxes)
+    gt_bboxes = py_utils.HasShape(gt_bboxes, [num_gt_bboxes, 7])
+    gt_bboxes_mask = py_utils.HasShape(gt_bboxes_mask, [num_gt_bboxes])
+
+    num_bboxes_in_scene = tf.reduce_sum(tf.cast(gt_bboxes_mask, tf.int32))
+    gt_bboxes_mask = tf.cast(gt_bboxes_mask, tf.bool)
+    gt_bboxes = tf.boolean_mask(gt_bboxes, gt_bboxes_mask)
+    gt_bboxes = py_utils.HasShape(gt_bboxes, [num_bboxes_in_scene, 7])
+
+    # Find the points with minimum center-distance as center point.
+    # Treat the nearest pillar as the chosen one.
+    # no_backprop
+    tf_l1_norm = functools.partial(tf.norm, ord=1)
+    dist = tf_l1_norm(
+        points[:, tf.newaxis, :] - gt_bboxes[tf.newaxis, :, :3], axis=-1)
+    dist = py_utils.HasShape(dist, [num_points, num_bboxes_in_scene])
+    if random_chosen:
+      # Treat random interior point of an object as the chosen one.
+      # 1. Determine whether a point is within a gt.
+      bbox_corners = geometry.BBoxCorners(gt_bboxes[tf.newaxis, ...])
+      bbox_corners = py_utils.HasShape(bbox_corners,
+                                       [1, num_bboxes_in_scene, 8, 3])
+      bboxes_2d_corners = bbox_corners[0, :, 0:4, 0:2]
+      bboxes_2d_corners = py_utils.HasShape(bboxes_2d_corners,
+                                            [num_bboxes_in_scene, 4, 2])
+      # Determine if points lie within 2-D (x, y) plane for all bounding boxes.
+      points_2d = points[:, :2]
+      points_mask = geometry.IsWithinBBox(points_2d, bboxes_2d_corners)
+      points_mask = py_utils.HasShape(points_mask,
+                                      [num_points, num_bboxes_in_scene])
+      points_mask = tf.cast(points_mask, tf.float32)
+      # 2. Randomly choose one interior point.
+      chosen_prob = tf.random.uniform([num_points, num_bboxes_in_scene],
+                                      minval=0,
+                                      maxval=1,
+                                      seed=random_seed,
+                                      dtype=points_mask.dtype)
+      # rand_dist = 1 if a point is not within a groundtruth.
+      # rand_dist = random(0, 1) if the point is within the box.
+      rand_dist = 1 - points_mask * chosen_prob
+
+      # 3. If an object has no interior point, choose the nearest pillar.
+      # Otherwise, choose the randomly picked one.
+      valid_object_mask = tf.reduce_max(points_mask, axis=0, keepdims=True)
+      dist = dist * (1 - valid_object_mask) + rand_dist * valid_object_mask
+
+    indices = tf.argmin(dist, axis=0)
+    indices = tf.cast(indices, tf.int32)
+    values = tf.gather(points, indices)
+
+    valid_boxes_idx = tf.where(gt_bboxes_mask)
+    indices = tf.scatter_nd(valid_boxes_idx, indices, [num_gt_bboxes])
+    values = tf.scatter_nd(valid_boxes_idx, values, [num_gt_bboxes, 3])
+    return values, indices
+
+  def AssignPoints(self,
+                   points,
+                   gt_bboxes,
+                   gt_labels,
+                   gt_bboxes_mask,
+                   cls_num,
+                   expand_gt_bbox_dims,
+                   random_seed=None,
+                   background_class_id=0,
+                   ignore_z=False):
+    """Assigns points to bboxes using a ``Mask'' function.
+
+    Each point is assigned to the ground truth box that it lies in.
+    Ground truth boxes can be assigned to multiple anchor boxes.
+
+    Note that: This function is used in input_preprocessor function
+      only, and might not be TPU compatible.
+
+    Assignments can result in 3 outcomes:
+
+      - Positive assignment (if a point is within a box and
+         cls_label is its target class ):
+          assigned_gt_labels will reflect the assigned box label and
+          assigned_cls_mask will be set to 1.0
+      - Background assignment
+        (if a point is not the interior points of any groundtruths):
+          assigned_gt_labels will be background_class_id and assigned_cls_mask
+          will be set to 1.0
+      - Ignore assignment (otherwise):
+        assigned_gt_labels will be background_class_id and assigned_cls_mask
+        will be set to 0.0
+
+    The detection loss function would usually:
+
+      - Use assigned_cls_mask for weighting the classification loss. The mask
+        is set such that the loss applies to foreground and background
+        assignments only - ignored anchors will be set to 0.
+      - Use assigned_reg_mask for weighting the regression loss. The mask is set
+        such that the loss applies to foreground assignments only.
+
+    Args:
+      points: tf.float32, [N, 3]
+      gt_bboxes: tf.float32. [G, 7], where [..., :] corresponds to ground truth
+        box parameters (x, y, z, dx, dy, dz, r).
+      gt_labels: tensor with shape [G]. Ground truth labels for each bounding
+        box.
+      gt_bboxes_mask: tensor with shape [G]. Mask for ground truth boxes, 1 iff
+        the gt_bbox is a real bbox.
+      cls_num: The number of target class
+      expand_gt_bbox_dims: A list of float value, which expands the original
+        gt_bboxes to make it larger so as to include more context points.
+      random_seed: The random seed for randomly chosen. By default, it is None.
+      background_class_id: class id to be assigned to anchors_gt_class if no
+        anchor boxes match.
+      ignore_z: Whether consider z-axis when judging if a point is within a
+        groundtruth bounding box.
+
+    Returns:
+      NestedMap with the following keys
+
+      - assigned_gt_idx: shape [N] index corresponding to the index of the
+        assigned ground truth box. Points not assigned to a ground truth box
+        will have the index set to -1.
+      - assigned_gt_bbox: shape [N, 7] bbox parameters assigned to each point.
+      - assigned_gt_labels: shape [N] label assigned to bbox.
+      - assigned_cls_mask: shape [N] mask for classification loss per point.
+        This should be 1.0 if the anchor has a foreground or background
+        assignment; otherwise, it will be assigned to 0.0.
+      - assigned_reg_mask: shape [N, cls_num] mask for
+        regression loss per anchor.
+        This should be 1.0 if the anchor has a foreground assignment;
+        otherwise, it will be assigned to 0.0.
+        Note: background anchors do not have regression targets.
+    """
+
+    # Shape validation.
+    points = py_utils.HasShape(points, [-1, 3])
+    num_points, _ = py_utils.GetShape(points, 2)
+
+    gt_bboxes = py_utils.HasShape(gt_bboxes, [-1, 7])
+    ctr, dims, rot = tf.split(gt_bboxes, [3, 3, 1], axis=-1)
+    dims += tf.reshape(expand_gt_bbox_dims, [1, 3])
+    expand_gt_bboxes = tf.concat([ctr, dims, rot], axis=-1)
+    num_gt_bboxes, _ = py_utils.GetShape(gt_bboxes, 2)
+
+    gt_labels = py_utils.HasShape(gt_labels, [num_gt_bboxes])
+    # gt_bboxes_mask: 1 - valid; 0 - invalid
+    gt_bboxes_mask = py_utils.HasShape(gt_bboxes_mask, [num_gt_bboxes])
+
+    # Use boolean mask to keep only valid gt bboxes.
+    num_bboxes_in_scene = tf.reduce_sum(tf.cast(gt_bboxes_mask, tf.int32))
+
+    gt_bboxes_mask = tf.cast(gt_bboxes_mask, tf.bool)
+    gt_bboxes = tf.boolean_mask(gt_bboxes, gt_bboxes_mask)
+    gt_bboxes = py_utils.HasShape(gt_bboxes, [num_bboxes_in_scene, 7])
+    gt_labels = tf.boolean_mask(gt_labels, gt_bboxes_mask)
+    gt_labels = py_utils.HasShape(gt_labels, [num_bboxes_in_scene])
+
+    expand_gt_bboxes = tf.boolean_mask(expand_gt_bboxes, gt_bboxes_mask)
+    expand_gt_bboxes = py_utils.HasShape(expand_gt_bboxes,
+                                         [num_bboxes_in_scene, 7])
+
+    valid_boxes_idx = tf.where(gt_bboxes_mask)[:, 0]
+    valid_boxes_idx = tf.concat([valid_boxes_idx, [-1]], axis=0)
+
+    # Determine whether a point is within a bbox.
+    if ignore_z:
+      bbox_corners = geometry.BBoxCorners(expand_gt_bboxes[tf.newaxis, ...])
+      bbox_corners = py_utils.HasShape(bbox_corners,
+                                       [1, num_bboxes_in_scene, 8, 3])
+      bboxes_2d_corners = bbox_corners[0, :, 0:4, 0:2]
+      bboxes_2d_corners = py_utils.HasShape(bboxes_2d_corners,
+                                            [num_bboxes_in_scene, 4, 2])
+      # Determine if points lie within 2-D (x, y) plane for all bounding boxes.
+      points_2d = points[:, :2]
+      points_mask = geometry.IsWithinBBox(points_2d, bboxes_2d_corners)
+    else:
+      points_mask = geometry.IsWithinBBox3D(points, expand_gt_bboxes)
+    points_mask = py_utils.HasShape(points_mask,
+                                    [num_points, num_bboxes_in_scene])
+
+    points_mask = tf.cast(points_mask, tf.float32)
+    # If a point is interior point within 2 gt_box
+    chosen_prob = tf.random.uniform([num_points, num_bboxes_in_scene],
+                                    minval=0.1,
+                                    maxval=1,
+                                    seed=random_seed,
+                                    dtype=points_mask.dtype)
+    points_mask *= chosen_prob
+
+    # Calculate the index of which groundtruth a point relies on.
+    points_max_idx = tf.argmax(points_mask, axis=-1)
+    # Determine whether a point is within a groundtruth box.
+    points_mask = tf.reduce_max(points_mask, axis=-1)
+    points_mask = tf.cast(tf.greater(points_mask, 0.), tf.float32)
+
+    # Add dummy background bbox to gt_boxes to facilitate batch gather.
+    dummy_bbox = tf.constant([[0, 0, 0, 1, 1, 1, 0]], dtype=tf.float32)
+
+    # Since we are concatenating the dummy bbox, the index corresponds to the
+    # number of boxes.
+    dummy_bbox_idx = py_utils.GetShape(gt_bboxes, 1)[0]
+    dummy_bbox_idx = tf.cast(dummy_bbox_idx, tf.int64)
+
+    gt_bboxes = tf.concat([gt_bboxes, dummy_bbox], axis=0)
+    gt_labels = tf.concat([gt_labels, [background_class_id]], axis=0)
+
+    # Gather indices so that all foreground boxes are gathered from gt_bboxes,
+    # while all background and ignore boxes gather the dummy_bbox.
+    points_mask_bool = tf.cast(points_mask, tf.bool)  # points_num
+    assigned_idx = tf.where(points_mask_bool, points_max_idx,
+                            tf.ones_like(points_max_idx) * dummy_bbox_idx)
+
+    # Gather the bboxes and weights.
+    assigned_gt_bbox = tf.gather(gt_bboxes, assigned_idx)
+    assigned_gt_labels = tf.gather(gt_labels, assigned_idx)
+
+    # Set masks for classification and regression losses.
+    assigned_cls_mask = tf.ones_like(points_mask)  # points_num
+
+    # points_num, cls_num
+    assigned_reg_inner_mask = tf.expand_dims(points_mask, axis=-1)
+    assigned_reg_cls_mask = tf.cast(
+        tf.one_hot(
+            assigned_gt_labels, depth=cls_num, on_value=1, off_value=0,
+            axis=-1), tf.float32)
+    assigned_reg_mask = assigned_reg_inner_mask * assigned_reg_cls_mask
+
+    # Set assigned_gt_idx such that dummy boxes have idx = -1.
+    assigned_gt_idx = tf.gather(valid_boxes_idx, assigned_idx)
+    assigned_gt_idx = tf.cast(assigned_gt_idx, tf.int32)
+
+    return py_utils.NestedMap(
+        assigned_gt_idx=assigned_gt_idx,
+        assigned_gt_bbox=assigned_gt_bbox,
+        assigned_gt_labels=assigned_gt_labels,
+        assigned_cls_mask=assigned_cls_mask,
+        assigned_reg_mask=assigned_reg_mask)
 
 
 def RandomPadOrTrimTo(tensor_list, num_points_out, seed=None):
