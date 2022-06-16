@@ -14,6 +14,7 @@
 # ==============================================================================
 """Tests for base_layer."""
 
+from typing import Any
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
@@ -28,10 +29,6 @@ class AddingAccumulator(base_layer.Accumulator):
 
   def Update(self, new_value):
     self.SetValue(self.GetValue() + new_value)
-
-
-def EvalAndFlatten(nmap):
-  return nmap.Transform(lambda x: x.eval()).FlattenItems()
 
 
 class TestLayer(base_layer.BaseLayer):
@@ -74,6 +71,9 @@ class TestParentLayer(base_layer.BaseLayer):
 
 
 class BaseLayerTest(test_utils.TestCase):
+
+  def _EvalAndFlatten(self, nmap: py_utils.NestedMap) -> list[tuple[str, Any]]:
+    return nmap.Transform(self.evaluate).FlattenItems()
 
   def testCopyBaseParams(self):
     # CopyBaseParams should only overwrite vn setting when target use
@@ -153,36 +153,42 @@ class BaseLayerTest(test_utils.TestCase):
     layer = layer_p.Instantiate()
     self.assertEqual('test/w/var:0', layer.vars.w.name)
     self.assertEqual('test/b/var:0', layer.vars.b.name)
-    self.assertNotIn(layer.vars.w,
-                     tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
+    self.assertFalse(
+        py_utils._VarInCollection(
+            layer.vars.w, tf.get_collection(py_utils.SKIP_LP_REGULARIZATION)))
     # 'b' always skips Lp regularization.
-    self.assertIn(layer.vars.b,
-                  tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
+    self.assertTrue(
+        py_utils._VarInCollection(
+            layer.vars.b, tf.get_collection(py_utils.SKIP_LP_REGULARIZATION)))
 
   def testVariableThetaValue(self):
     with self.session():
       layer_p = TestLayer.Params().Set(name='test')
       layer = layer_p.Instantiate()
-      tf.global_variables_initializer().run()
-      self.assertAllClose(layer.vars.w.eval(), layer.theta.w.eval())
-      b_eval = layer.vars.b.eval()
-      self.assertAllClose(b_eval, layer.theta.b.eval())
-      self.assertAllClose(b_eval, layer._private_theta['b'].eval())
+      self.evaluate(tf.global_variables_initializer())
+      self.assertAllClose(
+          self.evaluate(layer.vars.w), self.evaluate(layer.theta.w))
+      b_eval = self.evaluate(layer.vars.b)
+      self.assertAllClose(b_eval, self.evaluate(layer.theta.b))
+      self.assertAllClose(b_eval, self.evaluate(layer._private_theta['b']))
 
       # theta reflects the vars change.
       new_b = layer.vars.b.assign(tf.ones_like(layer.vars.b) * 3.)
       with tf.control_dependencies([new_b]):
-        self.assertAllClose(b_eval * 3., new_b.eval())
-        self.assertAllClose(layer.vars.b.eval(), new_b.eval())
-        self.assertAllClose(layer.vars.b.eval(), layer.theta.b.eval())
+        self.assertAllClose(b_eval * 3., self.evaluate(new_b))
+        self.assertAllClose(self.evaluate(layer.vars.b), self.evaluate(new_b))
+        self.assertAllClose(
+            self.evaluate(layer.vars.b), self.evaluate(layer.theta.b))
 
   def testCreateVariableSkipLpRegularization(self):
     layer_p = TestLayer.Params().Set(name='test', skip_lp_regularization=True)
     layer = layer_p.Instantiate()
-    self.assertIn(layer.vars.w,
-                  tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
-    self.assertIn(layer.vars.b,
-                  tf.get_collection(py_utils.SKIP_LP_REGULARIZATION))
+    self.assertTrue(
+        py_utils._VarInCollection(
+            layer.vars.w, tf.get_collection(py_utils.SKIP_LP_REGULARIZATION)))
+    self.assertTrue(
+        py_utils._VarInCollection(
+            layer.vars.b, tf.get_collection(py_utils.SKIP_LP_REGULARIZATION)))
 
   def testGetDescendant(self):
     q = base_layer.BaseLayer.Params()
@@ -259,16 +265,16 @@ class BaseLayerTest(test_utils.TestCase):
       layer.RegisterAccumulator('acc1', AddingAccumulator())
 
       # Initial value.
-      self.assertEqual(0.0, layer.accumulators.acc1.GetValue().eval())
+      self.assertEqual(0.0, self.evaluate(layer.accumulators.acc1.GetValue()))
 
       # Update/merge.
       layer.accumulators.acc1.Update(1.0)
       layer.accumulators.acc1.Update(1.0)
-      self.assertEqual(2.0, layer.accumulators.acc1.GetValue().eval())
+      self.assertEqual(2.0, self.evaluate(layer.accumulators.acc1.GetValue()))
 
       # Reset.
       layer.accumulators.Transform(lambda acc: acc.Reset())
-      self.assertEqual(0.0, layer.accumulators.acc1.GetValue().eval())
+      self.assertEqual(0.0, self.evaluate(layer.accumulators.acc1.GetValue()))
 
   def testAccumulatorDisableEnable(self):
     with self.session():
@@ -281,13 +287,13 @@ class BaseLayerTest(test_utils.TestCase):
 
       # Disable should force value to 0 and reject updates.
       layer.accumulators.Transform(lambda acc: acc.Disable())
-      self.assertEqual(0.0, layer.accumulators.acc1.GetValue().eval())
+      self.assertEqual(0.0, self.evaluate(layer.accumulators.acc1.GetValue()))
       layer.accumulators.acc1.Update(3.0)
-      self.assertEqual(0.0, layer.accumulators.acc1.GetValue().eval())
+      self.assertEqual(0.0, self.evaluate(layer.accumulators.acc1.GetValue()))
       layer.accumulators.Transform(lambda acc: acc.Enable())
 
       # Should restore.
-      self.assertEqual(1.0, layer.accumulators.acc1.GetValue().eval())
+      self.assertEqual(1.0, self.evaluate(layer.accumulators.acc1.GetValue()))
 
   def testGetSetAccumulatorValues(self):
     with self.session():
@@ -310,7 +316,7 @@ class BaseLayerTest(test_utils.TestCase):
 
       # Pack with initial values.
       initial_pack = layer1.GetAccumulatorValues()
-      initial_pack_eval = EvalAndFlatten(initial_pack)
+      initial_pack_eval = self._EvalAndFlatten(initial_pack)
       print('Initial values pack =', initial_pack_eval)
       self.assertEqual(initial_pack_eval, [('acc1', 0.0), ('layer1a.acc2', 0.0),
                                            ('layer1b.layer1b1.acc3', 0.0)])
@@ -320,7 +326,7 @@ class BaseLayerTest(test_utils.TestCase):
       layer1.layer1a.accumulators.acc2.Update(2.0)
       layer1.layer1b.layer1b1.accumulators.acc3.Update(3.0)
       updated_pack = layer1.GetAccumulatorValues()
-      updated_pack_eval = EvalAndFlatten(updated_pack)
+      updated_pack_eval = self._EvalAndFlatten(updated_pack)
       print('Updated values pack =', updated_pack_eval)
       self.assertEqual(updated_pack_eval, [('acc1', 1.0), ('layer1a.acc2', 2.0),
                                            ('layer1b.layer1b1.acc3', 3.0)])
@@ -328,19 +334,21 @@ class BaseLayerTest(test_utils.TestCase):
       # Save and reset.
       saved_pack = layer1.GetAccumulatorValues()
       layer1.accumulators.Transform(lambda acc: acc.Reset())
-      self.assertEqual(0.0, layer1.accumulators.acc1.GetValue().eval())
-      self.assertEqual(0.0, layer1.layer1a.accumulators.acc2.GetValue().eval())
+      self.assertEqual(0.0, self.evaluate(layer1.accumulators.acc1.GetValue()))
+      self.assertEqual(
+          0.0, self.evaluate(layer1.layer1a.accumulators.acc2.GetValue()))
       self.assertEqual(
           0.0,
-          layer1.layer1b.layer1b1.accumulators.acc3.GetValue().eval())
+          self.evaluate(layer1.layer1b.layer1b1.accumulators.acc3.GetValue()))
 
       # Set and check.
       layer1.SetAccumulatorValues(saved_pack)
-      self.assertEqual(1.0, layer1.accumulators.acc1.GetValue().eval())
-      self.assertEqual(2.0, layer1.layer1a.accumulators.acc2.GetValue().eval())
+      self.assertEqual(1.0, self.evaluate(layer1.accumulators.acc1.GetValue()))
+      self.assertEqual(
+          2.0, self.evaluate(layer1.layer1a.accumulators.acc2.GetValue()))
       self.assertEqual(
           3.0,
-          layer1.layer1b.layer1b1.accumulators.acc3.GetValue().eval())
+          self.evaluate(layer1.layer1b.layer1b1.accumulators.acc3.GetValue()))
 
   def testAddFunction(self):
     layer_p = base_layer.BaseLayer.Params()

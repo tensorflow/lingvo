@@ -378,6 +378,24 @@ py_test(
     name = "base_layer_test",
     size = "small",
     srcs = ["base_layer_test.py"],
+    args = ["--noenable_eager_execution"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_layer",
+        ":hyperparams",
+        ":py_utils",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "base_layer_eager_test",
+    size = "small",
+    srcs = ["base_layer_test.py"],
+    args = ["--enable_eager_execution"],
+    main = "base_layer_test.py",
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [

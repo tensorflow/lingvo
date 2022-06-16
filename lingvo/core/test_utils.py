@@ -55,7 +55,7 @@ def SkipIfEager(test_func):
 def DefineAndTrace(
     *tensor_specs_or_placeholders: Union[tf.TensorSpec, tf.Tensor]
 ) -> Callable:  # pylint: disable=g-bare-generic
-  """Returns a function that will trace the decorated function when called.
+  """Decorator to transparently run tf.function only when in Eager mode.
 
   It will have different behavior depending on the execution mode.
 

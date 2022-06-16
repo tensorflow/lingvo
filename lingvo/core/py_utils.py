@@ -215,7 +215,7 @@ def with_dependencies(dependencies, output_tensor):  # pylint: disable=invalid-n
     return tf.identity(output_tensor)
 
 
-def _VarInCollection(var, collection):
+def _VarInCollection(var, collection) -> bool:
   """Return whether a variable `var` is in the given variable collection."""
   # We use variable reference for comparison, since variable is not hashable in
   # eager mode.
