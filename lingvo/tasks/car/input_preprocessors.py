@@ -3695,3 +3695,651 @@ class SparseSampler(Preprocessor):
     dtypes.cell_feature = tf.float32
     dtypes.cell_points_padding = tf.float32
     return dtypes
+
+
+class PointAssignment(Preprocessor):
+  """Perform point assignment on the features.
+
+  This preprocessor expects features to contain the following keys:
+  - anchor_centers of shape [...base shape..., 3]
+  - labels.bboxes_3d
+  - labels.labels
+  - labels.bboxes_3d_mask
+
+  Adds the following features:
+
+    target_predictions: base_shape + [7] floating point tensor of
+      residuals. The model is expected to regress against these residuals as
+      targets. The residuals can be converted back into bboxes using
+      bf_car_lib.Utils3D.ResidualsToBBoxesAnchorFree.
+    assigned_gt_idx: base_shape - The corresponding index of the ground
+      truth bounding box for each point, points not
+      assigned will have idx be set to -1.
+    assigned_gt_bbox: base_shape + [7] - The corresponding ground
+      truth bounding box for each point.
+    assigned_gt_labels: base_shape - The assigned groundtruth label
+      for each point.
+    assigned_gt_center_ness: base_shape - The assigned center-ness label
+      for each point
+    assigned_cls_mask: base_shape - mask for classification loss per point.
+      This should be 1.0 if the anchor has a foreground or background
+      assignment; otherwise, it will be assigned to 0.0.
+    assigned_reg_mask: base_shape + [num_classes] -
+      mask for regression loss per point.
+      This should be 1.0 if the point is within a groundtruth box;
+      otherwise, it will be assigned to 0.0.
+      Note: background point do not have regression targets.
+  """
+
+  @classmethod
+  def Params(cls, num_classes):
+    p = super().Params()
+    p.Define('num_classes', num_classes,
+             'The valid center-ness range of center-ness label.')
+    p.Define(
+        'extra_label_range', [0, 1],
+        'The valid label range of extra classification label. '
+        'Currently, there are one supported label: '
+        'center_ness label.')
+    p.Define(
+        'extra_label_type', 'center_ness',
+        'The extra label type. Currently, only support one type of label:'
+        ' \"center_ness\".')
+    p.Define(
+        'extra_label_related_reg_mask', False,
+        'Whether use the extra_label to reweight the regression mask. '
+        'Originally, the regression loss weights are all 1 for all '
+        'pillars. By opening this option, the regression loss weights are'
+        'modified by the extra_label.')
+    p.Define(
+        'ignore_z', True,
+        'Whether ignoring z-axis when judging interior points '
+        'and caclulating center-ness label.')
+    p.Define(
+        'force_match_at_random', False,
+        'This parameter is used during FindCenterPoints. During force matching '
+        'if force_match_at_random is False, the groundtruth center is used as '
+        'replacement during force matching. Otherwise, an interior point will '
+        'be selected at random for force matching.')
+    p.Define(
+        'expand_gt_bbox_dims', [0., 0., 0],
+        'The expand_dimension of each groundtruth boundingbox to ensure that '
+        'each boundingbox can be assigned to a pillar.')
+    return p
+
+  def TransformFeatures(self, features):
+    p = self.params
+    utils_3d = detection_3d_lib.Utils3D()
+
+    points = features.anchor_centers
+    # [grid_x, grid_y, grid_z, 3] or [npoint, 3]
+    base_shape = py_utils.GetShape(points)[:-1]
+    points = tf.reshape(points, [-1, 3])
+
+    assigned_points = utils_3d.AssignPoints(
+        points,
+        features.labels.bboxes_3d,
+        features.labels.labels,
+        features.labels.bboxes_3d_mask,
+        p.num_classes,
+        expand_gt_bbox_dims=p.expand_gt_bbox_dims,
+        random_seed=p.random_seed,
+        ignore_z=p.ignore_z)
+
+    # Add new features.
+    features.assigned_gt_idx = tf.reshape(assigned_points.assigned_gt_idx,
+                                          base_shape)
+    features.assigned_gt_bbox = tf.reshape(assigned_points.assigned_gt_bbox,
+                                           base_shape + [7])
+    features.assigned_gt_labels = tf.reshape(assigned_points.assigned_gt_labels,
+                                             base_shape)
+    features.assigned_cls_mask = tf.reshape(assigned_points.assigned_cls_mask,
+                                            base_shape)
+    features.assigned_reg_mask = tf.reshape(assigned_points.assigned_reg_mask,
+                                            base_shape + [p.num_classes])
+
+    # Compute residuals.
+    features.target_predictions = utils_3d.LocalizationResidualsAnchorFree(
+        features.anchor_centers, features.assigned_gt_bbox)
+
+    # Also generate extra classification labels.
+    # Don't consider center-ness in Z-axis in PointPillars model
+    assert p.extra_label_type in ['center_ness']
+    if p.extra_label_type == 'center_ness':
+      features.assigned_gt_center_ness = car_lib.GenerateCenternessLabel(
+          features.anchor_centers,
+          features.assigned_gt_bbox,
+          p.extra_label_range,
+          ignore_z=p.ignore_z)
+
+    # Also figure out the center_pillar_idx of each groundtruth box
+    (features.bboxes_center_pillar_coord,
+     features.bboxes_center_pillar_idx) = utils_3d.FindCenterPoints(
+         points,
+         features.labels.bboxes_3d,
+         features.labels.bboxes_3d_mask,
+         random_seed=p.random_seed,
+         random_chosen=p.force_match_at_random)
+
+    if p.extra_label_related_reg_mask:
+      features.assigned_reg_mask *= tf.expand_dims(
+          features.assigned_gt_center_ness, axis=-1)
+
+    return features
+
+  def TransformShapes(self, shapes):
+    p = self.params
+
+    base_shape = shapes.anchor_centers[:-1]
+    box_shape = base_shape.concatenate([7])
+    reg_mask_shape = base_shape.concatenate([p.num_classes])
+
+    base_gt_shape = shapes.labels.bboxes_3d[:-1]
+
+    shapes.target_predictions = box_shape
+    shapes.assigned_gt_idx = base_shape
+    shapes.assigned_gt_bbox = box_shape
+    shapes.assigned_gt_labels = base_shape
+    shapes.assigned_cls_mask = base_shape
+    shapes.assigned_reg_mask = reg_mask_shape
+    shapes.assigned_gt_center_ness = base_shape
+
+    shapes.bboxes_center_pillar_coord = base_gt_shape.concatenate([3])
+    shapes.bboxes_center_pillar_idx = base_gt_shape
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    dtypes.target_predictions = tf.float32
+    dtypes.assigned_gt_idx = tf.int32
+    dtypes.assigned_gt_bbox = tf.float32
+    dtypes.assigned_gt_labels = tf.int32
+    dtypes.assigned_cls_mask = tf.float32
+    dtypes.assigned_reg_mask = tf.float32
+    dtypes.assigned_gt_center_ness = tf.float32
+
+    dtypes.bboxes_center_pillar_coord = tf.float32
+    dtypes.bboxes_center_pillar_idx = tf.int32
+    return dtypes
+
+
+class FrustumNoise(Preprocessor):
+  """Adding feature noise in a frustum.
+
+  All points are first converted to spherical coordinates, and then a point
+  is randomly selected. All points in the frustum around that point within
+  a given phi, theta angle width are selected. Noise are added to the feature
+  of each selected point.
+
+
+  This preprocessor expects features to contain the following keys:
+  - lasers.points_xyz of shape [P, 3]
+  - lasers.points_feature of shape [P, K]
+
+  Optionally points_padding of shape [P] corresponding to the padding.
+  if points_padding is None, then all points are considered valid.
+
+  Modifies the following features:
+    lasers.points_feature with random noises added.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('theta_width', 0.0, 'Theta angle width for the selected frustum.')
+    p.Define('phi_width', 0.0, 'Phi angle width for the selected frustum.')
+    p.Define(
+        'distance', 0.0, 'The distance of the selected frustum to the origin '
+        'has to be larger than the value given here.')
+    p.Define(
+        'max_noise_level', 0.0, 'Maximum percentage of noise is added on top '
+        'of the feature of each point.')
+    p.Define(
+        'noise_type', 'union', 'Add noise to either the union or intersection '
+        'of phi width and theta width.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if p.phi_width < 0:
+      raise ValueError('phi_width must be >= 0, phi_width={}'.format(
+          p.phi_width))
+    if p.theta_width < 0:
+      raise ValueError('theta_width must be >= 0, theta_width={}'.format(
+          p.theta_width))
+    if p.distance < 0:
+      raise ValueError('distance must be >= 0, distance={}'.format(p.distance))
+    if p.max_noise_level < 0:
+      raise ValueError('max_noise_level must be >= 0, distance={}'.format(
+          p.max_noise_level))
+    if p.noise_type not in ['union', 'intersection']:
+      raise ValueError('drop_type must be union or intersection ,'
+                       'drop_type={}'.format(p.drop_type))
+
+  def TransformFeatures(self, features):
+    p = self.params
+
+    points_xyz = features.lasers.points_xyz
+    points_feature = features.lasers.points_feature
+
+    if 'points_padding' in features.lasers:
+      points_mask = tf.cast(1 - features.lasers.points_padding, tf.bool)
+      num_total_points = py_utils.GetShape(points_mask)[0]
+      real_points_idx = tf.boolean_mask(
+          tf.range(0, num_total_points, dtype=tf.int32), points_mask)
+      num_points = py_utils.GetShape(real_points_idx)[0]
+    else:
+      points_mask = tf.ones_like(points_xyz[:, 0], dtype=tf.bool)
+      num_total_points = py_utils.GetShape(points_mask)[0]
+      num_points = py_utils.GetShape(points_xyz)[0]
+
+    r, theta, phi = tf.unstack(
+        geometry.SphericalCoordinatesTransform(points_xyz), axis=-1)
+
+    def _PickRandomPoint():
+      point_idx = tf.random.uniform((),
+                                    minval=0,
+                                    maxval=num_points,
+                                    dtype=tf.int32)
+      if 'points_padding' in features.lasers:
+        point_idx = real_points_idx[point_idx]
+      return point_idx
+
+    # Pick a point at random and select all points that are near that point in
+    # the frustum for distance larger than r; repeat this for both theta and
+    # phi.
+    if p.theta_width > 0:
+      theta_half_width = p.theta_width / 2.
+      point_idx = _PickRandomPoint()
+      # Points within theta width and further than distance will be selected.
+      theta_noise_filter = ((theta < (theta[point_idx] + theta_half_width)) &
+                            (theta > (theta[point_idx] - theta_half_width)) &
+                            (r > p.distance))
+    else:
+      theta_noise_filter = tf.zeros_like(points_mask, dtype=tf.bool)
+
+    if p.phi_width > 0:
+      phi_half_width = p.phi_width / 2.
+      point_idx = _PickRandomPoint()
+      # Points within phi width and further than distance will be selected.
+      phi_noise_filter = ((phi < (phi[point_idx] + phi_half_width)) &
+                          (phi > (phi[point_idx] - phi_half_width)) &
+                          (r > p.distance))
+    else:
+      phi_noise_filter = tf.zeros_like(points_mask, dtype=tf.bool)
+
+    #  Create noise_filter by combining theta_noise_filter and phi_noise_filter.
+    if p.noise_type == 'union':
+      noise_filter = theta_noise_filter | phi_noise_filter
+    elif p.noise_type == 'intersection':
+      noise_filter = theta_noise_filter & phi_noise_filter
+
+    # Noise_perturbation is sampled between
+    # (max_noise_level, max_noise_level)
+    noise_perturbation = tf.random.uniform(
+        tf.shape(points_feature),
+        minval=-p.max_noise_level,
+        maxval=p.max_noise_level)
+
+    # New points_feature = points_feature + noise_perturbation * points_feature
+    features.lasers.points_feature += tf.einsum(
+        'ij, i->ij', noise_perturbation * points_feature,
+        tf.cast(noise_filter, dtype=tf.float32))
+
+    return features
+
+  def TransformShapes(self, shapes):
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    return dtypes
+
+
+class PerPillarPointCloudCenters(Preprocessor):
+  """Compute the centers for each pillar by averaging points in the pillar.
+
+  Adds following key:
+    cell_center_xyz: [nx, ny, nz, 3]
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('grid_size', (40, 40, 1), 'Grid size along x,y,z axis.')
+
+    # The max range of x and y is [-80, 80].
+    p.Define('grid_range_x', (-80, 80), 'The X-axis Range covered by the grid')
+    p.Define('grid_range_y', (-80, 80), 'The Y-axis Range covered by the grid')
+    p.Define('grid_range_z', (-2, 4), 'The Z-axis Range covered by the grid')
+    return p
+
+  def TransformFeatures(self, features):
+    p = self.params
+    grid_size_x, grid_size_y, grid_size_z = p.grid_size
+    # The input of bf_car_lib.DynamicVoxelization should with shape
+    # [batch_size, num_points, 3]. However, features.lasers.points_xyz is with
+    # shape [num_points, 3], so here [tf.newaxis] is used to convert the shape
+    # to [1, num_points, 3].
+    dynamic_voxels = car_lib.DynamicVoxelization(
+        features.lasers.points_xyz[tf.newaxis],
+        features.lasers.points_padding[tf.newaxis], p.grid_size, p.grid_range_x,
+        p.grid_range_y, p.grid_range_z)
+    cell_center_xyz = car_lib.BatchedUnsortedSegmentMean(
+        features.lasers.points_xyz[tf.newaxis],
+        dynamic_voxels.indices,
+        dynamic_voxels.num_voxels,
+        batched_padding=dynamic_voxels.padding)
+
+    features.cell_center_xyz = tf.reshape(
+        cell_center_xyz, [grid_size_x, grid_size_y, grid_size_z, 3])
+
+    return features
+
+  def TransformShapes(self, shapes):
+    p = self.params
+    grid_size_x, grid_size_y, grid_size_z = p.grid_size
+    shapes.cell_center_xyz = tf.TensorShape(
+        [grid_size_x, grid_size_y, grid_size_z, 3])
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    dtypes.cell_center_xyz = tf.float32
+    return dtypes
+
+
+class CopyFeatures(Preprocessor):
+  """Duplicate a specific feature."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('source_key', 'lasers.points_xyz',
+             'The key name of the feature to duplicate.')
+    p.Define('target_key', 'cell_center_xyz', 'Save the duplicate key to.')
+    return p
+
+  def TransformFeatures(self, features):
+    p = self.params
+    features.Set(p.target_key, tf.identity(features.Get(p.source_key)))
+    return features
+
+  def TransformShapes(self, shapes):
+    p = self.params
+    shapes.Set(p.target_key, shapes.Get(p.source_key))
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    p = self.params
+    dtypes.Set(p.target_key, dtypes.Get(p.source_key))
+    return dtypes
+
+
+class InverseRandomApplyPreprocessor(Preprocessor):
+  """Inversely apply random preprocessor with saved choice.
+
+  This preprocessor takes a preprocessor as a subprocessor and apply the
+  subprocessor to features according to the saved variables. See Section 3.3
+  of DeepFusion (https://arxiv.org/pdf/2203.08195.pdf) for details.
+
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('subprocessor', None, 'Params for an input preprocessor.')
+    p.Define('choice_save_prefix', None,
+             'The saved the choice for inverse data aug')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if p.subprocessor is None:
+      raise ValueError('No subprocessor was specified for RepeatPreprocessor.')
+
+    self.CreateChild('subprocessor', p.subprocessor)
+
+  def TransformFeatures(self, features):
+    p = self.params
+    choice = features.Get(p.choice_save_prefix + '.' + 'choice')
+    # Features is passed downstream and may be modified, we make deep copies
+    # here to use with tf.cond to avoid having tf.cond access updated
+    # versions. Note that we need one copy for each branch in case the branches
+    # further modify features.
+    features_0, features_1 = features.DeepCopy(), features.DeepCopy()
+    features = tf.cond(choice,
+                       lambda: self.subprocessor.TransformFeatures(features_0),
+                       lambda: features_1)
+
+    return features
+
+  def TransformShapes(self, shapes):
+    shapes_transformed = self.subprocessor.TransformShapes(shapes)
+
+    if not shapes.IsCompatible(shapes_transformed):
+      raise ValueError(
+          'NestedMap structures are different between shapes and transformed'
+          'shapes. Original shapes: {}. Transformed shapes: {}'.format(
+              shapes, shapes_transformed))
+
+    def IsCompatibleWith(a, b):
+      return a.is_compatible_with(b)
+
+    if not all(
+        py_utils.Flatten(
+            py_utils.Transform(IsCompatibleWith, shapes, shapes_transformed))):
+      raise ValueError(
+          'Shapes after transformation - {} are different from original '
+          'shapes - {}.'.format(shapes_transformed, shapes))
+
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    transformed_dtypes = self.subprocessor.TransformDTypes(dtypes)
+    if transformed_dtypes != dtypes:
+      raise ValueError(
+          'DTypes after transformation of preprocessor - {} should be '
+          'the same as {}, but get {}.'.format(self.params.subprocessor, dtypes,
+                                               transformed_dtypes))
+
+    return dtypes
+
+
+class InverseWorldScaling(Preprocessor):
+  """Apply InverseAug to 3d key points.
+
+  See Section 3.3 of DeepFusion (https://arxiv.org/pdf/2203.08195.pdf)
+  for details.
+
+  This preprocessor expects features to contain the following keys:
+    `customized variable name` (according to scaling_save_key param) which
+      contains the saved scaling variable applied to the example.
+
+  Modify the keys mentioned in the list of `points_keys`.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('scaling_save_key', None,
+             'The dest to the saved the scaling variables.')
+    p.Define('points_keys', ['cell_center_xyz'],
+             'A list of 3d key points that InverseAug needs to be applied to.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if p.scaling_save_key is None:
+      raise ValueError(
+          'scaling_save_key needs to be specified, instead of None.')
+
+  def TransformFeatures(self, features):
+    p = self.params
+    scaling = features.Get(p.scaling_save_key)
+
+    for points_key in p.points_keys:
+      points = features.Get(points_key)
+      points_transformed = points / scaling
+      features.Set(points_key, points_transformed)
+
+    return features
+
+  def TransformShapes(self, shapes):
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    return dtypes
+
+
+class InverseGlobalTranslateNoise(Preprocessor):
+  """Apply InverseAug to 3d key points.
+
+  See Section 3.3 of DeepFusion (https://arxiv.org/pdf/2203.08195.pdf)
+  for details.
+
+  This preprocessor expects features to contain the following keys:
+    `customized variable name` (according to noise_save_key param) which
+      contains the saved translation noise applied to the example.
+
+  Modify the keys mentioned in the list of `points_keys`.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('noise_save_key', None,
+             'The dest to save the translation noise variables.')
+    p.Define('points_keys', ['cell_center_xyz'],
+             'A list of 3d key points that InverseAug needs to be applied to.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if p.noise_save_key is None:
+      raise ValueError('noise_save_key needs to be specified, instead of None.')
+
+  def TransformFeatures(self, features):
+    p = self.params
+    noise = features.Get(p.noise_save_key)
+    pose = tf.concat([-noise, [0, 0, 0]], axis=0)
+
+    # Translate points.
+    for points_key in p.points_keys:
+      points = features.Get(points_key)
+      points_transformed = geometry.CoordinateTransform(points, pose)
+      features.Set(points_key, points_transformed)
+
+    return features
+
+  def TransformShapes(self, shapes):
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    return dtypes
+
+
+class InverseRandomFlipY(Preprocessor):
+  """Apply InverseAug to 3d key points.
+
+  See Section 3.3 of DeepFusion (https://arxiv.org/pdf/2203.08195.pdf)
+  for details.
+
+  This preprocessor expects features to contain the following keys:
+    `customized variable name` (according to flip_save_key param) which contains
+      the saved flip choice applied to the example.
+
+  Modify the keys mentioned in the list of `points_keys`.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('points_keys', ['cell_center_xyz'],
+             'A list of 3d key points that InverseAug needs to be applied to.')
+    p.Define('flip_save_key', None,
+             'The dest to the saved flip choice variable.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if p.flip_save_key is None:
+      raise ValueError('flip_save_key needs to be specified, instead of None.')
+
+  def TransformFeatures(self, features):
+    p = self.params
+    choice = features.Get(p.flip_save_key)
+
+    for points_key in p.points_keys:
+      points = features.Get(points_key)
+      points_shape = points.shape[:-1]
+      # TODO(ywli): too complicated -- reshape maybe not necessary
+      stacked_points_xyz = tf.reshape(points, shape=[1, -1, 3])
+
+      # Inverse Flip Centers
+      stacked_points_x = stacked_points_xyz[..., 0:1]
+      stacked_points_y = tf.where(choice, -stacked_points_xyz[..., 1:2],
+                                  stacked_points_xyz[..., 1:2])
+      stacked_points_z = stacked_points_xyz[..., 2:3]
+      inverse_flipped_stacked_points_xyz = tf.concat(
+          [stacked_points_x, stacked_points_y, stacked_points_z], axis=-1)
+      inverse_flipped_points = tf.reshape(
+          inverse_flipped_stacked_points_xyz, shape=points_shape + [3])
+      features.Set(points_key, inverse_flipped_points)
+
+    return features
+
+  def TransformShapes(self, shapes):
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    return dtypes
+
+
+class InverseRandomWorldRotationAboutZAxis(Preprocessor):
+  """Apply InverseAug to 3d key points.
+
+  See Section 3.3 of DeepFusion (https://arxiv.org/pdf/2203.08195.pdf)
+  for details.
+
+  This preprocessor expects features to contain the following keys:
+    `customized variable name` (according to rot_save_key param) which contains
+      the rotation applied to the example.
+
+  Modify the keys mentioned in the list of `points_keys`.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('points_keys', ['cell_center_xyz'],
+             'A list of 3d key points that InverseAug needs to be applied to.')
+    p.Define('rot_save_key', None, 'The saved rot variable for InverseAug.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    if p.rot_save_key is None:
+      raise ValueError('rot_save_key needs to be specified, instead of None.')
+
+  def TransformFeatures(self, features):
+    p = self.params
+    rot = features.Get(p.rot_save_key)
+    inverse_pose = [0., 0., 0., -rot, 0., 0.]
+
+    for points_key in p.points_keys:
+      # Inverse Rotate Centers.
+      points = features.Get(points_key)
+      points_transformed = geometry.CoordinateTransform(points, inverse_pose)
+      features.Set(points_key, points_transformed)
+
+    return features
+
+  def TransformShapes(self, shapes):
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    return dtypes
