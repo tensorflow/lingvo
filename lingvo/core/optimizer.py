@@ -1275,10 +1275,10 @@ class GradientAggregationOptimizer(tf.train.Optimizer):
 
   Large hardware configurations are in high-demand, and difficult to come by.
   This class enables simulating execution on large hardware configurations, by
-  accumulating gradients across multiple batches. A few caveats apply:
+  accumulating gradients across multiple batches. A few caveats apply.
 
   Batch statistics (e.g. batch norm) will continue to be based on the
-  "micro-batch" size.
+  'micro-batch' size.
   This effectively trades off computation/time: simulating a large cluster on
   a single core will take an excessive amount of time.
 
@@ -1310,9 +1310,11 @@ class GradientAggregationOptimizer(tf.train.Optimizer):
         sharding.ApplyToVariable(vo)
 
   def compute_gradients(self, loss, var_list=None, **kwargs):
+    """Computes the gradients."""
     return self._opt.compute_gradients(loss, var_list, **kwargs)
 
   def apply_gradients(self, grads_and_vars, global_step=None, name=None):
+    """Applies the gradients."""
     if self._num_micro_batches == 1:
       return self._opt.apply_gradients(grads_and_vars, global_step)
     global_step = global_step or py_utils.GetOrCreateGlobalStepVar()
