@@ -189,7 +189,7 @@ cc_library(
           "googletest/src/gtest-all.cc",
           "googlemock/src/gmock-all.cc",
     ],
-    copts = ["-D_GLIBCXX_USE_CXX11_ABI=0"],
+    copts = ["-D_GLIBCXX_USE_CXX11_ABI=1"],
     hdrs = glob([
         "**/*.h",
         "googletest/src/*.cc",
@@ -207,7 +207,7 @@ cc_library(
 
 cc_library(
     name = "gtest_main",
-    copts = ["-D_GLIBCXX_USE_CXX11_ABI=0"],
+    copts = ["-D_GLIBCXX_USE_CXX11_ABI=1"],
     srcs = ["googlemock/src/gmock_main.cc"],
     linkopts = ["-pthread"],
     visibility = ["//visibility:public"],
