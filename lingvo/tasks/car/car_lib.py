@@ -1081,3 +1081,47 @@ def GenerateCenternessLabel(points,
 
   centerness = tf.where_v2(valid, centerness, 0.)
   return centerness
+
+
+def ComputeFeatureRatio(images, image_features):
+  """Compute Ratio between feature height and original RGB image height.
+
+  Args:
+    images: A float tensor with shape [batch_size, image height, image width, 3]
+      indicating the RGB images.
+    image_features: A float tensor with shape [batch_size, num_cameras, H, W, C]
+      containing the features extracted from backbone network.
+
+  Returns:
+    feat_ratio: A float for indicating the ratio between feature map height
+      (or width) and original image height (or width).
+  """
+  _, feat_height = py_utils.GetShape(image_features, 2)
+  _, height = py_utils.GetShape(images, 2)
+  feat_ratio = tf.cast(feat_height, tf.float32) / tf.cast(height, tf.float32)
+  return feat_ratio
+
+
+def StackCameraImages(images, camera_names=None):
+  """Stack all camera images as a tensor.
+
+  Args:
+    images: A dict saves images for different cameras.
+    camera_names: A string list that illustrates the name of all cameras.
+
+  Returns:
+    all_cameras: A float tensor with shape [batch_size * num_cameras,
+      height, width, 3].
+  """
+  camera_names = camera_names or sorted(images.keys())
+  # Stack and compute CNN features for all cameras. Note that we assume that
+  # all cameras have the same resolution and thus can be stacked together.
+  all_cameras = []
+  num_cameras = len(camera_names)
+  all_cameras = [images[camera_name].image for camera_name in camera_names]
+  all_cameras = tf.stack(all_cameras, axis=1)
+  all_cameras = py_utils.HasShape(all_cameras, [-1, -1, -1, -1, 3])
+  batch_size, num_cameras, height, width = py_utils.GetShape(all_cameras, 4)
+  all_cameras = tf.reshape(all_cameras,
+                           [batch_size * num_cameras, height, width, 3])
+  return all_cameras
