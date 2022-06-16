@@ -13,6 +13,7 @@
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
         <script src="../../../_static/jquery.js"></script>
         <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
@@ -218,8 +219,12 @@
              <span class="s1">&#39;Combine qkv matmul.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;mdha_rope&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;Whether or not to use Rotational Position Embeddings in &#39;</span>
-        <span class="s1">&#39;Multi-DConv Head Attention.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;Deprecated. Please use `use_rotary_position_emb`. Whether or not to use&#39;</span>
+        <span class="s1">&#39;Rotational Position Embeddings in Multi-DConv Head Attention.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_rotary_position_emb&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to use Rotational Position Embeddings in&#39;</span>
+        <span class="s1">&#39;Multi-Head Attention.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rope_emb_max_timescale&#39;</span><span class="p">,</span> <span class="mf">10000.0</span><span class="p">,</span>
              <span class="s1">&#39;Maximum timescale for ROPE transformation.&#39;</span><span class="p">)</span>
 
@@ -429,6 +434,45 @@
                       <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">vocab_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
                       <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">w_mesh_split</span><span class="p">))],</span>
         <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MoEBuilder._GetRopeFn"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._GetRopeFn">[docs]</a>  <span class="k">def</span> <span class="nf">_GetRopeFn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enable_rope</span><span class="p">,</span> <span class="n">rope_emb_max_timescale</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets the scaled Rotary position embedding function.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      enable_rope: if true, returns ROPE function, otherwise Identify.</span>
+<span class="sd">      rope_emb_max_timescale: Maximum timescale for ROPE transformation.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The ROPE function if enable_rope=True, otherwise Identify function.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_Rope</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+      <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">min_timescale</span> <span class="o">=</span> <span class="mf">1.0</span>
+      <span class="n">max_timescale</span> <span class="o">=</span> <span class="n">rope_emb_max_timescale</span>
+      <span class="n">half_embedding_dim</span> <span class="o">=</span> <span class="n">embedding_dims</span> <span class="o">//</span> <span class="mi">2</span>
+      <span class="n">fraction</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">half_embedding_dim</span><span class="p">),</span>
+                               <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="n">embedding_dims</span>
+      <span class="n">timescale</span> <span class="o">=</span> <span class="n">min_timescale</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_timescale</span> <span class="o">/</span> <span class="n">min_timescale</span><span class="p">)</span><span class="o">**</span><span class="n">fraction</span>
+      <span class="n">position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">timescale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">timescale</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">sinusoid_inp</span> <span class="o">=</span> <span class="n">position</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">timescale</span><span class="p">,</span> <span class="n">position</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">sin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">sinusoid_inp</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">cos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">sinusoid_inp</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">first_half</span><span class="p">,</span> <span class="n">second_half</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">first_part</span> <span class="o">=</span> <span class="n">first_half</span> <span class="o">*</span> <span class="n">cos</span> <span class="o">-</span> <span class="n">second_half</span> <span class="o">*</span> <span class="n">sin</span>
+      <span class="n">second_part</span> <span class="o">=</span> <span class="n">second_half</span> <span class="o">*</span> <span class="n">cos</span> <span class="o">+</span> <span class="n">first_half</span> <span class="o">*</span> <span class="n">sin</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">first_part</span><span class="p">,</span> <span class="n">second_part</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Ident</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
+      <span class="k">del</span> <span class="n">position</span>
+      <span class="k">return</span> <span class="n">inputs</span>
+
+    <span class="k">if</span> <span class="n">enable_rope</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">_Rope</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">_Ident</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.SharedEmbSoftmax"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.SharedEmbSoftmax">[docs]</a>  <span class="k">def</span> <span class="nf">SharedEmbSoftmax</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">name</span><span class="p">,</span>
@@ -1256,6 +1300,9 @@
         <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
     <span class="p">]</span>
 
+    <span class="n">rope_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetRopeFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">use_rotary_position_emb</span><span class="p">,</span>
+                              <span class="n">p</span><span class="o">.</span><span class="n">rope_emb_max_timescale</span><span class="p">)</span>
+
     <span class="c1"># pyformat: disable</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
@@ -1264,7 +1311,9 @@
         <span class="p">],</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
             <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">)),</span>
-        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q,k,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q_no_rot,k_no_rot,v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q_no_rot,segment_pos-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;rot_q&#39;</span><span class="p">,</span> <span class="n">rope_fn</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k_no_rot,segment_pos-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;rot_k&#39;</span><span class="p">,</span> <span class="n">rope_fn</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_DecComputeBiasGraphEdge</span><span class="p">(),</span>
@@ -1296,33 +1345,8 @@
         <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
     <span class="p">]</span>
 
-    <span class="k">def</span> <span class="nf">_Rope</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
-      <span class="n">embedding_dims</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-      <span class="n">min_timescale</span> <span class="o">=</span> <span class="mf">1.0</span>
-      <span class="n">max_timescale</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">rope_emb_max_timescale</span>
-      <span class="n">half_embedding_dim</span> <span class="o">=</span> <span class="n">embedding_dims</span> <span class="o">//</span> <span class="mi">2</span>
-      <span class="n">fraction</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">half_embedding_dim</span><span class="p">),</span>
-                               <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="n">embedding_dims</span>
-      <span class="n">timescale</span> <span class="o">=</span> <span class="n">min_timescale</span> <span class="o">*</span> <span class="p">(</span><span class="n">max_timescale</span> <span class="o">/</span> <span class="n">min_timescale</span><span class="p">)</span><span class="o">**</span><span class="n">fraction</span>
-      <span class="n">position</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">position</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">timescale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">timescale</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-      <span class="n">sinusoid_inp</span> <span class="o">=</span> <span class="n">position</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">timescale</span><span class="p">,</span> <span class="n">position</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="n">sin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">sinusoid_inp</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="n">cos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">sinusoid_inp</span><span class="p">),</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-      <span class="n">first_half</span><span class="p">,</span> <span class="n">second_half</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">first_part</span> <span class="o">=</span> <span class="n">first_half</span> <span class="o">*</span> <span class="n">cos</span> <span class="o">-</span> <span class="n">second_half</span> <span class="o">*</span> <span class="n">sin</span>
-      <span class="n">second_part</span> <span class="o">=</span> <span class="n">second_half</span> <span class="o">*</span> <span class="n">cos</span> <span class="o">+</span> <span class="n">first_half</span> <span class="o">*</span> <span class="n">sin</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">first_part</span><span class="p">,</span> <span class="n">second_part</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-
-    <span class="k">def</span> <span class="nf">_Ident</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">position</span><span class="p">):</span>
-      <span class="k">del</span> <span class="n">position</span>
-      <span class="k">return</span> <span class="n">inputs</span>
-
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mdha_rope</span><span class="p">:</span>
-      <span class="n">rope_fn</span> <span class="o">=</span> <span class="n">_Rope</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">rope_fn</span> <span class="o">=</span> <span class="n">_Ident</span>
+    <span class="n">rope_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetRopeFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">mdha_rope</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">use_rotary_position_emb</span><span class="p">,</span>
+                              <span class="n">p</span><span class="o">.</span><span class="n">rope_emb_max_timescale</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_CreateConvMask</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>

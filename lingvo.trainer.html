@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -87,7 +88,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.trainer">
-<span id="lingvo-trainer-module"></span><h1>lingvo.trainer module<a class="headerlink" href="#module-lingvo.trainer" title="Permalink to this headline"></a></h1>
+<span id="lingvo-trainer-module"></span><h1>lingvo.trainer module<a class="headerlink" href="#module-lingvo.trainer" title="Permalink to this heading"></a></h1>
 <p>Trainer.</p>
 <p>To run locally:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ bazel build -c opt //lingvo:trainer
@@ -126,7 +127,7 @@ $ bazel-bin/lingvo/trainer --logtostderr <span class="se">\</span>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.trainer.RunnerManager.Controller">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Controller</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.Controller" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseRunner</span></code></a></p>
 <p>Controller for a training cluster.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.trainer.RunnerManager.Controller.Start">
@@ -153,7 +154,7 @@ $ bazel-bin/lingvo/trainer --logtostderr <span class="se">\</span>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.trainer.RunnerManager.TrainerTpu">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TrainerTpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.TrainerTpu" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseRunner</span></code></a></p>
 <p>Trainer on TPU.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.trainer.RunnerManager.TrainerTpu.Start">
@@ -224,7 +225,7 @@ $ bazel-bin/lingvo/trainer --logtostderr <span class="se">\</span>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.trainer.RunnerManager.ExecutorTpu">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ExecutorTpu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_cfg</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ps_params_dict</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.ExecutorTpu" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseRunner</span></code></a></p>
 <p>An runner that does arbitrary multi-program execution on TPU.</p>
 <p>Overview of operation:</p>
 <ul class="simple">
@@ -272,7 +273,7 @@ once.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.trainer.RunnerManager.TrainSummaries">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">TrainSummaries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.trainer.RunnerManager.TrainSummaries" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.base_runner.BaseRunner</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.base_runner.html#lingvo.base_runner.BaseRunner" title="lingvo.base_runner.BaseRunner"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseRunner</span></code></a></p>
 <p>Write training summaries.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.trainer.RunnerManager.TrainSummaries.Start">

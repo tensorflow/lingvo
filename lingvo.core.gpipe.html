@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,7 +82,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.gpipe">
-<span id="lingvo-core-gpipe-module"></span><h1>lingvo.core.gpipe module<a class="headerlink" href="#module-lingvo.core.gpipe" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-gpipe-module"></span><h1>lingvo.core.gpipe module<a class="headerlink" href="#module-lingvo.core.gpipe" title="Permalink to this heading"></a></h1>
 <p>A recurrent model which enables pipelining model parallelism.</p>
 <p>Reference:
 ‘GPipe: Efficient Training of Giant Neural Networks using Pipeline Parallelism’
@@ -122,7 +123,7 @@ will be included.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gpipe.FeatureExtractionLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gpipe.</span></span><span class="sig-name descname"><span class="pre">FeatureExtractionLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gpipe.html#FeatureExtractionLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gpipe.FeatureExtractionLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>A layer that extrac features from a sequence of layers.</p>
 <p>FeatureExtractionLayer is a layer which connects a few layers in a sequence.
 It is also capable of fetching and forwarding activation endpoints.
@@ -228,7 +229,7 @@ layer.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gpipe.SeqLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gpipe.</span></span><span class="sig-name descname"><span class="pre">SeqLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gpipe.html#SeqLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gpipe.SeqLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Round-robin every children cells in cell_tpl among worker devices.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gpipe.SeqLayer.Params">
@@ -278,7 +279,7 @@ children layers.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gpipe.PipeliningLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gpipe.</span></span><span class="sig-name descname"><span class="pre">PipeliningLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gpipe.html#PipeliningLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gpipe.PipeliningLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gpipe.SeqLayer" title="lingvo.core.gpipe.SeqLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gpipe.SeqLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gpipe.SeqLayer" title="lingvo.core.gpipe.SeqLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">SeqLayer</span></code></a></p>
 <p>Pipelining a sequence of layers on multiple devices.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gpipe.PipeliningLayer.Params">

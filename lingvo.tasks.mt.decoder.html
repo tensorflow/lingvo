@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,12 +82,12 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.tasks.mt.decoder">
-<span id="lingvo-tasks-mt-decoder-module"></span><h1>lingvo.tasks.mt.decoder module<a class="headerlink" href="#module-lingvo.tasks.mt.decoder" title="Permalink to this headline"></a></h1>
+<span id="lingvo-tasks-mt-decoder-module"></span><h1>lingvo.tasks.mt.decoder module<a class="headerlink" href="#module-lingvo.tasks.mt.decoder" title="Permalink to this heading"></a></h1>
 <p>Machine translation decoder.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.MTBaseDecoder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.decoder.</span></span><span class="sig-name descname"><span class="pre">MTBaseDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder" title="lingvo.core.base_decoder.BaseBeamSearchDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_decoder.BaseBeamSearchDecoder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder" title="lingvo.core.base_decoder.BaseBeamSearchDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBeamSearchDecoder</span></code></a></p>
 <p>Base class for Lingvo MT decoders.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.MTBaseDecoder.Params">
@@ -306,7 +307,7 @@ Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.MTDecoderV1">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.decoder.</span></span><span class="sig-name descname"><span class="pre">MTDecoderV1</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.decoder.MTBaseDecoder</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTBaseDecoder</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantizableLayer</span></code></a></p>
 <p>MT decoder v1.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.MTDecoderV1._FLOAT_DTYPE_MAX_SCALER">
@@ -553,7 +554,7 @@ fast decoding when input has a single token.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerDecoder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.decoder.</span></span><span class="sig-name descname"><span class="pre">TransformerDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.decoder.MTBaseDecoder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTBaseDecoder</span></code></a></p>
 <p>Transformer decoder.</p>
 <p>Implements the decoder of Transformer model:
 <a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.</p>
@@ -909,7 +910,7 @@ tgt_batch, src_len].</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.InsertionDecoder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.decoder.</span></span><span class="sig-name descname"><span class="pre">InsertionDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#InsertionDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.InsertionDecoder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder" title="lingvo.core.base_decoder.BaseBeamSearchDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_decoder.BaseBeamSearchDecoder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_decoder.html#lingvo.core.base_decoder.BaseBeamSearchDecoder" title="lingvo.core.base_decoder.BaseBeamSearchDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseBeamSearchDecoder</span></code></a></p>
 <p>Basic Insertion decoder for MT (or any symbol based sequence).</p>
 <p class="rubric">References</p>
 <p>KERMIT: <a class="reference external" href="https://arxiv.org/pdf/1906.01604.pdf">https://arxiv.org/pdf/1906.01604.pdf</a>
@@ -1006,7 +1007,7 @@ be the batch index.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.decoder.</span></span><span class="sig-name descname"><span class="pre">TransformerBatchMajorDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.decoder.MTBaseDecoder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">MTBaseDecoder</span></code></a></p>
 <p>Transformer decoder with batch major implementation.</p>
 <p>Implements the decoder of Transformer model:
 <a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.</p>
@@ -1312,7 +1313,7 @@ time_step - A scalar, the current decode step, 0-based.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.mt.decoder.TransformerXDecoder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.mt.decoder.</span></span><span class="sig-name descname"><span class="pre">TransformerXDecoder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerXDecoder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerXDecoder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.TransformerDecoder" title="lingvo.tasks.mt.decoder.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.decoder.TransformerDecoder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.TransformerDecoder" title="lingvo.tasks.mt.decoder.TransformerDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransformerDecoder</span></code></a></p>
 <p>Transformer Decoder.</p>
 <p>Mainly add a feature to calculate the KL loss with respect to another
 prediction and support combining two input embeddings with their

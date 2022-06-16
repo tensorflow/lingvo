@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,7 +82,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.conv_layers_with_time_padding">
-<span id="lingvo-core-conv-layers-with-time-padding-module"></span><h1>lingvo.core.conv_layers_with_time_padding module<a class="headerlink" href="#module-lingvo.core.conv_layers_with_time_padding" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-conv-layers-with-time-padding-module"></span><h1>lingvo.core.conv_layers_with_time_padding module<a class="headerlink" href="#module-lingvo.core.conv_layers_with_time_padding" title="Permalink to this heading"></a></h1>
 <p>Common conv layers.</p>
 <p>WARNING: Strided convolutions are buggy. Consider using v2_padding=True.</p>
 <dl class="py function">
@@ -209,7 +210,7 @@ tensor and padded_length is the number paddings.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">BaseConv2DLayerWithPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#BaseConv2DLayerWithPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Abstract base class for 2D convolution layers.</p>
 <p>WARNING: Strided convolutions are buggy. Prefer using v2_padding=True.</p>
 <dl class="py method">
@@ -299,7 +300,7 @@ width dimension as in images.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">Conv2DLayerWithPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#Conv2DLayerWithPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding" title="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding" title="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseConv2DLayerWithPadding</span></code></a></p>
 <p>Conv2D layer.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding.Params">
@@ -344,7 +345,7 @@ tf.variable_scope(self.params.name).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">CausalConv2DLayerWithPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalConv2DLayerWithPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding" title="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding" title="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding"><code class="xref py py-class docutils literal notranslate"><span class="pre">Conv2DLayerWithPadding</span></code></a></p>
 <p>2D conv layer with causal dependency on the time axis.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalConv2DLayerWithPadding.Params">
@@ -416,7 +417,7 @@ state1: A NestedMap of the same struct as input state</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">DepthwiseConv2DLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#DepthwiseConv2DLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding" title="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding" title="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseConv2DLayerWithPadding</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantizableLayer</span></code></a></p>
 <p>Depthwise conv 2D layer.</p>
 <p>paper: <a class="reference external" href="https://arxiv.org/abs/1610.02357">https://arxiv.org/abs/1610.02357</a></p>
 <dl class="py method">
@@ -468,7 +469,7 @@ tf.variable_scope(self.params.name).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">CausalDepthwiseConv2DLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalDepthwiseConv2DLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer" title="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer" title="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">DepthwiseConv2DLayer</span></code></a></p>
 <p>Depthwise conv layer with causal dependency on the time axis.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalDepthwiseConv2DLayer._MaybeCausalPadding">
@@ -534,7 +535,7 @@ state1: A NestedMap of the same struct as input state</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">NormalizedDepthwiseConv2DLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#NormalizedDepthwiseConv2DLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer" title="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer" title="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">DepthwiseConv2DLayer</span></code></a></p>
 <p>DepthwiseConv2DLayer where weights are normalized over the time dim.</p>
 <p><a class="reference external" href="https://arxiv.org/abs/1901.10430">https://arxiv.org/abs/1901.10430</a></p>
 <dl class="py method">
@@ -607,7 +608,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">CausalNormalizedDepthwiseConv2DLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#CausalNormalizedDepthwiseConv2DLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer" title="lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer" title="lingvo.core.conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">NormalizedDepthwiseConv2DLayer</span></code></a></p>
 <p>Depthwise conv layer with causal dependency on the time axis.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.CausalNormalizedDepthwiseConv2DLayer._MaybeCausalPadding">
@@ -624,7 +625,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.ConvBatchNormLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">ConvBatchNormLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#ConvBatchNormLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.ConvBatchNormLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer" title="lingvo.core.bn_layers.BatchNormLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.bn_layers.BatchNormLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer" title="lingvo.core.bn_layers.BatchNormLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchNormLayer</span></code></a></p>
 <p>A wrapper around regular BatchNormLayer that pass around the …</p>
 <p>paddings layers.</p>
 <dl class="py method">
@@ -653,7 +654,7 @@ either the same as inputs or tf.rank(inputs) - 1.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.ConvCategoricalBN">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">ConvCategoricalBN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#ConvCategoricalBN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.ConvCategoricalBN" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.bn_layers.html#lingvo.core.bn_layers.CategoricalBN" title="lingvo.core.bn_layers.CategoricalBN"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.bn_layers.CategoricalBN</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.bn_layers.html#lingvo.core.bn_layers.CategoricalBN" title="lingvo.core.bn_layers.CategoricalBN"><code class="xref py py-class docutils literal notranslate"><span class="pre">CategoricalBN</span></code></a></p>
 <p>A wrapper around regular CategoricalBN that pass around the …</p>
 <p>paddings layers.</p>
 <dl class="py method">
@@ -683,7 +684,7 @@ as the input tensor.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.PaddingLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">PaddingLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#PaddingLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.PaddingLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Zeros out padded positions.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.PaddingLayer.FProp">
@@ -723,7 +724,7 @@ its children layers.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.GlobalPoolingLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_with_time_padding.</span></span><span class="sig-name descname"><span class="pre">GlobalPoolingLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#GlobalPoolingLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.GlobalPoolingLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Padding aware global pooling.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_with_time_padding.GlobalPoolingLayer.Params">

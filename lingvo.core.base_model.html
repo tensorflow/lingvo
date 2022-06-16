@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,12 +82,12 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.base_model">
-<span id="lingvo-core-base-model-module"></span><h1>lingvo.core.base_model module<a class="headerlink" href="#module-lingvo.core.base_model" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-base-model-module"></span><h1>lingvo.core.base_model module<a class="headerlink" href="#module-lingvo.core.base_model" title="Permalink to this heading"></a></h1>
 <p>Base model.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.base_model.DecodeFinalizeArgs">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_model.</span></span><span class="sig-name descname"><span class="pre">DecodeFinalizeArgs</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decode_out_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_out</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DecodeFinalizeArgs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="lingvo.core.base_model.DecodeFinalizeArgs"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.DecodeFinalizeArgs</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="lingvo.core.base_model.DecodeFinalizeArgs"><code class="xref py py-class docutils literal notranslate"><span class="pre">DecodeFinalizeArgs</span></code></a></p>
 <p>Arguments to BaseTask.DecodeFinalize().</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.base_model.DecodeFinalizeArgs.decode_out_path">
@@ -134,7 +135,7 @@ PostProcessDecodeOut().</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.base_model.BaseTask">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_model.</span></span><span class="sig-name descname"><span class="pre">BaseTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>A single encoder/decoder task.</p>
 <p>One task usually consists of one InputGenerator, one train_op,
 a list of eval_metrics, etc.</p>
@@ -622,7 +623,7 @@ is also the same directory where checkpoints will be written.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.base_model.BaseModel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_model.</span></span><span class="sig-name descname"><span class="pre">BaseModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>The abstract model class. All models are sub-class of this class.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_model.BaseModel.Params">
@@ -736,7 +737,7 @@ is also the same directory where checkpoints will be written.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.base_model.SingleTaskBase">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_model.</span></span><span class="sig-name descname"><span class="pre">SingleTaskBase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskBase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseModel</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></a></p>
 <p>Represents a single task from a model.</p>
 <p>Subclasses must create a Task in self._task by the end of __init__.</p>
 <dl class="py property">
@@ -794,7 +795,7 @@ is also the same directory where checkpoints will be written.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.base_model.SingleTaskModel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_model.</span></span><span class="sig-name descname"><span class="pre">SingleTaskModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.SingleTaskBase" title="lingvo.core.base_model.SingleTaskBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.SingleTaskBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.SingleTaskBase" title="lingvo.core.base_model.SingleTaskBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleTaskBase</span></code></a></p>
 <p>Model that consists of a single task.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_model.SingleTaskModel.Params">
@@ -822,7 +823,7 @@ keyed by a child name.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.base_model.MultiTaskSubModel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_model.</span></span><span class="sig-name descname"><span class="pre">MultiTaskSubModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskSubModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskSubModel" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.SingleTaskBase" title="lingvo.core.base_model.SingleTaskBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.SingleTaskBase</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.SingleTaskBase" title="lingvo.core.base_model.SingleTaskBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">SingleTaskBase</span></code></a></p>
 <p>‘Model’ consisting of a task from a multi-task model.</p>
 <p>The entire multi-task model is constructed, but otherwise this model
 appears to be a SingleTaskModel consisting of just one of the multi-task
@@ -838,7 +839,7 @@ model’s tasks.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.base_model.MultiTaskModel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_model.</span></span><span class="sig-name descname"><span class="pre">MultiTaskModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseModel</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseModel</span></code></a></p>
 <p>Model that consists of multiple tasks.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.base_model.MultiTaskModel.Params">

@@ -13,6 +13,7 @@
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
         <script src="../../../_static/jquery.js"></script>
         <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
@@ -156,6 +157,46 @@
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringsToIdsImpl</span><span class="p">(</span><span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span> <span class="n">languages</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="BaseTokenizer.StringsToIdsWithSegments"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer.StringsToIdsWithSegments">[docs]</a>  <span class="k">def</span> <span class="nf">StringsToIdsWithSegments</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">strs</span><span class="p">,</span>
+                               <span class="n">max_length</span><span class="p">,</span>
+                               <span class="n">external_append_eos</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                               <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Same as StringsToIds, but can process strs that contain segments...</span>
+
+<span class="sd">    separated by &lt;segment&gt; delimiter, and return the segment ids corresponding</span>
+<span class="sd">    to each label.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      strs: A vector of strings.</span>
+<span class="sd">      max_length: An int providing the max_length for strs.</span>
+<span class="sd">      external_append_eos: Bool or None. If None, will be ignored and</span>
+<span class="sd">        `params.append_eos` will be used. If bool, will determine if an eos</span>
+<span class="sd">        symbol will be added to tokens.</span>
+<span class="sd">      languages: A vector of strings with the same length as `strs`.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tuple (ids, labels, paddings) with the same shape [batch, maxlen].</span>
+
+<span class="sd">      - ids[i, j] is the input token id of i-th sample for j-th step.</span>
+<span class="sd">      - labels[i, j] is the target token id of i-th sample for j-th step.</span>
+<span class="sd">      - paddings[i, j] is 1 iff i-th sample&#39;s j-th step is padded.</span>
+<span class="sd">      - segment_ids[i, j] is the segment id of i-th sample for j-th step.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If unknown token type.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO(cjzheng) make segment delimiter configurable</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">external_append_eos</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">append_eos</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">append_eos</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">append_eos</span> <span class="o">=</span> <span class="n">external_append_eos</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StringsToIdsWithSegmentsImpl</span><span class="p">(</span><span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span>
+                                              <span class="n">languages</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseTokenizer.StringsToIdsWithOffsets"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer.StringsToIdsWithOffsets">[docs]</a>  <span class="k">def</span> <span class="nf">StringsToIdsWithOffsets</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                               <span class="n">strs</span><span class="p">,</span>
                               <span class="n">max_length</span><span class="p">,</span>
@@ -201,6 +242,10 @@
 
 <div class="viewcode-block" id="BaseTokenizer._StringsToIdsWithOffsetsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsWithOffsetsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsWithOffsetsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span>
                                    <span class="n">languages</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseTokenizer._StringsToIdsWithSegmentsImpl"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsWithSegmentsImpl">[docs]</a>  <span class="k">def</span> <span class="nf">_StringsToIdsWithSegmentsImpl</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">strs</span><span class="p">,</span> <span class="n">max_length</span><span class="p">,</span> <span class="n">append_eos</span><span class="p">,</span>
+                                    <span class="n">languages</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method.&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTokenizer.IdsToStrings"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer.IdsToStrings">[docs]</a>  <span class="k">def</span> <span class="nf">IdsToStrings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">lens</span><span class="p">,</span> <span class="n">languages</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

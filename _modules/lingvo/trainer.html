@@ -13,6 +13,7 @@
         <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
         <script src="../../_static/jquery.js"></script>
         <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../_static/doctools.js"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -191,6 +192,10 @@
     <span class="s1">&#39;graph_def_filename&#39;</span><span class="p">,</span> <span class="p">[],</span>
     <span class="s1">&#39;Output inference graph_def filenames. Defaults to CPU graph if &#39;</span>
     <span class="s1">&#39;inference_graph_filename and inference_graph_device are not specified.&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_list</span><span class="p">(</span>
+    <span class="s1">&#39;inspect_params_dataset_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="s1">&#39;Which dataset params to inspect. If None, all the dataset params will be &#39;</span>
+    <span class="s1">&#39;output&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;inference_dataset_name&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">,</span>
     <span class="s1">&#39;Name of the dataset whose params to be extracted inference graph with.&#39;</span><span class="p">)</span>
@@ -687,6 +692,9 @@
     <span class="bp">cls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetClass</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="n">datasets</span><span class="o">.</span><span class="n">GetDatasets</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">inspect_params_dataset_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">dataset</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">inspect_params_dataset_name</span><span class="p">:</span>
+          <span class="k">continue</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetParamsForDataset</span><span class="p">(</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span>
       <span class="n">outf</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="n">dataset</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;-params.txt&#39;</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Write all params for </span><span class="si">{}</span><span class="s1"> to </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">outf</span><span class="p">))</span>

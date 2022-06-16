@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,7 +82,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.tasks.asr.frontend">
-<span id="lingvo-tasks-asr-frontend-module"></span><h1>lingvo.tasks.asr.frontend module<a class="headerlink" href="#module-lingvo.tasks.asr.frontend" title="Permalink to this headline"></a></h1>
+<span id="lingvo-tasks-asr-frontend-module"></span><h1>lingvo.tasks.asr.frontend module<a class="headerlink" href="#module-lingvo.tasks.asr.frontend" title="Permalink to this heading"></a></h1>
 <p>Layers to construct an ASR frontend.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.asr.frontend.AsrFrontendConfig">
@@ -161,7 +162,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.asr.frontend.BaseAsrFrontend">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.frontend.</span></span><span class="sig-name descname"><span class="pre">BaseAsrFrontend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Base class for ASR frontends.</p>
 <p>An ASR frontend is responsible for performing feature extraction from the
 input in the cases where features are not precomputed as part of the
@@ -216,7 +217,7 @@ compatible encoder and contains:</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.asr.frontend.NullAsrFrontend">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.frontend.</span></span><span class="sig-name descname"><span class="pre">NullAsrFrontend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="lingvo.tasks.asr.frontend.BaseAsrFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.frontend.BaseAsrFrontend</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="lingvo.tasks.asr.frontend.BaseAsrFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAsrFrontend</span></code></a></p>
 <p>ASR frontend that just returns its input as FProp output.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.tasks.asr.frontend.NullAsrFrontend.GetConfigFromParams">
@@ -261,7 +262,7 @@ compatible encoder and contains:</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.asr.frontend.MelAsrFrontend">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.frontend.</span></span><span class="sig-name descname"><span class="pre">MelAsrFrontend</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="lingvo.tasks.asr.frontend.BaseAsrFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.frontend.BaseAsrFrontend</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="lingvo.tasks.asr.frontend.BaseAsrFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAsrFrontend</span></code></a></p>
 <p>An AsrFrontend that implements mel feature extraction from PCM frames.</p>
 <p>This is expressed in pure TensorFlow and without reference to external
 resources.</p>

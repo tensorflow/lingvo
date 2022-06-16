@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,12 +82,12 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.conv_layers_builder">
-<span id="lingvo-core-conv-layers-builder-module"></span><h1>lingvo.core.conv_layers_builder module<a class="headerlink" href="#module-lingvo.core.conv_layers_builder" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-conv-layers-builder-module"></span><h1>lingvo.core.conv_layers_builder module<a class="headerlink" href="#module-lingvo.core.conv_layers_builder" title="Permalink to this heading"></a></h1>
 <p>2D conv layers that are expected to be used with sequence inputs.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_builder.BiasLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_builder.</span></span><span class="sig-name descname"><span class="pre">BiasLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#BiasLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.BiasLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer" title="lingvo.core.builder_layers.BiasLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.builder_layers.BiasLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer" title="lingvo.core.builder_layers.BiasLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BiasLayer</span></code></a></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_builder.BiasLayer.FProp">
 <span class="sig-name descname"><span class="pre">FProp</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#BiasLayer.FProp"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.BiasLayer.FProp" title="Permalink to this definition"></a></dt>
@@ -110,7 +111,7 @@ children layers.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_builder.CausalPoolingLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_builder.</span></span><span class="sig-name descname"><span class="pre">CausalPoolingLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#CausalPoolingLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.CausalPoolingLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Pooling layer with causal dependency on the time axis.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_builder.CausalPoolingLayer.Params">
@@ -153,7 +154,7 @@ time].</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_builder.Builder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.conv_layers_builder.</span></span><span class="sig-name descname"><span class="pre">Builder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.builder.html#lingvo.core.builder.Base" title="lingvo.core.builder.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.builder.Base</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.builder.html#lingvo.core.builder.Base" title="lingvo.core.builder.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
 <p>Builder patterns for commonly used conv layers.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.conv_layers_builder.Builder.Params">

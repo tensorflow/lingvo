@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,12 +82,12 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.bn_layers">
-<span id="lingvo-core-bn-layers-module"></span><h1>lingvo.core.bn_layers module<a class="headerlink" href="#module-lingvo.core.bn_layers" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-bn-layers-module"></span><h1>lingvo.core.bn_layers module<a class="headerlink" href="#module-lingvo.core.bn_layers" title="Permalink to this heading"></a></h1>
 <p>Batch normalization layers.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.AddingAccumulator">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">AddingAccumulator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#AddingAccumulator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.AddingAccumulator" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.Accumulator" title="lingvo.core.base_layer.Accumulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.Accumulator</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.Accumulator" title="lingvo.core.base_layer.Accumulator"><code class="xref py py-class docutils literal notranslate"><span class="pre">Accumulator</span></code></a></p>
 <p>Accumulator for the sufficient statistics.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.AddingAccumulator.DefaultValue">
@@ -111,7 +112,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">BatchNormLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Batch normalization layer.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayer.Params">
@@ -258,7 +259,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.CategoricalBN">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">CategoricalBN</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#CategoricalBN"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.CategoricalBN" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.bn_layers.BatchNormLayer" title="lingvo.core.bn_layers.BatchNormLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.bn_layers.BatchNormLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.bn_layers.BatchNormLayer" title="lingvo.core.bn_layers.BatchNormLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BatchNormLayer</span></code></a></p>
 <p>Implements a categorical BN which is akin to …</p>
 <p><a class="reference external" href="https://arxiv.org/pdf/1809.11096.pdf">https://arxiv.org/pdf/1809.11096.pdf</a></p>
 <p>Specifically, the moving stats are category-agnostic, while {beta, gamma} are
@@ -306,7 +307,7 @@ as the input tensor.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">BatchNormLayerNoPadding</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayerNoPadding"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayerNoPadding" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Batchnorm layer without padding.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.BatchNormLayerNoPadding.Params">
@@ -368,7 +369,7 @@ its children layers.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.bn_layers.</span></span><span class="sig-name descname"><span class="pre">GroupNormLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#GroupNormLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.bn_layers.GroupNormLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Group normalization layer(<a class="reference external" href="https://arxiv.org/abs/1803.08494">https://arxiv.org/abs/1803.08494</a>).</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.bn_layers.GroupNormLayer.Params">

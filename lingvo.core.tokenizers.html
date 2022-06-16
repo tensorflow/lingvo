@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,12 +82,12 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.tokenizers">
-<span id="lingvo-core-tokenizers-module"></span><h1>lingvo.core.tokenizers module<a class="headerlink" href="#module-lingvo.core.tokenizers" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-tokenizers-module"></span><h1>lingvo.core.tokenizers module<a class="headerlink" href="#module-lingvo.core.tokenizers" title="Permalink to this heading"></a></h1>
 <p>Tokenizers.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.BaseTokenizer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tokenizers.</span></span><span class="sig-name descname"><span class="pre">BaseTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>The base tokenizer.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.BaseTokenizer.Params">
@@ -121,6 +122,39 @@ symbol will be added to tokens.</p></li>
 <li><p>ids[i, j] is the input token id of i-th sample for j-th step.</p></li>
 <li><p>labels[i, j] is the target token id of i-th sample for j-th step.</p></li>
 <li><p>paddings[i, j] is 1 iff i-th sample’s j-th step is padded.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If unknown token type.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tokenizers.BaseTokenizer.StringsToIdsWithSegments">
+<span class="sig-name descname"><span class="pre">StringsToIdsWithSegments</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">external_append_eos</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer.StringsToIdsWithSegments"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer.StringsToIdsWithSegments" title="Permalink to this definition"></a></dt>
+<dd><p>Same as StringsToIds, but can process strs that contain segments…</p>
+<p>separated by &lt;segment&gt; delimiter, and return the segment ids corresponding
+to each label.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>strs</strong> – A vector of strings.</p></li>
+<li><p><strong>max_length</strong> – An int providing the max_length for strs.</p></li>
+<li><p><strong>external_append_eos</strong> – Bool or None. If None, will be ignored and
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">params.append_eos</span></code> will be used. If bool, will determine if an eos
+symbol will be added to tokens.</p></li>
+<li><p><strong>languages</strong> – A vector of strings with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">strs</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple (ids, labels, paddings) with the same shape [batch, maxlen].</p>
+<ul class="simple">
+<li><p>ids[i, j] is the input token id of i-th sample for j-th step.</p></li>
+<li><p>labels[i, j] is the target token id of i-th sample for j-th step.</p></li>
+<li><p>paddings[i, j] is 1 iff i-th sample’s j-th step is padded.</p></li>
+<li><p>segment_ids[i, j] is the segment id of i-th sample for j-th step.</p></li>
 </ul>
 </p>
 </dd>
@@ -185,6 +219,11 @@ has the same shape [batch, maxlen].</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tokenizers.BaseTokenizer._StringsToIdsWithSegmentsImpl">
+<span class="sig-name descname"><span class="pre">_StringsToIdsWithSegmentsImpl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">strs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">append_eos</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer._StringsToIdsWithSegmentsImpl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer._StringsToIdsWithSegmentsImpl" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.BaseTokenizer.IdsToStrings">
 <span class="sig-name descname"><span class="pre">IdsToStrings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">lens</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">languages</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BaseTokenizer.IdsToStrings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.BaseTokenizer.IdsToStrings" title="Permalink to this definition"></a></dt>
 <dd><p>Converts ids back to strings.</p>
@@ -234,7 +273,7 @@ ids.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.AsciiTokenizer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tokenizers.</span></span><span class="sig-name descname"><span class="pre">AsciiTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#AsciiTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.AsciiTokenizer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a></p>
 <p>A simple grapheme tokenizer.</p>
 <p>Maps a small vocabulary of character tokens for (lower case) letters, digits,
 and punctuation symbols.</p>
@@ -272,7 +311,7 @@ for the i-th sequence.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.VocabFileTokenizer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tokenizers.</span></span><span class="sig-name descname"><span class="pre">VocabFileTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#VocabFileTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.VocabFileTokenizer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a></p>
 <p>Tokenizers that use vocab files for look-up.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.VocabFileTokenizer.Params">
@@ -324,7 +363,7 @@ for the i-th sequence.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.BpeTokenizer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tokenizers.</span></span><span class="sig-name descname"><span class="pre">BpeTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#BpeTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.BpeTokenizer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a></p>
 <p>Tokenizers that use BPE vocab files and word to id lists for look-up.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.BpeTokenizer.Params">
@@ -366,7 +405,7 @@ for the i-th sequence.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.WpmTokenizer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tokenizers.</span></span><span class="sig-name descname"><span class="pre">WpmTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#WpmTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.WpmTokenizer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a></p>
 <p>Tokenizer for word-piece models.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.WpmTokenizer.Params">
@@ -420,7 +459,7 @@ the corresponding position is padded.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.tokenizers.SentencePieceTokenizer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.tokenizers.</span></span><span class="sig-name descname"><span class="pre">SentencePieceTokenizer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tokenizers.html#SentencePieceTokenizer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tokenizers.SentencePieceTokenizer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTokenizer</span></code></a></p>
 <p>SentencePiece tokenizer (<a class="reference external" href="https://arxiv.org/abs/1808.06226">https://arxiv.org/abs/1808.06226</a>).</p>
 <p>This is a wrapper around tf_text.SentencepieceTokenizer.</p>
 <p>NOTE: this tokenizer is incompatible with GenericInput (b/191804185).</p>

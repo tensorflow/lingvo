@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,7 +82,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.rnn_cell">
-<span id="lingvo-core-rnn-cell-module"></span><h1>lingvo.core.rnn_cell module<a class="headerlink" href="#module-lingvo.core.rnn_cell" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-rnn-cell-module"></span><h1>lingvo.core.rnn_cell module<a class="headerlink" href="#module-lingvo.core.rnn_cell" title="Permalink to this heading"></a></h1>
 <p>RNN cells (e.g., LSTM, GRU) that the Lingvo model uses.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell._HistogramSummary">
@@ -92,7 +93,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.RNNCell">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">RNNCell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#RNNCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.RNNCell" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantizableLayer</span></code></a></p>
 <p>RNN cells.</p>
 <p>RNNCell represents recurrent state in a <a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
 <p><code class="xref py py-obj docutils literal notranslate"><span class="pre">zero_state(theta,</span> <span class="pre">batch_size)</span></code> returns the initial state, which is defined
@@ -204,7 +205,7 @@ zo_prob=0.0</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.LSTMCellSimple">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">LSTMCellSimple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellSimple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>Simple LSTM cell.</p>
 <p>theta:</p>
 <ul class="simple">
@@ -343,7 +344,7 @@ its children layers.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.LSTMCellGrouped">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">LSTMCellGrouped</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LSTMCellGrouped"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LSTMCellGrouped" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>LSTM cell with groups.</p>
 <p>Grouping: based on “Factorization tricks for LSTM networks”.
 <a class="reference external" href="https://arxiv.org/abs/1703.10722">https://arxiv.org/abs/1703.10722</a>.</p>
@@ -451,7 +452,7 @@ scattered across output groups.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.QuantizedLSTMCell">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">QuantizedLSTMCell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QuantizedLSTMCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QuantizedLSTMCell" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>Simplified LSTM cell used for quantized training.</p>
 <p>There is no forget_gate_bias, no output_nonlinearity and no bias. Right now
 only clipping is performed.</p>
@@ -532,7 +533,7 @@ tf.variable_scope(self.params.name).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.LayerNormalizedLSTMCell">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">LayerNormalizedLSTMCell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCell" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>DEPRECATED: use LayerNormalizedLSTMCellSimple instead.</p>
 <p>Simple LSTM cell with layer normalization.</p>
 <p>Implements normalization scheme as described in
@@ -624,7 +625,7 @@ tf.variable_scope(self.params.name).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">LayerNormalizedLSTMCellSimple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCellSimple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LSTMCellSimple</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCellSimple</span></code></a></p>
 <p>An implementation of layer normalized LSTM based on LSTMCellSimple.</p>
 <p>Implements normalization scheme as described in
 <a class="reference external" href="https://arxiv.org/pdf/1607.06450.pdf">https://arxiv.org/pdf/1607.06450.pdf</a></p>
@@ -673,7 +674,7 @@ Shape [batch, 1]</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">WeightNormalizedLSTMCellSimple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#WeightNormalizedLSTMCellSimple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.WeightNormalizedLSTMCellSimple" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LSTMCellSimple</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCellSimple</span></code></a></p>
 <p>An implementation of weight normalized LSTM based on LSTMCellSimple.</p>
 <p>Implements normalization scheme as described in
 <a class="reference external" href="https://arxiv.org/pdf/1602.07868.pdf">https://arxiv.org/pdf/1602.07868.pdf</a></p>
@@ -720,7 +721,7 @@ Shape [batch, 1]</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.NormalizedLSTMCellSimple">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">NormalizedLSTMCellSimple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#NormalizedLSTMCellSimple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.NormalizedLSTMCellSimple" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LSTMCellSimple</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LSTMCellSimple" title="lingvo.core.rnn_cell.LSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">LSTMCellSimple</span></code></a></p>
 <p>LSTM Cell that allows customized normalization.</p>
 <p>theta:</p>
 <ul class="simple">
@@ -756,7 +757,7 @@ Shape [batch, 1]</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">LayerNormalizedLSTMCellLean</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#LayerNormalizedLSTMCellLean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>A very lean layer normalized LSTM cell.</p>
 <p>This version is around 20% faster on TPU than LayerNormalizedLSTMCellSimple as
 it avoids certain reshape ops which are not free on TPU.</p>
@@ -868,7 +869,7 @@ tf.variable_scope(self.params.name).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">EmbeddingAugmentedLayerNormalizedLSTMCellSimple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#EmbeddingAugmentedLayerNormalizedLSTMCellSimple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.EmbeddingAugmentedLayerNormalizedLSTMCellSimple" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple" title="lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple" title="lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple"><code class="xref py py-class docutils literal notranslate"><span class="pre">LayerNormalizedLSTMCellSimple</span></code></a></p>
 <p>Wrapper around a layer-normalized LSTM cell to inject embedding.</p>
 <p>Normally an RNN cell operates as</p>
 <blockquote>
@@ -952,7 +953,7 @@ extras: passed through from subclass.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.DoubleProjectionLSTMCell">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">DoubleProjectionLSTMCell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#DoubleProjectionLSTMCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.DoubleProjectionLSTMCell" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>A layer normalized LSTM cell that support input and output projections.</p>
 <p>Note, this version doesn’t support all the options as implemented in
 LayerNormalizedLSTMCellSimple, like quantization, zoneout regularization,
@@ -1071,7 +1072,7 @@ tf.variable_scope(self.params.name).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.ConvLSTMCell">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">ConvLSTMCell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#ConvLSTMCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.ConvLSTMCell" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>Convolution LSTM cells.</p>
 <p>theta:</p>
 <ul class="simple">
@@ -1153,7 +1154,7 @@ tf.variable_scope(self.params.name).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.SRUCell">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">SRUCell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#SRUCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.SRUCell" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>SRU cell.</p>
 <p>From this paper: <a class="reference external" href="https://arxiv.org/abs/1709.02755">https://arxiv.org/abs/1709.02755</a></p>
 <p>This is a simple implementation that can be used as a drop-in replacement for
@@ -1270,7 +1271,7 @@ tf.variable_scope(self.params.name).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.QRNNPoolingCell">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">QRNNPoolingCell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#QRNNPoolingCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.QRNNPoolingCell" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>This implements just the “pooling” part of a quasi-RNN or SRU.</p>
 <p>From these papers:</p>
 <ul class="simple">
@@ -1342,7 +1343,7 @@ loop.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.rnn_cell.GRUCell">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.rnn_cell.</span></span><span class="sig-name descname"><span class="pre">GRUCell</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/rnn_cell.html#GRUCell"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.rnn_cell.GRUCell" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.rnn_cell.RNNCell</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.rnn_cell.RNNCell" title="lingvo.core.rnn_cell.RNNCell"><code class="xref py py-class docutils literal notranslate"><span class="pre">RNNCell</span></code></a></p>
 <p>Gated Recurrent Unit cell.</p>
 <p>implemented: layer normalization, gru_biasing, gru_cell cap,
 not yet implemented: pruning, quantization, zone-out (enforced to 0.0 now)

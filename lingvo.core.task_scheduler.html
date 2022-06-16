@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,12 +82,12 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.task_scheduler">
-<span id="lingvo-core-task-scheduler-module"></span><h1>lingvo.core.task_scheduler module<a class="headerlink" href="#module-lingvo.core.task_scheduler" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-task-scheduler-module"></span><h1>lingvo.core.task_scheduler module<a class="headerlink" href="#module-lingvo.core.task_scheduler" title="Permalink to this heading"></a></h1>
 <p>Multi-task task sampling schedules.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.TaskScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">TaskScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#TaskScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.TaskScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Generic multi-task scheduler.</p>
 <p>Subclasses should override the <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler.Sample" title="lingvo.core.task_scheduler.TaskScheduler.Sample"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Sample</span></code></a> method to return a task string given
 a step. All of the task strings as well as additional hyperparameters needed
@@ -108,7 +109,7 @@ update <code class="xref py py-obj docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.AdaptiveScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">AdaptiveScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#AdaptiveScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.AdaptiveScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.TaskScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskScheduler</span></code></a></p>
 <p>Tasks with low scores will be sampled more often.</p>
 <p>Scores are expected to be non-negative. Larger scores are better.</p>
 <dl class="py method">
@@ -127,7 +128,7 @@ update <code class="xref py py-obj docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.SimpleAdaptiveScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">SimpleAdaptiveScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#SimpleAdaptiveScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.SimpleAdaptiveScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.AdaptiveScheduler" title="lingvo.core.task_scheduler.AdaptiveScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.AdaptiveScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.AdaptiveScheduler" title="lingvo.core.task_scheduler.AdaptiveScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AdaptiveScheduler</span></code></a></p>
 <p>Simple adaptive scheduler.</p>
 <p>A task with a normalized score of <code class="xref py py-obj docutils literal notranslate"><span class="pre">s</span></code> is approximately weighted as <code class="xref py py-obj docutils literal notranslate"><span class="pre">1</span> <span class="pre">-</span> <span class="pre">s</span></code>.</p>
 <dl class="py method">
@@ -151,7 +152,7 @@ update <code class="xref py py-obj docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.InverseRatioAdaptiveScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">InverseRatioAdaptiveScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#InverseRatioAdaptiveScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.InverseRatioAdaptiveScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.AdaptiveScheduler" title="lingvo.core.task_scheduler.AdaptiveScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.AdaptiveScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.AdaptiveScheduler" title="lingvo.core.task_scheduler.AdaptiveScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">AdaptiveScheduler</span></code></a></p>
 <p>Inverse ratio adaptive scheduler.</p>
 <p>Tasks are approximately weighed as the inverse of their normalized scores.</p>
 <dl class="py method">
@@ -175,7 +176,7 @@ update <code class="xref py py-obj docutils literal notranslate"><span class="pr
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.ShiftedExponentialScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">ShiftedExponentialScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#ShiftedExponentialScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.ShiftedExponentialScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.TaskScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskScheduler</span></code></a></p>
 <p>The unnormalized score of each task follows a shifted exponential function.</p>
 <p>Generalizes the constant, exponential and sigmoid
 schedules described in “Scheduled Multi-Task Learning: From Syntax to
@@ -208,14 +209,14 @@ score of eack task is a + b * exp(-alpha * t).</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.ConstantScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">ConstantScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#ConstantScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.ConstantScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.ShiftedExponentialScheduler" title="lingvo.core.task_scheduler.ShiftedExponentialScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.ShiftedExponentialScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.ShiftedExponentialScheduler" title="lingvo.core.task_scheduler.ShiftedExponentialScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">ShiftedExponentialScheduler</span></code></a></p>
 <p>Constant schedule. Tasks are sampled from a fixed probability distribution.</p>
 </dd></dl>
 
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.ExponentialScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">ExponentialScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#ExponentialScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.ExponentialScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.ShiftedExponentialScheduler" title="lingvo.core.task_scheduler.ShiftedExponentialScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.ShiftedExponentialScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.ShiftedExponentialScheduler" title="lingvo.core.task_scheduler.ShiftedExponentialScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">ShiftedExponentialScheduler</span></code></a></p>
 <p>Exponential schedule.</p>
 <p>For a task with initial and final probabilities p_0 and p_1 respectively,
 its unnormalized score is given by
@@ -225,7 +226,7 @@ its unnormalized score is given by
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.SigmoidScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">SigmoidScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#SigmoidScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.SigmoidScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.ShiftedExponentialScheduler" title="lingvo.core.task_scheduler.ShiftedExponentialScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.ShiftedExponentialScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.ShiftedExponentialScheduler" title="lingvo.core.task_scheduler.ShiftedExponentialScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">ShiftedExponentialScheduler</span></code></a></p>
 <p>Sigmoid schedule.</p>
 <p>For a task with initial and final probabilities p_0 and p_1 respectively,
 its unnormalized score is given by
@@ -235,7 +236,7 @@ its unnormalized score is given by
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.RoundRobinScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">RoundRobinScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#RoundRobinScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.RoundRobinScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.TaskScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskScheduler</span></code></a></p>
 <p>Deterministic sequential schedule.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.RoundRobinScheduler.Params">
@@ -254,7 +255,7 @@ its unnormalized score is given by
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.SequentialScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">SequentialScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#SequentialScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.SequentialScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.TaskScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskScheduler</span></code></a></p>
 <p>Deterministic schedule that stays a fixed number of steps on each task.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.SequentialScheduler.Params">
@@ -273,7 +274,7 @@ its unnormalized score is given by
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.PieceWiseScheduler">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.task_scheduler.</span></span><span class="sig-name descname"><span class="pre">PieceWiseScheduler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/task_scheduler.html#PieceWiseScheduler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.task_scheduler.PieceWiseScheduler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.task_scheduler.TaskScheduler</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.task_scheduler.TaskScheduler" title="lingvo.core.task_scheduler.TaskScheduler"><code class="xref py py-class docutils literal notranslate"><span class="pre">TaskScheduler</span></code></a></p>
 <p>Piecewise scheduler using different scheduling strategies.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.task_scheduler.PieceWiseScheduler.Params">

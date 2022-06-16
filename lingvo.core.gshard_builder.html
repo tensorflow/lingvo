@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,7 +82,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.gshard_builder">
-<span id="lingvo-core-gshard-builder-module"></span><h1>lingvo.core.gshard_builder module<a class="headerlink" href="#module-lingvo.core.gshard_builder" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-gshard-builder-module"></span><h1>lingvo.core.gshard_builder module<a class="headerlink" href="#module-lingvo.core.gshard_builder" title="Permalink to this heading"></a></h1>
 <p>GShard Builder. To be used with xla_sharding + SPMD.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder._ToInt32">
@@ -91,7 +92,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">MoEBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.builder.html#lingvo.core.builder.Base" title="lingvo.core.builder.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.builder.Base</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.builder.html#lingvo.core.builder.Base" title="lingvo.core.builder.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">Base</span></code></a></p>
 <p>Mixture-of-Experts, Dense and DenseSparse Builder.</p>
 <p>To be used with xla_sharding + SPMD.</p>
 <p>MoEBuilder can be used to construct MoE and non-MoE Transformer models.</p>
@@ -250,6 +251,23 @@ sharding specification in ShardedWeightParams.</p>
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight">
 <span class="sig-name descname"><span class="pre">_EmbeddingWeight</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">vocab_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device_mesh</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w_mesh_split</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._EmbeddingWeight"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._EmbeddingWeight" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder._GetRopeFn">
+<span class="sig-name descname"><span class="pre">_GetRopeFn</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">enable_rope</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rope_emb_max_timescale</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#MoEBuilder._GetRopeFn"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.MoEBuilder._GetRopeFn" title="Permalink to this definition"></a></dt>
+<dd><p>Gets the scaled Rotary position embedding function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>enable_rope</strong> – if true, returns ROPE function, otherwise Identify.</p></li>
+<li><p><strong>rope_emb_max_timescale</strong> – Maximum timescale for ROPE transformation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The ROPE function if enable_rope=True, otherwise Identify function.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.MoEBuilder.SharedEmbSoftmax">
@@ -744,7 +762,7 @@ where Shift(X, d) function rolls X forward in the time dimension by d.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">DenseBuilder</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#DenseBuilder"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.DenseBuilder" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.MoEBuilder" title="lingvo.core.gshard_builder.MoEBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.MoEBuilder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.MoEBuilder" title="lingvo.core.gshard_builder.MoEBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">MoEBuilder</span></code></a></p>
 <p>Desnse layrs with GShard annotations.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.DenseBuilder.Params">
@@ -1053,7 +1071,7 @@ Primer multi-head depthwise convolutions.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">RecurrentDenseBuilderParallelDecode</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#RecurrentDenseBuilderParallelDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.RecurrentDenseBuilderParallelDecode" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.DenseBuilder" title="lingvo.core.gshard_builder.DenseBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.DenseBuilder</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.DenseBuilder" title="lingvo.core.gshard_builder.DenseBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">DenseBuilder</span></code></a></p>
 <p>Same as RecurrentDenseBuilder but with micro variables.</p>
 <p>Projection variables created under this builder will be replaced by multiple
 micro variables, each with shape [model_dim, proj_weight_hdim, d_kv].
@@ -1153,7 +1171,7 @@ Currently only supports ‘pre’ for pre-transformation normalzation.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">UniTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#UniTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.UniTransformer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTask</span></code></a></p>
 <p>LM TransformerModel with z-loss.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.UniTransformer.Params">
@@ -1304,7 +1322,7 @@ than the value in FProp.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.TunableUniTransformer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">TunableUniTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#TunableUniTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.TunableUniTransformer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.UniTransformer" title="lingvo.core.gshard_builder.UniTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_builder.UniTransformer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.gshard_builder.UniTransformer" title="lingvo.core.gshard_builder.UniTransformer"><code class="xref py py-class docutils literal notranslate"><span class="pre">UniTransformer</span></code></a></p>
 <p>Tunable LM TransformerModel with z-loss.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.TunableUniTransformer.Params">
@@ -1322,7 +1340,7 @@ than the value in FProp.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.BertTransformer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.gshard_builder.</span></span><span class="sig-name descname"><span class="pre">BertTransformer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/gshard_builder.html#BertTransformer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.gshard_builder.BertTransformer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseTask</span></code></a></p>
 <p>Encoder-only TransformerModel with gspmd annotations.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.gshard_builder.BertTransformer.Params">

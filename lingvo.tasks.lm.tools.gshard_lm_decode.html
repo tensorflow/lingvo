@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -82,7 +83,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.tasks.lm.tools.gshard_lm_decode">
-<span id="lingvo-tasks-lm-tools-gshard-lm-decode-module"></span><h1>lingvo.tasks.lm.tools.gshard_lm_decode module<a class="headerlink" href="#module-lingvo.tasks.lm.tools.gshard_lm_decode" title="Permalink to this headline"></a></h1>
+<span id="lingvo-tasks-lm-tools-gshard-lm-decode-module"></span><h1>lingvo.tasks.lm.tools.gshard_lm_decode module<a class="headerlink" href="#module-lingvo.tasks.lm.tools.gshard_lm_decode" title="Permalink to this heading"></a></h1>
 <p>Tool to decode GShard LM models.</p>
 <p>Sample usage:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$ bazel run -c opt lingvo/tasks/lm/tools:gshard_lm_decode -- <span class="se">\</span>
@@ -107,7 +108,7 @@ init_vocab(), encode_string_to_ids(), and decode_ids_to_string().</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.</span></span><span class="sig-name descname"><span class="pre">GShardLMDecode</span></span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecode"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode" title="lingvo.core.gshard_decode.GShardDecode"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.gshard_decode.GShardDecode</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.gshard_decode.html#lingvo.core.gshard_decode.GShardDecode" title="lingvo.core.gshard_decode.GShardDecode"><code class="xref py py-class docutils literal notranslate"><span class="pre">GShardDecode</span></code></a></p>
 <p>GShard LM decoder class.</p>
 <p>This implementation does not include a tokenizer, and directly reads/writes
 integer token IDs. To include a tokenizer, override the following functions:
@@ -215,7 +216,7 @@ tgt_labels: int32 tensor of shape [num_batches, batch_size, max_len]</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.</span></span><span class="sig-name descname"><span class="pre">GShardLMDecodeBatch</span></span><a class="reference internal" href="_modules/lingvo/tasks/lm/tools/gshard_lm_decode.html#GShardLMDecodeBatch"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode" title="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode" title="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecode"><code class="xref py py-class docutils literal notranslate"><span class="pre">GShardLMDecode</span></code></a></p>
 <p>Subclass for LM batch decoding.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.tasks.lm.tools.gshard_lm_decode.GShardLMDecodeBatch.preload_data">

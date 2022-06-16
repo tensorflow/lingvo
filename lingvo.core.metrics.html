@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,7 +82,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.metrics">
-<span id="lingvo-core-metrics-module"></span><h1>lingvo.core.metrics module<a class="headerlink" href="#module-lingvo.core.metrics" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-metrics-module"></span><h1>lingvo.core.metrics module<a class="headerlink" href="#module-lingvo.core.metrics" title="Permalink to this heading"></a></h1>
 <p>Helper classes for computing performance metrics.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.metrics.CreateScalarSummary">
@@ -124,7 +125,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.ConfigurableMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">ConfigurableMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#ConfigurableMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.ConfigurableMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMetric</span></code></a></p>
 <p>A Metric class with configurable params.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.metrics.ConfigurableMetric.Params">
@@ -136,7 +137,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.AverageMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">AverageMetric</span></span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMetric</span></code></a></p>
 <p>Class to compute a weighted (arithmetic) average value metric.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.metrics.AverageMetric.Update">
@@ -185,7 +186,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.UniqueAverageMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">UniqueAverageMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mismatch_is_error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#UniqueAverageMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.UniqueAverageMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.AverageMetric" title="lingvo.core.metrics.AverageMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.AverageMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.AverageMetric" title="lingvo.core.metrics.AverageMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">AverageMetric</span></code></a></p>
 <p>Computes average metric on keyed results to ensure unique counts.</p>
 <p>This implementation’s Update field takes in a <code class="xref py py-obj docutils literal notranslate"><span class="pre">key</span></code> argument that allows
 tracking of per-key values.  If a previously seen key is provided, this
@@ -223,7 +224,7 @@ that the final value reflects an average over unique keys only.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.F1Metric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">F1Metric</span></span><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMetric</span></code></a></p>
 <p>Class to compute F1 metrics.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.metrics.F1Metric.UpdateTruePositive">
@@ -251,7 +252,7 @@ that the final value reflects an average over unique keys only.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.MCCMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">MCCMetric</span></span><a class="reference internal" href="_modules/lingvo/core/metrics.html#MCCMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.MCCMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.F1Metric" title="lingvo.core.metrics.F1Metric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.F1Metric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.F1Metric" title="lingvo.core.metrics.F1Metric"><code class="xref py py-class docutils literal notranslate"><span class="pre">F1Metric</span></code></a></p>
 <p>Class to compute Matthews correlation coefficient metric.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.metrics.MCCMetric.UpdateTrueNegative">
@@ -269,7 +270,7 @@ that the final value reflects an average over unique keys only.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.CorpusBleuMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">CorpusBleuMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CorpusBleuMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.CorpusBleuMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMetric</span></code></a></p>
 <p>Metric class to compute the corpus-level BLEU score.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.metrics.CorpusBleuMetric.Update">
@@ -392,7 +393,7 @@ tpu.batch_parallel.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.AUCMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">AUCMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'roc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMetric</span></code></a></p>
 <p>Class to compute the AUC score for binary classification.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.metrics.AUCMetric.Update">
@@ -446,7 +447,7 @@ within [0, 1.0].</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.PrecisionAtRecall">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">PrecisionAtRecall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">recall_threshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#PrecisionAtRecall"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.PrecisionAtRecall" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.AUCMetric" title="lingvo.core.metrics.AUCMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.AUCMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.AUCMetric" title="lingvo.core.metrics.AUCMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">AUCMetric</span></code></a></p>
 <dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.metrics.PrecisionAtRecall.value">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#lingvo.core.metrics.PrecisionAtRecall.value" title="Permalink to this definition"></a></dt>
@@ -458,7 +459,7 @@ within [0, 1.0].</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.RecallAtPrecision">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">RecallAtPrecision</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">precision_threshold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#RecallAtPrecision"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.RecallAtPrecision" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.AUCMetric" title="lingvo.core.metrics.AUCMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.AUCMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.AUCMetric" title="lingvo.core.metrics.AUCMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">AUCMetric</span></code></a></p>
 <dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.metrics.RecallAtPrecision.value">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">value</span></span><a class="headerlink" href="#lingvo.core.metrics.RecallAtPrecision.value" title="Permalink to this definition"></a></dt>
@@ -470,7 +471,7 @@ within [0, 1.0].</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.MultiClassAUCMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">MultiClassAUCMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'roc'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#MultiClassAUCMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.MultiClassAUCMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMetric</span></code></a></p>
 <p>Class to compute mAP or mAUC for multiclass/multilabel classification.</p>
 <p>This metric is equivalent to mAP (mean average precision) or mAUC (multiclass
 AUC-ROC) for non-binary classification tasks. Another perspective of this
@@ -504,7 +505,7 @@ computation.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.CorrelationMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">CorrelationMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pearson'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CorrelationMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.CorrelationMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMetric</span></code></a></p>
 <p>Class to compute correlation.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.metrics.CorrelationMetric.Update">
@@ -531,7 +532,7 @@ computation.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.AverageKeyedCorrelationMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">AverageKeyedCorrelationMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mode</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'pearson'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bypass_nan</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageKeyedCorrelationMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.AverageKeyedCorrelationMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseMetric</span></code></a></p>
 <p>Class to compute correlation per key, then report average across all keys.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.metrics.AverageKeyedCorrelationMetric.Update">
@@ -559,7 +560,7 @@ computation.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.metrics.SamplingMetric">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.metrics.</span></span><span class="sig-name descname"><span class="pre">SamplingMetric</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#SamplingMetric"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.metrics.SamplingMetric" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.ConfigurableMetric" title="lingvo.core.metrics.ConfigurableMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.ConfigurableMetric</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.ConfigurableMetric" title="lingvo.core.metrics.ConfigurableMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">ConfigurableMetric</span></code></a></p>
 <p>Sampling metric base class.</p>
 <p>Subclasses must implement _CreateSummary(); sampling will be handled
 by this base class.</p>

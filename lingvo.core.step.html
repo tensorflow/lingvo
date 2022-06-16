@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,7 +82,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.step">
-<span id="lingvo-core-step-module"></span><h1>lingvo.core.step module<a class="headerlink" href="#module-lingvo.core.step" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-step-module"></span><h1>lingvo.core.step module<a class="headerlink" href="#module-lingvo.core.step" title="Permalink to this heading"></a></h1>
 <p>An abstract layer for processing sequences step-by-step.</p>
 <p>E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">ProcessSeq</span><span class="p">(</span><span class="n">step</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
@@ -100,7 +101,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.step.Step">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">Step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#Step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.Step" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>A layer that processes input sequences step-by-step.</p>
 <p>This can be seen as an RNNCell extended with optional external inputs.</p>
 <dl class="py method">
@@ -165,7 +166,7 @@ batch element is empty in this step.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.step.StatelessLayerStep">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">StatelessLayerStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StatelessLayerStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StatelessLayerStep" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a></p>
 <p>Allows BaseLayer subclasses to be used as Steps.</p>
 <p>Layers used with this class should be stateless: they should not return
 anything that must be passed back in the next invocation.</p>
@@ -204,7 +205,7 @@ state1 is an empty NestedMap.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.step.StackStep">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">StackStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#StackStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.StackStep" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a></p>
 <p>A stack of steps.</p>
 <p>Each sub-step is assumed to accept step_inputs of type NestedMap(inputs=[])
 and return a primary output of type NestedMap(output=tensor). The
@@ -303,7 +304,7 @@ batch element is empty in this step.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.step.ParallelStep">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">ParallelStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#ParallelStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.ParallelStep" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a></p>
 <p>Runs many steps on the same input and concatenates their outputs.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.step.ParallelStep.Params">
@@ -397,7 +398,7 @@ batch element is empty in this step.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.step.GraphStep">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">GraphStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#GraphStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.GraphStep" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a></p>
 <p>A step that connects sub-steps in a simple data flow graph.</p>
 <p>This is an adaptation of builder_layers.GraphLayer to support steps.</p>
 <p>Params.sub specifies a list of Specs that define each sub-step.</p>
@@ -442,7 +443,7 @@ method will be passed to ZeroState and FProp.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="lingvo.core.step.GraphStep._seq">
 <span class="sig-name descname"><span class="pre">_seq</span></span><a class="headerlink" href="#lingvo.core.step.GraphStep._seq" title="Permalink to this definition"></a></dt>
-<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step._Seq</span></code></p>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">_Seq</span></code></p>
 </dd></dl>
 
 <dl class="py method">
@@ -522,7 +523,7 @@ are state outputs from their FProp methods.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.step.IteratorStep">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">IteratorStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#IteratorStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.IteratorStep" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">Step</span></code></a></p>
 <p>An iterator over the time dimension of some tensors.</p>
 <p>It’s common to have a tensor of shape [batch, time, …] or
 [time, batch, …]. This object will step through the time dimension,
@@ -601,7 +602,7 @@ are state outputs from their FProp methods.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.step.RecurrentStepWrapper">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.step.</span></span><span class="sig-name descname"><span class="pre">RecurrentStepWrapper</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/step.html#RecurrentStepWrapper"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.step.RecurrentStepWrapper" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>A layer that wraps a step in a recurrent.Recurrent call.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.step.RecurrentStepWrapper.Params">

@@ -13,6 +13,7 @@
         <script data-url_root="../../../../" id="documentation_options" src="../../../../_static/documentation_options.js"></script>
         <script src="../../../../_static/jquery.js"></script>
         <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../../_static/doctools.js"></script>
     <script src="../../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../../genindex.html" />
@@ -84,6 +85,7 @@
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
 
 <div class="viewcode-block" id="_DistortBrightnessAndColor"><a class="viewcode-back" href="../../../../lingvo.tasks.milan.image_preprocessor.html#lingvo.tasks.milan.image_preprocessor._DistortBrightnessAndColor">[docs]</a><span class="k">def</span> <span class="nf">_DistortBrightnessAndColor</span><span class="p">(</span><span class="n">image</span><span class="p">):</span>
@@ -217,7 +219,7 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessForTraining</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 
-    <span class="n">input_shape</span> <span class="o">=</span> <span class="n">encoded_images</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">input_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">encoded_images</span><span class="p">)</span>
     <span class="n">encoded_images</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">encoded_images</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">images</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">map_fn</span><span class="p">(</span>
         <span class="n">_DecodeAndPreprocessOne</span><span class="p">,</span>

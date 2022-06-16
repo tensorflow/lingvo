@@ -13,6 +13,7 @@
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
         <script src="../../../_static/jquery.js"></script>
         <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
@@ -1340,10 +1341,10 @@
 
 <span class="sd">  Large hardware configurations are in high-demand, and difficult to come by.</span>
 <span class="sd">  This class enables simulating execution on large hardware configurations, by</span>
-<span class="sd">  accumulating gradients across multiple batches. A few caveats apply:</span>
+<span class="sd">  accumulating gradients across multiple batches. A few caveats apply.</span>
 
 <span class="sd">  Batch statistics (e.g. batch norm) will continue to be based on the</span>
-<span class="sd">  &quot;micro-batch&quot; size.</span>
+<span class="sd">  &#39;micro-batch&#39; size.</span>
 <span class="sd">  This effectively trades off computation/time: simulating a large cluster on</span>
 <span class="sd">  a single core will take an excessive amount of time.</span>
 
@@ -1375,9 +1376,11 @@
         <span class="n">sharding</span><span class="o">.</span><span class="n">ApplyToVariable</span><span class="p">(</span><span class="n">vo</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GradientAggregationOptimizer.compute_gradients"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer.compute_gradients">[docs]</a>  <span class="k">def</span> <span class="nf">compute_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">var_list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the gradients.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">compute_gradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">var_list</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GradientAggregationOptimizer.apply_gradients"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.GradientAggregationOptimizer.apply_gradients">[docs]</a>  <span class="k">def</span> <span class="nf">apply_gradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grads_and_vars</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies the gradients.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_micro_batches</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">apply_gradients</span><span class="p">(</span><span class="n">grads_and_vars</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">global_step</span> <span class="ow">or</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>

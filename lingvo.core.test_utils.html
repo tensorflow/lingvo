@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,12 +82,92 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.test_utils">
-<span id="lingvo-core-test-utils-module"></span><h1>lingvo.core.test_utils module<a class="headerlink" href="#module-lingvo.core.test_utils" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-test-utils-module"></span><h1>lingvo.core.test_utils module<a class="headerlink" href="#module-lingvo.core.test_utils" title="Permalink to this heading"></a></h1>
 <p>Helpers for unittests.</p>
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.test_utils.SkipIfEager">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.test_utils.</span></span><span class="sig-name descname"><span class="pre">SkipIfEager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">test_func</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#SkipIfEager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils.SkipIfEager" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.test_utils.DefineAndTrace">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.test_utils.</span></span><span class="sig-name descname"><span class="pre">DefineAndTrace</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">tensor_specs_or_placeholders</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3.7/library/typing.html#typing.Union" title="(in Python v3.7)"><span class="pre">Union</span></a><span class="p"><span class="pre">[</span></span><span class="pre">TensorSpec</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Tensor</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3.7/library/typing.html#typing.Callable" title="(in Python v3.7)"><span class="pre">Callable</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#DefineAndTrace"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils.DefineAndTrace" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a function that will trace the decorated function when called.</p>
+<p>It will have different behavior depending on the execution mode.</p>
+<p>In eager mode, tensor_specs_or_placeholders is a list of tf.TensorSpec.
+When called, the returned decorator will wrap the input function in a
+tf.function with input_signature set to the these tf.TensorSpec, and
+trace it by creating and returning a concrete function.</p>
+<p>In graph mode, tensor_specs_or_placeholders is a list of tf.placeholder.
+When called, the returned decorator will call the input function using these
+tf.placeholder as input, and build the graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>*tensor_specs_or_placeholders</strong> – A list of tf.placeholder or tf.TensorSpec.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A function that will trace the decorated function when called.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.test_utils._PlaceholderAdapter">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.test_utils.</span></span><span class="sig-name descname"><span class="pre">_PlaceholderAdapter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dtype</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#_PlaceholderAdapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils._PlaceholderAdapter" title="Permalink to this definition"></a></dt>
+<dd><p>Redirect all <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.placehoders</span></code> usage to <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.TensorSpec</span></code> in eager mode.</p>
+<p>This is designed to be used with the &#64;DefineAndTrace decorator above.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>dtype</strong> – A tf.DType.</p></li>
+<li><p><strong>shape</strong> – The shape.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.TensorSpec</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.core.test_utils._EagerSessionAdaptor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.test_utils.</span></span><span class="sig-name descname"><span class="pre">_EagerSessionAdaptor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">run_fn</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#_EagerSessionAdaptor"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils._EagerSessionAdaptor" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>An adapter providing <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Session</span></code>-like interface in eager mode.</p>
+<p>This adapter is designed to be used with the &#64;DefineAndTrace decorator above,
+and in eager mode only. Its <a class="reference internal" href="#lingvo.core.test_utils._EagerSessionAdaptor.run" title="lingvo.core.test_utils._EagerSessionAdaptor.run"><code class="xref py py-obj docutils literal notranslate"><span class="pre">run</span></code></a> method can take a &#64;DefineAndTrace decorated
+function and run it with inputs provided by <code class="xref py py-obj docutils literal notranslate"><span class="pre">feed_dict</span></code>.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.test_utils._EagerSessionAdaptor.run">
+<span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_or_fetches</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feed_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#_EagerSessionAdaptor.run"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils._EagerSessionAdaptor.run" title="Permalink to this definition"></a></dt>
+<dd><p>Evaluates <code class="xref py py-obj docutils literal notranslate"><span class="pre">function_or_fetches</span></code> with <code class="xref py py-obj docutils literal notranslate"><span class="pre">feed_dict</span></code> as input.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>function_or_fetches</strong> – Either an eager tensor, or a function decorated by
+&#64;DefineAndTrace.</p></li>
+<li><p><strong>feed_dict</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.TensorSpec</span></code> -&gt; value as input, where the keys are
+specs created by <a class="reference internal" href="#lingvo.core.test_utils._PlaceholderAdapter" title="lingvo.core.test_utils._PlaceholderAdapter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_PlaceholderAdapter</span></code></a>. Applicable only when
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">function_or_fetches</span></code> is a function.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The evaluation result.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.test_utils.DisableEagerAdapter">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.test_utils.</span></span><span class="sig-name descname"><span class="pre">DisableEagerAdapter</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#DisableEagerAdapter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils.DisableEagerAdapter" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.test_utils.TestCase">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.test_utils.</span></span><span class="sig-name descname"><span class="pre">TestCase</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">methodName</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'runTest'</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#TestCase"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils.TestCase" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.framework.test_util.TensorFlowTestCase</span></code></p>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">TensorFlowTestCase</span></code></p>
 <p>TestCase that performs Lingvo-specific setup.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.test_utils.TestCase.setUp">

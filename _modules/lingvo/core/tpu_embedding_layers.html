@@ -13,6 +13,7 @@
         <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
         <script src="../../../_static/jquery.js"></script>
         <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="../../../_static/doctools.js"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
@@ -1246,6 +1247,15 @@
             <span class="n">ret</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
+<div class="viewcode-block" id="TPUEmbeddingLayer._CheckIdsMap"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer._CheckIdsMap">[docs]</a>  <span class="k">def</span> <span class="nf">_CheckIdsMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Check that the keys in `ids_map` is valid for embedding lookup.&quot;&quot;&quot;</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ids_map</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span>
+    <span class="n">valid_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">input_keys</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">ids_map</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+      <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_keys</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;Invalid input key: </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1">. Valid keys are: </span><span class="si">{</span><span class="n">valid_keys</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="TPUEmbeddingLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Looks up embedding vectors for each entry in dense Tensor ids_map.</span>
 
@@ -1266,7 +1276,7 @@
 <span class="sd">      For sequence embeddings: [batch, max_sequence_length, embedding_dim]</span>
 <span class="sd">      float32 Tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ids_map</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_CheckIdsMap</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">CpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">):</span>
@@ -1307,7 +1317,7 @@
 <span class="sd">      For sequence embeddings: [batch, max_sequence_length, embedding_dim]</span>
 <span class="sd">      float32 Tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ids_map</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_CheckIdsMap</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">CpuEmbLookupSparse</span><span class="p">(</span><span class="n">ids_map</span><span class="p">):</span>
@@ -1329,7 +1339,26 @@
     <span class="k">if</span> <span class="n">_IsTpuTraining</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_TpuEmbLookup</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">CpuEmbLookupSparse</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span></div></div>
+      <span class="k">return</span> <span class="n">CpuEmbLookupSparse</span><span class="p">(</span><span class="n">ids_map</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TPUEmbeddingLayer.GetIdsMap"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.GetIdsMap">[docs]</a>  <span class="k">def</span> <span class="nf">GetIdsMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a NestedMap containing the embedding ids to lookup.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_batch: The input batch to get the embedding id tensors from.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A py_utils.NestedMap containing the embedding id tensors.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">valid_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">table</span><span class="o">.</span><span class="n">input_keys</span> <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">])</span>
+    <span class="n">ids_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">valid_keys</span><span class="p">:</span>
+      <span class="n">item</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">item</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Input key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> not found. All keys in input_batch: &#39;</span>
+                         <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">input_batch</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="n">ids_map</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ids_map</span></div></div>
 </pre></div>
 
            </div>

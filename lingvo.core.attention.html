@@ -14,6 +14,7 @@
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
         <script src="_static/jquery.js"></script>
         <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -81,7 +82,7 @@
            <div itemprop="articleBody">
              
   <section id="module-lingvo.core.attention">
-<span id="lingvo-core-attention-module"></span><h1>lingvo.core.attention module<a class="headerlink" href="#module-lingvo.core.attention" title="Permalink to this headline"></a></h1>
+<span id="lingvo-core-attention-module"></span><h1>lingvo.core.attention module<a class="headerlink" href="#module-lingvo.core.attention" title="Permalink to this heading"></a></h1>
 <p>Attention models.</p>
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.attention._ConditionalCallDefun">
@@ -183,7 +184,7 @@ attention distributions for each sequence in the batch.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.BaseAttentionLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">BaseAttentionLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#BaseAttentionLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.BaseAttentionLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantizableLayer</span></code></a></p>
 <p>A base class for all attention layers.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.attention.BaseAttentionLayer.Params">
@@ -399,7 +400,7 @@ Assumes <code class="xref py py-obj docutils literal notranslate"><span class="p
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.AdditiveAttention">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">AdditiveAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#AdditiveAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.AdditiveAttention" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.attention.BaseAttentionLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAttentionLayer</span></code></a></p>
 <p>Implements additive attention (also known as “Bahdanau Attention”).</p>
 <p>Described in:</p>
 <p>Dzmitry Bahdanau, Kyunghyun Cho, Yoshua Bengio.
@@ -497,7 +498,7 @@ dimensions [target_batch, …]</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.DotProductAttention">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">DotProductAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#DotProductAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.DotProductAttention" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.attention.BaseAttentionLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAttentionLayer</span></code></a></p>
 <p>Implements dot-product attention (also known as “Luong Attention”).</p>
 <p>Described in:</p>
 <p>Minh-Thang Luong, Hieu Pham, Christopher D. Manning.
@@ -596,7 +597,7 @@ with dimensions [target_batch, …]</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.MultiHeadedAttention">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">MultiHeadedAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiHeadedAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.MultiHeadedAttention" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.attention.BaseAttentionLayer</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAttentionLayer</span></code></a>, <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">QuantizableLayer</span></code></a></p>
 <p>Attention with multiple attention heads.</p>
 <p>Conceptually, the algorithm works as follows:</p>
 <ol class="arabic simple">
@@ -729,7 +730,7 @@ with dimensions [target_batch, …]</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.LocationSensitiveAttention">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">LocationSensitiveAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#LocationSensitiveAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.LocationSensitiveAttention" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.attention.BaseAttentionLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAttentionLayer</span></code></a></p>
 <p>An attention that also takes into account previously attended locations.</p>
 <p>See section 2.2 of this paper for a description of this technique:
 <a class="reference external" href="http://papers.nips.cc/paper/5847-attention-based-models-for-speech-recognition.pdf">http://papers.nips.cc/paper/5847-attention-based-models-for-speech-recognition.pdf</a></p>
@@ -866,7 +867,7 @@ dimensions [target_batch, …]</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.MonotonicAttention">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">MonotonicAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MonotonicAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.MonotonicAttention" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.attention.BaseAttentionLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAttentionLayer</span></code></a></p>
 <p>An attention mechanism which enforces monotonic alignments.</p>
 <p>This layer implements the monotonic attention mechanism described in
 Online and Linear-Time Attention by Enforcing Mononotonic Alignments
@@ -1002,7 +1003,7 @@ concated_source_vecs.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.GmmMonotonicAttention">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">GmmMonotonicAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#GmmMonotonicAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.GmmMonotonicAttention" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.attention.BaseAttentionLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAttentionLayer</span></code></a></p>
 <p>A GMM-based monotonic attention module.</p>
 <p>Based on “Generating Sequences With Recurrent Neural Networks” by Alex Graves.
 Eq [46-51] in <a class="reference external" href="https://arxiv.org/abs/1308.0850">https://arxiv.org/abs/1308.0850</a>.</p>
@@ -1096,7 +1097,7 @@ concated_source_vecs.</p>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.MergerLayer">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">MergerLayer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MergerLayer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.MergerLayer" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
 <p>Merges a list of input tensors with various options into a single tensor.</p>
 <p>Implements a merger/combiner operator given a list of tensors. The merger
 operator outputs a single tensor with the following options (merger_op):</p>
@@ -1173,7 +1174,7 @@ its children layers.</p></li>
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.attention.MultiSourceAttention">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.attention.</span></span><span class="sig-name descname"><span class="pre">MultiSourceAttention</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiSourceAttention"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.attention.MultiSourceAttention" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.attention.BaseAttentionLayer</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseAttentionLayer</span></code></a></p>
 <p>Attention with multiple source sub-attentions.</p>
 <p>It attends to multiple sources and uses one query as input to generates a
 combined attention context. The dimension of the combined context vector is a
