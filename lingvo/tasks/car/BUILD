@@ -235,6 +235,8 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
+        "//lingvo/tasks/car:geometry",
+        # Implicit numpy dependency.
     ],
 )
 

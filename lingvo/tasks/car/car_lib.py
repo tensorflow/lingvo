@@ -15,9 +15,12 @@
 """Library of functions on tensors for car layers, builders, and models."""
 
 
+import functools
 # pylint:enable=g-direct-tensorflow-import
 import lingvo.compat as tf
 from lingvo.core import py_utils
+from lingvo.tasks.car import geometry
+import numpy as np
 
 
 def SquaredDistanceMatrix(pa, pb, mem_optimized=False):
@@ -593,3 +596,488 @@ def SegmentPool3D(points,
 
   return (py_utils.HasShape(pooled_points, [n, p2, 3]),
           py_utils.HasShape(pooled_features, [n, p2, c]))
+
+
+def WhereBroadcast(conditional, true_result, false_result):
+  """Perform a tf.where, but with a conditional that's not the full rank.
+
+  Args:
+    conditional: A boolean tf.Tensor whose shape is a prefix of
+      true_result.shape. Additional dimensions will be added to the end of this
+      tensor, and it will be broadcasted to match the shape of true_result.
+    true_result: The tensor values to return if True. This tensor should have
+      the same dtype and shape as false_result.
+    false_result: The tensor values to return if False. This tensor should have
+      the same dtype and shape as true_result.
+
+  Returns:
+    Result of the where clause with shape and type the same as true_result
+    and false_result.
+
+  Raises:
+    ValueError: If the conditional has higher rank than the result.
+  """
+  conditional_shape = py_utils.GetShape(conditional)
+  result_shape = py_utils.GetShape(true_result)
+  false_result = py_utils.HasShape(false_result, result_shape)
+  conditional_rank = len(conditional_shape)
+  result_rank = len(result_shape)
+
+  if conditional_rank > result_rank:
+    raise ValueError('Conditional should be rank <= result tensors.')
+  elif conditional_rank < result_rank:
+    # Expand dimensions to match result, and then broadcast.
+    conditional = tf.reshape(
+        conditional, conditional_shape + [1] * (result_rank - conditional_rank))
+    conditional = tf.broadcast_to(conditional, result_shape)
+
+  return tf.where(conditional, true_result, false_result)
+
+
+def DynamicVoxelStatistics(points_xyz, dynamic_voxels):
+  """Computes first and second order voxel statistics for each point.
+
+  After dynamic voxelization, we can further compute statistics for each voxel,
+  such as the mean of points xyz coordinates assigned to each voxel (centroids),
+  the covariance (second order moment) of the points assigned to each voxel, and
+  also the points locations normalized to their centroids.
+
+  This function computes these three statistics and maps it back to each point
+  so that we can use them as additional features per point. After calling this
+  function, one can create a new feature representation for each point by
+  concatenating the features here with the original features.
+
+  References:
+    https://arxiv.org/pdf/1711.06396.pdf Figure 3.
+    https://arxiv.org/pdf/1812.05784.pdf Figure 2.
+
+  Example usage:
+
+    dynamic_voxels = DynamicVoxelization(
+        points_xyz, grid_size, grid_range_x, grid_range_y, grid_range_z)
+    dynamic_voxel_statistics = DynamicVoxelStatistics(
+        points_xyz, dynamic_voxels)
+
+    new_points_features = tf.concat([
+        points_feature,
+        dynamic_voxel_statistics.centered_xyz,
+        dynamic_voxel_statistics.centroids,
+        dynamic_voxel_statistics.covariance,
+        dynamic_voxel.centers,
+    ], axis=-1)
+
+  Args:
+    points_xyz: A float tf.Tensor of shape [batch_size, num_points, 3]
+      representing point positions in (x, y, z) dimensions.
+    dynamic_voxels: A NestedMap corresponding to the output of running
+      DynamicVoxelization on points_xyz.
+
+  Returns:
+    A NestedMap with keys:
+      centered_xyz: A float tf.Tensor of shape [batch_size, num_points, 3]
+        containing voxel-centered (x, y, z) coordinate for each point.
+      centroids: A float tf.Tensor of shape [batch_size, num_points, 3]
+        containing the mean for all points xyz assigned to the same voxel that
+        the corresponding point is assigned to.
+      covariance: A float tf.Tensor of shape [batch_size, num_points, 9]
+        containing the covariance for all points xyz assigned to the same voxel
+        that the corresponding point is assigned to.
+      voxel_point_count: A float tf.Tensor of shape [batch_size, num_points]
+        with the number of valid points inside each voxel per point.
+      points_per_voxel: A float tf.Tensor of shape [batch_size, num_voxels]
+        with the number of valid points inside each voxel.
+      voxel_centroids: A float tf.Tensor of shape [batch_size, num_voxels, 3]
+        containing the mean for all points xyz assigned to the that voxel.
+  """
+  batch_size, num_points, _ = py_utils.GetShape(points_xyz)
+
+  # Compute centroids of each voxel.
+  voxel_centroids = BatchedUnsortedSegmentMean(
+      points_xyz,
+      dynamic_voxels.indices,
+      dynamic_voxels.num_voxels,
+      batched_padding=dynamic_voxels.padding)
+
+  # Map the centroid back to each point.
+  point_centroids = tf.array_ops.batch_gather(voxel_centroids,
+                                              dynamic_voxels.indices)
+
+  # Normalize the points so that they have origin at their voxel centroid.
+  points_xyz -= point_centroids
+
+  # Count number of points assigned to each voxel.
+  points_per_voxel = BatchedUnsortedSegmentSum(
+      tf.ones((batch_size, num_points), dtype=tf.int32),
+      dynamic_voxels.indices,
+      dynamic_voxels.num_voxels,
+      batched_padding=dynamic_voxels.padding)
+  voxel_point_count = tf.array_ops.batch_gather(points_per_voxel,
+                                                dynamic_voxels.indices)
+
+  # Compute second order moment at each point, and them sum over the voxel to
+  # obtain the second order moment for each voxel.
+  points_outer_prod = (
+      points_xyz[..., :, tf.newaxis] * points_xyz[..., tf.newaxis, :])
+  points_outer_prod = tf.reshape(points_outer_prod, [batch_size, num_points, 9])
+  voxel_covariance = BatchedUnsortedSegmentMean(
+      points_outer_prod,
+      dynamic_voxels.indices,
+      dynamic_voxels.num_voxels,
+      batched_padding=dynamic_voxels.padding)
+  points_covariance = tf.array_ops.batch_gather(voxel_covariance,
+                                                dynamic_voxels.indices)
+
+  dynamic_voxel_statistics = py_utils.NestedMap(
+      centroids=point_centroids,
+      centered_xyz=points_xyz,
+      covariance=points_covariance,
+      voxel_point_count=voxel_point_count,
+      points_per_voxel=points_per_voxel,
+      voxel_centroids=voxel_centroids)
+
+  return dynamic_voxel_statistics
+
+
+def DynamicVoxelization(points_xyz, points_padding, grid_size, grid_range_x,
+                        grid_range_y, grid_range_z):
+  """Computes dynamic voxelization mappings for each point.
+
+  When using dynamic voxelization, we do not explicitly create the voxelization
+  tensors. Instead, we store indices that map to the voxels and use unsorted
+  segment aggregation functions to compute values for each voxel. This function
+  computes the mappings needed for using unsorted segment functions.
+
+  Args:
+    points_xyz: A float tf.Tensor of shape [batch_size, num_points, 3]
+      representing point positions in (x, y, z) dimensions.
+    points_padding: A float tf.Tensor of shape [batch_size, num_points]
+      containing 1.0 if the corresponding point is a padded point, and 0.0 if it
+      is a real point.
+    grid_size: A list of 3 integers describing the grid size along the x, y, and
+      z dimensions. This corresponds to the number of voxels in each dimension.
+    grid_range_x: A 2-tuple of floats containing the range (in real world
+      coordinates) for the x dimension to be voxelized.
+    grid_range_y: A 2-tuple of floats containing the range (in real world
+      coordinates) for the y dimension to be voxelized.
+    grid_range_z: A 2-tuple of floats containing the range (in real world
+      coordinates) for the z dimension to be voxelized.
+
+  Returns:
+    A NestedMap with keys:
+      coords: An int tf.Tensor of shape [batch_size, num_points, 3] with
+        voxel coordinates in x, y, z for each point. Note that voxel_coords may
+        be have out of bounds values for points falling outside the range. This
+        can be determined by the mask below.
+      centers: A float tf.Tensor of shape [batch_size, num_points, 3] with
+        real world coordinates of the voxel center for each point.
+      indices: An int tf.Tensor of shape [batch_size, num_points] with raveled
+        indices where we have flattened x, y, z into one dimension. This can
+        be used in conjunction with batched unsorted segment functions to
+        perform computations. Note that indices are set so that they are always
+        valid: indices that are out of range are set to 0. This makes it easy
+        for us to use indices with segment and gather functions.
+      padding: A float tf.Tensor of shape [batch_size, num_points], where 1.0
+        indicates that the corresponding voxel_coords is padded (out of bounds).
+      num_voxels: The total number of voxels.
+  """
+  batch_size, num_points, _ = py_utils.GetShape(points_xyz)
+
+  # Compute the size of each voxel cell.
+  num_voxels = np.prod(grid_size)
+  grid_size_x, grid_size_y, grid_size_z = grid_size
+  grid_cell_sizes = [
+      float(grid_range_x[1] - grid_range_x[0]) / grid_size_x,
+      float(grid_range_y[1] - grid_range_y[0]) / grid_size_y,
+      float(grid_range_z[1] - grid_range_z[0]) / grid_size_z,
+  ]
+
+  # Reposition points_xyz so that 0 aligns with the start of each range.
+  grid_offset = tf.cast([grid_range_x[0], grid_range_y[0], grid_range_z[0]],
+                        dtype=tf.float32)
+  points_xyz -= grid_offset
+
+  # Compute the voxel coords for points according to point position.
+  voxel_coords = tf.cast(points_xyz // grid_cell_sizes, dtype=tf.int32)
+
+  # Compute a valid mask based on the voxel coords. Any coordinate out of range
+  # results in the point considered to be a padded point.
+  voxel_padding = tf.equal(points_padding, 1.0) | tf.reduce_any(
+      (voxel_coords >= grid_size) | (voxel_coords < [0, 0, 0]), axis=-1)
+
+  # Ravel only on the coordinates, excluding the batch dimension.
+  voxel_indices = RavelIndex(
+      tf.reshape(voxel_coords, [batch_size * num_points, 3]), grid_size)
+  voxel_indices = tf.reshape(voxel_indices, [batch_size, num_points])
+
+  # Set invalid voxels to have 0 for their index. Note that when using the
+  # batched unsorted segment functions, you should pass the padding tensor
+  # so that it does the appropriate handling of out of bounds points. By setting
+  # the indices here to 0, we make it easy to use batch_gather to map the voxel
+  # values back to each point; points that are out of bounds will get the value
+  # of the voxel at the 0 index.
+  voxel_indices = WhereBroadcast(voxel_padding, tf.zeros_like(voxel_indices),
+                                 voxel_indices)
+
+  voxel_padding = tf.cast(voxel_padding, dtype=tf.float32)
+
+  # Compute the voxel centers real-world coordinate for each point. We add 0.5
+  # to ensure that we are computing at the center.
+  voxel_centers = ((0.5 + tf.cast(voxel_coords, dtype=tf.float32)) *
+                   tf.cast(grid_cell_sizes, dtype=tf.float32) + grid_offset)
+
+  dynamic_voxels = py_utils.NestedMap(
+      coords=voxel_coords,
+      centers=voxel_centers,
+      indices=voxel_indices,
+      padding=voxel_padding,
+      num_voxels=num_voxels)
+
+  return dynamic_voxels
+
+
+def RavelIndex(coords, dims):
+  """Converts a coordinate arrays into an array of flat indices.
+
+  This function does the opposite conversion to tf.unravel_index.
+
+  Args:
+    coords: An int tf.Tensor of shape [N, D] with coordinates in each dimension
+      for each row.
+    dims: A Tensor. Must have the same type as indices. An 1-D int Tensor. The
+      shape of the array to use for unraveling indices.
+
+  Returns:
+    An int tf.Tensor of shape [N] with voxel indices.
+  """
+  _, num_dims = py_utils.GetShape(coords)
+  dims = py_utils.HasShape(dims, [num_dims])
+  multiplier = tf.math.cumprod(dims, exclusive=True, reverse=True)
+  indices = tf.reduce_sum(coords * multiplier, axis=1)
+  return indices
+
+
+def _BatchedUnsortedSegmentFn(batched_data,
+                              batched_segment_ids,
+                              num_segments,
+                              unsorted_segment_fn,
+                              batched_padding=None,
+                              name=None):
+  """Calls an unsorted segment function on a batch of data.
+
+  This assumes that batched_data and batched_segment_ids have a leading batch
+  dimension that match. The num_segments must be the same for all examples
+  in the batch.
+
+  Each example usually has segment_ids that are the same as other examples, but
+  we want them to be processed separately. For example, when performing
+  dynamic voxelization, we want to map each point to a voxel, where this mapping
+  has voxels that correspond to segment_ids. While the ids are the same across
+  the voxel coordinate system, we want to keep each example separate.
+
+  Args:
+    batched_data: a tensor with a batch dimension matching that of
+      batched_segment_ids.
+    batched_segment_ids: an integer tensor whose shape is a prefix of
+      batched_data.shape. Each element contains the segment id for the
+      corresponding slice in batched_data. Entries with negative ids are
+      ignored.
+    num_segments: an integer tensor. This corresponds to the maximum number of
+      possible segments, which may be greater than the actual number of
+      segments. This ensures that the shapes are known after this operation.
+    unsorted_segment_fn: an unsorted segment function, e.g.,
+      tf.math.unsorted_segment_max, unsorted_segment_mean, unsorted_segment_min,
+      etc.
+    batched_padding: an optional float tensor whose shape is a prefix of
+      batched_segment_ids.shape. A value of 1.0 means that the corresponding
+      slice of batched_data is padded, and 0.0 means it is real. Padded slices
+      will be ignored by setting their segment_id to -1, which causes the
+      unsorted segment functions to ignore them.
+    name: A name for the operation.
+
+  Returns:
+    a tensor containing the result of running unsorted_segment_fn on each
+    example separately.
+  """
+  batch_size = py_utils.GetShape(batched_data)[0]
+  batched_segment_shape = py_utils.GetShape(batched_segment_ids)
+
+  # Unsorted segment functions drop elements for which the id is negative.
+  ignore_element = batched_segment_ids < 0
+  # Padded elements should have segment_ids set to -1, so that they are ignored.
+  if batched_padding is not None:
+    padding_shape = py_utils.GetShape(batched_padding)
+    rank_diff = len(padding_shape) - len(py_utils.GetShape(ignore_element))
+    broadcast_shape = padding_shape + [1] * rank_diff
+    batched_padding = tf.reshape(batched_padding, broadcast_shape)
+    ignore_element |= tf.equal(batched_padding, 1.0)
+
+  # Convert segment_id -> batch_idx * num_segments + segment_id so that each
+  # batch is placed in a different range of segment ids.
+  segment_id_start = tf.range(0, batch_size, dtype=batched_segment_ids.dtype)
+  segment_id_start *= num_segments
+
+  # Broadcast and add.
+  segment_id_start = tf.reshape(segment_id_start,
+                                [-1] + [1] * (len(batched_segment_shape) - 1))
+  batched_segment_ids += segment_id_start
+  # Set negative or padded indices to -1.
+  batched_segment_ids = tf.where_v2(ignore_element,
+                                    tf.constant(-1, batched_segment_ids.dtype),
+                                    batched_segment_ids)
+
+  batched_segment_output = unsorted_segment_fn(batched_data,
+                                               batched_segment_ids,
+                                               batch_size * num_segments, name)
+
+  output_shape = py_utils.GetShape(batched_segment_output)
+
+  # Reshape to recover batch dimension.
+  batched_segment_output = tf.reshape(
+      batched_segment_output, [batch_size, num_segments] + output_shape[1:])
+
+  return batched_segment_output
+
+
+# Public methods for batched unsorted segment functions.
+# pylint: disable=invalid-name
+BatchedUnsortedSegmentMax = functools.partial(
+    _BatchedUnsortedSegmentFn, unsorted_segment_fn=tf.math.unsorted_segment_max)
+BatchedUnsortedSegmentMin = functools.partial(
+    _BatchedUnsortedSegmentFn, unsorted_segment_fn=tf.math.unsorted_segment_min)
+BatchedUnsortedSegmentMean = functools.partial(
+    _BatchedUnsortedSegmentFn,
+    unsorted_segment_fn=tf.math.unsorted_segment_mean)
+BatchedUnsortedSegmentSum = functools.partial(
+    _BatchedUnsortedSegmentFn, unsorted_segment_fn=tf.math.unsorted_segment_sum)
+
+# pylint: enable=invalid-name
+
+
+################################################################################
+# Anchor Free Model Helpers.
+################################################################################
+def LocalTransform(points, bboxes_3d):
+  """Transform a point to the local coordinate of an bbox.
+
+  This function can transform a point from global coordinate system to the
+  local coordinate system of its assigned_gt_bbox. Here are two steps to
+  implement this:
+    - Transform the point to the center of the corresponding bbox.
+    - Rotate the point by the -assigned_gt_phi(which is the orientation of its
+      corresponding bbox in global coordinate).
+
+  Args:
+    points: A float tensor with shape [..., 3] indicating the XYZ coordinates of
+      each input point.
+    bboxes_3d: A float tensor with shape [..., 7] indicating the corresponding
+      bounding boxes for each point.
+
+  Returns:
+    local_points: A float tensor with shape [..., 3] indicating the XYZ
+      coordinates of each input point in local coordinate system of its
+      corresponding bbox.
+  """
+  points_shape = py_utils.GetShape(points)
+
+  phi = bboxes_3d[..., -1]
+  # Rotate the whole point cloud so as to let the x-axis of point cloud
+  # is aligned with the local x-axis of the bbox.
+  rotation_matrix = geometry.BatchMakeRotationMatrix(phi)
+  rotation_matrix = tf.reshape(rotation_matrix, points_shape[:-1] + [3, 3])
+
+  local_points = points - bboxes_3d[..., :3]
+  local_points = tf.matmul(
+      tf.expand_dims(local_points, axis=-2), rotation_matrix)
+  local_points = local_points[..., 0, :]
+  return local_points
+
+
+def GenerateCenternessLabel(points,
+                            assigned_gt_bboxes,
+                            centerness_range,
+                            ignore_z=False,
+                            epsilon=1e-6):
+  """Compute the centerness label for each point.
+
+  This loss is first proposed in FCOS (https://arxiv.org/abs/1904.01355).
+  Intuitively, it can generate a heatmap, in which pixels closed to center
+  obtains higher scores while pixels far from the center obtain lower scores.
+  This can be used as an alternative heatmap generation method.
+
+  Args:
+    points: A float tensor with shape [..., 3] indicating the XYZ coordinates of
+      each input point.
+    assigned_gt_bboxes: A float tensor with shape [..., 7] indicating the
+      assigned groundtruth bounding boxes for each point, so as to calculate the
+      corresponding center-ness groundtruth.
+    centerness_range: [0, 1] indicating the valid range of centerness label.
+    ignore_z: a boolean. Whether consider z in centerness calculation process.
+      For example, in PointPillars model, since there is no z-axis, the
+      center-ness value among z-axis can be ignored. By default, it is set False
+      to be utilized in Pillars model.
+    epsilon: The minimum value for avoiding negative center-ness value. By
+      default, it is 1e-6.
+
+  Returns:
+    centerness: [...] indicating the center-ness score for each
+      point with the value between centerness_range.
+  """
+  points_shape = py_utils.GetShape(points)
+  points = py_utils.with_dependencies(
+      [py_utils.assert_equal(points_shape[-1], 3)], points)
+
+  assigned_gt_bboxes = py_utils.HasShape(assigned_gt_bboxes,
+                                         points_shape[:-1] + [7])
+
+  # We transform each point to the local coordinates of the groundtruth
+  # boudingbox that it is assigned to.
+  local_points = LocalTransform(points, assigned_gt_bboxes)
+
+  lx, ly, lz = tf.unstack(local_points, axis=-1)
+  dx, dy, dz = tf.unstack(assigned_gt_bboxes[..., 3:-1], axis=-1)
+
+  distance_front = 0.5 * dx - lx
+  distance_back = lx + 0.5 * dx
+  centerness_dx = (
+      tf.minimum(distance_front, distance_back) /
+      tf.maximum(distance_front, distance_back))
+  valid_dx = tf.logical_and(
+      tf.greater_equal(distance_front, 0.), tf.greater_equal(distance_back, 0.))
+
+  distance_left = 0.5 * dy - ly
+  distance_right = ly + 0.5 * dy
+  centerness_dy = (
+      tf.minimum(distance_left, distance_right) /
+      tf.maximum(distance_left, distance_right))
+  valid_dy = tf.logical_and(
+      tf.greater_equal(distance_left, 0.), tf.greater_equal(distance_right, 0.))
+
+  centerness = centerness_dx * centerness_dy
+  valid = tf.logical_and(valid_dx, valid_dy)
+
+  if not ignore_z:
+    distance_top = 0.5 * dz - lz
+    distance_bottom = lz + 0.5 * dz
+    centerness_dz = (
+        tf.minimum(distance_bottom, distance_top) /
+        tf.maximum(distance_bottom, distance_top))
+    valid_dz = tf.logical_and(
+        tf.greater_equal(distance_top, 0.),
+        tf.greater_equal(distance_bottom, 0.))
+    valid = tf.logical_and(valid, valid_dz)
+
+    centerness *= centerness_dz
+
+  centerness = tf.maximum(centerness, epsilon)
+  if ignore_z:
+    centerness = tf.pow(centerness, 1 / 2.)
+  else:
+    centerness = tf.pow(centerness, 1 / 3.)
+
+  min_threshold, max_threshold = centerness_range
+  centerness_interval = max_threshold - min_threshold
+  centerness *= centerness_interval
+  centerness += min_threshold
+
+  centerness = tf.where_v2(valid, centerness, 0.)
+  return centerness
