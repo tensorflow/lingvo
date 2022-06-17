@@ -26,6 +26,7 @@ from lingvo.core import layers
 from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.tasks.car import builder_lib
+from lingvo.tasks.car import car_layers
 from lingvo.tasks.car import detection_3d_lib
 from lingvo.tasks.car import geometry
 from lingvo.tasks.car import point_detector
@@ -256,6 +257,18 @@ class Builder(builder_lib.ModelBuilderBase):
         self._ConvPlain('predict', (3, 3, idims, odims),
                         conv_init_method=conv_init_method),
         self._Bias('predict_bias', odims, bias_params_init))
+
+  def MLPFeaturizer(self, name, dims, use_bn=True, activation_fn=tf.nn.relu):
+    return self._Seq(
+        name,
+        self._FeaturesMLP(
+            'feat', dims, use_bn=use_bn, activation_fn=activation_fn),
+        self._GetValue('get_features', 'features'))
+
+  def ScalePillarsFeaturizer(self, name, input_dims, output_dims):
+    return self.MLPFeaturizer(
+        'feat', [input_dims, 256, 256, 256, output_dims],
+        activation_fn=tf.nn.swish)
 
 # pyformat: enable
 
@@ -671,3 +684,61 @@ class ModelV1(point_detector.PointDetectorBase):
         'predicted_bboxes': predicted_bboxes,
         'classification_logits': classification_logits
     })
+
+
+class DynamicVoxelizationFeaturizer(car_layers.DynamicVoxelization):
+  """Layer for using dynamic voxelization to create pillars."""
+
+  @classmethod
+  def Params(cls, num_laser_features, num_output_features=64):
+    p = super().Params()
+
+    # Default grid settings for KITTI cars, this should be overridden in params.
+    p.grid_size = (432, 496, 1)
+    p.grid_range_x = (0, 69.12)
+    p.grid_range_y = (-39.68, 39.68)
+    p.grid_range_z = (-3, 1)
+
+    p.Define('num_laser_features', num_laser_features,
+             'The number of (non-xyz) laser features of the input.')
+    p.Define(
+        'return_dynamic_voxels', False, 'If True, return a three-tuple'
+        'as (voxel_features, dynamic_voxels, dynamic_voxels_stats)')
+    builder = Builder()
+    # We instantiate the point encoder early to call NumEncodingFeatures.
+    # This is only possible if the layer has a name.
+    p.point_encoder.name = 'point_encoder'
+    point_encoder = p.point_encoder.Instantiate()
+    encoding_size = point_encoder.NumEncodingFeatures(num_laser_features)
+
+    p.featurizer = builder.MLPFeaturizer('feat',
+                                         [encoding_size, num_output_features])
+    return p
+
+  def FProp(self, theta, input_batch):
+    """Compute features for the pillars and convert them back to a dense grid.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values of this task.
+      input_batch: A `.NestedMap` object containing input tensors. Required keys
+        are `lasers.points_xyz`, `lasers.points_padding`, and
+        `lasers.points_feature`.
+
+    Returns:
+      The dense features with shape [b, nx, ny, nz * fdims] and additionally,
+      if p.return_dynamic_voxels is True, the dynamic_voxels NestedMap and
+      dynamic_voxels_stats NestedMap.
+    """
+    # Add zeros (=not padded) if a dataset does not provide padding information.
+    batch_size, num_points = py_utils.GetShape(input_batch.lasers.points_xyz, 2)
+    padding = input_batch.lasers.get('points_padding',
+                                     tf.zeros((batch_size, num_points)))
+    result = super().FProp(theta, input_batch.lasers.points_xyz,
+                           input_batch.lasers.points_feature, padding)
+    voxel_features, dynamic_voxels, dynamic_voxels_stats = result
+
+    bs, nx, ny = py_utils.GetShape(voxel_features, 3)
+    voxel_features = tf.reshape(voxel_features, [bs, nx, ny, -1])
+    if self.params.return_dynamic_voxels:
+      return voxel_features, dynamic_voxels, dynamic_voxels_stats
+    return voxel_features

@@ -382,6 +382,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":builder_lib",
+        ":car_layers",
         ":detection_3d_lib",
         ":geometry",
         ":point_detector",
@@ -595,5 +596,19 @@ py_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
         # Implicit tensorflow_probability dependency.
+    ],
+)
+
+py_library(
+    name = "deep_fusion",
+    srcs = ["deep_fusion.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":car_lib",
+        ":pillars",
+        "//lingvo:compat",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:py_utils",
+        # Implicit numpy dependency.
     ],
 )
