@@ -581,3 +581,19 @@ py_library(
         "//lingvo/core/ops",
     ],
 )
+
+py_library(
+    name = "pillars_anchor_free",
+    srcs = ["pillars_anchor_free.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":detection_3d_lib",
+        ":detection_decoder",
+        ":pillars",
+        ":point_detector",
+        "//lingvo:compat",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:py_utils",
+        # Implicit tensorflow_probability dependency.
+    ],
+)
