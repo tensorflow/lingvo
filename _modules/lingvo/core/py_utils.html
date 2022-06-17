@@ -5691,8 +5691,6 @@
 <span class="sd">    &gt;&gt;&gt; y = tf.If(cond, inputs, then_branch.func, else_branch.func)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="c1"># TODO(laigd): the use_tf_function option is added for backward compatibility</span>
-  <span class="c1"># reasons. Remove it after the migration.</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                <span class="n">fwd_sig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -5716,13 +5714,13 @@
 <span class="sd">      bak_as_function: Whether to create a TF graph function for `bak`.</span>
 <span class="sd">      device: The device on which to run `fwd` and `bak`. Defaults to the</span>
 <span class="sd">        current device.</span>
-<span class="sd">      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().</span>
+<span class="sd">      use_tf_function: Deprecated.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">use_tf_function</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_bak</span> <span class="o">=</span> <span class="n">bak</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_bak_as_function</span> <span class="o">=</span> <span class="n">bak_as_function</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_device</span> <span class="o">=</span> <span class="n">device</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_use_tf_function</span> <span class="o">=</span> <span class="n">use_tf_function</span>
 
   <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fwd</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates a graph function.</span>
@@ -5735,7 +5733,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">callable</span><span class="p">(</span><span class="n">fwd</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">DefinedFunction</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bak</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bak_as_function</span><span class="p">,</span>
-                           <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_tf_function</span><span class="p">)</span></div>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_device</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="DefinedFunction"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.DefinedFunction">[docs]</a><span class="k">class</span> <span class="nc">DefinedFunction</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -5746,8 +5744,7 @@
                <span class="n">fwd_sig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">bak_as_function</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-               <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">use_tf_function</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+               <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructor.</span>
 
 <span class="sd">    Args:</span>
@@ -5764,7 +5761,6 @@
 <span class="sd">      bak_as_function: Whether to create a TF graph function for `bak`.</span>
 <span class="sd">      device: The device on which to run `fwd` and `bak`. Defaults to the</span>
 <span class="sd">        current device.</span>
-<span class="sd">      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig</span>
 
@@ -5825,10 +5821,7 @@
 
       <span class="n">bak_fn</span> <span class="o">=</span> <span class="n">BackwardWrapped</span>
 
-    <span class="k">if</span> <span class="n">use_tf_function</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">use_tf_function</span> <span class="o">=</span> <span class="n">_UseTfFunction</span><span class="p">()</span>
-    <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span> <span class="k">if</span> <span class="n">use_tf_function</span> <span class="k">else</span> <span class="n">_DefineDefun</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_data</span> <span class="o">=</span> <span class="n">_DefineFunction</span><span class="p">(</span>
         <span class="n">fwd</span><span class="o">=</span><span class="n">fwd_fn</span><span class="p">,</span>
         <span class="n">fwd_sig</span><span class="o">=</span><span class="n">wrapped_fwd_sig</span><span class="p">,</span>
         <span class="n">bak</span><span class="o">=</span><span class="n">bak_fn</span><span class="p">,</span>
