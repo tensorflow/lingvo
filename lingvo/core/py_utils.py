@@ -5625,8 +5625,6 @@ class Function(object):
     >>> y = tf.If(cond, inputs, then_branch.func, else_branch.func)
   """
 
-  # TODO(laigd): the use_tf_function option is added for backward compatibility
-  # reasons. Remove it after the migration.
   def __init__(self,
                fwd_sig=None,
                bak=None,
@@ -5650,13 +5648,13 @@ class Function(object):
       bak_as_function: Whether to create a TF graph function for `bak`.
       device: The device on which to run `fwd` and `bak`. Defaults to the
         current device.
-      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().
+      use_tf_function: Deprecated.
     """
+    del use_tf_function
     self._fwd_sig = fwd_sig
     self._bak = bak
     self._bak_as_function = bak_as_function
     self._device = device
-    self._use_tf_function = use_tf_function
 
   def __call__(self, fwd):
     """Creates a graph function.
@@ -5669,7 +5667,7 @@ class Function(object):
     """
     assert callable(fwd)
     return DefinedFunction(fwd, self._fwd_sig, self._bak, self._bak_as_function,
-                           self._device, self._use_tf_function)
+                           self._device)
 
 
 class DefinedFunction(object):
@@ -5680,8 +5678,7 @@ class DefinedFunction(object):
                fwd_sig=None,
                bak=None,
                bak_as_function=False,
-               device=None,
-               use_tf_function=None):
+               device=None):
     """Constructor.
 
     Args:
@@ -5698,7 +5695,6 @@ class DefinedFunction(object):
       bak_as_function: Whether to create a TF graph function for `bak`.
       device: The device on which to run `fwd` and `bak`. Defaults to the
         current device.
-      use_tf_function: Whether use tf.function. Defaults to _UseTfFunction().
     """
     self._fwd_sig = fwd_sig
 
@@ -5759,10 +5755,7 @@ class DefinedFunction(object):
 
       bak_fn = BackwardWrapped
 
-    if use_tf_function is None:
-      use_tf_function = _UseTfFunction()
-    fn = _DefineFunction if use_tf_function else _DefineDefun
-    self._data = fn(
+    self._data = _DefineFunction(
         fwd=fwd_fn,
         fwd_sig=wrapped_fwd_sig,
         bak=bak_fn,
