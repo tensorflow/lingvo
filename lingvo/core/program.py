@@ -2015,7 +2015,8 @@ class SimpleProgramSchedule:
     if p.train_executions_per_eval == 0 and hasattr(self, '_summary_exporter'):
       dataset_summaries = {}
       for pf in program_futures:
-        map(lambda x: x.get(), pf[0])
+        for x in pf[0]:
+          x.get()
         if isinstance(pf[1], DecodeProgram):
           dataset_summaries.update(pf[1].Summary())
       self._summary_exporter.Export(dataset_summaries, p.checkpoint_to_load)
