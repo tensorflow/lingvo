@@ -15,11 +15,13 @@
 """Helpers for unittests."""
 
 import contextlib
+import functools
 import inspect
 import os
 import re
 import sys
-from typing import Callable, Union
+import typing
+from typing import Callable
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -44,6 +46,7 @@ py_utils.SetEagerMode(False)
 # Decorator to skip a test if in eager mode.
 def SkipIfEager(test_func):
 
+  @functools.wraps(test_func)
   def _Wrap(self, *args, **kwargs):
     if py_utils.IsEagerMode():
       self.skipTest('Not compatible with eager execution, skipping.')
@@ -52,9 +55,19 @@ def SkipIfEager(test_func):
   return _Wrap
 
 
+@typing.overload
 def DefineAndTrace(
-    *tensor_specs_or_placeholders: Union[tf.TensorSpec, tf.Tensor]
-) -> Callable:  # pylint: disable=g-bare-generic
+    *tensor_specs_or_placeholders: tf.TensorSpec
+) -> Callable[Callable, Callable]:  # pylint: disable=g-bare-generic
+  ...
+
+
+@typing.overload
+def DefineAndTrace(*tensor_specs_or_placeholders: tf.Tensor) -> Callable:  # pylint: disable=g-bare-generic
+  ...
+
+
+def DefineAndTrace(*tensor_specs_or_placeholders):
   """Decorator to transparently run tf.function only when in Eager mode.
 
   It will have different behavior depending on the execution mode.
@@ -72,24 +85,25 @@ def DefineAndTrace(
     *tensor_specs_or_placeholders: A list of tf.placeholder or tf.TensorSpec.
 
   Returns:
-    A function that will trace the decorated function when called.
+    A decorator function that will trace the decorated function when called.
   """
   if py_utils.IsEagerMode():
-    tensor_specs = tensor_specs_or_placeholders
-    assert all(isinstance(spec, tf.TensorSpec) for spec in tensor_specs)
-    decorator = tf.function(input_signature=list(tensor_specs), autograph=False)
+    specs = tensor_specs_or_placeholders
+    assert all(isinstance(s, tf.TensorSpec) for s in py_utils.Flatten(specs))
+    decorator = tf.function(input_signature=list(specs), autograph=False)
     return lambda fn: decorator(fn).get_concrete_function()
   else:
-    placehoders = tensor_specs_or_placeholders
-    assert all(ph.op.type == 'Placeholder' for ph in placehoders)
-    return lambda fn: fn(*placehoders)
+    placeholders = tensor_specs_or_placeholders
+    assert all(
+        ph.op.type == 'Placeholder' for ph in py_utils.Flatten(placeholders))
+    return lambda fn: fn(*placeholders)
 
 
 _TENSOR_SPEC_COUNTER = 0
 
 
 def _PlaceholderAdapter(dtype, shape=None):
-  """Redirect all `tf.placehoders` usage to `tf.TensorSpec` in eager mode.
+  """Redirect all `tf.placeholder` usage to `tf.TensorSpec` in eager mode.
 
   This is designed to be used with the @DefineAndTrace decorator above.
 
@@ -159,14 +173,8 @@ class _EagerSessionAdaptor:
     assert len(feed_dict) == len(args_signature)
 
     # Reorder the inputs to match the input signature.
-    feeds = []
-    for i, spec in enumerate(args_signature):
-      for k, v in feed_dict.items():
-        if k.name == spec.name:
-          feeds.append(v)
-          break
-      else:
-        raise ValueError(f'Cannot find value for argument {i+1} ({spec.name}).')
+    feed_dict = {k.name: v for k, v in feed_dict.items()}
+    feeds = [feed_dict[spec.name] for spec in args_signature]
     return self._run_fn(func(*feeds))
 
 
@@ -413,6 +421,5 @@ def ComputeNumericGradient(sess,
 def main(*args, **kwargs):
   FLAGS(sys.argv, known_only=True)
   py_utils.SetEagerMode(FLAGS.enable_eager_execution)
-  # py_utils.SetEagerMode(True)
   FLAGS.unparse_flags()
   tf.test.main(*args, **kwargs)

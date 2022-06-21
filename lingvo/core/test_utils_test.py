@@ -15,6 +15,7 @@
 """Tests for test_utils."""
 
 import lingvo.compat as tf
+from lingvo.core import py_utils
 from lingvo.core import test_utils
 
 FLAGS = tf.flags.FLAGS
@@ -94,6 +95,27 @@ class TestUtilsTest(test_utils.TestCase):
       self.assertTrue(traced)
       sess.run(tf.global_variables_initializer())
       self.assertEqual(3.0, sess.run(func, feed_dict={b: 2.0}))
+
+  def testEagerSessionAdapterWithFunctionAcceptingNMap(self):
+    with self.session() as sess:
+      self.assertIsInstance(sess, tf.Session)
+      a = tf.Variable(1, dtype=tf.int32)
+      nmap = py_utils.NestedMap(
+          x=tf.placeholder(tf.int32), y=tf.placeholder(tf.int32))
+      traced = False
+
+      @test_utils.DefineAndTrace(nmap)
+      def func(nmap):
+        nonlocal traced
+        c = py_utils.Transform(lambda t: t + a, nmap)
+        traced = True
+        return c
+
+      self.assertTrue(traced)
+      sess.run(tf.global_variables_initializer())
+      self.assertEqual(
+          py_utils.NestedMap(x=3, y=4),
+          sess.run(func, feed_dict=dict(zip(py_utils.Flatten(nmap), (2, 3)))))
 
 
 if __name__ == '__main__':

@@ -32,7 +32,7 @@ import re
 import threading
 import traceback
 import typing
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -763,19 +763,19 @@ def AssertIsCompatible(a, b):
   assert a.IsCompatible(b), ('%s vs %s' % (a, b))
 
 
-def SetShapes(dst_nmap, src_nmap):
+def SetShapes(dst_nmap: NestedMap, src_nmap: NestedMap) -> None:
   """Set shapes in dst_nmap using those in src_nmap."""
   AssertIsCompatible(src_nmap, dst_nmap)
   for src, dst in zip(src_nmap.Flatten(), dst_nmap.Flatten()):
     dst.set_shape(src.shape)
 
 
-def Dtypes(nmap_list):
+def Dtypes(nmap_list) -> list[tf.dtypes.DType]:
   """Returns all tensors' data types in a list."""
   return [v.dtype for v in Flatten(nmap_list)]
 
 
-def Flatten(x):
+def Flatten(x) -> list[Any]:
   """Flattens 'x' by extracting tensors from nested structures to a list."""
   return tf.nest.flatten(x)
 
