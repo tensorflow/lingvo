@@ -2324,6 +2324,103 @@ class TransformerAttentionLayerTest(test_utils.TestCase,
       self.assertEqual(
           tuple(expected.shape), (batch_size, max_seqlen, input_dim))
 
+  @parameterized.named_parameters(
+      ('Basic', False, 1, None, 0),
+      ('BasicR1', False, 1, None, 1),
+      ('BasicS4', False, 4, 4),
+      ('BasicS4L8', False, 4, 8),
+      ('SkipNorm', True),
+      ('SkipNormS2', True, 2, 2),
+      ('SkipNormS2L3', True, 2, 3),
+      ('SkipNormS4R2', True, 4, None, 2),
+  )
+  def testStreamStepMix(self,
+                        testonly_skip_norm_layers=False,
+                        stride=1,
+                        inference_step_max_length=1,
+                        right_context=0):
+    with flagsaver.flagsaver(
+        testonly_skip_norm_layers=testonly_skip_norm_layers):
+      self._TestStreamStepHelperMix(stride, inference_step_max_length,
+                                    right_context)
+
+  def _TestStreamStepHelperMix(self, stride, inference_step_max_length,
+                               right_context):
+    batch_size, max_seqlen, input_dim = 2, 32, 4
+    hidden_dim = 6
+    num_heads = [1, 1]
+    left_context = 3
+
+    # Prepares inputs.
+    np.random.seed(None)
+    inputs = np.random.normal(
+        0.5, 1, [batch_size, max_seqlen, input_dim]).astype(np.float32)
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=max_seqlen // 2,
+        high=max_seqlen + 1,
+        size=(batch_size,),
+        dtype=np.int32)
+    print(f'seqlen: {repr(seqlen)}')
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+
+    p = attention.TransformerAttentionLayer.Params().Set(
+        is_masked=True,
+        input_dim=input_dim,
+        hidden_dim=hidden_dim,
+        atten_tpl=[
+            attention.LocalSelfAttention.Params().Set(
+                left_context=left_context,
+                right_context=right_context,
+                inference_step_max_length=inference_step_max_length),
+            attention.LocalSelfAttention.Params().Set(
+                left_context=left_context,
+                right_context=right_context,
+                inference_step_max_length=inference_step_max_length)
+        ],
+        num_heads=num_heads)
+    p.name = 'transformer_atten'
+
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    base_outputs, _ = l.FProp(l.theta, inputs, None, paddings)
+    base_outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+
+    state = l.zero_state(batch_size)
+    outputs = []
+    assert max_seqlen % stride == 0
+    for i in range(max_seqlen // stride +
+                   int(math.ceil(right_context / stride))):
+      if i < max_seqlen // stride:
+        step_inputs = inputs[:, stride * i:stride * (i + 1)]
+        step_paddings = paddings[:, stride * i:stride * (i + 1)]
+      else:
+        step_inputs = tf.zeros_like(inputs[:, 0:stride])
+        step_paddings = tf.ones_like(paddings[:, 0:stride])
+      output, _, state = l.StreamStep(l.theta, step_inputs, step_paddings,
+                                      state)
+      outputs.append(output)
+
+    outputs = tf.concat(outputs, axis=1)
+    outputs = outputs[:, right_context:][:, :max_seqlen]
+    outputs *= tf.reshape(1. - paddings, [batch_size, max_seqlen, 1])
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+
+      expected, actual = sess.run([base_outputs, outputs])
+      print(repr(expected))
+      print(repr(actual))
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+      self.assertEqual(
+          tuple(expected.shape), (batch_size, max_seqlen, input_dim))
+
   def testStreamStepDropout(self):
     batch_size, input_dim, num_heads, stride, left_context = 2, 4, 2, 8, 3
 

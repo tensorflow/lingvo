@@ -4097,6 +4097,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         # Each dim per head is now divided among all heads
         dim_per_head = p.hidden_dim // sum(p.num_heads)
         params.proj_tpl.dim_per_head = dim_per_head
+        params.dim_per_head = dim_per_head
+        params.hidden_dim = p.hidden_dim // len(p.num_heads)
       return params
 
     if isinstance(p.num_heads, list):
@@ -4122,6 +4124,15 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       query_input_dim = p.input_dim
     if not p.hidden_dim:
       p.hidden_dim = query_input_dim
+
+    if isinstance(p.atten_tpl, list):
+      if all(['right_context' in atten for atten in p.atten_tpl]):
+        if len(set([atten.right_context for atten in p.atten_tpl])) > 1:
+          raise ValueError('All attentions much have same right context'
+                           'when using a list atten_tpl')
+        if len(set([atten.query_stride for atten in p.atten_tpl])) > 1:
+          raise ValueError('All attentions much have same query stride'
+                           'when using a list atten_tpl')
 
     # Initialize attention.
     def _LocalAttentionError(params):
@@ -4436,7 +4447,33 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     Returns:
       state: The initial state for streaming inference.
     """
-    return py_utils.NestedMap(atten=self.atten.zero_state(batch_size))
+    p = self.params
+    dtype = py_utils.FPropDtype(p)
+    if not isinstance(self.atten, list):
+      return py_utils.NestedMap(atten=self.atten.zero_state(batch_size))
+
+    query_right = p.atten_tpl[0].right_context // p.atten_tpl[0].query_stride
+    # This is used only if the caller of the layer uses skip_connection in
+    # the layer's client code.
+    skip_conn_input = tf.zeros([batch_size, query_right, p.input_dim], dtype)
+    x = py_utils.NestedMap(
+        atten=[a.zero_state(batch_size) for a in self.atten],
+        skip_conn_input=skip_conn_input)
+    return x
+
+  def StreamStepAddSkipConnection(self, input_to_add, output, state0, state1):
+    atten = self.params.atten_tpl[0]
+
+    if 'right_context' not in atten or not atten.right_context:
+      return input_to_add + output, state1
+
+    seqlen = py_utils.GetShape(output)[1]
+    output = py_utils.HasShape(output, py_utils.GetShape(input_to_add))
+    concat_input_to_add = tf.concat([state0.skip_conn_input, input_to_add],
+                                    axis=1)
+    state1.skip_conn_input = concat_input_to_add[:, seqlen:]
+    final_output = output + concat_input_to_add[:, :seqlen]
+    return final_output, state1
 
   def StreamStep(self, theta, input_vec, paddings, state0):
     """Computes the value vector given the query of the current step.
@@ -4465,8 +4502,23 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
           input_vec = self.layer_norm.FProp(theta.layer_norm, input_vec)
         input_vec = self._CastToFPropDtype(input_vec)
 
-      output, paddings, atten_state1 = self.atten.StreamStep(
-          theta.atten, input_vec, paddings, input_vec, paddings, state0.atten)
+      if isinstance(self.atten, list):
+        atten_state1 = py_utils.NestedMap(atten=[])
+        output = []
+        for i in range(len(self.atten)):
+          output_i, _, atten_state1_i = self.atten[i].StreamStep(
+              theta.atten[i], input_vec, paddings, input_vec, paddings,
+              state0.atten[i])
+          output.append(output_i)
+          atten_state1.atten.append(atten_state1_i)
+        # Concat all attention heads together
+        output = tf.concat(output, axis=2)
+        # ctx_vec has shape [B, T, N, H] due to identity projection
+        output = self.w_mix_heads.FProp(theta.w_mix_heads, output)
+      else:
+        output, paddings, atten_state1 = self.atten.StreamStep(
+            theta.atten, input_vec, paddings, input_vec, paddings, state0.atten)
+        atten_state1 = py_utils.NestedMap(atten=atten_state1)
 
       if p.primer_hybrid_norm and p.ln_tpl:
         output = self.post_layer_norm.FProp(theta.post_layer_norm, output)
@@ -4478,9 +4530,15 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
           unnormalized_input_vec if p.add_unnormalized_input else input_vec)
 
       if p.add_skip_connection:
-        output, atten_state1 = self.atten.StreamStepAddSkipConnection(
-            input_to_add, output, state0.atten, atten_state1)
-      return output, paddings, py_utils.NestedMap(atten=atten_state1)
+        if isinstance(self.atten, list):
+          output, atten_state1 = self.StreamStepAddSkipConnection(
+              input_to_add, output, state0, atten_state1)
+        else:
+          print(state0)
+          output, atten_state1 = self.atten.StreamStepAddSkipConnection(
+              input_to_add, output, state0.atten, atten_state1.atten)
+          atten_state1 = py_utils.NestedMap(atten=atten_state1)
+      return output, paddings, atten_state1
 
 
 class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
