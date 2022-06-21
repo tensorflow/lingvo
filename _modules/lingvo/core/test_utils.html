@@ -81,11 +81,13 @@
 <span class="sd">&quot;&quot;&quot;Helpers for unittests.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">typing</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Callable</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
@@ -110,6 +112,7 @@
 <span class="c1"># Decorator to skip a test if in eager mode.</span>
 <div class="viewcode-block" id="SkipIfEager"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.SkipIfEager">[docs]</a><span class="k">def</span> <span class="nf">SkipIfEager</span><span class="p">(</span><span class="n">test_func</span><span class="p">):</span>
 
+  <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">test_func</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_Wrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span><span class="s1">&#39;Not compatible with eager execution, skipping.&#39;</span><span class="p">)</span>
@@ -118,9 +121,19 @@
   <span class="k">return</span> <span class="n">_Wrap</span></div>
 
 
-<div class="viewcode-block" id="DefineAndTrace"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.DefineAndTrace">[docs]</a><span class="k">def</span> <span class="nf">DefineAndTrace</span><span class="p">(</span>
-    <span class="o">*</span><span class="n">tensor_specs_or_placeholders</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">]</span>
-<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>  <span class="c1"># pylint: disable=g-bare-generic</span>
+<span class="nd">@typing</span><span class="o">.</span><span class="n">overload</span>
+<span class="k">def</span> <span class="nf">DefineAndTrace</span><span class="p">(</span>
+    <span class="o">*</span><span class="n">tensor_specs_or_placeholders</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">[</span><span class="n">Callable</span><span class="p">,</span> <span class="n">Callable</span><span class="p">]:</span>  <span class="c1"># pylint: disable=g-bare-generic</span>
+  <span class="o">...</span>
+
+
+<span class="nd">@typing</span><span class="o">.</span><span class="n">overload</span>
+<span class="k">def</span> <span class="nf">DefineAndTrace</span><span class="p">(</span><span class="o">*</span><span class="n">tensor_specs_or_placeholders</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Callable</span><span class="p">:</span>  <span class="c1"># pylint: disable=g-bare-generic</span>
+  <span class="o">...</span>
+
+
+<div class="viewcode-block" id="DefineAndTrace"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.DefineAndTrace">[docs]</a><span class="k">def</span> <span class="nf">DefineAndTrace</span><span class="p">(</span><span class="o">*</span><span class="n">tensor_specs_or_placeholders</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Decorator to transparently run tf.function only when in Eager mode.</span>
 
 <span class="sd">  It will have different behavior depending on the execution mode.</span>
@@ -138,24 +151,25 @@
 <span class="sd">    *tensor_specs_or_placeholders: A list of tf.placeholder or tf.TensorSpec.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A function that will trace the decorated function when called.</span>
+<span class="sd">    A decorator function that will trace the decorated function when called.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-    <span class="n">tensor_specs</span> <span class="o">=</span> <span class="n">tensor_specs_or_placeholders</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">spec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">)</span> <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">tensor_specs</span><span class="p">)</span>
-    <span class="n">decorator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">input_signature</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">tensor_specs</span><span class="p">),</span> <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">specs</span> <span class="o">=</span> <span class="n">tensor_specs_or_placeholders</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorSpec</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">specs</span><span class="p">))</span>
+    <span class="n">decorator</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">input_signature</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">specs</span><span class="p">),</span> <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">return</span> <span class="k">lambda</span> <span class="n">fn</span><span class="p">:</span> <span class="n">decorator</span><span class="p">(</span><span class="n">fn</span><span class="p">)</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">placehoders</span> <span class="o">=</span> <span class="n">tensor_specs_or_placeholders</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">ph</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;Placeholder&#39;</span> <span class="k">for</span> <span class="n">ph</span> <span class="ow">in</span> <span class="n">placehoders</span><span class="p">)</span>
-    <span class="k">return</span> <span class="k">lambda</span> <span class="n">fn</span><span class="p">:</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">placehoders</span><span class="p">)</span></div>
+    <span class="n">placeholders</span> <span class="o">=</span> <span class="n">tensor_specs_or_placeholders</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="n">ph</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;Placeholder&#39;</span> <span class="k">for</span> <span class="n">ph</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">placeholders</span><span class="p">))</span>
+    <span class="k">return</span> <span class="k">lambda</span> <span class="n">fn</span><span class="p">:</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">placeholders</span><span class="p">)</span></div>
 
 
 <span class="n">_TENSOR_SPEC_COUNTER</span> <span class="o">=</span> <span class="mi">0</span>
 
 
 <div class="viewcode-block" id="_PlaceholderAdapter"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils._PlaceholderAdapter">[docs]</a><span class="k">def</span> <span class="nf">_PlaceholderAdapter</span><span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Redirect all `tf.placehoders` usage to `tf.TensorSpec` in eager mode.</span>
+  <span class="sd">&quot;&quot;&quot;Redirect all `tf.placeholder` usage to `tf.TensorSpec` in eager mode.</span>
 
 <span class="sd">  This is designed to be used with the @DefineAndTrace decorator above.</span>
 
@@ -225,14 +239,8 @@
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">feed_dict</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args_signature</span><span class="p">)</span>
 
     <span class="c1"># Reorder the inputs to match the input signature.</span>
-    <span class="n">feeds</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">spec</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args_signature</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">feed_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">k</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
-          <span class="n">feeds</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-          <span class="k">break</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Cannot find value for argument </span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s1"> (</span><span class="si">{</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">).&#39;</span><span class="p">)</span>
+    <span class="n">feed_dict</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="o">.</span><span class="n">name</span><span class="p">:</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">feed_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">feeds</span> <span class="o">=</span> <span class="p">[</span><span class="n">feed_dict</span><span class="p">[</span><span class="n">spec</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="k">for</span> <span class="n">spec</span> <span class="ow">in</span> <span class="n">args_signature</span><span class="p">]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_fn</span><span class="p">(</span><span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">feeds</span><span class="p">))</span></div></div>
 
 
@@ -479,7 +487,6 @@
 <div class="viewcode-block" id="main"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="n">FLAGS</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">,</span> <span class="n">known_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
   <span class="n">py_utils</span><span class="o">.</span><span class="n">SetEagerMode</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_eager_execution</span><span class="p">)</span>
-  <span class="c1"># py_utils.SetEagerMode(True)</span>
   <span class="n">FLAGS</span><span class="o">.</span><span class="n">unparse_flags</span><span class="p">()</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">test</span><span class="o">.</span><span class="n">main</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 </pre></div>
