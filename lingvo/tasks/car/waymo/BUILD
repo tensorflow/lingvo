@@ -99,6 +99,8 @@ py_library(
         "//lingvo/tasks/car:input_extractor",
         "//lingvo/tasks/car:input_preprocessors",
         # Implicit numpy dependency.
+        # Implicit Waymo Open Dataset camera model projection (kernel) dependency.
+        # Implicit Waymo Open Dataset camera model projection dependency.
     ],
 )
 

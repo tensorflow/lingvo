@@ -20,8 +20,14 @@ from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.tasks.car import input_extractor
 from lingvo.tasks.car import input_preprocessors
-
 import numpy as np
+
+# pylint: disable=g-import-not-at-top,bare-except
+try:
+  from waymo_open_dataset.camera.ops import py_camera_model_ops
+except:
+  tf.logging.error('Install waymo_open_dataset.')
+# pylint: enable=g-import-not-at-top,bare-except
 
 
 def _Dense(sparse, default_value=0):
@@ -1078,3 +1084,268 @@ class WaymoSparseLaser(input_extractor.BaseExtractor):
     p.file_datasource.file_type = 'tfrecord'
 
     return p
+
+
+def _WorldToImage(camera_info_extrinsics, camera_info_intrinsics, metadata,
+                  camera_image_metadata, points_world):
+  """Project 3D points to image."""
+  try:
+    return py_camera_model_ops.world_to_image(camera_info_extrinsics,
+                                              camera_info_intrinsics, metadata,
+                                              camera_image_metadata,
+                                              points_world)
+  except NameError:
+    # TODO(ywli): import py_camera_model_ops and call
+    # py_camera_model_ops.world_to_image as shown above
+    raise NotImplementedError(
+        'Install waymo_open_dataset and try again.') from None
+
+
+def _ProjectPointsToCameras(points, cameras, frame_pose):
+  """Projects points to cameras.
+
+  Args:
+    points: [P, 3] tensor of points.
+    cameras: A list of tuples, where each 2-tuple contains (camera_name,
+      camara_info), where camera_name corresponds to the name of a camera (e.g.,
+      FRONT, SIDE_LEFT, etc.) and camera_info is a NestedMap containing the
+      camera information, including the image, extrinsics, intrinsics, etc. This
+      is usually obtained using the WaymoImageExtractor.
+    frame_pose: [4, 4] frame pose matrix for mapping the points to world
+      coordinates.
+
+  Returns:
+    A list of [P, 3] tensors corresponding to the projected points to each
+    camera. The order of the list follows the order of the input cameras.
+  """
+  frame_pose_rotation = frame_pose[0:3, 0:3]
+  frame_pose_translation = frame_pose[0:3, 3]
+  points_world = tf.matmul(points, frame_pose_rotation, transpose_b=True)
+  points_world += frame_pose_translation
+
+  projected_points = []
+  for _, camera_info in cameras:
+    image_shape = tf.cast(tf.shape(camera_info.image), dtype=tf.int64)
+    metadata = tf.cast(
+        tf.stack([
+            image_shape[1], image_shape[0],
+            camera_info.rolling_shutter_direction
+        ]),
+        dtype=tf.int32)
+    camera_image_metadata = [tf.reshape(camera_info.pose, shape=[16])]
+    camera_image_metadata.append(tf.reshape(camera_info.velocity, shape=[6]))
+    camera_image_metadata.append(
+        tf.reshape(camera_info.pose_timestamp, shape=[1]))
+    camera_image_metadata.append(tf.reshape(camera_info.shutter, shape=[1]))
+    camera_image_metadata.append(
+        tf.reshape(camera_info.camera_trigger_time, shape=[1]))
+    camera_image_metadata.append(
+        tf.reshape(camera_info.camera_readout_done_time, shape=[1]))
+    camera_image_metadata = tf.concat(camera_image_metadata, 0)
+    image_points_t = _WorldToImage(camera_info.extrinsics,
+                                   camera_info.intrinsics, metadata,
+                                   camera_image_metadata, points_world)
+    projected_points.append(image_points_t)
+
+  return projected_points
+
+
+def PointsToBestCamera(points,
+                       cameras,
+                       frame_pose,
+                       project_points_to_cameras_func=None):
+  """Projects points to the best camera view.
+
+  The best camera view is the one which has the mapped point be furthest from
+  the corresponding image edge. After computing the mapping, one can use the
+  camera_idx and points_in_best_camera tensors to gather from relevant locations
+  in the image.
+
+  Args:
+    points: [P, 3] tensor of points.
+    cameras: A list of tuples, where each 2-tuple contains (camera_name,
+      camara_info), where camera_name corresponds to the name of a camera (e.g.,
+      FRONT, SIDE_LEFT, etc.) and camera_info is a NestedMap containing the
+      camera information, including the image, extrinsics, intrinsics, etc. This
+      is usually obtained using the WaymoImageExtractor.
+    frame_pose: [4, 4] frame pose matrix for mapping the points to world
+      coordinates.
+    project_points_to_cameras_func: the function to project points to camera.
+
+  Returns:
+    A NestedMap with keys:
+      cameras_idx: [P] int tensor mapping each point to the best camera's index.
+      points_in_best_camera: [P, 3] float tensor containing the world_to_camera
+        outputs for each point in the best camera view assigned. Each row
+        contains (column, row, valid) values corresponding to the image mapping
+        for the point.
+      mask: [P] mask tensor representing valid mappings with 1.0, and 0.0 for
+        invalid mappings.
+  """
+
+  if project_points_to_cameras_func is None:
+    project_points_to_cameras_func = _ProjectPointsToCameras
+  dist_all_cameras = []
+  projected_points = project_points_to_cameras_func(points, cameras, frame_pose)
+  for (_, camera_info), points_cam in zip(cameras, projected_points):
+    image_shape = tf.cast(tf.shape(camera_info.image), dtype=tf.int64)
+    height, width = tf.unstack(tf.cast(image_shape[0:2], tf.float32), num=2)
+    col, row, valid = tf.unstack(points_cam, num=3, axis=-1)
+
+    # We set invalid locations to have distance = -1, and valid locations to
+    # be the minimum distance to any edge. Note that later when selecting the
+    # best view, we will take the maximum over distances -- hence, locations
+    # with -1 will not be preferred. We assume that range checking is performed
+    # within world_to_camera and all valid points are within height/width
+    # constraints.
+    dist_to_image_edge = (
+        valid *
+        tf.reduce_min(tf.stack([col, width - col, row, height - row]), axis=0) +
+        (1. - valid) * -1.)
+
+    dist_all_cameras.append(dist_to_image_edge)
+
+  # Obtain best camera which has the furthest distance from the edge.
+  dist_all_cameras = tf.stack(dist_all_cameras)
+  min_dist = tf.reduce_max(dist_all_cameras, axis=0)
+  cameras_idx = tf.argmax(dist_all_cameras, axis=0, output_type=tf.int32)
+
+  # Gather the pixel locations for the best views.
+  projected_points = tf.stack(projected_points, axis=1)
+  points_in_best_camera = tf.gather(projected_points, cameras_idx, batch_dims=1)
+
+  # Valid points should have minimum edge distance greater than 0. Note that
+  # points that do not map to any camera view will have distance of -1.
+  mask = tf.cast(min_dist > 0., tf.float32)
+
+  return py_utils.NestedMap(
+      cameras_idx=cameras_idx,
+      points_in_best_camera=points_in_best_camera,
+      mask=mask)
+
+
+class CellCenterToBestCamera(input_preprocessors.Preprocessor):
+  """Projects cell centers to the best cameras.
+
+  This extractor expects the following inputs to be present in 'features':
+    cell_center_xyz: [..., 3]
+
+  Adds following key:
+    cell_center_projected: NestedMap of cameras_idx, points_in_best_camera,
+      mask.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'camera_names', [], 'Cameras to computed projected mapping for. '
+        'If specified, camera_idx will correspond to the index specified '
+        'here. If this is empty, then projections for *all* cameras will '
+        'be computed and the order will follow the sorted keys of '
+        'features.images.')
+    return p
+
+  def TransformFeatures(self, features):
+    p = self.params
+
+    # save the shape of cell_center_xyz, and flatten the tensor
+    centers_leading_shape = features.cell_center_xyz.shape[:-1]
+    stacked_cell_center_xyz = tf.reshape(
+        features.cell_center_xyz, shape=[-1, 3])
+
+    camera_names = p.camera_names or sorted(features.images.keys())
+    cameras = [(camera_name, features.images[camera_name])
+               for camera_name in camera_names]
+    features.cell_center_projected = PointsToBestCamera(stacked_cell_center_xyz,
+                                                        cameras,
+                                                        features.metadata.pose)
+
+    # reshape back to the original shape
+    features.cell_center_projected.cameras_idx = tf.reshape(
+        features.cell_center_projected.cameras_idx, centers_leading_shape)
+    features.cell_center_projected.points_in_best_camera = tf.reshape(
+        features.cell_center_projected.points_in_best_camera,
+        centers_leading_shape + [3])
+    features.cell_center_projected.mask = tf.reshape(
+        features.cell_center_projected.mask, centers_leading_shape)
+    return features
+
+  def TransformShapes(self, shapes):
+    centers_leading_shape = shapes.cell_center_xyz[:-1]
+    shapes.cell_center_projected = py_utils.NestedMap(
+        cameras_idx=tf.TensorShape(centers_leading_shape),
+        points_in_best_camera=tf.TensorShape(centers_leading_shape + [3]),
+        mask=tf.TensorShape(centers_leading_shape))
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    dtypes.cell_center_projected = py_utils.NestedMap(
+        cameras_idx=tf.int32, points_in_best_camera=tf.float32, mask=tf.float32)
+    return dtypes
+
+
+class RescaleResizeImages(input_preprocessors.Preprocessor):
+  """Rescale and resizes camera images with projected points corrections.
+
+  This extractor expects the following inputs to be present in 'features':
+    keys configured in projected_points_keys
+    images:
+      for each camera in camera_names, a NestedMap with an 'image' key.
+
+  Modifies the images and projected_points_keys. Note that this emits the images
+  with dtype tf.float32.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'rescale', True, 'Whether to rescale the image rgb values from '
+        '[0, 255] to [-1, 1].')
+    p.Define('resize_ratio', 1.0, 'Resize ratio. 1.0 indicates no resizing.')
+    p.Define(
+        'projected_points_keys', [], 'Keys for projected points. For '
+        'example, cell_center_projected.points_in_best_camera. The '
+        'points will be scaled according to the ratio.')
+    return p
+
+  def TransformFeatures(self, features):
+    p = self.params
+    for camera_name in features.images.keys():
+      image = features.images[camera_name].image
+      height, width = tf.unstack(tf.cast(image.shape[0:2], tf.float32), num=2)
+      new_height = tf.cast(height * p.resize_ratio, tf.int32)
+      new_width = tf.cast(width * p.resize_ratio, tf.int32)
+      # Add a temporary batch dimension for resize_bilinear.
+      features.images[camera_name].image = tf.image.resize_bilinear(
+          image[tf.newaxis, ...], (new_height, new_width),
+          align_corners=True)[0]
+      if p.rescale:
+        features.images[camera_name].image = (
+            2.0 * features.images[camera_name].image / 255.0) - 1.0
+
+    for key in p.projected_points_keys:
+      projected_points = features.Get(key)
+      if projected_points is None:
+        raise ValueError('Key `{}` is not present in features.'.format(key))
+      features.Set(key,
+                   projected_points * [[p.resize_ratio, p.resize_ratio, 1.]])
+
+    return features
+
+  def TransformShapes(self, shapes):
+    p = self.params
+    for camera_name in shapes.images.keys():
+      shape_rest = shapes.images[camera_name].image[2:].as_list()
+      height, width = shapes.images[camera_name].image[0:2].as_list()
+      new_height = int(height * p.resize_ratio)
+      new_width = int(width * p.resize_ratio)
+      shapes.images[camera_name].image = tf.TensorShape(
+          [new_height, new_width] + shape_rest)
+    return shapes
+
+  def TransformDTypes(self, dtypes):
+    for camera_name in dtypes.images.keys():
+      dtypes.images[camera_name].image = tf.float32
+    return dtypes
