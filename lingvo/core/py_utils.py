@@ -53,6 +53,7 @@ import six
 from tensorflow.core.framework import attr_value_pb2
 from tensorflow.core.framework import node_def_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
+from tensorflow.python.eager import context
 from tensorflow.python.framework import func_graph
 from tensorflow.python.framework import function
 from tensorflow.python.ops import init_ops
@@ -680,6 +681,17 @@ def SetEagerMode(eager_mode=True, test_mode=False):
 
 def IsEagerMode():
   return _IS_EAGER_MODE
+
+
+# Defaults to True.
+# Set to false for already existing Eager mode tests.
+_EAGER_RNG_ADAPTATION = True
+
+
+def SetEagerRngAdaptation(mode=True):
+  """Whether to reproduce the TF1 stateful RNG behaviors in pure Eager mode."""
+  global _EAGER_RNG_ADAPTATION
+  _EAGER_RNG_ADAPTATION = mode
 
 
 # Maintains a tf.GradientTape stack.
@@ -1847,7 +1859,23 @@ def _CreateVariableStateful(name,
   with tf.variable_scope(name) as scope:
     var_name = GetVariableName(scope.name)
 
-  if tf.get_default_graph().seed is not None:
+  global_seed = None
+  if tf.executing_eagerly() and _EAGER_RNG_ADAPTATION:
+    # Equivalent to graph mode `tf.get_default_graph().seed`
+    # Refer to `tf.get_seed` implementation
+    global_seed = context.global_seed()
+    # These stateful rng initializers use e.g. `tf.compat.v1.random_uniform`,
+    # which use internal counters in addition to the arg seeds to generate nums.
+    # `set_seed` resets the internal counters, so that repeated calls to the
+    # same stateful rng kernel with the same seeds returns the same results.
+    # This was not necessary for `testCreateVariableUniform`.
+    # However, it is very likely needed for casese e.g. when `default_seed` is
+    # specified.
+    tf.random.set_seed(global_seed)
+  else:
+    global_seed = tf.get_default_graph().seed
+
+  if global_seed is not None:
     # We are in a program/test which need determistic randomization.
     if seed is None:
       if default_seed is not None:
