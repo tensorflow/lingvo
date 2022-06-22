@@ -18,4 +18,5 @@
 # pylint: disable=unused-import
 import lingvo.tasks.car.params.kitti
 import lingvo.tasks.car.params.waymo
+import lingvo.tasks.car.params.waymo_deepfusion
 # pylint: enable=unused-import
