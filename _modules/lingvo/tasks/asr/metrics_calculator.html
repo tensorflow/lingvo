@@ -147,6 +147,9 @@
    <span class="n">topk_scores</span><span class="p">,</span> <span class="n">utt_id</span><span class="p">,</span> <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">target_labels</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
    <span class="n">topk_ids</span><span class="p">,</span> <span class="n">topk_lens</span><span class="p">)</span> <span class="o">=</span> <span class="n">postprocess_inputs</span>
 
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">transcripts</span><span class="o">.</span><span class="n">size</span><span class="p">:</span>
+    <span class="k">return</span>
+
   <span class="c1"># Case sensitive WERs.</span>
   <span class="n">total_ins</span><span class="p">,</span> <span class="n">total_subs</span><span class="p">,</span> <span class="n">total_dels</span><span class="p">,</span> <span class="n">total_errs</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
   <span class="c1"># Case insensitive WERs.</span>
