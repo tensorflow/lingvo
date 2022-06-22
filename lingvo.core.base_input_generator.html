@@ -102,6 +102,37 @@ otherwise num_infeed_hosts is 1.</p></li>
 <dd><p>Get the TPU ordinal for an input shard generated for the given task.</p>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.base_input_generator._ReorderTensorToLogical">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.base_input_generator.</span></span><span class="sig-name descname"><span class="pre">_ReorderTensorToLogical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor_list</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#_ReorderTensorToLogical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator._ReorderTensorToLogical" title="Permalink to this definition"></a></dt>
+<dd><p>Reorder tensor into logical assignment order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>tensor_list</strong> – list of tensor in host order, size is num_infeed_hosts.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>tensor_list reordered in logical assignment.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.base_input_generator._RorderPartitionedTensorToLogical">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.base_input_generator.</span></span><span class="sig-name descname"><span class="pre">_RorderPartitionedTensorToLogical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensor_list</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">tpu_number_of_shards</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#_RorderPartitionedTensorToLogical"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator._RorderPartitionedTensorToLogical" title="Permalink to this definition"></a></dt>
+<dd><p>Reorder partitioned tensor into logical assignment order.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor_list</strong> – list of tensor in host order, size is num_infeed_hosts.</p></li>
+<li><p><strong>tpu_number_of_shards</strong> – # of shards to split input_batch into.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>tensor_list reordered in logical assignment.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.base_input_generator.BaseInputGenerator">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.base_input_generator.</span></span><span class="sig-name descname"><span class="pre">BaseInputGenerator</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator" title="Permalink to this definition"></a></dt>

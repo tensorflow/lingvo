@@ -146,6 +146,61 @@
   <span class="k">return</span> <span class="n">tpu_ordinal</span></div>
 
 
+<div class="viewcode-block" id="_ReorderTensorToLogical"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator._ReorderTensorToLogical">[docs]</a><span class="k">def</span> <span class="nf">_ReorderTensorToLogical</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reorder tensor into logical assignment order.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensor_list: list of tensor in host order, size is num_infeed_hosts.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    tensor_list reordered in logical assignment.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">sub_tensor_list</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
+  <span class="k">assert</span> <span class="n">device_assignment</span>
+  <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_replicas</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">core</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_cores_per_replica</span><span class="p">):</span>
+      <span class="n">coordinates</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">coordinates</span><span class="p">(</span><span class="n">replica</span><span class="p">,</span> <span class="n">core</span><span class="p">)</span>
+      <span class="n">task_id</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">task_ordinal_at_coordinates</span><span class="p">(</span>
+          <span class="n">coordinates</span><span class="p">)</span>
+      <span class="n">device_id</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">tpu_ordinal</span><span class="p">(</span><span class="n">replica</span><span class="p">,</span> <span class="n">core</span><span class="p">)</span>
+      <span class="n">tensors</span> <span class="o">=</span> <span class="n">tensor_list</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span>
+      <span class="n">sub_tensors</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">num_tpus_per_task</span><span class="p">,</span>
+                   <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="n">device_id</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensors</span>
+      <span class="p">]</span>
+      <span class="n">sub_tensor_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sub_tensors</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">sub_tensor_list</span></div>
+
+
+<div class="viewcode-block" id="_RorderPartitionedTensorToLogical"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator._RorderPartitionedTensorToLogical">[docs]</a><span class="k">def</span> <span class="nf">_RorderPartitionedTensorToLogical</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">,</span> <span class="n">tpu_number_of_shards</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reorder partitioned tensor into logical assignment order.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensor_list: list of tensor in host order, size is num_infeed_hosts.</span>
+<span class="sd">    tpu_number_of_shards: # of shards to split input_batch into.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    tensor_list reordered in logical assignment.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">sub_tensor_list</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
+  <span class="k">assert</span> <span class="n">device_assignment</span>
+  <span class="k">for</span> <span class="n">replica</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">num_replicas</span><span class="p">):</span>
+    <span class="n">core</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">coordinates</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">coordinates</span><span class="p">(</span><span class="n">replica</span><span class="p">,</span> <span class="n">core</span><span class="p">)</span>
+    <span class="n">task_id</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">task_ordinal_at_coordinates</span><span class="p">(</span>
+        <span class="n">coordinates</span><span class="p">)</span>
+    <span class="n">tensors</span> <span class="o">=</span> <span class="n">tensor_list</span><span class="p">[</span><span class="n">task_id</span><span class="p">]</span>
+    <span class="n">replicas</span> <span class="o">=</span> <span class="n">device_assignment</span><span class="o">.</span><span class="n">lookup_replicas</span><span class="p">(</span><span class="n">task_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">shard_idx</span> <span class="o">=</span> <span class="n">replicas</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">replica</span><span class="p">)</span>
+    <span class="n">sub_tensors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tpu_number_of_shards</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)[</span><span class="n">shard_idx</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensors</span>
+    <span class="p">]</span>
+    <span class="n">sub_tensor_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">sub_tensors</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">sub_tensor_list</span></div>
+
+
 <div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;The abstract base input generator.&quot;&quot;&quot;</span>
 
@@ -246,6 +301,11 @@
         <span class="s1">&#39;do_eval is False, otherwise fallback to &quot;inference&quot; mode; }.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cpu_passthrough_keys&#39;</span><span class="p">,</span> <span class="p">[],</span>
              <span class="s1">&#39;A list of keys in the input batch to not send to TPU device.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;outfeed_in_logical_order&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If true, CPU passthrough tensors must be reordered so that it &#39;</span>
+        <span class="s1">&#39;follows logical core assignment order. This is used when using &#39;</span>
+        <span class="s1">&#39;executor ExperimentalDecodeProgram.&#39;</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -936,6 +996,13 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
           <span class="n">tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">tensors</span><span class="p">]</span>
         <span class="n">tensor_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">outfeed_in_logical_order</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_partitions</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">num_partitions</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">tensor_list</span> <span class="o">=</span> <span class="n">_RorderPartitionedTensorToLogical</span><span class="p">(</span>
+            <span class="n">tensor_list</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_number_of_shards</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tensor_list</span> <span class="o">=</span> <span class="n">_ReorderTensorToLogical</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">)</span>
 
     <span class="c1"># TODO(laigd): consider moving the concat logic out to make the API simpler.</span>
     <span class="k">if</span> <span class="n">concat</span><span class="p">:</span>
