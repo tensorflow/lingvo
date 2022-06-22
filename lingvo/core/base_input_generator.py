@@ -80,6 +80,61 @@ def _PerHostInfeedTPUOrdinalFunction(use_per_core_infeed, task_id,
   return tpu_ordinal
 
 
+def _ReorderTensorToLogical(tensor_list):
+  """Reorder tensor into logical assignment order.
+
+  Args:
+    tensor_list: list of tensor in host order, size is num_infeed_hosts.
+
+  Returns:
+    tensor_list reordered in logical assignment.
+  """
+  sub_tensor_list = []
+  device_assignment = py_utils.GetTpuDeviceAssignment()
+  assert device_assignment
+  for replica in range(device_assignment.num_replicas):
+    for core in range(device_assignment.num_cores_per_replica):
+      coordinates = device_assignment.coordinates(replica, core)
+      task_id = device_assignment.topology.task_ordinal_at_coordinates(
+          coordinates)
+      device_id = device_assignment.tpu_ordinal(replica, core)
+      tensors = tensor_list[task_id]
+      sub_tensors = [
+          tf.split(t, device_assignment.topology.num_tpus_per_task,
+                   axis=0)[device_id] for t in tensors
+      ]
+      sub_tensor_list.append(sub_tensors)
+  return sub_tensor_list
+
+
+def _RorderPartitionedTensorToLogical(tensor_list, tpu_number_of_shards):
+  """Reorder partitioned tensor into logical assignment order.
+
+  Args:
+    tensor_list: list of tensor in host order, size is num_infeed_hosts.
+    tpu_number_of_shards: # of shards to split input_batch into.
+
+  Returns:
+    tensor_list reordered in logical assignment.
+  """
+  sub_tensor_list = []
+  device_assignment = py_utils.GetTpuDeviceAssignment()
+  assert device_assignment
+  for replica in range(device_assignment.num_replicas):
+    core = 0
+    coordinates = device_assignment.coordinates(replica, core)
+    task_id = device_assignment.topology.task_ordinal_at_coordinates(
+        coordinates)
+    tensors = tensor_list[task_id]
+    replicas = device_assignment.lookup_replicas(task_id, 0)
+    shard_idx = replicas.index(replica)
+    sub_tensors = [
+        tf.split(t, tpu_number_of_shards, axis=0)[shard_idx] for t in tensors
+    ]
+    sub_tensor_list.append(sub_tensors)
+  return sub_tensor_list
+
+
 class BaseInputGenerator(base_layer.BaseLayer):
   """The abstract base input generator."""
 
@@ -180,6 +235,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'do_eval is False, otherwise fallback to "inference" mode; }.')
     p.Define('cpu_passthrough_keys', [],
              'A list of keys in the input batch to not send to TPU device.')
+    p.Define(
+        'outfeed_in_logical_order', False,
+        'If true, CPU passthrough tensors must be reordered so that it '
+        'follows logical core assignment order. This is used when using '
+        'executor ExperimentalDecodeProgram.')
 
     return p
 
@@ -870,6 +930,13 @@ class BaseInputGenerator(base_layer.BaseLayer):
         if not isinstance(tensors, list):
           tensors = [tensors]
         tensor_list.append(tensors)
+
+    if p.outfeed_in_logical_order:
+      if p.num_partitions is not None and p.num_partitions > 1:
+        tensor_list = _RorderPartitionedTensorToLogical(
+            tensor_list, self.tpu_number_of_shards)
+      else:
+        tensor_list = _ReorderTensorToLogical(tensor_list)
 
     # TODO(laigd): consider moving the concat logic out to make the API simpler.
     if concat:
