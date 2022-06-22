@@ -119,6 +119,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="kn">import</span> <span class="n">attr_value_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="kn">import</span> <span class="n">node_def_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">rewriter_config_pb2</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.eager</span> <span class="kn">import</span> <span class="n">context</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">func_graph</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">init_ops</span>
@@ -746,6 +747,17 @@
 
 <div class="viewcode-block" id="IsEagerMode"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.IsEagerMode">[docs]</a><span class="k">def</span> <span class="nf">IsEagerMode</span><span class="p">():</span>
   <span class="k">return</span> <span class="n">_IS_EAGER_MODE</span></div>
+
+
+<span class="c1"># Defaults to True.</span>
+<span class="c1"># Set to false for already existing Eager mode tests.</span>
+<span class="n">_EAGER_RNG_ADAPTATION</span> <span class="o">=</span> <span class="kc">True</span>
+
+
+<div class="viewcode-block" id="SetEagerRngAdaptation"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.SetEagerRngAdaptation">[docs]</a><span class="k">def</span> <span class="nf">SetEagerRngAdaptation</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Whether to reproduce the TF1 stateful RNG behaviors in pure Eager mode.&quot;&quot;&quot;</span>
+  <span class="k">global</span> <span class="n">_EAGER_RNG_ADAPTATION</span>
+  <span class="n">_EAGER_RNG_ADAPTATION</span> <span class="o">=</span> <span class="n">mode</span></div>
 
 
 <span class="c1"># Maintains a tf.GradientTape stack.</span>
@@ -1913,7 +1925,23 @@
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
     <span class="n">var_name</span> <span class="o">=</span> <span class="n">GetVariableName</span><span class="p">(</span><span class="n">scope</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+  <span class="n">global_seed</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">()</span> <span class="ow">and</span> <span class="n">_EAGER_RNG_ADAPTATION</span><span class="p">:</span>
+    <span class="c1"># Equivalent to graph mode `tf.get_default_graph().seed`</span>
+    <span class="c1"># Refer to `tf.get_seed` implementation</span>
+    <span class="n">global_seed</span> <span class="o">=</span> <span class="n">context</span><span class="o">.</span><span class="n">global_seed</span><span class="p">()</span>
+    <span class="c1"># These stateful rng initializers use e.g. `tf.compat.v1.random_uniform`,</span>
+    <span class="c1"># which use internal counters in addition to the arg seeds to generate nums.</span>
+    <span class="c1"># `set_seed` resets the internal counters, so that repeated calls to the</span>
+    <span class="c1"># same stateful rng kernel with the same seeds returns the same results.</span>
+    <span class="c1"># This was not necessary for `testCreateVariableUniform`.</span>
+    <span class="c1"># However, it is very likely needed for casese e.g. when `default_seed` is</span>
+    <span class="c1"># specified.</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">set_seed</span><span class="p">(</span><span class="n">global_seed</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">global_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">seed</span>
+
+  <span class="k">if</span> <span class="n">global_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="c1"># We are in a program/test which need determistic randomization.</span>
     <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">default_seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
