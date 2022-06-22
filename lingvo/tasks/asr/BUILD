@@ -235,6 +235,7 @@ pytype_strict_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
+        "//lingvo/core:tokenizers",
         # Implicit numpy dependency.
     ],
 )

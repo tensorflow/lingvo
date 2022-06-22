@@ -20,6 +20,7 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import metrics
 from lingvo.core import py_utils
+from lingvo.core import tokenizers
 from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import eos_normalization
 from lingvo.tasks.asr import metrics_calculator
@@ -86,13 +87,17 @@ class DecoderMetrics(base_layer.BaseLayer):
     p.Define(
         'log_utf8', False,
         'If True, decodes reference and hypotheses bytes to UTF-8 for logging.')
+    p.Define(
+        'only_output_tpu_tensors', False,
+        'If True, ComputeMetrics() will only output TPU compatible tensors, '
+        'no string output, and PostProcess() will run Detokenize. '
+        'Note: This requires tokenizer implemented IdsToStringsPython().')
     return p
 
   def __init__(self, params):
     if not params.name:
       raise ValueError('params.name not set.')
     super().__init__(params)
-    p = self.params
 
   def GetTopK(self, decoder_outs, ids_to_strings_fn, tag=''):
     return BeamSearchDecodeOutputToDecoderTopK(
@@ -191,15 +196,19 @@ class DecoderMetrics(base_layer.BaseLayer):
     if 'is_real' in input_batch:
       ret_dict['is_real'] = input_batch.is_real
 
-    if 'language.raw' in input_batch:
+    if not py_utils.use_tpu() and 'language.raw' in input_batch:
       ret_dict['language'] = input_batch.language.raw
-    if 'testset_name' in input_batch:
+    if not py_utils.use_tpu() and 'testset_name' in input_batch:
       ret_dict['testset_name'] = input_batch['testset_name']
 
     ret_dict.update(
         self.AddAdditionalDecoderMetricsToGraph(topk, filtered_hyps,
                                                 filtered_refs, input_batch,
                                                 decoder_outs))
+    # Remove string outputs
+    if self.params.only_output_tpu_tensors:
+      del ret_dict['transcripts']
+      del ret_dict['topk_decoded']
     return ret_dict
 
   def CreateMetrics(self):
@@ -237,7 +246,7 @@ class DecoderMetrics(base_layer.BaseLayer):
 
   def FilterRealExamples(self, dec_out_dict: Dict[str, Any]) -> None:
     """Remove from input dec_out_dict data that do not refer to real utt."""
-    is_real = dec_out_dict['is_real']
+    is_real = dec_out_dict['is_real'].copy()
     for key in dec_out_dict.keys():
       if key in ['topk_ids', 'topk_lens']:
         # Array length should be the total # of hyps for all utts.
@@ -254,10 +263,21 @@ class DecoderMetrics(base_layer.BaseLayer):
         dec_out_dict[key] = np.asarray(
             [dec_out_dict[key][i] for i in range(len(is_real)) if is_real[i]])
 
-  def PreparePostProcess(self, dec_out_dict,
-                         dec_metrics_dict) -> PostProcessInputs:
+  def DeTokenizeDecoderOuts(self, dec_out_dict: Dict[str, Any],
+                            tokenizer: tokenizers.BaseTokenizer) -> None:
+    """Fill transcripts, topk_decoded."""
+    raise NotImplementedError('DeTokenizeDecoderOuts not implemented!')
+
+  def PreparePostProcess(self,
+                         dec_out_dict,
+                         dec_metrics_dict,
+                         tokenizer=None) -> PostProcessInputs:
     """Prepare the objects for PostProcess metrics calculations."""
     assert 'topk_scores' in dec_out_dict, list(dec_out_dict.keys())
+
+    # IdToString outside of tf session.
+    if 'transcripts' not in dec_out_dict:
+      self.DeTokenizeDecoderOuts(dec_out_dict, tokenizer)
     # Filter out examples that is not real (dummy batch paddings).
     if 'is_real' in dec_out_dict:
       self.FilterRealExamples(dec_out_dict)
@@ -265,10 +285,20 @@ class DecoderMetrics(base_layer.BaseLayer):
     topk_scores = dec_out_dict['topk_scores']
     topk_decoded = dec_out_dict['topk_decoded']
     transcripts = dec_out_dict['transcripts']
+
+    # If all filtered, early return.
+    if not transcripts.size:
+      return PostProcessInputs(
+          np.array([]), np.array([]), np.array([]), np.array([]), np.array([]),
+          np.array([]), np.array([]), np.array([]), np.array([]), np.array([]),
+          np.array([]))
+
     utt_id = None
-    if not py_utils.use_tpu():
+    if 'utt_id' in dec_out_dict:
       utt_id = dec_out_dict['utt_id']
-      assert len(utt_id) == len(transcripts)
+    elif 'sample_ids' in dec_out_dict:
+      utt_id = dec_out_dict['sample_ids']
+    assert utt_id is None or len(utt_id) == len(transcripts)
     norm_wer_errors = dec_out_dict['norm_wer_errors']
     norm_wer_words = dec_out_dict['norm_wer_words']
     target_labels = dec_out_dict['target_labels']
@@ -310,9 +340,10 @@ class DecoderMetrics(base_layer.BaseLayer):
                              norm_wer_errors, target_labels, target_paddings,
                              topk_ids, topk_lens)
 
-  def PostProcess(self, dec_out_dict, dec_metrics_dict):
+  def PostProcess(self, dec_out_dict, dec_metrics_dict, tokenizer=None):
     key_value_pairs = []  # To store results per each utt, not used now.
-    postprocess_inputs = self.PreparePostProcess(dec_out_dict, dec_metrics_dict)
+    postprocess_inputs = self.PreparePostProcess(dec_out_dict, dec_metrics_dict,
+                                                 tokenizer)
     p = self.params
     if p.include_auxiliary_metrics:
       metrics_calculator.CalculateMetrics(postprocess_inputs, dec_metrics_dict,

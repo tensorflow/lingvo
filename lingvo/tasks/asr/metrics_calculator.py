@@ -81,6 +81,9 @@ def CalculateMetrics(
    topk_scores, utt_id, norm_wer_errors, target_labels, target_paddings,
    topk_ids, topk_lens) = postprocess_inputs
 
+  if not transcripts.size:
+    return
+
   # Case sensitive WERs.
   total_ins, total_subs, total_dels, total_errs = 0, 0, 0, 0
   # Case insensitive WERs.

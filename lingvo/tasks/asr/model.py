@@ -231,7 +231,8 @@ class AsrModel(base_model.BaseTask):
     return self.decoder_metrics.CreateMetrics()
 
   def PostProcessDecodeOut(self, dec_out_dict, dec_metrics_dict):
-    return self.decoder_metrics.PostProcess(dec_out_dict, dec_metrics_dict)
+    return self.decoder_metrics.PostProcess(
+        dec_out_dict, dec_metrics_dict, getattr(self.input, 'tokenizer', None))
 
   def Inference(self):
     """Constructs inference subgraphs.
