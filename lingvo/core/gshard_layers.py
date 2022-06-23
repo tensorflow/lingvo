@@ -2598,16 +2598,14 @@ def TokenShufflingOnlogitsV2(logits,
   if gates.dtype != fprop_dtype:
     gates = tf.cast(gates, fprop_dtype)
 
-  token_scores = logits
+  token_scores = gates
   nonpaddings = tf.ones([logits.shape[0], logits.shape[1]], dtype=logits.dtype)
   if paddings is not None:
     # GS
-    very_negative_logits = logits.dtype.max * tf.constant(
-        -0.7, dtype=logits.dtype) * tf.cast(paddings, logits.dtype)
     nonpaddings = 1.0 - paddings
-    token_scores *= tf.expand_dims(tf.cast(nonpaddings, logits.dtype), -1)
-    token_scores += tf.expand_dims(
-        tf.cast(very_negative_logits, logits.dtype), -1)
+    token_scores *= tf.cast(
+        tf.expand_dims(tf.cast(nonpaddings, logits.dtype), -1),
+        dtype=token_scores.dtype)
 
   # GES
   token_scores = tf.transpose(token_scores, [0, 2, 1])
