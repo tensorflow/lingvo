@@ -146,7 +146,7 @@ function and run it with inputs provided by <code class="xref py py-obj docutils
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>function_or_fetches</strong> – Either an eager tensor, or a function decorated by
+<li><p><strong>function_or_fetches</strong> – Eager tensors, or functions decorated by
 &#64;DefineAndTrace.</p></li>
 <li><p><strong>feed_dict</strong> – A dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.TensorSpec</span></code> -&gt; value as input, where the keys are
 specs created by <a class="reference internal" href="#lingvo.core.test_utils._PlaceholderAdapter" title="lingvo.core.test_utils._PlaceholderAdapter"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_PlaceholderAdapter</span></code></a>. Applicable only when
@@ -158,6 +158,11 @@ specs created by <a class="reference internal" href="#lingvo.core.test_utils._Pl
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.test_utils._EagerSessionAdaptor._run_impl">
+<span class="sig-name descname"><span class="pre">_run_impl</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">function_or_fetches</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feed_dict</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#_EagerSessionAdaptor._run_impl"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils._EagerSessionAdaptor._run_impl" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -283,6 +288,28 @@ Code:</p>
 dy/dx[i] is computed if i % step == 0.</p></li>
 <li><p><strong>extra_feed_dict</strong> – Additional feed_dict of tensors to keep fixed during the
 gradient checking.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of the same shape and dtype as x. If x[i] is not chosen
+to compute the numerical gradient dy/x[i], the corresponding
+value is set to 0.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.test_utils.ComputeNumericGradientEager">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.test_utils.</span></span><span class="sig-name descname"><span class="pre">ComputeNumericGradientEager</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">step</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/test_utils.html#ComputeNumericGradientEager"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.test_utils.ComputeNumericGradientEager" title="Permalink to this definition"></a></dt>
+<dd><p>Compute the numeric gradient of output of <code class="xref py py-obj docutils literal notranslate"><span class="pre">fy</span></code> wrt to x in Eager mode.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fy</strong> – A callable that takes an input (<code class="xref py py-obj docutils literal notranslate"><span class="pre">x</span></code>).</p></li>
+<li><p><strong>x</strong> – The input.</p></li>
+<li><p><strong>delta</strong> – Gradient checker’s small perturbation of x[i].</p></li>
+<li><p><strong>step</strong> – Only compute numerical gradients for a subset of x values. I.e.
+dy/dx[i] is computed if i % step == 0.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
