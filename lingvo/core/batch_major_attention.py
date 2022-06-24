@@ -4534,7 +4534,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
           output, atten_state1 = self.StreamStepAddSkipConnection(
               input_to_add, output, state0, atten_state1)
         else:
-          print(state0)
           output, atten_state1 = self.atten.StreamStepAddSkipConnection(
               input_to_add, output, state0.atten, atten_state1.atten)
           atten_state1 = py_utils.NestedMap(atten=atten_state1)
