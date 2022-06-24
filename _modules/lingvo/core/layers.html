@@ -3341,6 +3341,19 @@
         <span class="s1">&#39;Not using bias is not compatible with sampled softmax &#39;</span>
         <span class="s1">&#39;(num_sampled &gt; 0).&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bias_init&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Weight initialization constant for bias.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;b_compression&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the b_matrix&#39;</span>
+        <span class="s1">&#39;introduced by input/output compression. None means no quantization.&#39;</span>
+        <span class="s1">&#39;Otherwise will be set to an instance of the QDomain class.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;c_compression&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the c_matrix&#39;</span>
+        <span class="s1">&#39;introduced by input/output compression. None means no quantization.&#39;</span>
+        <span class="s1">&#39;Otherwise will be set to an instance of the QDomain class.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;d_compression&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization domain for the d_matrix&#39;</span>
+        <span class="s1">&#39;introduced by input/output compression. None means no quantization.&#39;</span>
+        <span class="s1">&#39;Otherwise will be set to an instance of the QDomain class.&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
