@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests for layers."""
+"""Tests for layers in both TF1 and TF2 modes."""
 
+import contextlib
 import math
 
 from absl.testing import parameterized
@@ -28,6 +29,33 @@ from lingvo.core import symbolic
 from lingvo.core import test_utils
 from lingvo.core import tshape
 import numpy as np
+
+
+def _ResetTfStatus(test_obj, context_stack):
+  # pylint: disable=g-doc-args,g-doc-return-or-yield
+  """Reset TF status.
+
+  The implementation differs in Graph and Eager mode. In Graph mode, the status
+  is renewed by entering a new graph. In Eager mode, the status is renewed by
+  calling `setUp` method.
+  """
+  # pylint: enable=g-doc-args,g-doc-return-or-yield
+  g = tf.Graph()
+  if tf.executing_eagerly():
+    test_obj.setUp()  # Clear up status including the variable reuse scopes
+    g = None  # Used later in `tf.Session` call
+  else:
+    context_stack.enter_context(g.as_default())
+
+  return g
+
+
+def _GetTrainableVars(layer):
+  if tf.executing_eagerly_outside_functions():
+    assert layer is not None, 'layer is needed in Eager mode'
+    return [v for v in layer.GetVariablesDict().values() if v.trainable]
+  else:
+    return tf.trainable_variables()
 
 
 class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
@@ -129,8 +157,16 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       sig1 = tf.reduce_sum(bn_out)
       sig2 = tf.reduce_sum(bn_out * bn_out)
       self.evaluate(tf.global_variables_initializer())
-      self.assertAllClose(2.6593573, self.evaluate(sig1), atol=1e-5)
-      self.assertAllClose(15.464208, self.evaluate(sig2))
+      if tf.executing_eagerly():
+        # TODO(b/211685958): the golden values here differ from TF1 mode tests.
+        # This is because in TF1 mode, the moving average of batch means and
+        # variances are not updated in time. In TF2 mode, on the other hand,
+        # the moving averages are calculated in time.
+        self.assertAllClose(2.6575432, self.evaluate(sig1), atol=1e-5)
+        self.assertAllClose(15.473803, self.evaluate(sig2))
+      else:
+        self.assertAllClose(2.6593573, self.evaluate(sig1), atol=1e-5)
+        self.assertAllClose(15.464208, self.evaluate(sig2))
 
   def testBatchNormLayerFPropWithUpdateUseGlobalStatsForTraining(self):
     with self.session(use_gpu=True):
@@ -241,7 +277,6 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
         in_padding1 = tf.zeros([2, 4, 1, 1], dtype=tf.float32)
         np_in1 = np.random.normal(0.1, 0.5, [2, 4, 1, 32])
         bn_in1 = tf.constant(np_in1, dtype=tf.float32)
-        bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
         self.evaluate(tf.global_variables_initializer())
         # Moving mean and variance are set to defaults, we set gamma and beta
         # through assignment such that the outputs are inputs * 2 + 1.
@@ -256,6 +291,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
             tf.assign(bn_layer.vars.moving_mean, moving_mean_init),
             tf.assign(bn_layer.vars.moving_variance, moving_variance_init),
         ])
+        bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
         self.assertAllClose(
             np_in1 * 2. + 1., self.evaluate(bn_out), atol=1e-5, rtol=1e-5)
         # check moving stats modified or not
@@ -377,7 +413,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       gn_layer = bn_layers.GroupNormLayer(params)
       gn_out = gn_layer.FPropDefaultTheta(gn_in)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       if epsilon == 1e-6:
         base_block = np.array([[[-1.444444, -1.222222], [-0.555555, -0.333333]],
                                [[0.333333, 0.555555], [1.222222, 1.444444]]])
@@ -406,7 +442,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       gn_layer = bn_layers.GroupNormLayer(params)
       gn_out, paddings_out = gn_layer.FPropDefaultTheta(gn_in, paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       base_block1 = np.array([[[-1.44440889, -1.22219217],
                                [-0.55554187, -0.33332515]],
                               [[0.33332515, 0.55554187],
@@ -447,7 +483,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       gn_layer = bn_layers.GroupNormLayer(params)
       gn_out, _ = gn_layer.FPropDefaultTheta(gn_in, paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(expected_sum, self.evaluate(tf.reduce_sum(gn_out)))
 
   def testFPropWithPaddings3DInput(self):
@@ -470,7 +506,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
           tf.convert_to_tensor(gn_in.reshape([2, 2, 4])),
           tf.convert_to_tensor(paddings))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       print(self.evaluate(gn_out))
       # Tests against reference.
       self.assertAllClose(
@@ -497,7 +533,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       gn_layer = bn_layers.GroupNormLayer(params)
       gn_out, _ = gn_layer.FPropDefaultTheta(gn_in, paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       base_block = np.array([[0., 0.], [1.4128014, 1.4128014],
                              [1.5487288, 1.5487288], [1.6033384, 1.6033384]])
 
@@ -953,8 +989,8 @@ class ConvLayerTest(test_utils.TestCase):
                             dilation_rate=None,
                             depth_multiplier=None,
                             params_builder=layers.Conv2DLayer.Params):
-    g = tf.Graph()
-    with g.as_default():
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
       tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = params_builder()
@@ -1392,8 +1428,8 @@ class ConvLayerTest(test_utils.TestCase):
     self.assertAllClose(actual_folded, actual_unfolded)
 
   def testConv2DLayerNoPadding(self):
-    g = tf.Graph()
-    with g.as_default():
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
       tf.random.set_seed(24332)
       p = layers.Conv2DLayerNoPadding.Params().Set(
           name='test', filter_shape=(3, 3, 3, 5), filter_stride=(2, 2))
@@ -1621,15 +1657,35 @@ class ConvLayerTest(test_utils.TestCase):
       output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
       loss = tf.reduce_sum(output1)
 
-      all_vars = tf.trainable_variables()
+      all_vars = _GetTrainableVars(conv_layer)
       self.assertEqual(3, len(all_vars))
 
-      grads = tf.gradients(loss, all_vars)
       self.evaluate(tf.global_variables_initializer())
-      sym_grads = [self.evaluate(sg) for sg in grads]
-      num_grads = [
-          test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
-      ]
+
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
+        loss = tf.reduce_sum(output1)
+        return tf.gradients(loss, all_vars)
+
+      sym_grads = self.evaluate(_Grads)
+
+      if tf.executing_eagerly():
+        num_grads = []
+        for v in all_vars:
+          x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
+
+          @test_utils.DefineAndTrace(x)
+          def _Loss(x):
+            v.assign(x)  # pylint: disable=cell-var-from-loop
+            output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
+            return tf.reduce_sum(output1)
+
+          num_grads.append(test_utils.ComputeNumericGradientEager(_Loss, v))
+      else:
+        num_grads = [
+            test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
+        ]
 
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
@@ -1818,7 +1874,7 @@ class PoolingLayerTest(test_utils.TestCase, parameterized.TestCase):
       output, output_paddings = pooling_layer.FPropDefaultTheta(
           inputs, input_paddings)
       output_without_padding = pooling_layer.FPropDefaultTheta(inputs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output_val, output_paddings_val, output_without_padding_val = sess.run(
           [output, output_paddings, output_without_padding])
 
@@ -2055,16 +2111,16 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
         inputs = tf.reshape(inputs, [-1, input_dim])
 
       proj_layer = layers.ProjectionLayer(params)
+      self.evaluate(tf.global_variables_initializer())
+      if quantized:
+        # Put it in the fully quantized range.
+        self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
       if layer_callback:
         layer_callback(proj_layer)
       if expect_bn_fold_weights is not None:
         self.assertEqual(expect_bn_fold_weights, proj_layer._is_bn_folded)
 
       output = proj_layer.FPropDefaultTheta(inputs, in_padding)
-      self.evaluate(tf.global_variables_initializer())
-      if quantized:
-        # Put it in the fully quantized range.
-        self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
       return self.evaluate(output)
 
   @parameterized.named_parameters(
@@ -2227,19 +2283,39 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
       loss = tf.reduce_sum(output1)
 
-      all_vars = tf.trainable_variables()
+      all_vars = _GetTrainableVars(proj_layer)
       self.assertLen(all_vars, 3)
 
-      grads = tf.gradients(loss, all_vars)
       self.evaluate(tf.global_variables_initializer())
-      sym_grads = [self.evaluate(sg) for sg in grads]
-      num_grads = [
-          test_utils.ComputeNumericGradient(sess, loss, v, 1e-6)
-          for v in all_vars
-      ]
+
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
+        loss = tf.reduce_sum(output1)
+        return tf.gradients(loss, all_vars)
+
+      sym_grads = self.evaluate(_Grads)
+      if tf.executing_eagerly():
+        num_grads = []
+        for v in all_vars:
+          x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
+
+          @test_utils.DefineAndTrace(x)
+          def _Loss(x):
+            v.assign(x)  # pylint: disable=cell-var-from-loop
+            output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
+            return tf.reduce_sum(output1)
+
+          num_grads.append(
+              test_utils.ComputeNumericGradientEager(_Loss, v, delta=1e-6))
+      else:
+        num_grads = [
+            test_utils.ComputeNumericGradient(sess, loss, v, 1e-6)
+            for v in all_vars
+        ]
 
       for sg, ng in zip(sym_grads, num_grads):
-        self.assertAllClose(sg, ng, rtol=1e-06, atol=1e-06)
+        self.assertAllClose(sg, ng, rtol=1e-04, atol=1e-04)
 
   def testProjectionLayerBackPropDTypeFloat16(self):
     with self.session(use_gpu=True):
@@ -2258,15 +2334,19 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       in_padding1 = tf.zeros([2, 4, 1], dtype=tf.float64)
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float64)
-      output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
-      loss = tf.reduce_sum(output1)
 
-      all_vars = tf.trainable_variables()
+      all_vars = _GetTrainableVars(proj_layer)
       self.assertLen(all_vars, 1)
 
-      grads = tf.gradients(loss, all_vars)
       self.evaluate(tf.global_variables_initializer())
-      sym_grads = [self.evaluate(sg) for sg in grads]
+
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
+        loss = tf.reduce_sum(output1)
+        return tf.gradients(loss, all_vars)
+
+      sym_grads = self.evaluate(_Grads)
 
       expected_grads = [[2.1999533, 2.1999533], [4.08647324, 4.08647324],
                         [0.76935822, 0.76935822]]
@@ -2482,16 +2562,35 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       output = proj_layer.FPropDefaultTheta(inputs)
       loss = tf.reduce_sum(output)
 
-      all_vars = tf.trainable_variables()
+      all_vars = _GetTrainableVars(proj_layer)
       self.assertLen(all_vars, 2)
 
-      grads = tf.gradients(loss, all_vars)
       self.evaluate(tf.global_variables_initializer())
-      sym_grads = [self.evaluate(sg) for sg in grads]
-      num_grads = [
-          test_utils.ComputeNumericGradient(sess, loss, v, 1e-6)
-          for v in all_vars
-      ]
+
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output = proj_layer.FPropDefaultTheta(inputs)
+        loss = tf.reduce_sum(output)
+        return tf.gradients(loss, all_vars)
+
+      sym_grads = self.evaluate(_Grads)
+      if tf.executing_eagerly():
+        num_grads = []
+        for v in all_vars:
+          x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
+
+          @test_utils.DefineAndTrace(x)
+          def _Loss(x):
+            v.assign(x)  # pylint: disable=cell-var-from-loop
+            output = proj_layer.FPropDefaultTheta(inputs)
+            return tf.reduce_sum(output)
+
+          num_grads.append(test_utils.ComputeNumericGradientEager(_Loss, v))
+      else:
+        num_grads = [
+            test_utils.ComputeNumericGradient(sess, loss, v, 1e-6)
+            for v in all_vars
+        ]
 
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-06, atol=1e-06)
@@ -2499,14 +2598,28 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
   def testProjectionLayerFPropUsingMovingAvgInTraining(self):
     # pylint: disable=bad-whitespace
     # pyformat: disable
-    expected_output = [[[0.        , 0.03491905],
-                        [0.01192194, 0.09171353],
-                        [0.01156251, 0.        ],
-                        [0.        , 0.00982281]],
-                       [[0.02097072, 0.        ],
-                        [0.00650552, 0.        ],
-                        [0.        , 0.        ],
-                        [0.        , 0.13866161]]]
+    if tf.executing_eagerly():
+      # TODO(b/211685958): the golden values here differ from TF1 mode tests.
+      # This is because in TF1 mode, the moving average of batch means and
+      # variances are not updated in time. In TF2 mode, on the other hand,
+      # the moving averages are calculated in time.
+      expected_output = [[[0.        , 0.03493048],
+                          [0.01193305, 0.09175316],
+                          [0.01157344, 0.        ],
+                          [0.        , 0.00982178]],
+                         [[0.02098635, 0.        ],
+                          [0.00651392, 0.        ],
+                          [0.        , 0.        ],
+                          [0.        , 0.13872455]]]
+    else:
+      expected_output = [[[0.        , 0.03491905],
+                          [0.01192194, 0.09171353],
+                          [0.01156251, 0.        ],
+                          [0.        , 0.00982281]],
+                         [[0.02097072, 0.        ],
+                          [0.00650552, 0.        ],
+                          [0.        , 0.        ],
+                          [0.        , 0.13866161]]]
     # pyformat: enable
     # pylint: enable=bad-whitespace
     for reshape_to_2d in (False, True):
@@ -3169,8 +3282,8 @@ class EmbeddingLayerTest(test_utils.TestCase):
                                 use_3d_weight_tensor,
                                 fprop_mode,
                                 scale_sqrt_depth=False):
-    g = tf.Graph()
-    with g.as_default():
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
       tf.random.set_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
       params.name = 'emb'
@@ -3234,8 +3347,8 @@ class EmbeddingLayerTest(test_utils.TestCase):
                                       use_3d_weight_tensor,
                                       fprop_mode,
                                       scale_sqrt_depth=False):
-    g = tf.Graph()
-    with g.as_default():
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
       tf.random.set_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
       params.name = 'kmeans_emb'
@@ -3299,8 +3412,8 @@ class EmbeddingLayerTest(test_utils.TestCase):
     self._testKmeansSimpleEmbeddingLayer(True, False, None, True)
 
   def testSimpleEmbeddingLayerMasked(self):
-    g = tf.Graph()
-    with g.as_default():
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
       tf.random.set_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
       params.name = 'emd'
@@ -3366,13 +3479,18 @@ class EmbeddingLayerTest(test_utils.TestCase):
       params.vn.per_step_vn = False
       emb_layer = layers.SimpleEmbeddingLayer(params)
       ids = tf.constant([89, 100, 89, 89])
-      embs = emb_layer.EmbLookupDefaultTheta(ids) * tf.constant([[0.1], [0.2],
-                                                                 [0.3], [0.4]])
-      embs_sum = tf.reduce_sum(embs)
-      emb_weight = emb_layer.vars.wm
-      emb_grad, = tf.gradients(ys=[embs_sum], xs=[emb_weight])
+
+      @test_utils.DefineAndTrace()
+      def _EmbGrad():
+        embs = emb_layer.EmbLookupDefaultTheta(ids) * tf.constant(
+            [[0.1], [0.2], [0.3], [0.4]])
+        embs_sum = tf.reduce_sum(embs)
+        emb_weight = emb_layer.vars.wm
+        emb_grad, = tf.gradients(ys=[embs_sum], xs=[emb_weight])
+        return emb_grad
+
       self.evaluate(tf.global_variables_initializer())
-      emb_grad_val = self.evaluate(emb_grad)
+      emb_grad_val = self.evaluate(_EmbGrad)
 
     if not use_matmul:
       # tf.embedding_lookup's gradient is a sparse representation.
@@ -3404,8 +3522,8 @@ class EmbeddingLayerTest(test_utils.TestCase):
   def testCompareEmbeddingLayers(self):
     classes = 8000
     dims = 128
-    g = tf.Graph()
-    with g.as_default():
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
       ids = tf.placeholder(tf.int32)
 
       def CreateSimple():
@@ -3421,8 +3539,12 @@ class EmbeddingLayerTest(test_utils.TestCase):
         return layers.SimpleEmbeddingLayer(p)
 
       simple = CreateSimple()
-      simple_outs = simple.EmbLookupDefaultTheta(ids)
-      simple_grad = tf.gradients(simple_outs, simple.vars.wm)[0]
+
+      @test_utils.DefineAndTrace(ids)
+      def _FuncSimple(ids):
+        simple_outs = simple.EmbLookupDefaultTheta(ids)
+        simple_grad = tf.gradients(simple_outs, simple.vars.wm)[0]
+        return simple_outs, simple_grad
 
       def CreateOriginal():
         tf.random.set_seed(398847392)
@@ -3437,27 +3559,30 @@ class EmbeddingLayerTest(test_utils.TestCase):
         p.vn.per_step_vn = False
         return layers.EmbeddingLayer(p)
 
-      original = CreateOriginal()
       weight = tf.identity(simple.vars.wm)
       theta = py_utils.NestedMap()
       theta.wm = [weight]
-      original_outs = original.EmbLookup(theta, ids)
-      original_grad = tf.gradients(original_outs, weight)[0]
+      original = CreateOriginal()
+
+      @test_utils.DefineAndTrace(ids)
+      def _FuncOriginal(ids):
+        original_outs = original.EmbLookup(theta, ids)
+        original_grad = tf.gradients(original_outs, weight)[0]
+        return original_outs, original_grad
 
     ids_val = np.random.randint(0, high=classes, size=(4000,))
     with self.session(graph=g) as sess:
       self.evaluate(tf.global_variables_initializer())
-      s_outs, s_grad, o_outs, o_grad = sess.run(
-          [simple_outs, simple_grad, original_outs, original_grad],
-          feed_dict={ids: ids_val})
+      s_outs, s_grad = sess.run(_FuncSimple, feed_dict={ids: ids_val})
+      o_outs, o_grad = sess.run(_FuncOriginal, feed_dict={ids: ids_val})
       self.assertAllClose(s_outs, o_outs)
       self.assertAllClose(s_grad, o_grad)
 
   def testCompareMatMulEmbeddingLayers(self):
     classes = 8000
     dims = 128
-    g = tf.Graph()
-    with g.as_default():
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
       ids = tf.placeholder(tf.int32)
 
       def CreateSimpleMatMul():
@@ -3474,8 +3599,12 @@ class EmbeddingLayerTest(test_utils.TestCase):
         return layers.SimpleEmbeddingLayer(p)
 
       simple = CreateSimpleMatMul()
-      simple_outs = simple.EmbLookupDefaultTheta(ids)
-      simple_grad = tf.gradients(simple_outs, simple.vars.wm)[0]
+
+      @test_utils.DefineAndTrace(ids)
+      def _FuncSimple(ids):
+        simple_outs = simple.EmbLookupDefaultTheta(ids)
+        simple_grad = tf.gradients(simple_outs, simple.vars.wm)[0]
+        return simple_outs, simple_grad
 
       def CreateEinsum():
         tf.random.set_seed(398847392)
@@ -3491,16 +3620,18 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
       einsum = CreateEinsum()
       weight = tf.identity(simple.vars.wm)
-      einsum_outs = einsum.EmbLookup(py_utils.NestedMap(wm=weight), ids)
-      einsum_grad = tf.gradients(einsum_outs, weight)[0]
-      tf.logging.info('simple_grad=%s einsum_grad=%s', simple_grad, einsum_grad)
+
+      @test_utils.DefineAndTrace(ids)
+      def _FuncEinsum(ids):
+        einsum_outs = einsum.EmbLookup(py_utils.NestedMap(wm=weight), ids)
+        einsum_grad = tf.gradients(einsum_outs, weight)[0]
+        return einsum_outs, einsum_grad
 
     ids_val = np.random.randint(0, high=classes, size=(4000,))
     with self.session(graph=g) as sess:
       self.evaluate(tf.global_variables_initializer())
-      s_outs, s_grad, e_outs, e_grad = sess.run(
-          [simple_outs, simple_grad, einsum_outs, einsum_grad],
-          feed_dict={ids: ids_val})
+      s_outs, s_grad = sess.run(_FuncSimple, feed_dict={ids: ids_val})
+      e_outs, e_grad = sess.run(_FuncEinsum, feed_dict={ids: ids_val})
       self.assertAllClose(s_outs, e_outs)
       self.assertAllClose(s_grad, e_grad)
 
@@ -3706,7 +3837,9 @@ class SoftmaxLayerTest(test_utils.TestCase):
                             use_bias=True):
     if fprop_dtype is None:
       fprop_dtype = dtype
-    with self.session(use_gpu=True, graph=tf.Graph()):
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
+    with self.session(use_gpu=True, graph=g):
       if seed is not None:
         tf.random.set_seed(seed)
       if class_ids is None:
@@ -3749,6 +3882,10 @@ class SoftmaxLayerTest(test_utils.TestCase):
 
       params.vn.global_vn = False
       softmax = layers.SimpleFullSoftmax(params)
+      self.evaluate(tf.global_variables_initializer())
+      if training_step >= 0:
+        self.evaluate(
+            tf.assign(py_utils.GetOrCreateGlobalStepVar(), training_step))
       xent_loss = softmax.FProp(
           softmax.theta,
           inputs,
@@ -3766,10 +3903,6 @@ class SoftmaxLayerTest(test_utils.TestCase):
       all_var_names = [v.name for v in all_vars]
       self.assertCountEqual(expected_var_names, all_var_names)
 
-      self.evaluate(tf.global_variables_initializer())
-      if training_step >= 0:
-        self.evaluate(
-            tf.assign(py_utils.GetOrCreateGlobalStepVar(), training_step))
       return self.evaluate(xent_loss)
 
   def testSimpleFullSoftmaxMasked(self):
@@ -4053,7 +4186,9 @@ class SoftmaxLayerTest(test_utils.TestCase):
     for (dtype, use_gpu, tolerance) in [(tf.float32, True, 1e-2),
                                         (tf.float64, False, 1e-6)]:
       tf.logging.info('dtype %s tolerance %g', dtype, tolerance)
-      with self.session(use_gpu=use_gpu, graph=tf.Graph()) as sess:
+      with contextlib.ExitStack() as context_stack:
+        g = _ResetTfStatus(self, context_stack)
+      with self.session(use_gpu=use_gpu, graph=g) as sess:
         input_dim = 10
         np.random.seed(12345)
         class_ids = tf.constant(
@@ -4074,20 +4209,49 @@ class SoftmaxLayerTest(test_utils.TestCase):
         params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
         params.vn.global_vn = False
         softmax = layers.SimpleFullSoftmax(params)
-        xent_loss = softmax.XentLoss(
-            inputs, class_weights=class_weights, class_ids=class_ids)
         softmax_vars = softmax.vars.Flatten()
-        # Now add the backward graph.
-        grads = tf.gradients(xent_loss.total_xent, softmax_vars)
-
         self.evaluate(tf.global_variables_initializer())
-        assert len(softmax_vars) == len(grads)
-        for x, grad_x in zip(softmax_vars, grads):
-          grad_symbolic = self.evaluate(grad_x)
-          grad_numeric = test_utils.ComputeNumericGradient(
-              sess, xent_loss.total_xent, x)
-          self.assertAllClose(
-              grad_symbolic, grad_numeric, atol=tolerance, rtol=tolerance)
+        # pylint: disable=cell-var-from-loop
+        @test_utils.DefineAndTrace()
+        def _Grad():
+          xent_loss = softmax.XentLoss(
+              inputs, class_weights=class_weights, class_ids=class_ids)
+          # softmax_vars = softmax.vars.Flatten()
+          # Now add the backward graph.
+          grads = tf.gradients(xent_loss.total_xent, softmax_vars)
+          assert len(softmax_vars) == len(grads)
+          return grads
+
+        # pylint: enable=cell-var-from-loop
+
+        grads = self.evaluate(_Grad)
+
+        if tf.executing_eagerly():
+          for var, grad_x in zip(softmax_vars, grads):
+            x = tf.TensorSpec(shape=var.shape, dtype=var.dtype)
+            # pylint: disable=cell-var-from-loop
+            @test_utils.DefineAndTrace(x)
+            def _TotalXent(x):
+              var.assign(x)
+              xent_loss = softmax.XentLoss(
+                  inputs, class_weights=class_weights, class_ids=class_ids)
+              return xent_loss.total_xent
+
+            # pylint: enable=cell-var-from-loop
+
+            grad_symbolic = grad_x
+            grad_numeric = test_utils.ComputeNumericGradientEager(
+                _TotalXent, var)
+            self.assertAllClose(
+                grad_symbolic, grad_numeric, atol=tolerance, rtol=tolerance)
+        else:
+          xent_loss = softmax.XentLoss(
+              inputs, class_weights=class_weights, class_ids=class_ids)
+          for x, grad_symbolic in zip(softmax_vars, grads):
+            grad_numeric = test_utils.ComputeNumericGradient(
+                sess, xent_loss.total_xent, x)
+            self.assertAllClose(
+                grad_symbolic, grad_numeric, atol=tolerance, rtol=tolerance)
 
   def testSimpleFullSoftmaxGradientChecker(self):
     self._RunSimpleFullSoftmaxGradientChecker(3, 4, 0, 1)
@@ -4267,8 +4431,10 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
                                            chunk_size):
     for (dtype, use_gpu, tolerance) in [(tf.float32, True, 1e-2),
                                         (tf.float64, False, 1e-6)]:
+      with contextlib.ExitStack() as context_stack:
+        g = _ResetTfStatus(self, context_stack)
       tf.logging.info('dtype %s tolerance %g', dtype, tolerance)
-      with self.session(use_gpu=use_gpu, graph=tf.Graph()) as sess:
+      with self.session(use_gpu=use_gpu, graph=g) as sess:
         input_dim = 10
         np.random.seed(12345)
         class_ids = tf.constant(
@@ -4286,23 +4452,57 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
         params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
         params.vn.global_vn = False
         softmax = params.Instantiate()
-        xent_loss = softmax.FProp(
-            softmax.theta,
-            inputs,
-            class_weights=class_weights,
-            class_ids=class_ids)
         softmax_vars = softmax.vars.Flatten()
-        # Now add the backward graph.
-        grads = tf.gradients(xent_loss.total_xent, softmax_vars)
-
         self.evaluate(tf.global_variables_initializer())
-        assert len(softmax_vars) == len(grads)
-        for x, grad_x in zip(softmax_vars, grads):
-          grad_symbolic = self.evaluate(grad_x)
-          grad_numeric = test_utils.ComputeNumericGradient(
-              sess, xent_loss.total_xent, x)
-          self.assertAllClose(
-              grad_symbolic, grad_numeric, atol=tolerance, rtol=tolerance)
+        # pylint: disable=cell-var-from-loop
+        @test_utils.DefineAndTrace()
+        def _Grad():
+          xent_loss = softmax.FProp(
+              softmax.theta,
+              inputs,
+              class_weights=class_weights,
+              class_ids=class_ids)
+          # Now add the backward graph.
+          grads = tf.gradients(xent_loss.total_xent, softmax_vars)
+          assert len(softmax_vars) == len(grads)
+          return grads
+
+        # pylint: enable=cell-var-from-loop
+
+        grads = self.evaluate(_Grad)
+
+        if tf.executing_eagerly():
+          for var, grad_x in zip(softmax_vars, grads):
+            x = tf.TensorSpec(shape=var.shape, dtype=var.dtype)
+            # pylint: disable=cell-var-from-loop
+            @test_utils.DefineAndTrace(x)
+            def _TotalXent(x):
+              var.assign(x)
+              xent_loss = softmax.FProp(
+                  softmax.theta,
+                  inputs,
+                  class_weights=class_weights,
+                  class_ids=class_ids)
+              return xent_loss.total_xent
+
+            # pylint: enable=cell-var-from-loop
+
+            grad_symbolic = grad_x
+            grad_numeric = test_utils.ComputeNumericGradientEager(
+                _TotalXent, var)
+            self.assertAllClose(
+                grad_symbolic, grad_numeric, atol=tolerance, rtol=tolerance)
+        else:
+          xent_loss = softmax.FProp(
+              softmax.theta,
+              inputs,
+              class_weights=class_weights,
+              class_ids=class_ids)
+          for x, grad_symbolic in zip(softmax_vars, grads):
+            grad_numeric = test_utils.ComputeNumericGradient(
+                sess, xent_loss.total_xent, x)
+            self.assertAllClose(
+                grad_symbolic, grad_numeric, atol=tolerance, rtol=tolerance)
 
   def testSimpleFullSoftmaxGradientChecker(self):
     self._RunSimpleFullSoftmaxGradientChecker(3, 4, 0)
@@ -4363,8 +4563,8 @@ class SoftmaxLayerLogitsTest(test_utils.TestCase):
 class SharedSoftmaxLayerTest(SoftmaxLayerTest):
 
   def _testSharedSoftmaxLayerEmbLookup(self, scale_sqrt_depth=False):
-    g = tf.Graph()
-    with g.as_default():
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
       tf.random.set_seed(398847392)
       params = layers.SharedSoftmaxLayer.Params().Set(
           softmax=layers.SimpleFullSoftmax.Params().Set(
@@ -5019,27 +5219,37 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       ],
                          axis=0)
       net = self._BuildDummyStackedBNLayer(splits)
-      logits = net.FPropDefaultTheta(inputs)
-      loss = tf.reduce_mean(logits)
-      grads = tf.gradients(loss, tf.trainable_variables())
-      # Check the accumulator values
-      counts = []
-      means = []
-      variances = []
-      for i in range(splits):
-        l = net.children['split_{}'.format(i)].children['bn_{}'.format(i)]
-        counts.append(l.accumulators.counts.GetValue())
-        means.append(l.accumulators.mean_ss.GetValue())
-        variances.append(l.accumulators.variance_ss.GetValue())
-      if splits == 0:
-        counts.append(net.accumulators.counts.GetValue())
-        means.append(net.accumulators.mean_ss.GetValue())
-        variances.append(net.accumulators.variance_ss.GetValue())
-      post_training_step_updates = net.PostTrainingStepUpdate()
-
       self.evaluate(tf.global_variables_initializer())
-      _, count_vals, mean_vals, var_vals = self.evaluate(
-          [grads, counts, means, variances])
+
+      @test_utils.DefineAndTrace()
+      def _Func():
+        all_vars = _GetTrainableVars(net)
+        logits = net.FPropDefaultTheta(inputs)
+        loss = tf.reduce_mean(logits)
+        grads = tf.gradients(loss, all_vars)
+
+        # Check the accumulator values
+        counts = []
+        means = []
+        variances = []
+        for i in range(splits):
+          l = net.children['split_{}'.format(i)].children['bn_{}'.format(i)]
+          counts.append(l.accumulators.counts.GetValue())
+          means.append(l.accumulators.mean_ss.GetValue())
+          variances.append(l.accumulators.variance_ss.GetValue())
+        if splits == 0:
+          counts.append(net.accumulators.counts.GetValue())
+          means.append(net.accumulators.mean_ss.GetValue())
+          variances.append(net.accumulators.variance_ss.GetValue())
+        post_training_step_updates = net.PostTrainingStepUpdate()
+        if not tf.executing_eagerly_outside_functions():
+          # In TF1, the ops needs to be called manually due to lack of auto
+          # control dependency.
+          self.evaluate(post_training_step_updates)
+
+        return grads, counts, means, variances
+
+      _, count_vals, mean_vals, var_vals = self.evaluate(_Func)
 
       self.assertSameElements(count_vals, {batch_size})
 
@@ -5050,7 +5260,6 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(batch_size // 2, var_vals[0])
       if len(var_vals) > 1:
         self.assertSameElements(var_vals[1:], {0})
-      self.evaluate(post_training_step_updates)
       moving_vars = self.evaluate(tf.get_collection('moving_vars'))
     self.assertEqual(0.0015, moving_vars[0])
     self.assertNear(0.997750, moving_vars[1], err=1.0e-6)
@@ -5252,15 +5461,34 @@ class LayerNormTest(test_utils.TestCase, parameterized.TestCase):
       output = layer_norm.FPropDefaultTheta(inputs)
       loss = tf.reduce_sum(output)
 
-      all_vars = tf.trainable_variables()
+      all_vars = _GetTrainableVars(layer_norm)
       self.assertLen(all_vars, 2)
 
-      grads = tf.gradients(loss, all_vars)
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output = layer_norm.FPropDefaultTheta(inputs)
+        loss = tf.reduce_sum(output)
+        return tf.gradients(loss, all_vars)
+
       self.evaluate(tf.global_variables_initializer())
-      sym_grads = [self.evaluate(sg) for sg in grads]
-      num_grads = [
-          test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
-      ]
+      sym_grads = self.evaluate(_Grads)
+      if tf.executing_eagerly_outside_functions():
+        num_grads = []
+        for v in all_vars:
+
+          x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
+
+          @test_utils.DefineAndTrace(x)
+          def _Loss(x):
+            v.assign(x)  # pylint: disable=cell-var-from-loop
+            output = layer_norm.FPropDefaultTheta(inputs)
+            return tf.reduce_sum(output)
+
+          num_grads.append(test_utils.ComputeNumericGradientEager(_Loss, v))
+      else:
+        num_grads = [
+            test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
+        ]
 
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
@@ -5326,21 +5554,39 @@ class CategoricalLayerNormTest(test_utils.TestCase):
       p.input_dim = 3
       p.num_classes = 2
       layer_norm = layers.CategoricalLayerNorm(p)
-
       inputs = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, p.input_dim]), dtype=tf.float32)
-      output = layer_norm.FPropDefaultTheta(inputs)
-      loss = tf.reduce_sum(output)
 
-      all_vars = tf.trainable_variables()
-      self.assertEqual(4, len(all_vars))
-      grads = tf.gradients(loss, all_vars)
       self.evaluate(tf.global_variables_initializer())
-      print('grads = {}'.format(grads))
-      sym_grads = [self.evaluate(sg) for sg in grads]
-      num_grads = [
-          test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
-      ]
+      all_vars = _GetTrainableVars(layer_norm)
+      self.assertEqual(4, len(all_vars))
+
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output = layer_norm.FPropDefaultTheta(inputs)
+        loss = tf.reduce_sum(output)
+        return tf.gradients(loss, all_vars)
+
+      sym_grads = self.evaluate(_Grads)
+      if tf.executing_eagerly():
+        num_grads = []
+        for v in all_vars:
+
+          x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
+
+          @test_utils.DefineAndTrace(x)
+          def _Loss(x):
+            v.assign(x)  # pylint: disable=cell-var-from-loop
+            output = layer_norm.FPropDefaultTheta(inputs)
+            return tf.reduce_sum(output)
+
+          num_grads.append(test_utils.ComputeNumericGradientEager(_Loss, v))
+      else:
+        output = layer_norm.FPropDefaultTheta(inputs)
+        loss = tf.reduce_sum(output)
+        num_grads = [
+            test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
+        ]
 
       for sg, ng in zip(sym_grads, num_grads):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
@@ -5376,7 +5622,9 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
       x_val = self.evaluate(dropout.FPropDefaultTheta(x))
       self.assertNotAllClose(x_golden, x_val)
 
-    with self.session(graph=tf.Graph()):
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
+    with self.session(graph=g):
       tf.random.set_seed(12345)
       params = layers.DeterministicDropoutLayer.Params().Set(
           name='drop', keep_prob=0.7)
@@ -5390,7 +5638,9 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
       self.assertNotAllClose(x_golden, x_val)
 
     # The same seeds is consistent.
-    with self.session(graph=tf.Graph()):
+    with contextlib.ExitStack() as context_stack:
+      g = _ResetTfStatus(self, context_stack)
+    with self.session(graph=g):
       tf.random.set_seed(12345)
       params = layers.DeterministicDropoutLayer.Params().Set(
           name='drop', keep_prob=0.7)
@@ -5478,13 +5728,19 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
       w = tf.get_variable(
           'w', shape=[2, 3], initializer=tf.constant_initializer([[1] * 3] * 2))
       mdl = p.Instantiate()
-      y = mdl.FPropDefaultTheta(x * w)
-      # Construct loss function such that gradients = final activation.
-      loss = tf.reduce_sum(y)
-      grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
+
       self.evaluate(tf.global_variables_initializer())
-      y_val = self.evaluate(y)
-      grads_val = self.evaluate(grads.w.grad)
+
+      @test_utils.DefineAndTrace()
+      def _Func():
+        y = mdl.FPropDefaultTheta(x * w)
+        # Construct loss function such that gradients = final activation.
+        loss = tf.reduce_sum(y)
+        grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
+        return y, grads.w.grad
+
+      y_val, grads_val = self.evaluate(_Func)
+
       self.assertAllClose(y_val, grads_val)
 
 
@@ -5498,7 +5754,10 @@ class GradNormTrackerTest(test_utils.TestCase):
           name='grad_norm_tracker', clip_threshold=3.0)
       grad_norm_tracker = p.Instantiate()
       grad_norm = tf.placeholder(tf.float32)
-      grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm)
+
+      @test_utils.DefineAndTrace(grad_norm)
+      def grad_norm_clip(grad_norm):  # pylint: disable=invalid-name
+        return grad_norm_tracker.FPropDefaultTheta(grad_norm)
 
       self.evaluate(tf.global_variables_initializer())
 
@@ -5526,7 +5785,10 @@ class GradNormTrackerTest(test_utils.TestCase):
           grad_norm_clip_cap_min=math.exp(10.0))
       grad_norm_tracker = p.Instantiate()
       grad_norm = tf.placeholder(tf.float32)
-      grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm)
+
+      @test_utils.DefineAndTrace(grad_norm)
+      def grad_norm_clip(grad_norm):  # pylint: disable=invalid-name
+        return grad_norm_tracker.FPropDefaultTheta(grad_norm)
 
       self.evaluate(tf.global_variables_initializer())
 
@@ -5552,7 +5814,10 @@ class GradNormTrackerTest(test_utils.TestCase):
       grad_norm_tracker = p.Instantiate()
       grad_norm = tf.placeholder(tf.float32)
       has_nan = tf.cast(tf.ones([]), dtype=tf.bool)
-      grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm, has_nan)
+
+      @test_utils.DefineAndTrace(grad_norm)
+      def grad_norm_clip(grad_norm):  # pylint: disable=invalid-name
+        return grad_norm_tracker.FPropDefaultTheta(grad_norm, has_nan)
 
       self.evaluate(tf.global_variables_initializer())
 
@@ -6138,16 +6403,24 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       tasks = tf.constant([1, 0], dtype=tf.int32)
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
-      output = adapter.FProp(adapter.theta, inputs, tasks)
-      loss = tf.reduce_sum(output)
-      all_vars = tf.trainable_variables()
-      grads = tf.gradients(loss, all_vars)
+      all_vars = _GetTrainableVars(adapter)
+      # Sort by name to ensure consistency when compared against golden vals
+      all_vars = sorted(all_vars, key=lambda v: v.name)
       self.evaluate(tf.global_variables_initializer())
 
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output = adapter.FProp(adapter.theta, inputs, tasks)
+        loss = tf.reduce_sum(output)
+        return tf.gradients(loss, all_vars)
+
+      grads = self.evaluate(_Grads)
+
       def DenseGrad(var, grad):
-        if isinstance(grad, tf.Tensor):
+        if isinstance(grad, (tf.Tensor, np.ndarray)):
           return grad
-        elif isinstance(grad, tf.IndexedSlices):
+        else:
+          # Assuming grad is `IndexedSlices` (TF1) or `IndexedSlicesValue` (TF2)
           return tf.math.unsorted_segment_sum(grad.values, grad.indices,
                                               tf.shape(var)[0])
 
@@ -6155,8 +6428,8 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       dense_grad_sums = [tf.reduce_sum(g) for g in dense_grads]
       grad_vs = self.evaluate(dense_grad_sums)
       self.assertAllClose([
-          -5.364418e-07, 3.405262e+00, 1.252710e+01, 1.600000e+01, 1.335246e+00,
-          2.513876e-01
+          1.3352463e+00, 2.5138760e-01, 3.4052620e+00, -2.9802322e-07,
+          1.6000000e+01, 1.2527104e+01
       ],
                           grad_vs,
                           rtol=1e-05,
@@ -6356,7 +6629,7 @@ class StatisticalPoolingLayerTest(test_utils.TestCase):
       layer2 = layers.StatisticalPoolingLayer(params)
       results2 = layer2.FProp(features, paddings)
       # check the results
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       results1, results2 = sess.run([results1, results2])
       self.assertEqual(results1.shape,
                        (features.shape[0], 2 * features.shape[2]))
@@ -6390,7 +6663,7 @@ class PerFrameStatisticalPoolingLayerTest(test_utils.TestCase):
       layer2 = layers.PerFrameStatisticalPoolingLayer(params)
       results2 = layer2.FProp(features, paddings)
       # check the results
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       results1, results2 = sess.run([results1, results2])
       self.assertEqual(
           results1.shape,

@@ -145,7 +145,7 @@ class _EagerSessionAdaptor:
     """Evaluates `function_or_fetches` with `feed_dict` as input.
 
     Args:
-      function_or_fetches: Either an eager tensor, or a function decorated by
+      function_or_fetches: Eager tensors, or functions decorated by
         @DefineAndTrace.
       feed_dict: A dict of `tf.TensorSpec` -> value as input, where the keys are
         specs created by `_PlaceholderAdapter`. Applicable only when
@@ -154,6 +154,10 @@ class _EagerSessionAdaptor:
     Returns:
       The evaluation result.
     """
+    return tf.nest.map_structure(
+        lambda x: self._run_impl(x, feed_dict=feed_dict), function_or_fetches)
+
+  def _run_impl(self, function_or_fetches, feed_dict=None):  # pylint: disable=invalid-name, missing-function-docstring
     if not callable(function_or_fetches):
       fetches = function_or_fetches
       return self._run_fn(fetches)
@@ -414,6 +418,58 @@ def ComputeNumericGradient(sess,
   # further test code that operates on the graph.
   if x_assign is not None:
     sess.run(x_assign, feed_dict={ph: x_data})
+
+  return numeric_grad.reshape(x_shape)
+
+
+def ComputeNumericGradientEager(fy, x, delta=1e-4, step=1):
+  """Compute the numeric gradient of output of `fy` wrt to x in Eager mode.
+
+  Args:
+    fy: A callable that takes an input (`x`).
+    x: The input.
+    delta: Gradient checker's small perturbation of x[i].
+    step: Only compute numerical gradients for a subset of x values. I.e.
+      dy/dx[i] is computed if i % step == 0.
+
+  Returns:
+    A Tensor of the same shape and dtype as x. If x[i] is not chosen
+    to compute the numerical gradient dy/x[i], the corresponding
+    value is set to 0.
+  """
+
+  x_orig = tf.identity(x)
+
+  def x_assign():  # pylint: disable=invalid-name
+    if isinstance(x, tf.Variable):
+      x.assign(x_orig)
+
+  x_size = tf.size(x_orig)
+  x_shape = x_orig.shape
+
+  numeric_grad = np.zeros(x_size, dtype=x_orig.numpy().dtype)
+
+  for i in range(0, x_size, step):
+    x_pos = np.array(x_orig)
+    if x_size == 1:
+      x_pos += delta
+    else:
+      x_pos.flat[i] += delta
+
+    y_pos = fy(x_pos)
+
+    x_neg = np.array(x_orig)
+    if x_size == 1:
+      x_neg -= delta
+    else:
+      x_neg.flat[i] -= delta
+
+    y_neg = fy(x_neg)
+    numeric_grad[i] = (y_pos - y_neg) / (2 * delta)
+
+    # Restore the variable back to its original value to avoid breaking any
+    # further test code that operates on the graph.
+    x_assign()
 
   return numeric_grad.reshape(x_shape)
 

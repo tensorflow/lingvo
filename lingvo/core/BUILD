@@ -1045,6 +1045,17 @@ lingvo_cuda_py_test(
 )
 
 lingvo_cuda_py_test(
+    name = "layers_eager_test",
+    timeout = "short",
+    srcs = ["layers_test.py"],
+    args = ["--enable_eager_execution"],
+    main = "layers_test.py",
+    python_version = "PY3",
+    shard_count = 20,
+    deps = [":layers_test_lib"],
+)
+
+lingvo_cuda_py_test(
     name = "conv_layers_builder_test",
     srcs = ["conv_layers_builder_test.py"],
     python_version = "PY3",

@@ -20,6 +20,13 @@ from lingvo.core import py_utils
 from model_pruning.python import pruning
 
 
+def _IsInCollection(node, collection):
+  if tf.executing_eagerly_outside_functions():
+    return node.ref() in [n.ref() for n in collection]
+  else:
+    return node in collection
+
+
 def AddToPruningCollections(weight,
                             mask,
                             threshold,
@@ -27,7 +34,7 @@ def AddToPruningCollections(weight,
                             old_weight=None,
                             old_old_weight=None):
   """Add mask, threshold, and weight vars to their respective collections."""
-  if mask not in tf.get_collection(pruning.MASK_COLLECTION):
+  if not _IsInCollection(mask, tf.get_collection(pruning.MASK_COLLECTION)):
     tf.add_to_collection(pruning.WEIGHT_COLLECTION, weight)
     tf.add_to_collection(pruning.MASK_COLLECTION, mask)
     tf.add_to_collection(pruning.THRESHOLD_COLLECTION, threshold)
