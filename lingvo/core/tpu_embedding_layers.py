@@ -708,11 +708,17 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         'the user will need to manually merge the sharded table variables '
         'in the trained checkpoint before generating the inference graph.')
     p.Define(
-        'inference_use_bfloat16', False,
-        'Whether to use bfloat16 as variable dtype for embedding table during '
-        'inference. If set to True, the variables in the inference checkpoint '
-        'must be in bfloat16 format, and the conversion (float->bfloat16) '
-        'need to be done offline.')
+        'inference_variable_dtype', None,
+        'The dtype of embedding table variables during inference. If None, '
+        'self.params.dtype will be used. Note that the variables in the '
+        'inference checkpoint must be with this dtype, and any conversion from '
+        'float32 (if necessary) needs to be done separately.')
+    p.Define(
+        'inference_auxiliary_variable_specs', None,
+        'A dict of variable_name -> (dtype, shape) for any auxiliary variables '
+        'that the layer need to create during inference. For example, if '
+        'quantization techniques are used, it may need to record the value '
+        'range (i.e. min/max) of the table variables.')
     return p
 
   def __init__(self, params):
@@ -766,20 +772,34 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     p = self.params
 
     # Reuse the singleton table variables if they were created before.
+    # TODO(laigd): consider disabling this option. There should be at most one
+    # TPU embedding layer in the model.
     all_table_vars = self._tpu_embedding_collection.table_variables
     if self.table_name in all_table_vars:
       embedding_table_vars = all_table_vars[self.table_name]
     else:
-      inference_with_merged_var = (
-          p.is_inference and p.inference_use_merged_variable)
-      is_inference_with_bfloat16 = (p.is_inference and p.inference_use_bfloat16)
-      dtype = tf.bfloat16 if is_inference_with_bfloat16 else p.dtype
+      inference_with_merged_var = False
+      is_inference_with_bfloat16 = False
+      dtype = p.dtype
+      init = p.params_init
+      if p.is_inference:
+        inference_with_merged_var = p.inference_use_merged_variable
+        if p.inference_variable_dtype is not None:
+          dtype = p.inference_variable_dtype
+        is_inference_with_bfloat16 = (dtype == tf.bfloat16)
+        if dtype not in [tf.float32, tf.bfloat16]:
+          # Note: it doesn't matter what initialization value is used, the
+          # actual value of the variable will be loaded from checkpoint.
+          # But for backward compatibility we use params_init for floating
+          # point dtypes.
+          init = py_utils.WeightInit.Constant(dtype.as_numpy_dtype(0))
+
       w_pc = py_utils.WeightParams(
           shape=[
               p.vocab_size if inference_with_merged_var else
               self._ids_per_shard, p.embedding_dim
           ],
-          init=p.params_init,
+          init=init,
           dtype=dtype,
           collections=[self.__class__.__name__ + '_vars'])
 
@@ -807,6 +827,22 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       # Track the table variables so they can be excluded from EMA.
       self._tpu_embedding_collection.AddTableVariables(
           self.table_name, embedding_table_vars, is_inference_with_bfloat16)
+
+    # Create auxiliary inference-only variables, if any.
+    # NOTE: it's not supported to reuse auxiliary variables if they were
+    # created before in another TPU embedding layer with the same settings.
+    self._auxiliary_var_dict = py_utils.NestedMap()
+    if p.is_inference and p.inference_auxiliary_variable_specs:
+      assert isinstance(p.inference_auxiliary_variable_specs, dict)
+      for name, (dtype, shape) in p.inference_auxiliary_variable_specs.items():
+        aux_params = py_utils.WeightParams(
+            shape=shape,
+            init=py_utils.WeightInit.Constant(dtype.as_numpy_dtype(0)),
+            dtype=dtype,
+            collections=[self.__class__.__name__ + '_vars'])
+        # Set trainable=False to exclude it from EMA.
+        self.CreateVariable(name, aux_params, trainable=False)
+        self._auxiliary_var_dict[name] = self.vars[name]
 
     if not _IsTpuTraining(p):
       # We don't need this for TrainerTpu, as the vars are not directly
@@ -870,6 +906,11 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
   @property
   def input_keys(self):
     return self._input_keys
+
+  @property
+  def auxiliary_variables(self):
+    """Returns the auxiliary variables associated with this table."""
+    return self._auxiliary_var_dict
 
   @property
   def max_sequence_length(self):
@@ -1293,3 +1334,21 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
                          f'{input_batch.keys()}')
       ids_map.Set(key, item)
     return ids_map
+
+  def GetAuxiliaryVariables(self, input_key) -> py_utils.NestedMap:
+    """Returns the auxiliary variables associated with the given table.
+
+    Args:
+      input_key: A valid input_key as specified in one of the tables.
+
+    Returns:
+      The auxiliary variables associated with the embedding table identified by
+      input_key.
+
+    Raises:
+      ValueError: if input_key is not a valid input key.
+    """
+    for table in self.tables:
+      if input_key in table.input_keys:
+        return table.auxiliary_variables
+    raise ValueError(f'{input_key} is not a valid input key.')
