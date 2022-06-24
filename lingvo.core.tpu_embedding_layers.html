@@ -468,6 +468,12 @@ tf.variable_scope(self.params.name).</p>
 <dd></dd></dl>
 
 <dl class="py property">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.auxiliary_variables">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">auxiliary_variables</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.auxiliary_variables" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the auxiliary variables associated with this table.</p>
+</dd></dl>
+
+<dl class="py property">
 <dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.max_sequence_length">
 <em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">max_sequence_length</span></span><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingTable.max_sequence_length" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
@@ -668,6 +674,24 @@ float32 Tensor.</p>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A py_utils.NestedMap containing the embedding id tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.GetAuxiliaryVariables">
+<span class="sig-name descname"><span class="pre">GetAuxiliaryVariables</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_key</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="lingvo.core.nested_map.html#lingvo.core.nested_map.NestedMap" title="lingvo.core.nested_map.NestedMap"><span class="pre">NestedMap</span></a></span></span><a class="reference internal" href="_modules/lingvo/core/tpu_embedding_layers.html#TPUEmbeddingLayer.GetAuxiliaryVariables"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.GetAuxiliaryVariables" title="Permalink to this definition"></a></dt>
+<dd><p>Returns the auxiliary variables associated with the given table.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_key</strong> – A valid input_key as specified in one of the tables.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The auxiliary variables associated with the embedding table identified by
+input_key.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – if input_key is not a valid input key.</p>
 </dd>
 </dl>
 </dd></dl>

@@ -774,11 +774,17 @@
         <span class="s1">&#39;the user will need to manually merge the sharded table variables &#39;</span>
         <span class="s1">&#39;in the trained checkpoint before generating the inference graph.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;inference_use_bfloat16&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;Whether to use bfloat16 as variable dtype for embedding table during &#39;</span>
-        <span class="s1">&#39;inference. If set to True, the variables in the inference checkpoint &#39;</span>
-        <span class="s1">&#39;must be in bfloat16 format, and the conversion (float-&gt;bfloat16) &#39;</span>
-        <span class="s1">&#39;need to be done offline.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;inference_variable_dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;The dtype of embedding table variables during inference. If None, &#39;</span>
+        <span class="s1">&#39;self.params.dtype will be used. Note that the variables in the &#39;</span>
+        <span class="s1">&#39;inference checkpoint must be with this dtype, and any conversion from &#39;</span>
+        <span class="s1">&#39;float32 (if necessary) needs to be done separately.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;inference_auxiliary_variable_specs&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;A dict of variable_name -&gt; (dtype, shape) for any auxiliary variables &#39;</span>
+        <span class="s1">&#39;that the layer need to create during inference. For example, if &#39;</span>
+        <span class="s1">&#39;quantization techniques are used, it may need to record the value &#39;</span>
+        <span class="s1">&#39;range (i.e. min/max) of the table variables.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -832,20 +838,34 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># Reuse the singleton table variables if they were created before.</span>
+    <span class="c1"># TODO(laigd): consider disabling this option. There should be at most one</span>
+    <span class="c1"># TPU embedding layer in the model.</span>
     <span class="n">all_table_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">table_variables</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span> <span class="ow">in</span> <span class="n">all_table_vars</span><span class="p">:</span>
       <span class="n">embedding_table_vars</span> <span class="o">=</span> <span class="n">all_table_vars</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">inference_with_merged_var</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_merged_variable</span><span class="p">)</span>
-      <span class="n">is_inference_with_bfloat16</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_bfloat16</span><span class="p">)</span>
-      <span class="n">dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span> <span class="k">if</span> <span class="n">is_inference_with_bfloat16</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+      <span class="n">inference_with_merged_var</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="n">is_inference_with_bfloat16</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+      <span class="n">init</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">params_init</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
+        <span class="n">inference_with_merged_var</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_merged_variable</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_variable_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_variable_dtype</span>
+        <span class="n">is_inference_with_bfloat16</span> <span class="o">=</span> <span class="p">(</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">]:</span>
+          <span class="c1"># Note: it doesn&#39;t matter what initialization value is used, the</span>
+          <span class="c1"># actual value of the variable will be loaded from checkpoint.</span>
+          <span class="c1"># But for backward compatibility we use params_init for floating</span>
+          <span class="c1"># point dtypes.</span>
+          <span class="n">init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">as_numpy_dtype</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+
       <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span>
               <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="k">if</span> <span class="n">inference_with_merged_var</span> <span class="k">else</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span>
           <span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">init</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
@@ -873,6 +893,22 @@
       <span class="c1"># Track the table variables so they can be excluded from EMA.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding_collection</span><span class="o">.</span><span class="n">AddTableVariables</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">embedding_table_vars</span><span class="p">,</span> <span class="n">is_inference_with_bfloat16</span><span class="p">)</span>
+
+    <span class="c1"># Create auxiliary inference-only variables, if any.</span>
+    <span class="c1"># NOTE: it&#39;s not supported to reuse auxiliary variables if they were</span>
+    <span class="c1"># created before in another TPU embedding layer with the same settings.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_auxiliary_var_dict</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_auxiliary_variable_specs</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_auxiliary_variable_specs</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_auxiliary_variable_specs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">aux_params</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">dtype</span><span class="o">.</span><span class="n">as_numpy_dtype</span><span class="p">(</span><span class="mi">0</span><span class="p">)),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+        <span class="c1"># Set trainable=False to exclude it from EMA.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">aux_params</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_auxiliary_var_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_IsTpuTraining</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
       <span class="c1"># We don&#39;t need this for TrainerTpu, as the vars are not directly</span>
@@ -936,6 +972,11 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">input_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_keys</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">auxiliary_variables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the auxiliary variables associated with this table.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_auxiliary_var_dict</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">max_sequence_length</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1358,7 +1399,25 @@
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Input key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> not found. All keys in input_batch: &#39;</span>
                          <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">input_batch</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
       <span class="n">ids_map</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">ids_map</span></div></div>
+    <span class="k">return</span> <span class="n">ids_map</span></div>
+
+<div class="viewcode-block" id="TPUEmbeddingLayer.GetAuxiliaryVariables"><a class="viewcode-back" href="../../../lingvo.core.tpu_embedding_layers.html#lingvo.core.tpu_embedding_layers.TPUEmbeddingLayer.GetAuxiliaryVariables">[docs]</a>  <span class="k">def</span> <span class="nf">GetAuxiliaryVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_key</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Returns the auxiliary variables associated with the given table.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      input_key: A valid input_key as specified in one of the tables.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The auxiliary variables associated with the embedding table identified by</span>
+<span class="sd">      input_key.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: if input_key is not a valid input key.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">input_key</span> <span class="ow">in</span> <span class="n">table</span><span class="o">.</span><span class="n">input_keys</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">table</span><span class="o">.</span><span class="n">auxiliary_variables</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">input_key</span><span class="si">}</span><span class="s1"> is not a valid input key.&#39;</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>
