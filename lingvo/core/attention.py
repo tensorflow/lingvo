@@ -654,11 +654,11 @@ class AdditiveAttention(BaseAttentionLayer):
     else:
       self._ctx_vec = Atten
 
-    def EncodeSource(src_w, vecs, ctxs):
+    def EncodeSource(theta, vecs, ctxs):
       """Prepares source vec and ctx."""
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
-      transformed_vecs = tf.matmul(vecs, src_w)
+      transformed_vecs = tf.matmul(vecs, theta.source_var)
       transformed_vecs = tf.identity(
           transformed_vecs, name='source_vecs_projected')
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
@@ -722,9 +722,8 @@ class AdditiveAttention(BaseAttentionLayer):
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
-
-      (concated_source_vecs, concated_source_contexts) = (
-          self._encode_source(theta.source_var, source_vecs, source_contexts))
+      concated_source_vecs, concated_source_contexts = self._encode_source(
+          theta, source_vecs, source_contexts)
     return py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=concated_source_vecs,
@@ -2003,7 +2002,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # result to be of shape [sl, tb/sb, sb].
       logits = py_utils.Matmul(
           tf.reshape(summed, [-1, p.hidden_dim]),
-          tf.reshape(inputs.hidden_v, [p.hidden_dim, 1]))
+          tf.reshape(inputs.hidden_var, [p.hidden_dim, 1]))
       logits = self.QTensor('logits', logits)
       logits = tf.reshape(logits, py_utils.GetShape(summed)[:3])
       return logits
@@ -2018,7 +2017,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         inputs: a NestedMap containing:
           - concated_source_vecs: Tensor of shape [sl, batch, dim]
           - query_vec_transformed: Tensor of shape [batch, dim]
-          - hidden_v: Tensor of shape [dim]
+          - hidden_var: Tensor of shape [dim]
           - location_feats: Tensor of shape [batch, location_feature_dim, sl]
           - location_var: Tensor of shape [location_feature_dim, dim]
 
@@ -2054,7 +2053,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # result to be of shape [sl, tb].
       logits = py_utils.Matmul(
           tf.reshape(summed, [-1, p.hidden_dim]),
-          tf.reshape(inputs.hidden_v, [p.hidden_dim, 1]))
+          tf.reshape(inputs.hidden_var, [p.hidden_dim, 1]))
       logits = self.QTensor('logits', logits)
       logits = tf.reshape(logits, py_utils.GetShape(summed)[:2])
       return logits
@@ -2091,7 +2090,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
           py_utils.NestedMap(
               concated_source_vecs=concated_source_vecs,
               query_vec_reshaped=query_vec_reshaped,
-              hidden_v=hidden_var,
+              hidden_var=hidden_var,
               location_feats=location_feats,
               location_var=location_var))
       # Take out the padding states.
@@ -2147,7 +2146,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
           py_utils.NestedMap(
               concated_source_vecs=concated_source_vecs,
               query_vec_transformed=query_vec_transformed,
-              hidden_v=hidden_var,
+              hidden_var=hidden_var,
               location_feats=location_feats,
               location_var=location_var))
       # => [sl, tb]
@@ -2168,12 +2167,12 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     else:
       self._ctx_vec = Atten
 
-    def EncodeSource(src_w, vecs, ctxs):
+    def EncodeSource(theta, vecs, ctxs):
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
-      transformed_vecs = tf.reshape(
-          py_utils.Matmul(tf.reshape(vecs, [-1, p.source_dim]), src_w),
-          [time, batch, -1])
+      transformed_vecs = py_utils.Matmul(
+          tf.reshape(vecs, [-1, p.source_dim]), self.QWeight(theta.source_var))
+      transformed_vecs = tf.reshape(transformed_vecs, [time, batch, -1])
       transformed_vecs = self.QTensor('encode_matmul', transformed_vecs)
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
       return transformed_vecs, transposed_ctxs
@@ -2283,9 +2282,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
-      (concated_source_vecs, concated_source_contexts) = (
-          self._encode_source(
-              self.QWeight(theta.source_var), source_vecs, source_contexts))
+      concated_source_vecs, concated_source_contexts = self._encode_source(
+          theta, source_vecs, source_contexts)
     return py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=concated_source_vecs,
@@ -2370,16 +2368,16 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       per_step_source_padding = tf.fill([query_batch_size, source_length], zero)
     per_step_source_padding = py_utils.HasShape(
         per_step_source_padding, [query_batch_size, source_length])
-    hidden = self.AddVN(theta.hidden_var, per_step=True)
-    query = self.AddVN(theta.query_var, per_step=True)
-    location_filter = self.AddVN(theta.location_filter_var, per_step=True)
-    location = self.AddVN(theta.location_var, per_step=True)
+    hidden_var = self.AddVN(theta.hidden_var, per_step=True)
+    query_var = self.AddVN(theta.query_var, per_step=True)
+    location_filter_var = self.AddVN(theta.location_filter_var, per_step=True)
+    location_var = self.AddVN(theta.location_var, per_step=True)
 
-    ctx_vec, prob = self._ctx_vec(hidden, query, source_padding,
+    ctx_vec, prob = self._ctx_vec(hidden_var, query_var, source_padding,
                                   concated_source_vecs,
                                   concated_source_contexts, query_vec,
-                                  attention_state, location_filter, location,
-                                  per_step_source_padding)
+                                  attention_state, location_filter_var,
+                                  location_var, per_step_source_padding)
 
     new_feats = {'PREV_PROBS': prob}
     if 'CUMULATIVE_PROBS' in p.location_features:
@@ -2486,12 +2484,12 @@ class MonotonicAttention(BaseAttentionLayer):
       p.pre_sigmoid_noise = 0.
       p.hard_sigmoid = True
 
-    def EncodeSource(src_w, vecs, ctxs):
+    def EncodeSource(theta, vecs, ctxs):
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
-      transformed_vecs = tf.reshape(
-          py_utils.Matmul(tf.reshape(vecs, [-1, p.source_dim]), src_w),
-          [time, batch, -1])
+      transformed_vecs = py_utils.Matmul(
+          tf.reshape(vecs, [-1, p.source_dim]), theta.source_var)
+      transformed_vecs = tf.reshape(transformed_vecs, [time, batch, -1])
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
       return transformed_vecs, transposed_ctxs
 
@@ -2568,8 +2566,8 @@ class MonotonicAttention(BaseAttentionLayer):
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
-      (concated_source_vecs, concated_source_contexts) = (
-          self._encode_source(theta.source_var, source_vecs, source_contexts))
+      concated_source_vecs, concated_source_contexts = self._encode_source(
+          theta, source_vecs, source_contexts)
     return py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=concated_source_vecs,
@@ -2921,8 +2919,8 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
-      (concated_source_vecs, concated_source_contexts) = (
-          self._encode_source(source_vecs, source_contexts))
+      concated_source_vecs, concated_source_contexts = self._encode_source(
+          source_vecs, source_contexts)
     return py_utils.NestedMap(
         # [source_length, source_batch, hidden_dim].
         source_vecs=concated_source_vecs,
@@ -3368,9 +3366,9 @@ class MultiSourceAttention(BaseAttentionLayer):
 
   def _CombineContext(self, theta, context_map, query_vec):
     ctxs = context_map.Flatten()
-    combined_context = (
-        self.atten_merger.FProp(theta.atten_merger, [ctx for ctx, _, _ in ctxs],
-                                query_vec))
+    combined_context = self.atten_merger.FProp(theta.atten_merger,
+                                               [ctx for ctx, _, _ in ctxs],
+                                               query_vec)
     return (
         combined_context,
         # Return atten_probs of the primary source.
