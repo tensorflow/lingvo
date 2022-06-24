@@ -281,6 +281,24 @@ class LSTMCellSimple(RNNCell):
     p.qdomain.Define('m_state', None, 'Quantization for the m-state.')
     p.qdomain.Define('fullyconnected', None,
                      'Quantization for fully connected node.')
+    p.qdomain.Define(
+        'b_compression', None,
+        'Quantization for b_matrix for input/output compression.'
+        'introduced by input/output compression. None means no'
+        'quantization. Otherwise will be set to an instance of the'
+        'QDomain class.')
+    p.qdomain.Define(
+        'c_compression', None,
+        'Quantization for c_matrix for input/output compression'
+        'introduced by input/output compression. None means no'
+        'quantization. Otherwise will be set to an instance of the'
+        'QDomain class.')
+    p.qdomain.Define(
+        'd_compression', None,
+        'Quantization for d_matrix for input/output compression'
+        'introduced by input/output compression. None means no'
+        'quantization. Otherwise will be set to an instance of the'
+        'QDomain class.')
     return p
 
   def __init__(self, params):

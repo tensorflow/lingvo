@@ -3275,6 +3275,19 @@ class SimpleFullSoftmax(SoftmaxLayer):
         'Not using bias is not compatible with sampled softmax '
         '(num_sampled > 0).')
     p.Define('bias_init', 0, 'Weight initialization constant for bias.')
+    p.qdomain.Define(
+        'b_compression', None, 'Quantization domain for the b_matrix'
+        'introduced by input/output compression. None means no quantization.'
+        'Otherwise will be set to an instance of the QDomain class.')
+    p.qdomain.Define(
+        'c_compression', None, 'Quantization domain for the c_matrix'
+        'introduced by input/output compression. None means no quantization.'
+        'Otherwise will be set to an instance of the QDomain class.')
+    p.qdomain.Define(
+        'd_compression', None, 'Quantization domain for the d_matrix'
+        'introduced by input/output compression. None means no quantization.'
+        'Otherwise will be set to an instance of the QDomain class.')
+
     return p
 
   def __init__(self, params):
