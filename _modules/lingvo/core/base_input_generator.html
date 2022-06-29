@@ -1967,6 +1967,8 @@
         <span class="s1">&#39;input_files is required for a tf.data example input generator&#39;</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_type</span><span class="p">,</span> <span class="p">(</span>
         <span class="s1">&#39;dataset_type is required for a tf.data example input generator&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly_outside_functions</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_InitDataset</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BaseDataExampleInputGenerator.GetFeatureSpec"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.GetFeatureSpec">[docs]</a>  <span class="k">def</span> <span class="nf">GetFeatureSpec</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Subclasses must implement and return a feature spec.</span>
@@ -1991,7 +1993,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">batch</span></div>
 
-<div class="viewcode-block" id="BaseDataExampleInputGenerator.GetPreprocessedInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.GetPreprocessedInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">GetPreprocessedInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseDataExampleInputGenerator._InitDataset"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator._InitDataset">[docs]</a>  <span class="k">def</span> <span class="nf">_InitDataset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">ParseAndProcess</span><span class="p">(</span><span class="o">*</span><span class="n">cols</span><span class="p">):</span>
@@ -2024,7 +2026,19 @@
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">map</span><span class="p">(</span>
         <span class="n">ParseAndProcess</span><span class="p">,</span> <span class="n">num_parallel_calls</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">parallel_readers</span><span class="p">)</span>
     <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">prefetch</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">AUTOTUNE</span><span class="p">)</span>
-    <span class="n">iterator</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">make_one_shot_iterator</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly_outside_functions</span><span class="p">():</span>
+      <span class="c1"># In Eager mode, `GetPreprocessedInputBatch` can be called many times.</span>
+      <span class="c1"># We cache the iterator so that repeated calls return results from the</span>
+      <span class="c1"># same iterator.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_eager_iterator</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">dataset</span></div>
+
+<div class="viewcode-block" id="BaseDataExampleInputGenerator.GetPreprocessedInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.GetPreprocessedInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">GetPreprocessedInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly_outside_functions</span><span class="p">():</span>
+      <span class="n">iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eager_iterator</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">iterator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitDataset</span><span class="p">()</span><span class="o">.</span><span class="n">make_one_shot_iterator</span><span class="p">()</span>
     <span class="n">input_batch</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdditionalPreprocessInputBatch</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div></div>
 
