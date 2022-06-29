@@ -111,9 +111,19 @@ class BaseInputGeneratorTest(test_utils.TestCase):
       with self._DeviceAssignment():
         p = FooInputGenerator.Params()
         p.use_per_host_infeed = False
-        input_generator = p.Instantiate()
-        input_generator.CreateTpuEnqueueOps()
-        batch = input_generator.TpuDequeueBatch()
+
+        def _Batch():
+          input_generator = p.Instantiate()
+          input_generator.CreateTpuEnqueueOps()
+          return input_generator.TpuDequeueBatch()
+
+        if tf.executing_eagerly_outside_functions():
+          # Trace but not execute - the test only cares about the output shape.
+          cf = tf.function(_Batch).get_concrete_function()
+          batch = cf.structured_outputs
+        else:
+          batch = _Batch()
+
         self.assertEqual(batch.inp.shape.as_list(), [16, 3])
 
   @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
@@ -129,9 +139,19 @@ class BaseInputGeneratorTest(test_utils.TestCase):
       with self._DeviceAssignment():
         p = FooInputGenerator.Params()
         p.use_per_host_infeed = True
-        input_generator = p.Instantiate()
-        input_generator.CreateTpuEnqueueOps()
-        batch = input_generator.TpuDequeueBatch()
+
+        def _Batch():
+          input_generator = p.Instantiate()
+          input_generator.CreateTpuEnqueueOps()
+          return input_generator.TpuDequeueBatch()
+
+        if tf.executing_eagerly_outside_functions():
+          # Trace but not execute - the test only cares about the output shape.
+          cf = tf.function(_Batch).get_concrete_function()
+          batch = cf.structured_outputs
+        else:
+          batch = _Batch()
+
         self.assertEqual(batch.inp.shape.as_list(), [16, 3])
 
   @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
@@ -150,9 +170,19 @@ class BaseInputGeneratorTest(test_utils.TestCase):
       with self._DeviceAssignment():
         p = FooInputGenerator.Params()
         p.use_per_host_infeed = True
-        input_generator = p.Instantiate()
-        input_generator.CreateTpuEnqueueOps()
-        batch = input_generator.TpuDequeueBatch()
+
+        def _Batch():
+          input_generator = p.Instantiate()
+          input_generator.CreateTpuEnqueueOps()
+          return input_generator.TpuDequeueBatch()
+
+        if tf.executing_eagerly_outside_functions():
+          # Trace but not execute - the test only cares about the output shape.
+          cf = tf.function(_Batch).get_concrete_function()
+          batch = cf.structured_outputs
+        else:
+          batch = _Batch()
+
         self.assertEqual(batch.inp.shape.as_list(), [16, 3])
 
   def testGetPreprocessedBatchWithDatasource(self):
@@ -331,7 +361,11 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.parallel_readers = 1
     ig = p.Instantiate()
     with self.session():
-      inputs = ig.GetPreprocessedInputBatch()
+
+      @test_utils.DefineAndTrace()
+      def inputs():  # pylint: disable=invalid-name
+        return ig.GetPreprocessedInputBatch()
+
       for _ in range(p.num_epochs):
         eval_inputs = self.evaluate(inputs)
         self.assertEqual(eval_inputs.audio.shape, (p.batch_size, 48000))
@@ -353,6 +387,10 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     ig = p.Instantiate()
     with mock.patch.object(
         ig, 'InfeedBatchSize', return_value=42) as mock_method:
+      # In Eager mode, the dataset and iterator are created in the `Instantiate`
+      # call. We manually recreate them, so that the mock patch takes effect.
+      if tf.executing_eagerly_outside_functions():
+        ig._InitDataset()
       batch = ig.GetPreprocessedInputBatch()
       self.assertEqual(batch.audio.shape[0], 42)
     mock_method.assert_called()
@@ -437,6 +475,12 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertEqual(_TestTFDataInputV1.__module__, '__main__')
     self.assertEqual(_TestTFDataInputV2.__module__, '__main__')
 
+  def _commonChecks(self, data):
+    self.assertIsInstance(data, py_utils.NestedMap)
+    self.assertIsInstance(data.value, tf.Tensor)
+    self.assertAllEqual(data.value.shape, ())
+    self.assertEqual(data.value.dtype, tf.int32)
+
   def testExample(self):
     """Tests the example code in the function docstring."""
     p = _TestTFDataInput.Params()
@@ -450,11 +494,12 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInput)
 
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
@@ -477,11 +522,12 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInput)
 
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
@@ -502,11 +548,12 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputWithIgnoreArgs)
 
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Consumes all data.
       for i in range(p.args.end):
@@ -530,11 +577,12 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputWithMapArgs)
 
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Consumes all data.
       for i in range(p.args.begin, p.num_samples):
@@ -557,11 +605,12 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputWithoutDefault)
 
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
@@ -583,11 +632,12 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputWithRepeat)
 
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Runs the dataset several times: it should not raise OutOfRangeError.
       for _ in range(3):
@@ -606,11 +656,12 @@ class TFDataInputTest(test_utils.TestCase):
 
     self.assertIsInstance(ig, _TestTFDataInputWithBoundMethod)
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Consumes all data.
       for i in range(p.args.end):
@@ -632,11 +683,12 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertIsInstance(ig, _TestTFDataInputV1)
 
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
@@ -660,11 +712,12 @@ class TFDataInputTest(test_utils.TestCase):
     # We keep the TFv1's Session here since v1/v2 behaviors would not coexist.
     # TODO(oday): write TFv2-specific tests.
     with self.session() as sess:
-      data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, py_utils.NestedMap)
-      self.assertIsInstance(data.value, tf.Tensor)
-      self.assertAllEqual(data.value.shape, ())
-      self.assertEqual(data.value.dtype, tf.int32)
+
+      @test_utils.DefineAndTrace()
+      def data():  # pylint: disable=invalid-name
+        res = ig.GetPreprocessedInputBatch()
+        self._commonChecks(res)
+        return res
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):

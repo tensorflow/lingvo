@@ -310,6 +310,27 @@ py_library(
 )
 
 py_test(
+    name = "base_input_generator_eager_test",
+    srcs = ["base_input_generator_test.py"],
+    args = ["--enable_eager_execution"],
+    main = "base_input_generator_test.py",
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_input_generator",
+        ":cluster_factory",
+        ":hyperparams",
+        ":py_utils",
+        ":summary_utils",
+        ":test_utils",
+        # Implicit absl.testing.flagsaver dependency.
+        "//lingvo:compat",
+        # Implicit mock dependency.
+        # Implicit numpy dependency.
+    ],
+)
+
+py_test(
     name = "base_input_generator_test",
     srcs = ["base_input_generator_test.py"],
     python_version = "PY3",

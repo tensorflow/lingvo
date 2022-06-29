@@ -1901,6 +1901,8 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
         'input_files is required for a tf.data example input generator')
     assert p.dataset_type, (
         'dataset_type is required for a tf.data example input generator')
+    if tf.executing_eagerly_outside_functions():
+      self._InitDataset()
 
   def GetFeatureSpec(self):
     """Subclasses must implement and return a feature spec.
@@ -1925,7 +1927,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     """
     return batch
 
-  def GetPreprocessedInputBatch(self):
+  def _InitDataset(self):
     p = self.params
 
     def ParseAndProcess(*cols):
@@ -1958,7 +1960,19 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     dataset = dataset.map(
         ParseAndProcess, num_parallel_calls=p.parallel_readers)
     dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
-    iterator = dataset.make_one_shot_iterator()
+    if tf.executing_eagerly_outside_functions():
+      # In Eager mode, `GetPreprocessedInputBatch` can be called many times.
+      # We cache the iterator so that repeated calls return results from the
+      # same iterator.
+      self._eager_iterator = iter(dataset)
+
+    return dataset
+
+  def GetPreprocessedInputBatch(self):
+    if tf.executing_eagerly_outside_functions():
+      iterator = self._eager_iterator
+    else:
+      iterator = self._InitDataset().make_one_shot_iterator()
     input_batch = iterator.get_next()
     return self._AdditionalPreprocessInputBatch(input_batch)
 
