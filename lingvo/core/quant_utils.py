@@ -687,7 +687,7 @@ class QuantizableLayer(base_layer.BaseLayer):
         if qout_name is not None:
           y = self.QTensor(qout_name, y)
         else:
-          y = self.QRAct(y, dist, qdomain)
+          y = self.QRAct(y, dist, qdomain)  # pytype: disable=wrong-arg-types  # dynamic-method-lookup
         return y
 
       self.AddFunction(op_name, Wrapped)
