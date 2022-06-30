@@ -753,7 +753,7 @@
         <span class="k">if</span> <span class="n">qout_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="n">qout_name</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRAct</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">qdomain</span><span class="p">)</span>
+          <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRAct</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">qdomain</span><span class="p">)</span>  <span class="c1"># pytype: disable=wrong-arg-types  # dynamic-method-lookup</span>
         <span class="k">return</span> <span class="n">y</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">AddFunction</span><span class="p">(</span><span class="n">op_name</span><span class="p">,</span> <span class="n">Wrapped</span><span class="p">)</span>
