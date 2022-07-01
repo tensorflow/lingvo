@@ -770,8 +770,8 @@
   <span class="n">tape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">GradientTape</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="n">_GRADIENT_TAPE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tape</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
-    <span class="k">with</span> <span class="n">tape</span><span class="p">:</span>
-      <span class="k">yield</span>
+    <span class="k">with</span> <span class="n">tape</span> <span class="k">as</span> <span class="n">t</span><span class="p">:</span>
+      <span class="k">yield</span> <span class="n">t</span>
   <span class="k">finally</span><span class="p">:</span>
     <span class="n">_GRADIENT_TAPE_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
