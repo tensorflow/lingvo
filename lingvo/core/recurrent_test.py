@@ -20,6 +20,7 @@ from lingvo.core import base_layer
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
 from lingvo.core import recurrent
+from lingvo.core import scatter_update
 from lingvo.core import symbolic
 from lingvo.core import test_utils
 import numpy as np
@@ -148,7 +149,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
   def testBasic(self):
 
-    with self.session(use_gpu=True):
+    with self.session(use_gpu=True), test_utils.TapeIfEager() as tape:
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -160,6 +161,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
       # x = 2
       # 1 + 2*x + 3*x^2
+      tape.watch(theta.x, inputs.coeff)
+
       ret = recurrent.Recurrent(theta, state, inputs, _Poly)
 
       acc, state = self.evaluate(ret)
@@ -169,7 +172,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(state.x_power, 8.)
 
       y = ret[1].value
-      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      dx, d_coeff = tape.gradient([y], [theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
 
       # 2 + 6*x
@@ -179,8 +182,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       # acc = [1, 1+2x, 1+2x+3x^2]
       # sum(acc) = 3 + 4x + 3x^2
       acc = ret[0].value
-      dx, d_coeff = tf.gradients(
-          ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
+      dx, d_coeff = tape.gradient([tf.reduce_sum(acc)], [theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
       # 4 + 6*x
       self.assertAllClose(dx_val, 16.)
@@ -188,12 +190,12 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
   def testBasicWithAccumulator(self):
 
-    with self.session(use_gpu=True):
-
+    with self.session(use_gpu=True), test_utils.TapeIfEager() as tape:
       p = _SampleAccumulatorLayer.Params()
       p.name = 'sample'
       accum_layer = _SampleAccumulatorLayer(p)
-      accum_obj = accum_layer.accumulators[accum_layer.accumulator_name]
+      accum_obj: _IncrementAccumulator = accum_layer.accumulators[
+          accum_layer.accumulator_name]
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
@@ -202,6 +204,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       state.x_power = tf.constant(1.0)
       inputs = py_utils.NestedMap()
       inputs.coeff = tf.constant([1., 2., 3.])
+
+      tape.watch(theta.x, inputs.coeff)
 
       def _CellFn(theta, state, inputs):
         print('TEST ACCUM WITHIN CellFn = ', accum_obj.GetValue())
@@ -214,12 +218,21 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
       # x = 2
       # 1 + 2*x + 3*x^2
-      ret = recurrent.Recurrent(
-          theta, state, inputs, _CellFn, accumulator_layer=accum_layer)
+      @test_utils.DefineAndTrace()
+      def F():
+        ret = recurrent.Recurrent(
+            theta, state, inputs, _CellFn, accumulator_layer=accum_layer)
+        return ret, accum_obj.GetValue(), accum_obj._disable_count
+
+      # In graph mode, the traced function is replaced with its outputs.
+      if tf.executing_eagerly():
+        (acc_state, final_state), accum_obj_val, accum_obj_disable_cnt = F()
+      else:
+        (acc_state, final_state), accum_obj_val, accum_obj_disable_cnt = F  # pylint: disable=unpacking-non-sequence
 
       # Verify bprop.
-      y = ret[1].value
-      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      y = final_state.value
+      dx, d_coeff = tape.gradient(ys=[y], xs=[theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
 
       # 2 + 6*x
@@ -228,8 +241,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
       # acc = [1, 1+2x, 1+2x+3x^2]
       # sum(acc) = 3 + 4x + 3x^2
-      acc = ret[0].value
-      dx, d_coeff = tf.gradients(
+      acc = acc_state.value
+      dx, d_coeff = tape.gradient(
           ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
       # 4 + 6*x
@@ -237,7 +250,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(d_coeff_val, [3., 4., 4.])
 
       # Verify fprop.
-      (acc, state), accum_obj_value = self.evaluate((ret, accum_obj.GetValue()))
+      (acc, state), accum_obj_value = self.evaluate(
+          ((acc_state, final_state), accum_obj_val))
 
       # Verify that accumulators don't change fprop results.
       self.assertAllClose(acc.value, [1., 5., 17.])
@@ -246,12 +260,12 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(state.x_power, 8.)
 
       # Verify accumulator (should be 10 (initial increment) + 1 + 2 + 3).
-      self.assertEqual(0, accum_obj._disable_count)
+      self.assertEqual(0, accum_obj_disable_cnt)
       self.assertAllClose([accum_obj_value], [16.0])
 
   def testTimeBasedStopFn(self):
 
-    with self.session(use_gpu=True):
+    with self.session(use_gpu=True), test_utils.TapeIfEager() as tape:
 
       def StopFn(t, unused_theta, unused_state):
         # This stops after 3 iterations.
@@ -265,6 +279,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       inputs = py_utils.NestedMap()
       inputs.coeff = tf.constant([1., 2., 3., 4.])
 
+      tape.watch(theta.x, inputs.coeff)
+
       # x = 2
       # 1 + 2*x + 3*x^2
       ret = recurrent.Recurrent(theta, state, inputs, _Poly, stop_fn=StopFn)
@@ -276,7 +292,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(8., state.x_power)
 
       y = ret[1].value
-      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      dx, d_coeff = tape.gradient(ys=[y], xs=[theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
 
       # 2 + 6*x
@@ -286,7 +302,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       # acc = [1, 1+2x, 1+2x+3x^2]
       # sum(acc) = 3 + 4x + 3x^2
       acc = ret[0].value
-      dx, d_coeff = tf.gradients(
+      dx, d_coeff = tape.gradient(
           ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
       # 4 + 6*x
@@ -295,7 +311,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
   def testStateBasedStopFn(self):
 
-    with self.session(use_gpu=True):
+    with self.session(use_gpu=True), test_utils.TapeIfEager() as tape:
 
       def StopFn(unused_t, unused_theta, state):
         # This stops after 3 iterations.
@@ -309,6 +325,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       inputs = py_utils.NestedMap()
       inputs.coeff = tf.constant([1., 2., 3., 4.])
 
+      tape.watch(theta.x, inputs.coeff)
+
       # x = 2
       # 1 + 2*x + 3*x^2
       ret = recurrent.Recurrent(theta, state, inputs, _Poly, stop_fn=StopFn)
@@ -320,7 +338,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(8., state.x_power)
 
       y = ret[1].value
-      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      dx, d_coeff = tape.gradient(ys=[y], xs=[theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
 
       # 2 + 6*x
@@ -330,7 +348,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       # acc = [1, 1+2x, 1+2x+3x^2]
       # sum(acc) = 3 + 4x + 3x^2
       acc = ret[0].value
-      dx, d_coeff = tf.gradients(
+      dx, d_coeff = tape.gradient(
           ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
       # 4 + 6*x
@@ -339,7 +357,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
   def testStopFnNotTriggeredBeforeEOS(self):
 
-    with self.session(use_gpu=True):
+    with self.session(use_gpu=True), test_utils.TapeIfEager() as tape:
 
       def StopFn(t, unused_theta, unused_state):
         # The input sequence is only length 4, so this is never true.
@@ -354,6 +372,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       inputs = py_utils.NestedMap()
       inputs.coeff = tf.constant([1., 2., 3., 4.])
 
+      tape.watch(theta.x, inputs.coeff)
+
       # x = 2
       # 1 + 2*x + 3*x^2 + 4*x^3
       ret = recurrent.Recurrent(theta, state, inputs, _Poly, stop_fn=StopFn)
@@ -365,7 +385,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(16., state.x_power)
 
       y = ret[1].value
-      dx, d_coeff = tf.gradients(ys=[y], xs=[theta.x, inputs.coeff])
+      dx, d_coeff = tape.gradient(ys=[y], xs=[theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
 
       # 2 + 6*x + 12*x^2
@@ -375,7 +395,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       # acc = [1, 1+2x, 1+2x+3x^2, 1+2x+3x^2+4x^3]
       # sum(acc) = 4 + 6x + 6x^2 + 4x^3
       acc = ret[0].value
-      dx, d_coeff = tf.gradients(
+      dx, d_coeff = tape.gradient(
           ys=[tf.reduce_sum(acc)], xs=[theta.x, inputs.coeff])
       dx_val, d_coeff_val = self.evaluate([dx, d_coeff])
       # 6 + 12*x + 12*x^2
@@ -383,9 +403,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose([4., 6., 8., 8.], d_coeff_val)
 
   def testCapture(self):
-
-    with self.session(use_gpu=True):
-
+    with self.session(use_gpu=True), scatter_update.SetInplaceUpdate(
+        False), test_utils.TapeIfEager() as tape:
       theta = py_utils.NestedMap()
       theta.x = tf.constant(2.0)
       state0 = py_utils.NestedMap()
@@ -401,40 +420,49 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
         next_state.value = state.value + inputs.coeff * captured * theta.x
         return next_state, py_utils.NestedMap()
 
+      tape.watch(theta.x, captured)
+
       # Run static fprop reference implementation.
       ref_acc, ref_staten = _ReferenceStaticUnroll(theta, state0, inputs,
                                                    CellFn)
       ref_acc_values, ref_staten_values = self.evaluate((ref_acc, ref_staten))
-      print('Ref fprop: acc =', ref_acc, ', stateN =', ref_staten)
-      print('Ref fprop values: acc =', ref_acc_values, ', stateN =',
-            ref_staten_values)
+      print(f'Ref fprop: {ref_acc=}, {ref_staten=}')
+      print(f'Ref fprop values: {ref_acc_values=}, {ref_staten_values=}')
       self.assertAllClose(ref_acc_values.value, [2.4, 7.2, 14.4])
       self.assertAllClose(ref_staten_values.value, 14.4)
 
       # Run real fprop implementation.
-      real_acc, real_staten = recurrent.Recurrent(
-          theta, state0, inputs, CellFn, allow_implicit_capture=True)
+      @test_utils.DefineAndTrace()
+      def F():
+        return recurrent.Recurrent(
+            theta, state0, inputs, CellFn, allow_implicit_capture=True)
+
+      # In graph mode, the traced function is replaced with its outputs.
+      real_acc, real_staten = F() if tf.executing_eagerly() else F  # pylint: disable=unpacking-non-sequence
+
       real_acc_values, real_staten_values = self.evaluate(
           (real_acc, real_staten))
-      print('Real fprop: acc =', real_acc, ', stateN =', real_staten)
-      print('Real fprop values: acc =', real_acc_values, ', stateN =',
-            real_staten_values)
+      print(f'Real fprop: acc={real_acc}, stateN={real_staten}')
+      print(f'Real fprop values: acc={real_acc_values}'
+            f'stateN={real_staten_values}')
       self.assertAllClose(ref_acc_values.value, real_acc_values.value)
       self.assertAllClose(ref_staten_values.value, real_staten_values.value)
 
       # BProp real vs ref of stateN.
-      ref_dx, ref_dcaptured = tf.gradients(
-          ys=[ref_staten.value], xs=[theta.x, captured])
+      ref_dx, ref_dcaptured = tape.gradient([ref_staten.value],
+                                            [theta.x, captured])
       ref_dx_values, ref_dcaptured_values = self.evaluate(
           [ref_dx, ref_dcaptured])
-      real_dx, real_dcaptured = tf.gradients(
-          ys=[real_staten.value], xs=[theta.x, captured])
+      real_dx, real_dcaptured = tape.gradient([real_staten.value],
+                                              [theta.x, captured])
       real_dx_values, real_dcaptured_values = self.evaluate(
           [real_dx, real_dcaptured])
-      print('Ref Dstate/[dx,dcaptured] =', ref_dx_values, ', ',
-            ref_dcaptured_values)
-      print('Real Dstate/[dx,dcaptured] =', real_dx_values, ', ',
-            real_dcaptured_values)
+
+      print(
+          f'Ref Dstate/[dx,dcaptured]={ref_dx_values}, {ref_dcaptured_values}')
+      print(
+          f'Real Dstate/[dx,dcaptured]={real_dx_values}, {real_dcaptured_values}'
+      )
       self.assertAllClose(ref_dx_values, 7.2)
       self.assertAllClose(ref_dcaptured_values, 12.0)
       self.assertAllClose(ref_dx_values, real_dx_values)
@@ -486,7 +514,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       dinputs = py_utils.NestedMap(t=dstate1.value * theta.w * x_tensor)
       return dtheta, dstate0, dinputs, None
 
-    with self.session(use_gpu=True):
+    with self.session(use_gpu=True), test_utils.TapeIfEager() as tape:
       theta = py_utils.NestedMap(w=tf.constant(1., name='w'))
       state0 = py_utils.NestedMap(value=tf.constant(0., name='value'))
       inputs = py_utils.NestedMap(t=tf.constant([1., 2., 3.], name='t'))
@@ -497,11 +525,13 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
           y: 8
       }):
         x_tensor = symbolic.EvalExpr(symbolic.TENSOR_VALUES, x)
+        tape.watch(state0, theta.w, x_tensor, inputs)
         _, state1 = recurrent.Recurrent(theta, state0, inputs, PlusWXT)
-        dw = tf.gradients(ys=[state1.value], xs=[theta.w])[0]
-        dx = tf.gradients(ys=[state1.value], xs=[x_tensor])[0]
+        dw = tape.gradient(ys=[state1.value], xs=[theta.w])[0]
+        dx = tape.gradient(ys=[state1.value], xs=[x_tensor])[0]
         final_value, x_val, dx_val, dw_val = self.evaluate(
             [state1.value, x_tensor, dx, dw])
+        print(f'{final_value=}\n{x_val=}\n{dx_val=}\n{dw_val=}')
       self.assertEqual(x_val, 7)
       self.assertEqual(final_value, x_val * (1. + 2. + 3.))
       self.assertEqual(dw_val, x_val * (1. + 2. + 3.))
@@ -513,10 +543,14 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
         x_tensor = symbolic.EvalExpr(symbolic.TENSOR_VALUES, x)
         _, state1 = recurrent.Recurrent(
             theta, state0, inputs, PlusWXT, cell_grad=PlusWXTGrad)
-        dw = tf.gradients(ys=[state1.value], xs=[theta.w])[0]
-        dx = tf.gradients(ys=[state1.value], xs=[x_tensor])[0]
+        tape.watch(state1.value, x_tensor)
+        dw = tape.gradient(ys=[state1.value], xs=[theta.w])[0]
+        print(f'{[state1.value, x_tensor]=}')
+        dx = tape.gradient(ys=[state1.value], xs=[x_tensor])[0]
+        print(f'{dx=}')  # This is None
         final_value, x_val, dx_val, dw_val = self.evaluate(
             [state1.value, x_tensor, dx, dw])
+        print(f'{final_value=}, {x_val=}, {dx_val=}, {dw_val=}')
       self.assertEqual(x_val, 5)
       self.assertEqual(final_value, x_val * (1. + 2. + 3.))
       self.assertEqual(dw_val, x_val * (1. + 2. + 3.))
@@ -578,14 +612,14 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
         recurrent.Recurrent(theta, state, inputs, Rand, check_stateful_ops=True)
 
   def testSeqLenActual(self):
-    for value, expected in [([[1.0], [1.0], [1.0]],
-                             [0, 3]), ([[1.0], [1.0], [0.0]],
-                                       [2, 0]), ([[1.0], [0.0], [1.0]], [1, 1]),
-                            ([[1.0], [0.0], [0.0]],
-                             [1, 0]), ([[0.0], [1.0], [1.0]],
-                                       [0, 2]), ([[0.0], [1.0], [0.0]], [0, 0]),
-                            ([[0.0], [0.0], [1.0]], [0, 1]), ([[0.0], [0.0],
-                                                               [0.0]], [0, 0])]:
+    for value, expected in [([[1.0], [1.0], [1.0]], [0, 3]),
+                            ([[1.0], [1.0], [0.0]], [2, 0]),
+                            ([[1.0], [0.0], [1.0]], [1, 1]),
+                            ([[1.0], [0.0], [0.0]], [1, 0]),
+                            ([[0.0], [1.0], [1.0]], [0, 2]),
+                            ([[0.0], [1.0], [0.0]], [0, 0]),
+                            ([[0.0], [0.0], [1.0]], [0, 1]),
+                            ([[0.0], [0.0], [0.0]], [0, 0])]:
       with self.session(use_gpu=True):
         inputs = py_utils.NestedMap()
         inputs.padding = tf.constant(value)
@@ -599,7 +633,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
     return tf.random.uniform(shape, minval=-0.2, maxval=0.2, dtype=tf.float64)
 
   def _testElmanHelper(self, seqlen, use_grad, stop_fn=None):
-    with self.session(use_gpu=True):
+    with self.session(use_gpu=True), test_utils.TapeIfEager() as tape:
       tf.random.set_seed(342462)
 
       batch = 3
@@ -611,6 +645,8 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       state0.h = self.Rand([batch, dims])
       inputs = py_utils.NestedMap()
       inputs.x = self.Rand([seqlen, batch, dims])
+
+      tape.watch(theta.w, theta.b, state0.h, inputs.x)
 
       # Static unrolled.
       s = state0
@@ -625,8 +661,9 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
           break
       acc0, final0 = tf.stack(out), s.h
       loss0 = tf.reduce_sum(acc0) + tf.reduce_sum(final0)
+      tape.watch(loss0)
       (dw0, db0, dh0,
-       di0) = tf.gradients(loss0, [theta.w, theta.b, state0.h, inputs.x])
+       di0) = tape.gradient(loss0, [theta.w, theta.b, state0.h, inputs.x])
 
       # Uses the Recurrent() library.
       acc1, final1 = recurrent.Recurrent(
@@ -638,8 +675,9 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
           stop_fn=stop_fn)
       acc1, final1 = acc1.h, final1.h
       loss1 = tf.reduce_sum(acc1) + tf.reduce_sum(final1)
+      tape.watch(loss1)
       (dw1, db1, dh1,
-       di1) = tf.gradients(loss1, [theta.w, theta.b, state0.h, inputs.x])
+       di1) = tape.gradient(loss1, [theta.w, theta.b, state0.h, inputs.x])
 
       # Fetches a bunch of values and compare them.
       (acc0, acc1, final0, final1, dw0, dw1, db0, db1, dh0, dh1, di0,
@@ -670,28 +708,30 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
         b=py_utils.NestedMap(
             b1=tf.placeholder(tf.int32, shape=None),
             b2=tf.placeholder(tf.int32, shape=None)))
-    src = py_utils.NestedMap(
-        a=tf.constant(0, shape=[2, 4], dtype=tf.int32),
-        b=py_utils.NestedMap(
-            b1=tf.constant(0, shape=[1, 3], dtype=tf.int32),
-            b2=tf.constant(0, shape=[5, 8], dtype=tf.int32)))
-    py_utils.SetShapes(dst, src)
-    self.assertAllClose(
-        [2, 4],
-        py_utils.GetShape(dst.a, 2),
-    )
-    self.assertAllClose([1, 3], py_utils.GetShape(dst.b.b1, 2))
-    self.assertAllClose([5, 8], py_utils.GetShape(dst.b.b2, 2))
+
+    @test_utils.DefineAndTrace(dst)
+    def F(dst):
+      src = py_utils.NestedMap(
+          a=tf.constant(0, shape=[2, 4], dtype=tf.int32),
+          b=py_utils.NestedMap(
+              b1=tf.constant(0, shape=[1, 3], dtype=tf.int32),
+              b2=tf.constant(0, shape=[5, 8], dtype=tf.int32)))
+      py_utils.SetShapes(dst, src)
+
+      self.assertAllClose([2, 4], py_utils.GetShape(dst.a, 2))
+      self.assertAllClose([1, 3], py_utils.GetShape(dst.b.b1, 2))
+      self.assertAllClose([5, 8], py_utils.GetShape(dst.b.b2, 2))
 
   @parameterized.parameters(True, False)
   def testDropoutInRecurrent(self, graph_seed):
-    with self.session() as sess:
+    with self.session() as sess, test_utils.TapeIfEager() as tape:
       if graph_seed:
         tf.random.set_seed(12345)
       l = lingvo_layers.DeterministicDropoutLayer.Params().Set(
           name='dropout', keep_prob=0.7).Instantiate()
       # Input variable.
       w = tf.get_variable('w', shape=[9, 20], initializer=tf.ones_initializer())
+      tape.watch(w)
       sess.run(tf.global_variables_initializer())
       prev_sum = np.sum(np.isclose(sess.run(w), 0.0))
 
@@ -715,6 +755,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
       # Construct loss function such that gradients = final activation.
       loss = tf.reduce_sum(final.w)
+      tape.watch(loss)
       grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
       w_val, grads_val = sess.run([final.w, grads.w.grad])
       self.assertAllClose(w_val, grads_val)
@@ -734,6 +775,7 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
     del theta, state0
     return py_utils.NestedMap(s=inputs.s), py_utils.NestedMap()
 
+  @test_utils.SkipIfEager
   def testSimpleStacked(self):
     g = tf.Graph()
     with g.as_default():
@@ -852,12 +894,15 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
     self._LogDiff(ref_val, out_val)
     self.assertAllClose(ref_val, out_val)
 
+  @test_utils.SkipIfEager
   def testStackedElman_2(self):
     self._CompareStackedElman(4, 3, 8, 2)
 
+  @test_utils.SkipIfEager
   def testStackedElman_4(self):
     self._CompareStackedElman(8, 5, 8, 4)
 
+  @test_utils.SkipIfEager
   def testStackedElman_8(self):
     self._CompareStackedElman(11, 1, 4, 8)
 
@@ -890,15 +935,19 @@ class StackedRecurrentTest(test_utils.TestCase, parameterized.TestCase):
         self._LogDiff(n_dx, s_dx)
         self.assertAllClose(n_dx, s_dx)
 
+  @test_utils.SkipIfEager
   def testStackedElmanGrad_1(self):
     self._TestStackedElmanGradient(1)
 
+  @test_utils.SkipIfEager
   def testStackedElmanGrad_2(self):
     self._TestStackedElmanGradient(2)
 
+  @test_utils.SkipIfEager
   def testStackedElmanGrad_4(self):
     self._TestStackedElmanGradient(4)
 
+  @test_utils.SkipIfEager
   def testStackedElmanGrad_8(self):
     self._TestStackedElmanGradient(8, seqlen=5, batch=3)
 

@@ -1731,7 +1731,20 @@ py_library(
 
 lingvo_cuda_py_test(
     name = "recurrent_test",
+    timeout = "long",
     srcs = ["recurrent_test.py"],
+    args = ["--noenable_eager_execution"],
+    python_version = "PY3",
+    shard_count = 6,
+    srcs_version = "PY3",
+    deps = [":recurrent_test_lib"],
+)
+
+lingvo_cuda_py_test(
+    name = "recurrent_eager_test",
+    srcs = ["recurrent_test.py"],
+    args = ["--enable_eager_execution"],
+    main = "recurrent_test.py",
     python_version = "PY3",
     shard_count = 6,
     srcs_version = "PY3",
@@ -1748,8 +1761,10 @@ py_library(
         ":layers",
         ":py_utils",
         ":recurrent",
+        ":scatter_update",
         ":symbolic",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],

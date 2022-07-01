@@ -21,7 +21,7 @@ import os
 import re
 import sys
 import typing
-from typing import Callable
+from typing import Callable, Optional
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -55,6 +55,44 @@ def SkipIfEager(test_func):
   return _Wrap
 
 
+class TapeIfEager:
+  """Context manager adaptor for gradient computation across graph/eager modes.
+
+  In eager mode, passes through `watch` and `gradient` calls to a managed
+  tf.GradientTape object. In graph mode, `watch` is a no-op and `gradient` is
+  passed to tf.gradients.
+  """
+
+  def __init__(self, **kwargs):
+    self._tape_ctx: Optional[contextlib._GeneratorContextManager] = None
+    self._tape: Optional[tf.GradientTape] = None
+    if py_utils.IsEagerMode():
+      # Default to a persistent tape for tests.
+      self._tape_ctx = py_utils.GradientTape(**{'persistent': True, **kwargs})
+
+  def __enter__(self) -> 'TapeIfEager':
+    if self._tape_ctx is not None:
+      self._tape = self._tape_ctx.__enter__()
+    return self
+
+  def __exit__(self, type_, value, traceback) -> None:
+    if self._tape_ctx is not None:
+      self._tape_ctx.__exit__(type_, value, traceback)
+
+  def watch(self, *tensors):  # pylint: disable=invalid-name
+    """If in eager mode, watch the provided tensors on the GradientTape."""
+    if tape := self._tape:
+      for t in tensors:
+        tape.watch(t)
+
+  def gradient(self, ys, xs) -> list[tf.Tensor]:  # pylint: disable=invalid-name
+    """Returns len(xs) tensors of numeric gradients taken wrt the ys."""
+    if tape := self._tape:
+      return tape.gradient(target=ys, sources=xs)
+    else:
+      return tf.gradients(ys=ys, xs=xs)
+
+
 @typing.overload
 def DefineAndTrace(
     *tensor_specs_or_placeholders: tf.TensorSpec
@@ -62,6 +100,8 @@ def DefineAndTrace(
   ...
 
 
+# TODO(jlipschultz): Consider changing the behavior of the graph-mode version of
+# DefineAndTrace to also return a Callable[Callable, Callable] for simplicity.
 @typing.overload
 def DefineAndTrace(*tensor_specs_or_placeholders: tf.Tensor) -> Callable:  # pylint: disable=g-bare-generic
   ...

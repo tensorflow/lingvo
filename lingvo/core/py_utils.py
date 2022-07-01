@@ -704,8 +704,8 @@ def GradientTape(*args, **kwargs):
   tape = tf.GradientTape(*args, **kwargs)
   _GRADIENT_TAPE_STACK.stack.append(tape)
   try:
-    with tape:
-      yield
+    with tape as t:
+      yield t
   finally:
     _GRADIENT_TAPE_STACK.stack.pop()
 
