@@ -735,8 +735,13 @@ default DecodeProgram.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.Summary">
+<span class="sig-name descname"><span class="pre">Summary</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.Summary"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.Summary" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.DecodeFunc">
-<span class="sig-name descname"><span class="pre">DecodeFunc</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.DecodeFunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.DecodeFunc" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">DecodeFunc</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inp_instance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.DecodeFunc"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.DecodeFunc" title="Permalink to this definition"></a></dt>
 <dd><p>Wrap the DecodeLoop with split_compile_and_shard.</p>
 </dd></dl>
 
@@ -765,9 +770,38 @@ batch size).</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.FinalizeCallback">
+<span class="sig-name descname"><span class="pre">FinalizeCallback</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">unused_finalize_ret</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.FinalizeCallback"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.FinalizeCallback" title="Permalink to this definition"></a></dt>
+<dd><p>Callback after _FinalizeDecode thread done.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram._DecodeLoop">
-<span class="sig-name descname"><span class="pre">_DecodeLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._DecodeLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._DecodeLoop" title="Permalink to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">_DecodeLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._DecodeLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._DecodeLoop" title="Permalink to this definition"></a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram._PostProcess">
+<span class="sig-name descname"><span class="pre">_PostProcess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_step</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dec_metrics</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">elapsed_secs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._PostProcess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._PostProcess" title="Permalink to this definition"></a></dt>
+<dd><p>Postprocess decoded metrics.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram._ThreadCall">
+<span class="sig-name descname"><span class="pre">_ThreadCall</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">func</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">callback</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thread</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._ThreadCall"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._ThreadCall" title="Permalink to this definition"></a></dt>
+<dd><p>Call async thread with default Error callback to break main.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.WaitThread">
+<span class="sig-name descname"><span class="pre">WaitThread</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">futures</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.WaitThread"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.WaitThread" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.RunForInput">
+<span class="sig-name descname"><span class="pre">RunForInput</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inp_instance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sess</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">threadpool</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.RunForInput"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.RunForInput" title="Permalink to this definition"></a></dt>
+<dd><p>Setup and execute Decode program.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram.Run">
