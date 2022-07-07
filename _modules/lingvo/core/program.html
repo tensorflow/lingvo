@@ -1487,7 +1487,9 @@
     <span class="k">if</span> <span class="n">threadpool</span><span class="p">:</span>
 
       <span class="k">def</span> <span class="nf">_HandleError</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="n">e</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">exception</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+        <span class="c1"># Terminate the main thread.</span>
+        <span class="n">_thread</span><span class="o">.</span><span class="n">interrupt_main</span><span class="p">()</span>
 
       <span class="c1"># Async. TPU+host processing is done and can move on to Train.</span>
       <span class="k">return</span> <span class="n">threadpool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
