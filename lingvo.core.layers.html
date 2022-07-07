@@ -3661,6 +3661,30 @@ its children layers.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.layers.PerFrameStatisticalPoolingLayer.StreamingStep">
+<span class="sig-name descname"><span class="pre">StreamingStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#PerFrameStatisticalPoolingLayer.StreamingStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.layers.PerFrameStatisticalPoolingLayer.StreamingStep" title="Permalink to this definition"></a></dt>
+<dd><p>Streams t steps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – An input tensor either [batch, time, dim] or [time, batch, dim].</p></li>
+<li><p><strong>paddings</strong> – A tensor with padding indicators.</p></li>
+<li><p><strong>state0</strong> – A NestedMap of tensors with order1 ([batch, dim]), order2 ([batch,
+dim]) and nframes ([batch]) fields.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor of shape [batch, dim].
+padding: A tensor of shape [batch].
+state1: A NestedMap of tensors of the same struct as state0.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>outputs</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
