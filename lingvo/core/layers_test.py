@@ -6638,24 +6638,30 @@ class StatisticalPoolingLayerTest(test_utils.TestCase):
 
 class PerFrameStatisticalPoolingLayerTest(test_utils.TestCase):
 
+  def _getInputs(self):
+    # batch = 4, time = 5, depth = 2
+    features = np.random.normal(size=(4, 5, 2))
+    paddings = [[0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 1.0],
+                [0.0, 0.0, 0.0, 1.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0]]
+    features_tf = tf.constant(features, dtype=tf.float32)
+    paddings_tf = tf.constant(paddings, dtype=tf.float32)
+    features_np = np.array(features)
+    paddings_np = np.array(paddings)
+    return features_tf, paddings_tf, features_np, paddings_np
+
+  def _getParams(self):
+    params = layers.PerFrameStatisticalPoolingLayer.Params()
+    params.name = 'mean_stddev_pooling'
+    params.has_stddev = True
+    params.left_context = -1
+    params.right_context = 0
+    return params
+
   def testFProp(self):
     with self.session(use_gpu=False) as sess:
-      # batch = 4, time = 5, depth = 2
-      features = tf.constant(np.random.normal(size=(4, 5, 2)), dtype=tf.float32)
-      paddings = tf.constant(
-          [[0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 0.0, 1.0], [0.0, 0.0, 1.0, 1.0],
-           [0.0, 0.0, 0.0, 1.0], [0.0, 1.0, 1.0, 1.0]],
-          dtype=tf.float32)
-      paddings = tf.constant(
-          [[0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 1.0],
-           [0.0, 0.0, 1.0, 0.0, 1.0], [1.0, 1.0, 1.0, 1.0, 1.0]],
-          dtype=tf.float32)
+      features, paddings, _, _ = self._getInputs()
+      params = self._getParams()
       # test fprop with both mean & stddev
-      params = layers.PerFrameStatisticalPoolingLayer.Params()
-      params.name = 'mean_stddev_pooling'
-      params.has_stddev = True
-      params.left_context = -1
-      params.right_context = 0
       layer1 = layers.PerFrameStatisticalPoolingLayer(params)
       results1 = layer1.FProp(features, paddings)
       # test fprop with only mean
@@ -6671,6 +6677,34 @@ class PerFrameStatisticalPoolingLayerTest(test_utils.TestCase):
       self.assertEqual(
           results2.shape,
           (features.shape[0], features.shape[1], features.shape[2]))
+
+  def testStreamingStep(self):
+    with self.session(use_gpu=False) as sess:
+      features_tf, paddings_tf, features_np, paddings_np = self._getInputs()
+      params = self._getParams()
+      layer = layers.PerFrameStatisticalPoolingLayer(params)
+      # test StreamingStep
+      states = [None]
+      results1 = []
+      for idx in range(features_np.shape[1]):
+        feats = tf.constant(features_np[:, idx, :], dtype=tf.float32)
+        pads = tf.constant(paddings_np[:, idx], dtype=tf.float32)
+        curres, _, state1 = layer.StreamingStep(feats, pads, states[-1])
+        results1.append(curres)
+        states.append(state1)
+      # test FProp
+      results2 = layer.FProp(features_tf, paddings_tf)
+      results2 = tf.transpose(results2, [1, 0, 2])
+      # compare the results
+      self.evaluate(tf.global_variables_initializer())
+      results1, results2 = sess.run([results1, results2])
+      # check every non-padded position
+      for tidx in range(len(results1)):
+        for bidx in range(len(results1[tidx])):
+          for didx in range(len(results1[tidx][bidx])):
+            if paddings_np[bidx][tidx] == 0.0:
+              self.assertAllClose(results1[tidx][bidx][didx],
+                                  results2[tidx][bidx][didx])
 
 
 class MaskedLmDataAugmenterTest(test_utils.TestCase):

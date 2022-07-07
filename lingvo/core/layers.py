@@ -6542,7 +6542,7 @@ class PerFrameStatisticalPoolingLayer(base_layer.BaseLayer):
     seq_mask = tf.repeat(
         tf.expand_dims(seq_mask, axis=0), repeats=batch, axis=0)
     # compute seqlens and update seq_mask
-    seqlens = tf.reduce_sum(seq_mask, axis=1)
+    seqlens = tf.reduce_sum(1.0 - seq_mask, axis=1) + 1.0
     seqlens = tf.repeat(tf.expand_dims(seqlens, axis=-1), repeats=dim, axis=-1)
     seq_mask = tf.expand_dims(seq_mask, axis=-1)
     # compute the mean
@@ -6559,6 +6559,69 @@ class PerFrameStatisticalPoolingLayer(base_layer.BaseLayer):
       return tf.concat([mean, stddev], axis=-1)
     else:
       return mean
+
+  def StreamingStep(self, inputs, paddings, state0):
+    """Streams t steps.
+
+    Args:
+      inputs: An input tensor either [batch, time, dim] or [time, batch, dim].
+      paddings: A tensor with padding indicators.
+      state0: A NestedMap of tensors with order1 ([batch, dim]), order2 ([batch,
+        dim]) and nframes ([batch]) fields.
+
+    Returns:
+      outputs: A tensor of shape [batch, dim].
+      padding: A tensor of shape [batch].
+      state1: A NestedMap of tensors of the same struct as state0.
+    """
+    p = self.params
+    # get the input features
+    if p.input_data_format == 'BTC':
+      if len(py_utils.GetShape(inputs)) == 2:
+        inputs = tf.expand_dims(inputs, axis=1)
+      inputs = tf.transpose(inputs, [1, 0, 2])
+      if paddings is not None:
+        if len(py_utils.GetShape(paddings)) == 1:
+          paddings = tf.expand_dims(paddings, axis=-1)
+        paddings = tf.transpose(paddings, [1, 0])
+    elif p.input_data_format == 'TBC':
+      if len(py_utils.GetShape(inputs)) == 2:
+        inputs = tf.expand_dims(inputs, axis=0)
+      if paddings is not None:
+        paddings = tf.expand_dims(paddings, axis=0)
+    # mask the input features
+    if paddings is not None:
+      inputs = inputs * (tf.expand_dims(1.0 - paddings, axis=-1))
+    [_, batch, dim] = py_utils.GetShape(inputs)
+    # set the zero state if first time
+    if state0 is None:
+      state0 = py_utils.NestedMap()
+      state0.order1 = tf.zeros(shape=[batch, dim], dtype=inputs.dtype)
+      state0.order2 = tf.zeros(shape=[batch, dim], dtype=inputs.dtype)
+      state0.nframes = tf.zeros(shape=[batch, 1], dtype=inputs.dtype)
+    # execute a streaming step
+    state1 = py_utils.NestedMap()
+    # compute state1
+    state1.order1 = state0.order1 + tf.reduce_sum(inputs, axis=0)
+    state1.order2 = state0.order2 + tf.reduce_sum(
+        tf.math.square(inputs), axis=0)
+    nframes = tf.reduce_sum(1.0 - paddings, axis=0)
+    state1.nframes = state0.nframes + tf.expand_dims(nframes, axis=-1)
+    # compute mean values
+    mean = tf.math.divide_no_nan(state1.order1, state1.nframes)
+    # compute stddev values
+    outputs = mean
+    if p.has_stddev:
+      variance = state1.order2 - 2.0 * tf.math.multiply(mean, state1.order1)
+      variance += tf.math.multiply(state1.nframes, tf.math.square(mean))
+      variance = tf.math.divide_no_nan(variance, state1.nframes)
+      stddev = tf.math.sqrt(variance)
+      outputs = tf.concat([mean, stddev], axis=-1)
+    # compute paddings
+    zeros = tf.zeros_like(nframes)
+    ones = tf.ones_like(nframes)
+    paddings = 1.0 - tf.where(tf.math.equal(nframes, zeros), zeros, ones)
+    return outputs, paddings, state1
 
 
 class MaskedLmDataAugmenter(base_layer.BaseLayer):
