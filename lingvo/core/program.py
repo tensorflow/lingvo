@@ -1421,7 +1421,9 @@ class DecodeProgram(BaseProgram):
     if threadpool:
 
       def _HandleError(e):
-        raise e
+        tf.logging.exception(e)
+        # Terminate the main thread.
+        _thread.interrupt_main()
 
       # Async. TPU+host processing is done and can move on to Train.
       return threadpool.apply_async(
