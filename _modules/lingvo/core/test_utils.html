@@ -109,16 +109,26 @@
 <span class="n">py_utils</span><span class="o">.</span><span class="n">SetEagerMode</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
 
 
-<span class="c1"># Decorator to skip a test if in eager mode.</span>
-<div class="viewcode-block" id="SkipIfEager"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.SkipIfEager">[docs]</a><span class="k">def</span> <span class="nf">SkipIfEager</span><span class="p">(</span><span class="n">test_func</span><span class="p">):</span>
+<div class="viewcode-block" id="_SkipIf"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils._SkipIf">[docs]</a><span class="k">def</span> <span class="nf">_SkipIf</span><span class="p">(</span><span class="n">test_func</span><span class="p">,</span> <span class="n">cond</span><span class="p">,</span> <span class="n">msg</span><span class="p">):</span>
 
   <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">test_func</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_Wrap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span><span class="s1">&#39;Not compatible with eager execution, skipping.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">cond</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">skipTest</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">test_func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">_Wrap</span></div>
+
+
+<span class="n">SkipIfEager</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+    <span class="n">_SkipIf</span><span class="p">,</span>
+    <span class="n">cond</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">,</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s1">&#39;Not compatible with eager execution, skipping.&#39;</span><span class="p">)</span>
+
+<span class="n">SkipIfNonEager</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+    <span class="n">_SkipIf</span><span class="p">,</span>
+    <span class="n">cond</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">(),</span>
+    <span class="n">msg</span><span class="o">=</span><span class="s1">&#39;Not compatible with TF1 graph mode, skipping.&#39;</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="TapeIfEager"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TapeIfEager">[docs]</a><span class="k">class</span> <span class="nc">TapeIfEager</span><span class="p">:</span>
