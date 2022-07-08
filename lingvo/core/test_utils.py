@@ -43,16 +43,26 @@ FLAGS = tf.flags.FLAGS
 py_utils.SetEagerMode(False)
 
 
-# Decorator to skip a test if in eager mode.
-def SkipIfEager(test_func):
+def _SkipIf(test_func, cond, msg):
 
   @functools.wraps(test_func)
   def _Wrap(self, *args, **kwargs):
-    if py_utils.IsEagerMode():
-      self.skipTest('Not compatible with eager execution, skipping.')
+    if cond():
+      self.skipTest(msg)
     return test_func(self, *args, **kwargs)
 
   return _Wrap
+
+
+SkipIfEager = functools.partial(
+    _SkipIf,
+    cond=py_utils.IsEagerMode,
+    msg='Not compatible with eager execution, skipping.')
+
+SkipIfNonEager = functools.partial(
+    _SkipIf,
+    cond=lambda: not py_utils.IsEagerMode(),
+    msg='Not compatible with TF1 graph mode, skipping.')
 
 
 class TapeIfEager:

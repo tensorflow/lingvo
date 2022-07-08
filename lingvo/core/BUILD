@@ -1470,21 +1470,18 @@ lingvo_portable_pytype_library(
     ],
 )
 
-py_test(
-    name = "py_utils_test",
-    size = "medium",
-    srcs = ["py_utils_test.py"],
-    args = ["--noenable_eager_execution"],
+py_library(
+    name = "py_utils_test_lib",
     data = [
         "//lingvo/core/testdata:lenet_test_model",
     ],
-    python_version = "PY3",
     srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":builder_layers",
         ":cluster_factory",
         ":hyperparams",
+        ":layers",
         ":py_utils",
         ":py_utils_flags",
         ":recurrent",
@@ -1502,17 +1499,23 @@ py_test(
 )
 
 py_test(
-    name = "py_utils_eager_test",
-    srcs = ["py_utils_eager_test.py"],
+    name = "py_utils_test",
+    size = "medium",
+    srcs = ["py_utils_test.py"],
+    args = ["--noenable_eager_execution"],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        ":layers",
-        ":py_utils",
-        ":test_utils",
-        "//lingvo:compat",
-        # Implicit numpy dependency.
-    ],
+    deps = [":py_utils_test_lib"],
+)
+
+py_test(
+    name = "py_utils_eager_test",
+    srcs = ["py_utils_test.py"],
+    args = ["--enable_eager_execution"],
+    main = "py_utils_test.py",
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [":py_utils_test_lib"],
 )
 
 pytype_library(
