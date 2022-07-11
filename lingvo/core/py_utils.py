@@ -2466,8 +2466,51 @@ def GlobalStepContext(global_step_tensor):
     _GLOBAL_STEP_STACK.stack.pop()
 
 
+_WARN_ON_GLOBAL_STEP_ACCESS = False
+_WARNED_STACKS = set()
+
+
+@contextlib.contextmanager
+def WarnOnGlobalStepAccess():
+  global _WARN_ON_GLOBAL_STEP_ACCESS
+  _WARN_ON_GLOBAL_STEP_ACCESS = True
+  try:
+    yield
+  finally:
+    _WARN_ON_GLOBAL_STEP_ACCESS = False
+
+
+def _MaybeWarnAboutPotentiallyIncorrectEvaluations():
+  """Warn the user about access to the global step variable in pure Eager mode.
+
+  This is useful for the TF1 -> TF2 migration project. When a model has a value
+  that should change as a function of the global step (e.g. a scheduler in the
+  input pipeline), it might get incorrectly evaluated to a static value in the
+  TF2 mode trainer at the begining. This function gives a warning to the user
+  about such cases, so that issues e.g. unexpected loss curves can be more
+  easily triaged.
+  """
+  # TODO(b/212648719): Come up with better notifications for the users.
+  # `executing_eagerly` filters out access to global step in `tf.function`.
+  # In tf.function, access to global step (which is a Variable) is safe.
+  if _WARN_ON_GLOBAL_STEP_ACCESS and tf.executing_eagerly():
+    # The number of stacks needs to be larger than 2 (to include the call to the
+    # global step), but not too large to avoid spamming
+    trace = traceback.format_stack(limit=4)
+    if tuple(trace) not in _WARNED_STACKS:
+      tf.logging.warning(
+          'You are accessing the global step in Tensorflow pure Eager mode. '
+          'If the global step is used to calculate a value, this evaluation '
+          'will be eagerly executed and the value will not change during '
+          'training. If you want the value to change during training, please '
+          'move the evaluation expression into the training loop instead.')
+      tf.logging.warning(f'Traceback to locate global step access: {trace}')
+      _WARNED_STACKS.add(tuple(trace))
+
+
 def GetGlobalStep():
   """Return the global_step."""
+  _MaybeWarnAboutPotentiallyIncorrectEvaluations()
   if _GLOBAL_STEP_STACK.stack:
     return _GLOBAL_STEP_STACK.stack[-1]
   return tf.train.get_global_step()
