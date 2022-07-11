@@ -2532,8 +2532,51 @@
     <span class="n">_GLOBAL_STEP_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
+<span class="n">_WARN_ON_GLOBAL_STEP_ACCESS</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="n">_WARNED_STACKS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="WarnOnGlobalStepAccess"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.WarnOnGlobalStepAccess">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">WarnOnGlobalStepAccess</span><span class="p">():</span>
+  <span class="k">global</span> <span class="n">_WARN_ON_GLOBAL_STEP_ACCESS</span>
+  <span class="n">_WARN_ON_GLOBAL_STEP_ACCESS</span> <span class="o">=</span> <span class="kc">True</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_WARN_ON_GLOBAL_STEP_ACCESS</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="_MaybeWarnAboutPotentiallyIncorrectEvaluations"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder._MaybeWarnAboutPotentiallyIncorrectEvaluations">[docs]</a><span class="k">def</span> <span class="nf">_MaybeWarnAboutPotentiallyIncorrectEvaluations</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Warn the user about access to the global step variable in pure Eager mode.</span>
+
+<span class="sd">  This is useful for the TF1 -&gt; TF2 migration project. When a model has a value</span>
+<span class="sd">  that should change as a function of the global step (e.g. a scheduler in the</span>
+<span class="sd">  input pipeline), it might get incorrectly evaluated to a static value in the</span>
+<span class="sd">  TF2 mode trainer at the begining. This function gives a warning to the user</span>
+<span class="sd">  about such cases, so that issues e.g. unexpected loss curves can be more</span>
+<span class="sd">  easily triaged.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># TODO(b/212648719): Come up with better notifications for the users.</span>
+  <span class="c1"># `executing_eagerly` filters out access to global step in `tf.function`.</span>
+  <span class="c1"># In tf.function, access to global step (which is a Variable) is safe.</span>
+  <span class="k">if</span> <span class="n">_WARN_ON_GLOBAL_STEP_ACCESS</span> <span class="ow">and</span> <span class="n">tf</span><span class="o">.</span><span class="n">executing_eagerly</span><span class="p">():</span>
+    <span class="c1"># The number of stacks needs to be larger than 2 (to include the call to the</span>
+    <span class="c1"># global step), but not too large to avoid spamming</span>
+    <span class="n">trace</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">trace</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_WARNED_STACKS</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;You are accessing the global step in Tensorflow pure Eager mode. &#39;</span>
+          <span class="s1">&#39;If the global step is used to calculate a value, this evaluation &#39;</span>
+          <span class="s1">&#39;will be eagerly executed and the value will not change during &#39;</span>
+          <span class="s1">&#39;training. If you want the value to change during training, please &#39;</span>
+          <span class="s1">&#39;move the evaluation expression into the training loop instead.&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Traceback to locate global step access: </span><span class="si">{</span><span class="n">trace</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="n">_WARNED_STACKS</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="n">trace</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="GetGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.GetGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">GetGlobalStep</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Return the global_step.&quot;&quot;&quot;</span>
+  <span class="n">_MaybeWarnAboutPotentiallyIncorrectEvaluations</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">_GLOBAL_STEP_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">_GLOBAL_STEP_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_global_step</span><span class="p">()</span></div>

@@ -1307,6 +1307,23 @@ second element is obtained by hashing the variable name.</p>
 <dd></dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.py_utils.WarnOnGlobalStepAccess">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">WarnOnGlobalStepAccess</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WarnOnGlobalStepAccess"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.WarnOnGlobalStepAccess" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.py_utils._MaybeWarnAboutPotentiallyIncorrectEvaluations">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">_MaybeWarnAboutPotentiallyIncorrectEvaluations</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_MaybeWarnAboutPotentiallyIncorrectEvaluations"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils._MaybeWarnAboutPotentiallyIncorrectEvaluations" title="Permalink to this definition"></a></dt>
+<dd><p>Warn the user about access to the global step variable in pure Eager mode.</p>
+<p>This is useful for the TF1 -&gt; TF2 migration project. When a model has a value
+that should change as a function of the global step (e.g. a scheduler in the
+input pipeline), it might get incorrectly evaluated to a static value in the
+TF2 mode trainer at the begining. This function gives a warning to the user
+about such cases, so that issues e.g. unexpected loss curves can be more
+easily triaged.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.GetGlobalStep">
 <span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">GetGlobalStep</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetGlobalStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.GetGlobalStep" title="Permalink to this definition"></a></dt>
 <dd><p>Return the global_step.</p>
