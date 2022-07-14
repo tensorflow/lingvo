@@ -16,6 +16,7 @@
 
 import collections
 import functools
+import sys
 import traceback
 
 import lingvo.compat as tf
@@ -23,7 +24,8 @@ from lingvo.core import py_utils
 
 import matplotlib  # pylint: disable=g-import-not-at-top
 
-matplotlib.use('Agg')  # Set Borg-friendly backend.
+if 'google.colab' not in sys.modules:
+  matplotlib.use('Agg')  # If not imported in colab, set Borg-friendly backend.
 from matplotlib.backends import backend_agg  # pylint: disable=g-import-not-at-top
 import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
