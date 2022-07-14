@@ -342,7 +342,7 @@ def apply_lp_regularizer(
       elif p == 2.0:
         fn = lambda g, p: g + regularizer_weight * p * skip_mask(p)
 
-      updates = jax.tree_multimap(fn, updates, params)
+      updates = jax.tree_map(fn, updates, params)
     updated_state = NestedMap(count=count + 1)
     return updates, updated_state
 
@@ -383,7 +383,7 @@ def apply_decoupled_weight_decay(
 
       fn = lambda g, p: g - lr * regularizer_weight * p
 
-      updates = jax.tree_multimap(fn, updates, params)
+      updates = jax.tree_map(fn, updates, params)
     updated_state = NestedMap(count=count + 1)
     return updates, updated_state
 
@@ -442,20 +442,20 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
     # Sanitize updates just in case.
     if weight_decay > 0:
       assert params is not None
-    updates = jax.tree_multimap(helper.sanitize_values, updates)
+    updates = jax.tree_map(helper.sanitize_values, updates)
     count = state.count
 
     def _update_momentum(g, m, v):
       return helper.update_moments(count, g, _AdamOptState(m=m, v=v), beta1,
                                    beta2)
 
-    updated_moments = jax.tree_multimap(_update_momentum, updates, state.m,
+    updated_moments = jax.tree_map(_update_momentum, updates, state.m,
                                         state.v)
 
     m = jax.tree_map(lambda x: x.m, updated_moments)
     v = jax.tree_map(lambda x: x.v, updated_moments)
 
-    updates = jax.tree_multimap(
+    updates = jax.tree_map(
         lambda m, v: m / (jnp.sqrt(v + epsilon_root) + epsilon), m, v)
 
     if update_capping > 0:
@@ -463,7 +463,7 @@ def sharded_adam(learning_rate_fn: optax.Schedule, beta1: float, beta2: float,
                              updates)
 
     if weight_decay > 0:
-      updates = jax.tree_multimap(lambda x, v: x + weight_decay * v, updates,
+      updates = jax.tree_map(lambda x, v: x + weight_decay * v, updates,
                                   params)
 
     step_size = -1.0 * learning_rate_fn(count)
@@ -511,7 +511,7 @@ def apply_ema_weights(decay: float,
   def update_fn(updates, state, params):
     if params is None:
       raise ValueError('Params required for the EMA')
-    new_ema = jax.tree_multimap(
+    new_ema = jax.tree_map(
         lambda old_v, new_v: (1.0 - decay) * new_v + decay * old_v, state.ema,
         params)
     count_inc = state.count + jnp.array(1, jnp.int32)
@@ -999,7 +999,7 @@ class ShardedDistributedShampoo(DistributedShampoo):
           device_mesh=device_mesh,
           tensor_split_dims_mapping=tensor_split_dims_mapping)
 
-    return jax.tree_multimap(_weight_param_from_pspec_shape_dtype,
+    return jax.tree_map(_weight_param_from_pspec_shape_dtype,
                              partition_spec_opt_state, shapes_and_dtypes)
 
   def _get_raw_grad_transformation(
@@ -1762,7 +1762,7 @@ def sharded_adafactor(
     compute_var_and_slot_update_fn = functools.partial(
         sharded_adafactor_helper.compute_var_and_slot_update, state.count)
     var_names = py_utils.extract_prefixed_keys_from_nested_map(updates)
-    output = jax.tree_multimap(compute_var_and_slot_update_fn, updates, state.m,
+    output = jax.tree_map(compute_var_and_slot_update_fn, updates, state.m,
                                state.m_scale, state.vr, state.vc, state.v,
                                params, var_names)
     updates = jax.tree_map(lambda o: o.update, output)

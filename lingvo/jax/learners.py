@@ -130,7 +130,7 @@ class Learner:
       def add_grad_norm_summary(key, value):
         base_layer.add_summary(f'{learner_name}/var_grad_norm/{key}', value)
 
-      jax.tree_multimap(add_grad_norm_summary, var_keys, grad_norms)
+      jax.tree_map(add_grad_norm_summary, var_keys, grad_norms)
 
     grad_squared, _ = jax.tree_flatten(grad_squared)
     grad_squared = jnp.concatenate([x[jnp.newaxis] for x in grad_squared])
@@ -344,7 +344,7 @@ class MultiOptimizerLearner(Learner):
           r = True
       return r
 
-    default_mask = jax.tree_multimap(check_var_in_auxiliary_regex,
+    default_mask = jax.tree_map(check_var_in_auxiliary_regex,
                                      *optimizer_mask)
     default_mask = jax.tree_map(lambda mask: not mask, default_mask)
     optimizer_chain.insert(

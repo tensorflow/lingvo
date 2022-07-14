@@ -156,7 +156,7 @@ def group_by_repeat_prefix(variables: NestedMap,
         return v
       return ()
 
-    return jax.tree_multimap(_filter_one, variables, var_params)
+    return jax.tree_map(_filter_one, variables, var_params)
 
   groups = NestedMap()
   for key in key_set:
@@ -179,7 +179,7 @@ def ungroup_by_repeat_prefix(groups: NestedMap,
     key = _get_var_param_repeat_prefix_key(p)
     return group_vals[group_index[key]]
 
-  return jax.tree_multimap(_get_item, var_params, *group_list)
+  return jax.tree_map(_get_item, var_params, *group_list)
 
 
 def init_with_vectorized_repeat_prefix(
