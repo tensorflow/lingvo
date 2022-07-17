@@ -14,7 +14,6 @@
 # ==============================================================================
 """Programs for interleaving execution on TPU."""
 
-import _thread
 import contextlib
 import functools
 import multiprocessing.dummy
@@ -258,11 +257,7 @@ class BaseProgram:
     tf.logging.info(f'_InfeedLoop start {self._program_name} '
                     f'on dataset {dataset_name}')
     try:
-      if isinstance(self._steps_per_loop, dict):
-        steps_per_loop = self._steps_per_loop[dataset_name]
-      else:
-        steps_per_loop = self._steps_per_loop
-      for i in range(steps_per_loop):
+      for i in range(self._steps_per_loop):
         tf.logging.vlog(1, '_InfeedLoop %d', i)
         sess.run(inp_instance.tpu_infeed_op)
       self._WriteInputDataStats(
@@ -331,22 +326,14 @@ class BaseProgram:
     self.InitInputs(sess)
     if not py_utils.IsEagerMode() and self._compile_op is not None:
       self.SetStatusMessage('Compiling %s' % self._program_name)
-      compile_list = []
-      if isinstance(self._compile_op, dict):
-        compile_list = self._compile_op.values()
-      elif isinstance(self._compile_op, list):
-        compile_list = self._compile_op
-      else:
-        compile_list = [self._compile_op]
-      for compile_op in compile_list:
-        result = sess.run(compile_op)
-        proto = tpu_compilation_result.CompilationResultProto()
-        proto.ParseFromString(result)
-        if proto.status_error_message:
-          error_msg = 'Compilation of {} failed: {}'.format(
-              self._program_name, proto.status_error_message)
-          self.SetStatusMessage(error_msg)
-          tf.logging.fatal(error_msg)
+      result = sess.run(self._compile_op)
+      proto = tpu_compilation_result.CompilationResultProto()
+      proto.ParseFromString(result)
+      if proto.status_error_message:
+        error_msg = 'Compilation of {} failed: {}'.format(
+            self._program_name, proto.status_error_message)
+        self.SetStatusMessage(error_msg)
+        tf.logging.fatal(error_msg)
 
       self.SetStatusMessage('Compiling {} done.'.format(self._program_name))
       tf.logging.info('Compiling %s done.', self._program_name)
@@ -1421,9 +1408,7 @@ class DecodeProgram(BaseProgram):
     if threadpool:
 
       def _HandleError(e):
-        tf.logging.exception(e)
-        # Terminate the main thread.
-        _thread.interrupt_main()
+        raise e
 
       # Async. TPU+host processing is done and can move on to Train.
       return threadpool.apply_async(
@@ -1573,51 +1558,29 @@ class ExperimentalDecodeProgram(DecodeProgram):
     p.num_threads = 2
     return p
 
-  def __init__(self, params, **kwargs):
-    super().__init__(params, **kwargs)
-    p = self.params
-    self._program_name = 'ExperimentalDecodeProgram'
-    self._ema_applied = False
-    self._dataset_summaries = {}
-    self.tpu_outs = {}
-    self.decode_loop = {}
-    self._steps_per_loop = {}
-    self._compile_op = {}
-    if 'dataset_name' in p:
-      self._steps_per_loop[p.dataset_name] = p.steps_per_loop
-
-  def Summary(self):
-    return self._dataset_summaries
-
-  def DecodeFunc(self, inp_instance, dataset_name):
+  def DecodeFunc(self):
     """Wrap the DecodeLoop with split_compile_and_shard."""
+
     def _DecodeStep():
       """Decode call to be compiled for TPU."""
       # Applies EMA if applicable to support running only eval/decode programs.
-      _, decode_dict = self._model.ConstructDecodeGraph(
-          apply_ema=(not self._ema_applied),
-          input_batch=inp_instance.TpuDequeueBatch())
-      self._ema_applied = True
+      _, decode_dict = self._model.ConstructDecodeGraph(apply_ema=True)
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return [self._OutfeedEnqueue(decode_dict)]
 
-    # Dry run to apply EMA, to avoid compile EMA assign ops in the graph, to
-    # save memory. See more context in b/235849577.
-    _DecodeStep()
     @tpu_function.on_device_training_loop
     def DecodeLoopFn():
       return tpu_training_loop.repeat(
-          self._steps_per_loop[dataset_name], _DecodeStep, inputs=[])
+          self._steps_per_loop, _DecodeStep, inputs=[])
 
-    self._compile_op[dataset_name], self.decode_loop[
-        dataset_name] = tpu.split_compile_and_shard(
-            DecodeLoopFn,
-            num_shards=self.data_parallelism,
-            device_assignment=py_utils.GetTpuDeviceAssignment())
+    self._compile_op, self.decode_loop = tpu.split_compile_and_shard(
+        DecodeLoopFn,
+        num_shards=self.data_parallelism,
+        device_assignment=py_utils.GetTpuDeviceAssignment())
 
     # Pack the list of outfeed ops with structure in decode_nm.
     decode_tensors = self.decode_nm.Pack(self._OutfeedDequeue(self.decode_nm))
-    cpu_pt = inp_instance.DequeueCpuPassthrough()
+    cpu_pt = self._task.input.DequeueCpuPassthrough()
     return decode_tensors, cpu_pt
 
   def BuildTpuSubgraph(self):
@@ -1637,8 +1600,8 @@ class ExperimentalDecodeProgram(DecodeProgram):
       # In tf.function the relevant methods will be called in `InfeedTFFunc`.
       if not py_utils.IsEagerMode():
         self._task.input.InfeedSetupGraph(cpu_passthrough=True)
-      self.tpu_outs[p.dataset_name] = self.DecodeFunc(self._task.input,
-                                                      p.dataset_name)
+
+      self.tpu_outs = self.DecodeFunc()
 
   def _OutfeedDequeue(self, decode_nm):
     """Collect outfeed dequeue from all devices.
@@ -1668,107 +1631,42 @@ class ExperimentalDecodeProgram(DecodeProgram):
             outfeed_ops[idx_outfeed] = outfeed_ops[idx_outfeed] + [out_feed]
     return [tf.concat(per_outfeed, axis=0) for per_outfeed in outfeed_ops]
 
-  def FinalizeCallback(self, unused_finalize_ret):
-    """Callback after _FinalizeDecode thread done."""
-    tf.logging.info('ExperimentalDecodeProgram skip FinalizeCallback.')
+  def _DecodeLoop(self, sess=None):
+    sess.run(self.decode_loop)
 
-  def _DecodeLoop(self, dataset_name, sess=None):
-    sess.run(self.decode_loop[dataset_name])
+  def Run(self, sess=None, threadpool=None):
+    global_step = sess.run(self._model.global_step)
+    self.SetStatusMessage(
+        f'Executing decode program on dataset {self.params.dataset_name} '
+        f'at step {global_step}')
 
-  def _PostProcess(self, dataset_name, global_step, dec_metrics, elapsed_secs):
-    """Postprocess decoded metrics."""
+    if self._task.input.params.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input.Reset(sess)
+
+    infeed_future = self._infeed_pool.apply_async(
+        self._InfeedLoop, args=(sess,))
+    decode_future = self._infeed_pool.apply_async(
+        self._DecodeLoop, args=(sess,))
+
+    dec_metrics = self._task.CreateDecoderMetrics()
+    start_time = time.time()
+    for _ in range(self._steps_per_loop):
+      decode_out_dict = _FetchDecodeOut(self.tpu_outs, sess)
+      self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
+    decode_future.get()
+    infeed_future.get()
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
+    elapsed_secs = time.time() - start_time
     num_examples_metric = dec_metrics['num_samples_in_batch']
-    summaries['cumulative_num_examples'] = tf.Summary(value=[
-        tf.Summary.Value(
-            tag='cumulative_num_examples',
-            simple_value=num_examples_metric.total_value)
-    ])
     example_rate = num_examples_metric.total_value / elapsed_secs
     summaries['examples/sec'] = tf.Summary(
         value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
     self._WriteSummaries(
-        os.path.basename(self._program_dir), dataset_name, global_step,
-        summaries)
-    self._ReportVizierMetrics(global_step, dec_metrics)
-    self._dataset_summaries[dataset_name] = summaries
-    return dataset_name, summaries
+        os.path.basename(self._program_dir), self.params.dataset_name,
+        global_step, summaries)
 
-  def _ThreadCall(self, func, args, callback=None, thread=None):
-    """Call async thread with default Error callback to break main."""
-    # Default to be infeed thread.
-    if thread is None:
-      thread = self._infeed_pool
-
-    def _ErrorCallback(e):
-      tf.logging.exception(e)
-      # Terminate the main thread.
-      _thread.interrupt_main()
-
-    return thread.apply_async(
-        func, args, callback=callback, error_callback=_ErrorCallback)
-
-  def WaitThread(self, futures):
-    if not isinstance(futures, list):
-      futures = [futures]
-    for future in futures:
-      future.get()
-
-  def RunForInput(self, dataset_name, inp_instance, sess=None, threadpool=None):
-    global_step = sess.run(self._model.global_step)
-    self.SetStatusMessage(
-        f'Executing experimental decode program on dataset {dataset_name} '
-        f'at step {global_step}, total steps '
-        f'{self._steps_per_loop[dataset_name]}.')
-
-    if inp_instance.params.resettable:
-      tf.logging.info('Resetting input_generator.')
-      inp_instance.Reset(sess)
-
-    infeed_future = self._ThreadCall(
-        self._InfeedLoopForInput, args=(
-            dataset_name,
-            inp_instance,
-            sess,
-        ))
-    decode_future = self._ThreadCall(
-        self._DecodeLoop, args=(
-            dataset_name,
-            sess,
-        ))
-
-    dec_metrics = self._task.CreateDecoderMetrics()
-    start_time = time.time()
-    post_futures = []
-    decode_out_dict_list = []
-    for _ in range(self._steps_per_loop[dataset_name]):
-      decode_out_dict = _FetchDecodeOut(self.tpu_outs[dataset_name], sess)
-      if self.params.postprocess_all_at_once:
-        decode_out_dict_list.append(decode_out_dict)
-      else:
-        post_futures.append(
-            self._ThreadCall(
-                self._task.PostProcessDecodeOut,
-                args=(decode_out_dict, dec_metrics)))
-    if self.params.postprocess_all_at_once:
-      post_futures.append(
-          self._ThreadCall(
-              self._task.PostProcessDecodeOut,
-              args=(decode_out_dict_list, dec_metrics)))
-
-    self.WaitThread([infeed_future, decode_future] + post_futures)
-    elapsed_secs = time.time() - start_time
-
-    postprocess_future = self._ThreadCall(
-        self._PostProcess,
-        args=(dataset_name, global_step, dec_metrics, elapsed_secs),
-        callback=self.FinalizeCallback,
-        thread=threadpool)
-    return postprocess_future
-
-  def Run(self, sess=None, threadpool=None):
-    return self.RunForInput(self.params.dataset_name, self._task.input, sess,
-                            threadpool)
+    return self._ReportVizierMetrics(global_step, dec_metrics)
 
 
 class MLPerfTrainDecodeProgram(BaseProgram):
@@ -2105,8 +2003,7 @@ class SimpleProgramSchedule:
     for eval_program in self.eval_programs:
       futures = None
       eval_program.train_executions_per_eval = p.train_executions_per_eval
-      if p.async_postprocess and isinstance(
-          eval_program, (DecodeProgram, ExperimentalDecodeProgram)):
+      if p.async_postprocess and isinstance(eval_program, DecodeProgram):
         futures = eval_program.Run(sess, threadpool)
         if not isinstance(futures, list):
           futures = [futures]
