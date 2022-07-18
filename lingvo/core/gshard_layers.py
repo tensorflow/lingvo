@@ -3252,6 +3252,9 @@ def GatherK(selected_pos, values, k, num_devices=1):
   return output, padding
 
 
+# TODO(snehakudugunta): The function assumes that the segment_ids are unique
+# for all the sentences in the batch. Fix it to handle where segment_ids are not
+# unique in a batch.
 def GetSentenceEmbeddings(inputs, segment_id):
   """Returns the average sentence embedding to gate by.
 
