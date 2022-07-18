@@ -373,10 +373,10 @@
               <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">disable_activation_quantization</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span>
       <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span> <span class="ow">and</span>
           <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">)</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseConv2DLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;bn&#39;</span><span class="p">:</span> <span class="p">[]}</span></div>
@@ -697,10 +697,10 @@
     <span class="c1"># Apply activation.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span><span class="p">:</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">disable_activation_quantization</span><span class="p">:</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">out</span></div>
 
@@ -1002,11 +1002,11 @@
 
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">bn_params</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQWeight</span><span class="p">(</span>
         <span class="s1">&#39;w&#39;</span><span class="p">,</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
         <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">legacy_aqt_w_name</span><span class="o">=</span><span class="s1">&#39;projection_aqt&#39;</span><span class="p">)</span>
+        <span class="n">legacy_aqt_weight_name</span><span class="o">=</span><span class="s1">&#39;projection_aqt&#39;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">compression_op</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1152,17 +1152,17 @@
     <span class="c1"># Determine quantization needs based on whether fusing activation</span>
     <span class="c1"># or not.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;activation&#39;</span>
-                            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="k">else</span> <span class="s1">&#39;affine_matmul&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_output_qact_name</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;activation&#39;</span>
+                              <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="k">else</span> <span class="s1">&#39;affine_matmul&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">and</span>
         <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span><span class="p">):</span>
       <span class="c1"># Not a fused activation function.</span>
-      <span class="c1"># Need a qtensor to track the pre-activation tensor. The name is</span>
+      <span class="c1"># Need a qact to track the pre-activation tensor. The name is</span>
       <span class="c1"># compatible with older checkpoints.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="s1">&#39;affine_matmul&#39;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qact_name</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer._child_variable_scope_override"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._child_variable_scope_override">[docs]</a>  <span class="k">def</span> <span class="nf">_child_variable_scope_override</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">{</span><span class="o">**</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_child_variable_scope_override</span><span class="p">(),</span> <span class="s1">&#39;bn&#39;</span><span class="p">:</span> <span class="p">[]}</span></div>
@@ -1178,15 +1178,15 @@
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span></div>
 
   <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">output_qt_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Name of QTensor used for the output value.</span>
+  <span class="k">def</span> <span class="nf">output_qact_name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Name of QAct used for the output value.</span>
 
 <span class="sd">    Useful for grabbing the quantization of the output.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      String name of output qtensor.</span>
+<span class="sd">      String name of output QAct.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_output_qact_name</span>
 
 <div class="viewcode-block" id="ProjectionLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply projection to inputs.</span>
@@ -1428,12 +1428,12 @@
     <span class="k">if</span> <span class="n">with_activation</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">:</span>
         <span class="c1"># Track quantization for unfused activation function.</span>
-        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">quant</span><span class="p">:</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qact_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">out</span><span class="p">,</span>
@@ -2029,7 +2029,7 @@
 
 <div class="viewcode-block" id="PoolingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PoolingLayer.OutputShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer.OutputShape">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">OutputShape</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">):</span>
@@ -2084,7 +2084,7 @@
                                          <span class="n">inputs</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">min</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">out_padding</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 
       <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
           <span class="n">inputs</span><span class="p">,</span>
@@ -2106,7 +2106,7 @@
         <span class="c1"># Divide by non-padding ratios to eliminate the effect of padded values.</span>
         <span class="n">out</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reciprocal_no_nan</span><span class="p">(</span><span class="n">non_padding_ratio</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
 
-      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">out_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">out_padding</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">out_padding</span>
@@ -2441,8 +2441,11 @@
         <span class="s1">&#39;fprop_mode must be one of </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">valid_fprop_modes</span><span class="p">)</span>
 
     <span class="n">_</span><span class="p">,</span> <span class="n">weight_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeightShape</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
-        <span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">weight_shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">legacy_aqt_w_name</span><span class="o">=</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQWeight</span><span class="p">(</span>
+        <span class="s1">&#39;wm&#39;</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">weight_shape</span><span class="p">,</span>
+        <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="n">legacy_aqt_weight_name</span><span class="o">=</span><span class="s1">&#39;emb_aqt&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">compression_op</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">apply_compression</span> <span class="o">=</span> <span class="n">pruning_utils</span><span class="o">.</span><span class="n">ApplyCompression</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
@@ -3368,11 +3371,11 @@
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Sampled softmax requires bias.&#39;</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQWeight</span><span class="p">(</span>
           <span class="s1">&#39;weight_0&#39;</span><span class="p">,</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span>
           <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-          <span class="n">legacy_aqt_w_name</span><span class="o">=</span><span class="s1">&#39;softmax_aqt&#39;</span><span class="p">)</span>
+          <span class="n">legacy_aqt_weight_name</span><span class="o">=</span><span class="s1">&#39;softmax_aqt&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">compression_ops</span> <span class="o">=</span> <span class="p">[]</span>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3442,8 +3445,8 @@
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;bias_</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;logits&#39;</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;logits&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax.AddGlobalVN"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.AddGlobalVN">[docs]</a>  <span class="k">def</span> <span class="nf">AddGlobalVN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
@@ -3488,7 +3491,7 @@
 
 <div class="viewcode-block" id="SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper">[docs]</a>  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeightsHelper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">:</span>
@@ -3542,7 +3545,7 @@
 
 <div class="viewcode-block" id="SimpleFullSoftmax._LogitsUsingConcatenatedWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LogitsUsingConcatenatedWeightsHelper</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax.SimpleLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.SimpleLogits">[docs]</a>  <span class="k">def</span> <span class="nf">SimpleLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the simple logits computed before the softmax.</span>
@@ -3558,13 +3561,13 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      logits: [N, num_classes]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">DenseWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
     <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.</span>
@@ -4852,8 +4855,8 @@
 
 <div class="viewcode-block" id="ConvSetLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
-    <span class="c1"># The same QTensor is used for all inputs to the concat.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span></div>
+    <span class="c1"># The same QAct is used for all inputs to the concat.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ConvSetLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply all convolution sets to inputs and concatenate outputs.</span>
@@ -4897,7 +4900,7 @@
       <span class="n">conv_outputs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conv_i_output</span><span class="p">)</span>
 
     <span class="c1"># Track for quantization.</span>
-    <span class="n">conv_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">conv_outputs</span><span class="p">]</span>
+    <span class="n">conv_outputs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">conv_outputs</span><span class="p">]</span>
 
     <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">conv_outputs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">output_paddings</span></div></div>

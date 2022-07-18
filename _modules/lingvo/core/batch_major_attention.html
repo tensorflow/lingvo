@@ -330,11 +330,11 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">feature_axis</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span> <span class="k">else</span> <span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQWeight</span><span class="p">(</span>
         <span class="s1">&#39;w&#39;</span><span class="p">,</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">],</span>
         <span class="n">feature_axis</span><span class="o">=</span><span class="n">feature_axis</span><span class="p">,</span>
-        <span class="n">legacy_aqt_w_name</span><span class="o">=</span><span class="s1">&#39;aqt_w&#39;</span><span class="p">)</span>
+        <span class="n">legacy_aqt_weight_name</span><span class="o">=</span><span class="s1">&#39;aqt_w&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiHeadedProjectionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>

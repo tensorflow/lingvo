@@ -106,11 +106,11 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQWeight</span><span class="p">(</span>
         <span class="s1">&#39;w&#39;</span><span class="p">,</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
         <span class="n">feature_axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
-        <span class="n">legacy_aqt_w_name</span><span class="o">=</span><span class="s1">&#39;aqt_w&#39;</span><span class="p">)</span>
+        <span class="n">legacy_aqt_weight_name</span><span class="o">=</span><span class="s1">&#39;aqt_w&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SampleQuantizedProjectionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.quant_test_lib.html#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
@@ -123,7 +123,7 @@
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;transformed&#39;</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;transformed&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SampleQuantizedProjectionLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.quant_test_lib.html#lingvo.core.quant_test_lib.SampleQuantizedProjectionLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -132,13 +132,13 @@
     <span class="c1"># It is the most important that weights and top-level activations</span>
     <span class="c1"># be tagged for quantization:</span>
     <span class="c1">#   - Weights use the self.QWeight() decorator</span>
-    <span class="c1">#   - Inputs/activations are decorated with self.QTensor(). In general,</span>
-    <span class="c1">#     the provided name should match a call to self.TrackQTensor in the</span>
+    <span class="c1">#   - Inputs/activations are decorated with self.QAct(). In general,</span>
+    <span class="c1">#     the provided name should match a call to self.TrackQActs in the</span>
     <span class="c1">#     constructor. This creates an tensor that is individually accounted</span>
     <span class="c1">#     for.</span>
     <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
 
-    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 
     <span class="n">reshaped_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
     <span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ToAqtInputs</span><span class="p">(</span>
@@ -149,9 +149,9 @@
         <span class="n">w_expected_scale_shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">))</span>
 
     <span class="c1"># Note the use of the qmatmul from the function library. This will</span>
-    <span class="c1"># automatically track the output against the qtensor &#39;transformed&#39;.</span>
+    <span class="c1"># automatically track the output against the qact &#39;transformed&#39;.</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
-    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;transformed&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;transformed&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
 
     <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">]],</span> <span class="mi">0</span><span class="p">))</span>

@@ -81,7 +81,7 @@
 <span class="sd">&quot;&quot;&quot;Utilities for model quantization.&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">enum</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Iterable</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -157,11 +157,11 @@
 
 <span class="sd">  The &quot;decorators&quot; are:</span>
 
-<span class="sd">  - QWeight: Tags a tensor (typically a var) as a weight quantized type.</span>
-<span class="sd">  - QRAct(act, dist: QDistribution): Tags a tensor as an activation</span>
-<span class="sd">    with a known or configurable quantization range.</span>
-<span class="sd">  - QTensor: Tags a tensor as a generic quantized intermediate value.</span>
-<span class="sd">    These are also tagged with a layer-unique name. All QTensors with the</span>
+<span class="sd">  - QWeight: Tags a weight (typically a tf.Variable) as a weight quantized type.</span>
+<span class="sd">  - QRAct(act, dist: QDistribution): Tags an activation with a known or</span>
+<span class="sd">    configurable quantization range.</span>
+<span class="sd">  - QAct: Tags an activation as a generic quantized intermediate value.</span>
+<span class="sd">    These are also tagged with a layer-unique name. All QActs with the</span>
 <span class="sd">    same name will be considered the same from a numerical range/precision</span>
 <span class="sd">    perspective.</span>
 
@@ -187,7 +187,7 @@
 <span class="sd">  automatically add the necessary annotations. All such functions take the</span>
 <span class="sd">  following named parameters:</span>
 
-<span class="sd">    - qout_name: Name of QTensor (setup with TrackQTensor) for dynamic range</span>
+<span class="sd">    - qout_name: Name of QAct (setup with TrackQActs) for dynamic range</span>
 <span class="sd">      tracking.</span>
 
 <span class="sd">  Functions that have a natural output range will have default values for</span>
@@ -225,9 +225,10 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_tracked_tensors</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># tracked t_name -&gt; (QDomain)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># aqt w_name -&gt; (Qdomain)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_qstate</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># t_name -&gt; Tensor</span>
+    <span class="c1"># A set of all tracked activation and weight names.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_all_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_act_name_to_qdomain_name</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
 
     <span class="c1"># Instantiate quantization domains.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>  <span class="c1"># Dict of qdname -&gt; QDomain or None</span>
@@ -254,43 +255,53 @@
       <span class="n">res</span><span class="p">[</span><span class="n">qdchild_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/q&#39;</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">res</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.TrackQTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.TrackQTensor">[docs]</a>  <span class="k">def</span> <span class="nf">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">t_names</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;default&#39;</span><span class="p">):</span>
-    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Creates one or more QTensors for later use.</span>
+<div class="viewcode-block" id="QuantizableLayer.TrackQActs"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.TrackQActs">[docs]</a>  <span class="k">def</span> <span class="nf">TrackQActs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="o">*</span><span class="n">act_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">shape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">feature_axes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">domain</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Track activations and create variables for quantization as needed.</span>
 
-<span class="sd">    Any tensor that will later be quantized must be created first, preferably</span>
-<span class="sd">    in _CreateLayerVariables().</span>
-
-<span class="sd">    Along with a list of tensor names to create, they can be associated with</span>
-<span class="sd">    a &#39;domain&#39;. Most layers are simple enough to only have a single quantization</span>
-<span class="sd">    domain (QDomain), typically &#39;default&#39;. However, additional QDomains can</span>
-<span class="sd">    be defined as parameters to control fine grained aspects of quantization.</span>
+<span class="sd">    The activations will be associated with a specific named QDomain. Most</span>
+<span class="sd">    layers are simple enough to only require a single &#39;default&#39; QDomain.</span>
+<span class="sd">    Additional QDomains can be defined as parameters to control fine grained</span>
+<span class="sd">    aspects of quantization.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      *t_names: Positional parameters are taken to be QTensor names to create.</span>
-<span class="sd">      domain: name of the qdomain to use</span>
+<span class="sd">      *act_names: A sequence of names to use to track statistics for layer</span>
+<span class="sd">        activations.</span>
+<span class="sd">      shape: The optional shape of the activation(s) to track. Can be used for</span>
+<span class="sd">        static per-channel activation quantization.</span>
+<span class="sd">      feature_axes: The optional feature axes of the activation(s) to track. Can</span>
+<span class="sd">        be used for static per-channel activation quantization.</span>
+<span class="sd">      domain: The name of the QDomain to use to for quantization.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">act_name</span> <span class="ow">in</span> <span class="n">act_names</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">act_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;act_name=&#39;</span><span class="si">{</span><span class="n">act_name</span><span class="si">}</span><span class="s2">&#39; is already tracked for this layer.&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_all_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">act_name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_act_name_to_qdomain_name</span><span class="p">[</span><span class="n">act_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">domain</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">t_name</span> <span class="ow">in</span> <span class="n">t_names</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_tracked_tensors</span><span class="p">[</span><span class="n">t_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">qd</span>
-      <span class="k">if</span> <span class="n">qd</span><span class="p">:</span>
-        <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">qd</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="o">*</span><span class="n">act_names</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">feature_axes</span><span class="o">=</span><span class="n">feature_axes</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.CreateAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.CreateAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">CreateAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                      <span class="n">w_name</span><span class="p">,</span>
-                      <span class="n">shape</span><span class="p">,</span>
-                      <span class="n">feature_axis</span><span class="p">,</span>
-                      <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span>
-                      <span class="o">*</span><span class="p">,</span>
-                      <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                      <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                      <span class="n">legacy_aqt_w_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="QuantizableLayer.TrackQWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.TrackQWeight">[docs]</a>  <span class="k">def</span> <span class="nf">TrackQWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">weight_name</span><span class="p">,</span>
+                   <span class="n">shape</span><span class="p">,</span>
+                   <span class="n">feature_axis</span><span class="p">,</span>
+                   <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span>
+                   <span class="o">*</span><span class="p">,</span>
+                   <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">legacy_aqt_weight_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates Quantized weights for later use.</span>
 
 <span class="sd">    Weight that will later be quantized must be created first, preferably</span>
 <span class="sd">    in _CreateLayerVariables().</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      w_name: Positional parameters are taken to be QTensor names to create.</span>
+<span class="sd">      weight_name: Positional parameters are taken to be weight names to create.</span>
 <span class="sd">      shape: Shape of the weight.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
 <span class="sd">      domain: Custom domain to match (defaults to &#39;weight&#39;).</span>
@@ -298,11 +309,15 @@
 <span class="sd">        to the device mesh axis along which it is sharded.</span>
 <span class="sd">      device_mesh: A numpy.ndarray describing the topology of a device mesh to</span>
 <span class="sd">        partition the created variable onto.</span>
-<span class="sd">      legacy_aqt_w_name: Used for compatibility with old checkpoints.</span>
+<span class="sd">      legacy_aqt_weight_name: Used for compatibility with old checkpoints.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">weight_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_names</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;weight_name=&#39;</span><span class="si">{</span><span class="n">weight_name</span><span class="si">}</span><span class="s2">&#39; is already tracked for this layer.&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_all_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">weight_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="p">[</span><span class="n">weight_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">domain</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">qd</span>
-    <span class="k">if</span> <span class="n">qd</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># We&#39;re calling child.CreateVariable() here rather than</span>
       <span class="c1"># self.CreateVariable(), which messes up the automatic variable scope</span>
       <span class="c1"># handing, so we need to set some manual variable scopes for backwards</span>
@@ -312,32 +327,34 @@
           <span class="n">qdchild_name</span> <span class="o">=</span> <span class="s1">&#39;qdomain_&#39;</span> <span class="o">+</span> <span class="n">qdname</span>
           <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildContext</span><span class="p">(</span><span class="n">qdchild_name</span><span class="p">):</span>
             <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">qd</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-              <span class="n">qd</span><span class="o">.</span><span class="n">CreateTensorWithShape</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span>
-                                       <span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span>
-                                       <span class="n">legacy_aqt_w_name</span><span class="p">)</span>
+              <span class="n">qd</span><span class="o">.</span><span class="n">TrackQWeight</span><span class="p">(</span><span class="n">weight_name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span>
+                              <span class="n">tensor_split_dims_mapping</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span>
+                              <span class="n">legacy_aqt_weight_name</span><span class="p">)</span>
           <span class="k">break</span></div>
 
-<div class="viewcode-block" id="QuantizableLayer.QTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QTensor">[docs]</a>  <span class="k">def</span> <span class="nf">QTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Quantizes a general tensor input/output in one step.</span>
+<div class="viewcode-block" id="QuantizableLayer.QAct"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QAct">[docs]</a>  <span class="k">def</span> <span class="nf">QAct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">,</span> <span class="n">act</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Quantizes an activation.</span>
 
-<span class="sd">    t_name must have been previously created via TrackQTensor.</span>
+<span class="sd">    act_name must have been previously created via TrackQActs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      t_name: Previously created QTensor t_name to quantize to.</span>
-<span class="sd">      t: Tensor to quantize.</span>
+<span class="sd">      act_name: Previously created act_name to quantize to.</span>
+<span class="sd">      act: Activation to quantize.</span>
 <span class="sd">      eval_only: Whether to only apply quantization pressure at eval time.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The tensor, quantized.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">t_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tracked_tensors</span><span class="p">,</span> <span class="p">(</span>
-        <span class="p">(</span><span class="s1">&#39;Call to QTensor without first calling TrackQTensor: </span><span class="si">%s</span><span class="s1"> &#39;</span>
-         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tracked_tensors</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tracked_tensors</span><span class="p">[</span><span class="n">t_name</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">act_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_act_name_to_qdomain_name</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;The given act_name=&#39;</span><span class="si">{</span><span class="n">act_name</span><span class="si">}</span><span class="s2">&#39; must first be tracked using &quot;</span>
+          <span class="sa">f</span><span class="s1">&#39;TrackQActs. Expected one of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_act_name_to_qdomain_name</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span>
+      <span class="p">)</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_act_name_to_qdomain_name</span><span class="p">[</span><span class="n">act_name</span><span class="p">])</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">qd</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">t</span>
+      <span class="k">return</span> <span class="n">act</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeTensors</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="p">[</span><span class="n">t</span><span class="p">],</span> <span class="n">eval_only</span><span class="o">=</span><span class="n">eval_only</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+      <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeAct</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="n">act</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="n">eval_only</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.QWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QWeight">[docs]</a>  <span class="k">def</span> <span class="nf">QWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;weight&#39;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantizes a weight.</span>
@@ -351,17 +368,25 @@
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">domain</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">QuantizeWeight</span><span class="p">(</span><span class="n">w</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">w</span></div>
 
+<div class="viewcode-block" id="QuantizableLayer._ValidateArgName"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer._ValidateArgName">[docs]</a>  <span class="k">def</span> <span class="nf">_ValidateArgName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op_arg_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]):</span>
+    <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_names</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;Expected </span><span class="si">{</span><span class="n">op_arg_name</span><span class="si">}</span><span class="s2">=&#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39; to be None or one of &quot;</span>
+          <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_all_names</span><span class="si">}</span><span class="s1">. Use TrackQActs or TrackQWeight to create it&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="QuantizableLayer.QMatmul"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QMatmul">[docs]</a>  <span class="k">def</span> <span class="nf">QMatmul</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
               <span class="n">lhs</span><span class="p">,</span>
               <span class="n">rhs</span><span class="p">,</span>
               <span class="o">*</span><span class="p">,</span>
-              <span class="n">lhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-              <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">lhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
               <span class="n">lhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">rhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">ensure2d</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
               <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateArgName</span><span class="p">(</span><span class="s1">&#39;lhs_name&#39;</span><span class="p">,</span> <span class="n">lhs_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateArgName</span><span class="p">(</span><span class="s1">&#39;rhs_name&#39;</span><span class="p">,</span> <span class="n">rhs_name</span><span class="p">)</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">ensure2d</span><span class="p">:</span>
@@ -385,12 +410,14 @@
               <span class="n">strides</span><span class="p">,</span>
               <span class="n">padding</span><span class="p">,</span>
               <span class="o">*</span><span class="p">,</span>
-              <span class="n">inputs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-              <span class="n">filters_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">inputs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">filters_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
               <span class="n">inputs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">filters_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateArgName</span><span class="p">(</span><span class="s1">&#39;inputs_name&#39;</span><span class="p">,</span> <span class="n">inputs_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateArgName</span><span class="p">(</span><span class="s1">&#39;filters_name&#39;</span><span class="p">,</span> <span class="n">filters_name</span><span class="p">)</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">conv1d</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">filters</span><span class="p">,</span> <span class="n">strides</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="o">**</span><span class="n">op_kwargs</span><span class="p">)</span>
@@ -412,13 +439,15 @@
               <span class="n">strides</span><span class="p">,</span>
               <span class="n">padding</span><span class="p">,</span>
               <span class="o">*</span><span class="p">,</span>
-              <span class="n">inputs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-              <span class="n">filters_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">inputs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">filters_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
               <span class="n">inputs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">filters_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">is_depthwise</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
               <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="o">**</span><span class="n">op_kwargs</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateArgName</span><span class="p">(</span><span class="s1">&#39;inputs_name&#39;</span><span class="p">,</span> <span class="n">inputs_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateArgName</span><span class="p">(</span><span class="s1">&#39;filters_name&#39;</span><span class="p">,</span> <span class="n">filters_name</span><span class="p">)</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">is_depthwise</span><span class="p">:</span>
@@ -443,12 +472,14 @@
               <span class="n">lhs</span><span class="p">,</span>
               <span class="n">rhs</span><span class="p">,</span>
               <span class="o">*</span><span class="p">,</span>
-              <span class="n">lhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
-              <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span>
+              <span class="n">lhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+              <span class="n">rhs_name</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
               <span class="n">lhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">rhs_dist</span><span class="p">:</span> <span class="n">QDistribution</span> <span class="o">=</span> <span class="n">QDistribution</span><span class="o">.</span><span class="n">SYMMETRIC</span><span class="p">,</span>
               <span class="n">qdomain</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
               <span class="o">**</span><span class="n">einsum_kwargs</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateArgName</span><span class="p">(</span><span class="s1">&#39;lhs_name&#39;</span><span class="p">,</span> <span class="n">lhs_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateArgName</span><span class="p">(</span><span class="s1">&#39;rhs_name&#39;</span><span class="p">,</span> <span class="n">rhs_name</span><span class="p">)</span>
     <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="n">qdomain</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">lhs</span><span class="p">,</span> <span class="n">rhs</span><span class="p">,</span> <span class="o">**</span><span class="n">einsum_kwargs</span><span class="p">)</span>
@@ -463,13 +494,30 @@
           <span class="n">rhs_dist</span><span class="o">=</span><span class="n">rhs_dist</span><span class="p">,</span>
           <span class="o">**</span><span class="n">einsum_kwargs</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="QuantizableLayer._ValidateWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer._ValidateWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_ValidateWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">w_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;The given w_name=&#39;</span><span class="si">{</span><span class="n">w_name</span><span class="si">}</span><span class="s2">&#39; must first be tracked using &quot;</span>
+          <span class="s1">&#39;TrackQWeight. Expected one of &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+    <span class="c1"># If w is a variable on this layer, then validate that w_name matches the</span>
+    <span class="c1"># name given to w in self.CreateVariable.</span>
+    <span class="k">if</span> <span class="n">w</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="s1">&#39;ref&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">w</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span>
+      <span class="n">expected_name</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># model/path/layer/weight/var:0</span>
+      <span class="k">if</span> <span class="n">w_name</span> <span class="o">!=</span> <span class="n">expected_name</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s1">&#39;Expected the AQT weight name to match the name of non-AQT &#39;</span>
+            <span class="sa">f</span><span class="s2">&quot;weight, but got &#39;</span><span class="si">{</span><span class="n">w_name</span><span class="si">}</span><span class="s2">&#39; and &#39;</span><span class="si">{</span><span class="n">expected_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
+            <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Full weight info:</span><span class="se">\n</span><span class="s1">  </span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="QuantizableLayer.ToAqtWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.ToAqtWeight">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">feature_axis</span><span class="p">,</span> <span class="n">expected_scale_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Quantized integer weight AQT style.</span>
 
 <span class="sd">    This only scales, rounds and clips; resulting quantized weight would be</span>
 <span class="sd">    either integer or integer emulated in float.</span>
 
-<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+<span class="sd">    w_name must have been previously created via TrackQWeight.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
@@ -481,21 +529,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Quantized weights.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
-        <span class="p">(</span><span class="s1">&#39;Call to ToAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
-         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-
-    <span class="c1"># If w is a variable on this layer, then validate that w_name matches the</span>
-    <span class="c1"># name given to w in self.CreateVariable.</span>
-    <span class="k">if</span> <span class="n">w</span><span class="o">.</span><span class="n">ref</span><span class="p">()</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">:</span>
-      <span class="n">expected_name</span> <span class="o">=</span> <span class="n">w</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;/&#39;</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># model/path/layer/weight/var:0</span>
-      <span class="k">if</span> <span class="n">w_name</span> <span class="o">!=</span> <span class="n">expected_name</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-            <span class="sa">f</span><span class="s1">&#39;Expected the AQT weight name to match the name of non-AQT &#39;</span>
-            <span class="sa">f</span><span class="s2">&quot;weight, but got &#39;</span><span class="si">{</span><span class="n">w_name</span><span class="si">}</span><span class="s2">&#39; and &#39;</span><span class="si">{</span><span class="n">expected_name</span><span class="si">}</span><span class="s2">&#39;.&quot;</span>
-            <span class="sa">f</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">Full weight info:</span><span class="se">\n</span><span class="s1">  </span><span class="si">{</span><span class="n">w</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="p">[</span><span class="n">w_name</span><span class="p">])</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">qd</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">w</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">ToAqtWeight</span><span class="p">(</span>
@@ -509,7 +544,7 @@
 
 <span class="sd">    Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.</span>
 
-<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+<span class="sd">    w_name must have been previously created via TrackQWeight.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
@@ -520,10 +555,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Rescaled output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
-        <span class="p">(</span><span class="s1">&#39;Call to FromAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
-         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">)</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="p">[</span><span class="n">w_name</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">out</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.ToAqtConv"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.ToAqtConv">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -549,10 +582,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Quantized act and weight.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
-        <span class="p">(</span><span class="s1">&#39;Call to ToAqtConv without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
-         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="p">[</span><span class="n">w_name</span><span class="p">])</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">qd</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">act</span><span class="p">,</span> <span class="n">weight</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">ToAqtConv</span><span class="p">(</span>
@@ -577,10 +608,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Rescaled output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
-        <span class="p">(</span><span class="s1">&#39;Call to FromAqtConv without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
-         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">)</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="p">[</span><span class="n">w_name</span><span class="p">])</span>
     <span class="k">if</span> <span class="n">qd</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">output</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtConv</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span> <span class="n">is_depthwise</span><span class="o">=</span><span class="n">is_depthwise</span><span class="p">)</span></div>
@@ -597,7 +626,7 @@
 <span class="sd">    This only scales, rounds and clips; resulting quantized inputs would be</span>
 <span class="sd">    either integer ot integer emulated in float.</span>
 
-<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+<span class="sd">    w_name must have been previously created via TrackQWeight.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
@@ -611,10 +640,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Quantized act and weight.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
-        <span class="p">(</span><span class="s1">&#39;Call to ToAqtInputs without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
-         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="p">[</span><span class="n">w_name</span><span class="p">])</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">qd</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">act</span><span class="p">,</span> <span class="n">weight</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">ToAqtInputs</span><span class="p">(</span>
@@ -630,7 +657,7 @@
 
 <span class="sd">    Uses the same scales used by `ToAqtInputs` and apply its inverse to rescale.</span>
 
-<span class="sd">    w_name must have been previously created via CreateAqtWeight.</span>
+<span class="sd">    w_name must have been previously created via TrackQWeight.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      w_name: Previously created w_name QWeight to quantize weight.</span>
@@ -639,10 +666,8 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Rescaled output.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">w_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">,</span> <span class="p">(</span>
-        <span class="p">(</span><span class="s1">&#39;Call to FromAqtWeight without first calling CreateAqtWeight: </span><span class="si">%s</span><span class="s1"> &#39;</span>
-         <span class="s1">&#39;(all known = </span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
-    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_aqt_weights</span><span class="p">[</span><span class="n">w_name</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateWeight</span><span class="p">(</span><span class="n">w_name</span><span class="p">)</span>
+    <span class="n">qd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQDomain</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weight_name_to_qdomain_name</span><span class="p">[</span><span class="n">w_name</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">qd</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="n">w_name</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span> <span class="k">if</span> <span class="n">qd</span> <span class="k">else</span> <span class="n">output</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.ToAqtActActInputs"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.ToAqtActActInputs">[docs]</a>  <span class="k">def</span> <span class="nf">ToAqtActActInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -751,7 +776,7 @@
 
         <span class="c1"># Handle the output.</span>
         <span class="k">if</span> <span class="n">qout_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="n">qout_name</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+          <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="n">qout_name</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">y</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QRAct</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">qdomain</span><span class="p">)</span>  <span class="c1"># pytype: disable=wrong-arg-types  # dynamic-method-lookup</span>
         <span class="k">return</span> <span class="n">y</span>
@@ -787,6 +812,12 @@
 
 <span class="sd">  This implementation doubles as a no-op quantization domain.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">all_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">act_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">weight_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">bits</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1053,50 +1084,55 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">t</span></div>
 
-<div class="viewcode-block" id="QDomain.CreateTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.CreateTensor">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Creates a QTensor with t_name.</span>
+<div class="viewcode-block" id="QDomain.TrackQActs"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.TrackQActs">[docs]</a>  <span class="k">def</span> <span class="nf">TrackQActs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="o">*</span><span class="n">act_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">shape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">feature_axes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Tracks activations and creates variables for quantization as needed.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">act_name</span> <span class="ow">in</span> <span class="n">act_names</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">act_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_names</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;act_name &#39;</span><span class="si">{</span><span class="n">act_name</span><span class="si">}</span><span class="s2">&#39; is already tracked for this qdomain.&quot;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">all_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">act_name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">act_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">act_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="QDomain.TrackQWeight"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.TrackQWeight">[docs]</a>  <span class="k">def</span> <span class="nf">TrackQWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                   <span class="n">weight_name</span><span class="p">,</span>
+                   <span class="n">shape</span><span class="p">,</span>
+                   <span class="n">feature_axis</span><span class="p">,</span>
+                   <span class="n">mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                   <span class="n">legacy_aqt_weight_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a QWeight with weight_name and given shape.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      t_name: Unique name (within layer) for this tensor.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">pass</span></div>
-
-<div class="viewcode-block" id="QDomain.CreateTensorWithShape"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.CreateTensorWithShape">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTensorWithShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                            <span class="n">t_name</span><span class="p">,</span>
-                            <span class="n">shape</span><span class="p">,</span>
-                            <span class="n">feature_axis</span><span class="p">,</span>
-                            <span class="n">mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                            <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                            <span class="n">legacy_aqt_t_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Creates a QTensor with t_name and given shape.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      t_name: Unique name (within layer) for this tensor.</span>
-<span class="sd">      shape: Expected shape of the tensor.</span>
+<span class="sd">      weight_name: Unique name (within layer) for this weight.</span>
+<span class="sd">      shape: Expected shape of the weight.</span>
 <span class="sd">      feature_axis: axis corresponding to output channel/feature for weights.</span>
-<span class="sd">      mesh_split: A list of integers that map each tensor axis</span>
-<span class="sd">        to the device mesh axis along which it is sharded.</span>
+<span class="sd">      mesh_split: A list of integers that map each tensor axis to the device</span>
+<span class="sd">        mesh axis along which it is sharded.</span>
 <span class="sd">      device_mesh: A numpy.ndarray describing the topology of a device mesh to</span>
 <span class="sd">        partition the created variable onto.</span>
-<span class="sd">      legacy_aqt_t_name: Used for compatibility with old checkpoints.</span>
+<span class="sd">      legacy_aqt_weight_name: Used for compatibility with old checkpoints.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">pass</span></div>
+    <span class="k">if</span> <span class="n">weight_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">all_names</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="sa">f</span><span class="s2">&quot;weight_name &#39;</span><span class="si">{</span><span class="n">weight_name</span><span class="si">}</span><span class="s2">&#39; is already tracked for this qdomain.&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">all_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">weight_name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">weight_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">weight_name</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="QDomain.QuantizeTensors"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QuantizeTensors">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Quantizes a tensor with t_name previously created with CreateTensor.</span>
-
-<span class="sd">    If applicable, each of the passed tensors contributes to a shared</span>
-<span class="sd">    range.</span>
+<div class="viewcode-block" id="QDomain.QuantizeAct"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QDomain.QuantizeAct">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeAct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">act</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">,</span> <span class="n">eval_only</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Quantizes a tensor with act_name previously created with TrackQActs.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      t_name: Tensor name.</span>
-<span class="sd">      ts: List of tensors to quantize.</span>
+<span class="sd">      act_name: Activation name.</span>
+<span class="sd">      act: Activations to quantize.</span>
 <span class="sd">      eval_only: Whether to only apply quantization pressure at eval time.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      Quantized tensors.</span>
+<span class="sd">      Quantized tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">ts</span></div></div>
+    <span class="k">return</span> <span class="n">act</span></div></div>
 
 
 <div class="viewcode-block" id="FakeQDomain"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.FakeQDomain">[docs]</a><span class="k">class</span> <span class="nc">FakeQDomain</span><span class="p">(</span><span class="n">QDomain</span><span class="p">):</span>
@@ -1592,13 +1628,11 @@
     <span class="c1"># This is used for padding.</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SymmetricScheduledClipQDomain.QuantizeTensors"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeTensors">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="SymmetricScheduledClipQDomain.QuantizeAct"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.SymmetricScheduledClipQDomain.QuantizeAct">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeAct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">,</span> <span class="n">act</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">eval_only</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">ts</span>
+      <span class="k">return</span> <span class="n">act</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="k">return</span> <span class="p">[</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span>
-      <span class="p">]</span></div></div>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span><span class="o">.</span><span class="n">ApplyClipping</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">,</span> <span class="n">act</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="_CountedMinMaxAccumulator"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils._CountedMinMaxAccumulator">[docs]</a><span class="k">class</span> <span class="nc">_CountedMinMaxAccumulator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">Accumulator</span><span class="p">):</span>
@@ -1658,8 +1692,6 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-
-    <span class="bp">self</span><span class="o">.</span><span class="n">_t_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>  <span class="c1"># set of known t_name (from CreateTensor)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_qvars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>  <span class="c1"># var_name -&gt; tf.Variable</span>
 
 <div class="viewcode-block" id="PassiveAsymQDomain._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1714,117 +1746,114 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="PassiveAsymQDomain.CreateTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.CreateTensor">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">):</span>
+<div class="viewcode-block" id="PassiveAsymQDomain.TrackQActs"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.TrackQActs">[docs]</a>  <span class="k">def</span> <span class="nf">TrackQActs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="o">*</span><span class="n">act_names</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+                 <span class="n">shape</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">feature_axes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Iterable</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="o">*</span><span class="n">act_names</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span> <span class="n">feature_axes</span><span class="o">=</span><span class="n">feature_axes</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">t_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t_names</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s1">&#39;QTensor already registered: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">t_name</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_t_names</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">t_name</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">act_name</span> <span class="ow">in</span> <span class="n">act_names</span><span class="p">:</span>
+      <span class="c1"># Create accumulator</span>
+      <span class="n">accumulator_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAccumulatorNameForTensor</span><span class="p">(</span><span class="n">act_name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">RegisterAccumulator</span><span class="p">(</span><span class="n">accumulator_name</span><span class="p">,</span>
+                               <span class="n">_CountedMinMaxAccumulator</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+      <span class="c1"># Register vars.</span>
+      <span class="n">min_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="p">(),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">default_min</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">max_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="p">(),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">default_max</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateQStateVar</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">min_pc</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateQStateVar</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">max_pc</span><span class="p">)</span></div>
 
-    <span class="c1"># Create accumulator</span>
-    <span class="n">accumulator_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAccumulatorNameForTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">RegisterAccumulator</span><span class="p">(</span><span class="n">accumulator_name</span><span class="p">,</span>
-                             <span class="n">_CountedMinMaxAccumulator</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="c1"># Register vars.</span>
-    <span class="n">min_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">((),</span>
-                                   <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">default_min</span><span class="p">),</span>
-                                   <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="n">max_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">((),</span>
-                                   <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">default_max</span><span class="p">),</span>
-                                   <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">,</span> <span class="n">min_pc</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">,</span> <span class="n">max_pc</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="PassiveAsymQDomain.QuantizeTensors"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeTensors">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeTensors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">ts</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="PassiveAsymQDomain.QuantizeAct"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeAct">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeAct</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">,</span> <span class="n">act</span><span class="p">,</span> <span class="n">eval_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Always straddle a real zero point.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="c1"># At eval/inference time, use the memorized range.</span>
       <span class="c1"># Important: Don&#39;t capture these variables in training mode so as to</span>
       <span class="c1"># avoid extra/unnecessary captures.</span>
-      <span class="n">min_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">)</span>
-      <span class="n">max_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
-      <span class="k">return</span> <span class="p">[</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">min_var</span><span class="p">,</span> <span class="n">max_var</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span>
-      <span class="p">]</span>
+      <span class="n">min_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">)</span>
+      <span class="n">max_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="n">min_var</span><span class="p">,</span> <span class="n">max_var</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># At training time, use the batch calculated min/max.</span>
-      <span class="n">accumulator_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAccumulatorNameForTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">)</span>
-      <span class="c1"># Calculate min/max for all tensors.</span>
-      <span class="n">batch_min</span> <span class="o">=</span> <span class="mf">0.0</span>
-      <span class="n">batch_max</span> <span class="o">=</span> <span class="mf">0.0</span>
-      <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">ts</span><span class="p">:</span>
-        <span class="n">batch_min</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">batch_min</span><span class="p">)</span>
-        <span class="n">batch_max</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">batch_max</span><span class="p">)</span>
+      <span class="n">accumulator_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAccumulatorNameForTensor</span><span class="p">(</span><span class="n">act_name</span><span class="p">)</span>
+      <span class="c1"># Calculate min/max for this batch.</span>
+      <span class="n">batch_min</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">act</span><span class="p">)</span>
+      <span class="n">batch_max</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">act</span><span class="p">)</span>
+      <span class="c1"># NOTE: This QDomain was implemented such that batch_min &lt;= 0.0 and</span>
+      <span class="c1"># batch_max &gt;= 0.0 even if that is not the case in the input data.</span>
+      <span class="n">batch_min</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">batch_min</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+      <span class="n">batch_max</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">batch_max</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
 
       <span class="c1"># New state.</span>
       <span class="n">state1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">batch_min</span><span class="p">,</span> <span class="n">batch_max</span><span class="p">])</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">accumulators</span><span class="p">[</span><span class="n">accumulator_name</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">state1</span><span class="p">)</span>
 
       <span class="c1"># Results.</span>
-      <span class="n">ts_out</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">t</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">eval_only</span><span class="p">:</span>
-          <span class="c1"># If only quantizing at eval time, still record ranges as above</span>
-          <span class="c1"># but don&#39;t quantize.</span>
-          <span class="n">quant_t</span> <span class="o">=</span> <span class="n">t</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="c1"># If quantizing during training, skip quantization if it produces</span>
-          <span class="c1"># NANs. Sometimes early in the training process, things are unstable</span>
-          <span class="c1"># and ranges can produce numerical instability that makes it</span>
-          <span class="c1"># impossible to perform a fake_quant.</span>
-          <span class="n">quant_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span>
-              <span class="n">t</span><span class="p">,</span> <span class="n">batch_min</span><span class="p">,</span> <span class="n">batch_max</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
-          <span class="c1"># TODO(laurenzo): Plumb quant_t_has_nans through state and report.</span>
-          <span class="n">quant_t_has_nans</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">quant_t</span><span class="p">)</span>
-          <span class="n">quant_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">quant_t_has_nans</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">quant_t</span><span class="p">)</span>
-        <span class="n">ts_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quant_t</span><span class="p">)</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span>
-            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_qvars_scope</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">t</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">ts_out</span></div>
+      <span class="k">if</span> <span class="n">eval_only</span><span class="p">:</span>
+        <span class="c1"># If only quantizing at eval time, still record ranges as above</span>
+        <span class="c1"># but don&#39;t quantize.</span>
+        <span class="n">quant_act</span> <span class="o">=</span> <span class="n">act</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># If quantizing during training, skip quantization if it produces</span>
+        <span class="c1"># NANs. Sometimes early in the training process, things are unstable</span>
+        <span class="c1"># and ranges can produce numerical instability that makes it</span>
+        <span class="c1"># impossible to perform a fake_quant.</span>
+        <span class="n">quant_act</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span>
+            <span class="n">act</span><span class="p">,</span> <span class="n">batch_min</span><span class="p">,</span> <span class="n">batch_max</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
+        <span class="c1"># TODO(laurenzo): Plumb quant_act_has_nans through state and report.</span>
+        <span class="n">quant_act_has_nans</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">quant_act</span><span class="p">)</span>
+        <span class="n">quant_act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">quant_act_has_nans</span><span class="p">,</span> <span class="n">act</span><span class="p">,</span> <span class="n">quant_act</span><span class="p">)</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_qvars_scope</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">act_name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">act</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">quant_act</span></div>
 
 <div class="viewcode-block" id="PassiveAsymQDomain.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">freeze</span><span class="p">:</span>
       <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">()</span>
     <span class="n">ops</span> <span class="o">=</span> <span class="p">[</span><span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">PostTrainingStepUpdate</span><span class="p">()]</span>
-    <span class="k">for</span> <span class="n">t_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_t_names</span><span class="p">:</span>
-      <span class="n">ops</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_RecordTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">))</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">act_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">act_names</span><span class="p">:</span>
+      <span class="n">ops</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_RecordTensor</span><span class="p">(</span><span class="n">act_name</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeTensor</span><span class="p">(</span><span class="n">act_name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">ops</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="PassiveAsymQDomain._CreateQStateVar"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._CreateQStateVar">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateQStateVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="n">name</span> <span class="o">=</span> <span class="n">t_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">suffix</span>
+<div class="viewcode-block" id="PassiveAsymQDomain._GetAccumulatorNameForTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._GetAccumulatorNameForTensor">[docs]</a>  <span class="k">def</span> <span class="nf">_GetAccumulatorNameForTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;qact_</span><span class="si">{</span><span class="n">act_name</span><span class="si">}</span><span class="s1">&#39;</span></div>
+
+<div class="viewcode-block" id="PassiveAsymQDomain._GetQStateVarName"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._GetQStateVarName">[docs]</a>  <span class="k">def</span> <span class="nf">_GetQStateVarName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">act_name</span><span class="si">}</span><span class="s1">_</span><span class="si">{</span><span class="n">suffix</span><span class="si">}</span><span class="s1">&#39;</span></div>
+
+<div class="viewcode-block" id="PassiveAsymQDomain._CreateQStateVar"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._CreateQStateVar">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateQStateVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">,</span> <span class="n">suffix</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVarName</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qvars</span><span class="p">,</span> <span class="s1">&#39;QState var already exists: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span>
-    <span class="n">var_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qvars_scope</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">name</span>
+    <span class="n">var_name</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_qvars_scope</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">/</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalVariableScope</span><span class="p">()):</span>
       <span class="n">v</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_qvars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
     <span class="k">return</span> <span class="n">v</span></div>
 
-<div class="viewcode-block" id="PassiveAsymQDomain._GetAccumulatorNameForTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._GetAccumulatorNameForTensor">[docs]</a>  <span class="k">def</span> <span class="nf">_GetAccumulatorNameForTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">):</span>
-    <span class="k">return</span> <span class="s1">&#39;qtensor_&#39;</span> <span class="o">+</span> <span class="n">t_name</span></div>
-
-<div class="viewcode-block" id="PassiveAsymQDomain._GetQStateVar"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._GetQStateVar">[docs]</a>  <span class="k">def</span> <span class="nf">_GetQStateVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
-    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qvars</span><span class="p">[</span><span class="n">t_name</span> <span class="o">+</span> <span class="s1">&#39;_&#39;</span> <span class="o">+</span> <span class="n">suffix</span><span class="p">]</span>
+<div class="viewcode-block" id="PassiveAsymQDomain._GetQStateVar"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._GetQStateVar">[docs]</a>  <span class="k">def</span> <span class="nf">_GetQStateVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qvars</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVarName</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)]</span>
     <span class="k">return</span> <span class="n">v</span></div>
 
-<div class="viewcode-block" id="PassiveAsymQDomain._SummarizeTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._SummarizeTensor">[docs]</a>  <span class="k">def</span> <span class="nf">_SummarizeTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">):</span>
-    <span class="n">min_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">)</span>
-    <span class="n">max_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
+<div class="viewcode-block" id="PassiveAsymQDomain._SummarizeTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._SummarizeTensor">[docs]</a>  <span class="k">def</span> <span class="nf">_SummarizeTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">):</span>
+    <span class="n">min_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">)</span>
+    <span class="n">max_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
     <span class="c1"># foo/q/somet_min:0 -&gt; foo/q/somet_min</span>
     <span class="n">summary_name_min</span> <span class="o">=</span> <span class="n">min_var</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">summary_name_max</span> <span class="o">=</span> <span class="n">max_var</span><span class="o">.</span><span class="n">name</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;:&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">summary_name_min</span><span class="p">,</span> <span class="n">min_var</span><span class="p">)</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">summary_name_max</span><span class="p">,</span> <span class="n">max_var</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="PassiveAsymQDomain._RecordTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._RecordTensor">[docs]</a>  <span class="k">def</span> <span class="nf">_RecordTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_name</span><span class="p">):</span>
+<div class="viewcode-block" id="PassiveAsymQDomain._RecordTensor"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._RecordTensor">[docs]</a>  <span class="k">def</span> <span class="nf">_RecordTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">act_name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="k">return</span> <span class="p">[]</span>
 
-    <span class="n">accumulator_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAccumulatorNameForTensor</span><span class="p">(</span><span class="n">t_name</span><span class="p">)</span>
+    <span class="n">accumulator_name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetAccumulatorNameForTensor</span><span class="p">(</span><span class="n">act_name</span><span class="p">)</span>
     <span class="n">accumulator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">accumulators</span><span class="p">[</span><span class="n">accumulator_name</span><span class="p">]</span>
-    <span class="n">min_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">)</span>
-    <span class="n">max_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">t_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
+    <span class="n">min_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="s1">&#39;min&#39;</span><span class="p">)</span>
+    <span class="n">max_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetQStateVar</span><span class="p">(</span><span class="n">act_name</span><span class="p">,</span> <span class="s1">&#39;max&#39;</span><span class="p">)</span>
 
     <span class="c1"># Unpack state tensor.</span>
     <span class="n">current_value</span> <span class="o">=</span> <span class="n">accumulator</span><span class="o">.</span><span class="n">GetValue</span><span class="p">()</span>

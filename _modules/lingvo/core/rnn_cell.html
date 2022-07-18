@@ -225,7 +225,7 @@
 <span class="sd">      is_eval: A bool, whether or not in eval mode.</span>
 <span class="sd">      random_uniform: a tensor of random uniform numbers. This can be None if</span>
 <span class="sd">        zo_prob=0.0</span>
-<span class="sd">      qout_name: A string, name of the qtensor for zone out math.</span>
+<span class="sd">      qout_name: A string, name of the qact for zone out math.</span>
 <span class="sd">      qdomain: A string, name of the qdomain for quantized zone out math.</span>
 
 <span class="sd">    Returns:</span>
@@ -484,13 +484,13 @@
                                                 <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">proj_mask</span><span class="p">,</span>
                                                 <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">proj_threshold</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span>
         <span class="s1">&#39;zero_m&#39;</span><span class="p">,</span>
         <span class="s1">&#39;m_output&#39;</span><span class="p">,</span>
         <span class="s1">&#39;m_output_projection&#39;</span><span class="p">,</span>
         <span class="s1">&#39;m_zoneout&#39;</span><span class="p">,</span>
         <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;m_state&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span>
         <span class="s1">&#39;zero_c&#39;</span><span class="p">,</span>
         <span class="s1">&#39;mixed&#39;</span><span class="p">,</span>
         <span class="s1">&#39;c_couple_invert&#39;</span><span class="p">,</span>
@@ -499,7 +499,7 @@
         <span class="s1">&#39;c_output_gate&#39;</span><span class="p">,</span>
         <span class="s1">&#39;c_zoneout&#39;</span><span class="p">,</span>
         <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;c_state&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;add_bias&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="s1">&#39;add_bias&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
 
     <span class="c1"># Collect some stats if wm exists.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">no_wm_if_compress</span><span class="p">:</span>
@@ -560,8 +560,8 @@
                                          <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">),</span>
                                          <span class="n">is_eval</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
-      <span class="n">zero_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;zero_m&#39;</span><span class="p">,</span> <span class="n">zero_m</span><span class="p">)</span>
-      <span class="n">zero_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;zero_c&#39;</span><span class="p">,</span> <span class="n">zero_c</span><span class="p">)</span>
+      <span class="n">zero_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;zero_m&#39;</span><span class="p">,</span> <span class="n">zero_m</span><span class="p">)</span>
+      <span class="n">zero_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;zero_c&#39;</span><span class="p">,</span> <span class="n">zero_c</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic</span><span class="p">:</span>
       <span class="c1"># The first random seed changes for different layers and training steps.</span>
@@ -704,7 +704,7 @@
       <span class="n">w_proj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">w_proj</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;m_state&#39;</span><span class="p">)</span>
 
       <span class="n">new_m</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">new_m</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">)</span>
-      <span class="n">new_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;m_output_projection&#39;</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span>
+      <span class="n">new_m</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="s1">&#39;m_output_projection&#39;</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span>
 
     <span class="c1"># Apply Zoneout.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyZoneOut</span><span class="p">(</span><span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">new_c</span><span class="p">,</span> <span class="n">new_m</span><span class="p">)</span></div>
@@ -1145,7 +1145,7 @@
       <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">[</span><span class="s1">&#39;prune_option&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;compression&#39;</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_timestep</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateAqtWeight</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQWeight</span><span class="p">(</span>
         <span class="s1">&#39;wm&#39;</span><span class="p">,</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span>
             <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span><span class="p">,</span>
@@ -1371,7 +1371,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">add_biases</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;add_bias_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">)]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="o">*</span><span class="n">add_biases</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="o">*</span><span class="n">add_biases</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
 
     <span class="n">ln_scale_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
@@ -1462,7 +1462,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">add_biases</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;add_bias_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span><span class="p">)]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="o">*</span><span class="n">add_biases</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQActs</span><span class="p">(</span><span class="o">*</span><span class="n">add_biases</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
 
     <span class="n">wn_scale_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
