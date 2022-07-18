@@ -288,7 +288,8 @@ class InferenceGraphExporter:
   def Export(cls,
              model_cfg,
              model_task_name=None,
-             task_inference_attr='Inference',
+             inference_fn_name='Inference',
+             inference_fn_kwargs=None,
              device_options=InferenceDeviceOptions(
                  device='',
                  retain_device_placement=False,
@@ -316,8 +317,9 @@ class InferenceGraphExporter:
         model_registry.GetParams(modelname, 'Test') or model_params.Model().
       model_task_name: The task to generate an inference graph for. Should be
         None for single-task models.
-      task_inference_attr: Task's inference function name, which generates
+      inference_fn_name: Task's inference function name, which generates
         subgraphs.
+      inference_fn_kwargs: kwargs for inference_fn_name.
       device_options: Device options for the accelerator used for serving.
       freeze_checkpoint: The checkpoint to load. Loads and freezes the model if
         given.
@@ -457,7 +459,12 @@ class InferenceGraphExporter:
             AddIdentityToTheta(task)
 
           inference_graph_proto = inference_graph_pb2.InferenceGraph()
-          subgraphs_proto = getattr(task, task_inference_attr)()
+          if inference_fn_kwargs is not None:
+            subgraphs_proto = getattr(task,
+                                      inference_fn_name)(**inference_fn_kwargs)
+          else:
+            subgraphs_proto = getattr(task, inference_fn_name)()
+
           if isinstance(subgraphs_proto, dict):
             subgraphs_proto = ConvertSubgraphDictToProto(subgraphs_proto)
           for name, subgraph in subgraphs_proto.subgraphs.items():
