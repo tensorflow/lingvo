@@ -1113,8 +1113,7 @@ class LinearLayer(quant_utils.QuantizableLayer):
     """Constructs a LinearLayer object."""
     super().__init__(params)
     p = self.params
-    self.CreateAqtWeight(
-        'w', shape=[p.input_dims, p.output_dims], feature_axis=-1)
+    self.TrackQWeight('w', shape=[p.input_dims, p.output_dims], feature_axis=-1)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()

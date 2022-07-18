@@ -307,10 +307,10 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
               collections=[self.__class__.__name__ + '_vars']))
 
     if not p.disable_activation_quantization:
-      self.TrackQTensor('activation')
+      self.TrackQActs('activation')
       if (p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES and
           p.activation != 'NONE'):
-        self.TrackQTensor('pre_activation')
+        self.TrackQActs('pre_activation')
 
   def _child_variable_scope_override(self):
     return {**super()._child_variable_scope_override(), 'bn': []}
@@ -631,10 +631,10 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     # Apply activation.
     if p.activation != 'NONE':
       if p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES:
-        out = self.QTensor('pre_activation', out)
+        out = self.QAct('pre_activation', out)
       out = activations.GetFn(p.activation)(out)
     if not p.disable_activation_quantization:
-      out = self.QTensor('activation', out)
+      out = self.QAct('activation', out)
 
     return out
 
@@ -936,11 +936,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
-    self.CreateAqtWeight(
+    self.TrackQWeight(
         'w',
         shape=[p.input_dim, p.output_dim],
         feature_axis=-1,
-        legacy_aqt_w_name='projection_aqt')
+        legacy_aqt_weight_name='projection_aqt')
 
     if p.pruning_hparams_dict:
       self.compression_op = None
@@ -1086,17 +1086,17 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     # Determine quantization needs based on whether fusing activation
     # or not.
     self._pre_activation_qt_name = None
-    self._output_qt_name = ('activation'
-                            if p.activation != 'NONE' else 'affine_matmul')
+    self._output_qact_name = ('activation'
+                              if p.activation != 'NONE' else 'affine_matmul')
     if (p.activation != 'NONE' and
         p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES):
       # Not a fused activation function.
-      # Need a qtensor to track the pre-activation tensor. The name is
+      # Need a qact to track the pre-activation tensor. The name is
       # compatible with older checkpoints.
       self._pre_activation_qt_name = 'affine_matmul'
-    self.TrackQTensor(self._output_qt_name)
+    self.TrackQActs(self._output_qact_name)
     if self._pre_activation_qt_name:
-      self.TrackQTensor(self._pre_activation_qt_name)
+      self.TrackQActs(self._pre_activation_qt_name)
 
   def _child_variable_scope_override(self):
     return {**super()._child_variable_scope_override(), 'bn': []}
@@ -1112,15 +1112,15 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     return p.output_dim
 
   @property
-  def output_qt_name(self):
-    """Name of QTensor used for the output value.
+  def output_qact_name(self):
+    """Name of QAct used for the output value.
 
     Useful for grabbing the quantization of the output.
 
     Returns:
-      String name of output qtensor.
+      String name of output QAct.
     """
-    return self._output_qt_name
+    return self._output_qact_name
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply projection to inputs.
@@ -1362,12 +1362,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     if with_activation and p.activation != 'NONE':
       if self._pre_activation_qt_name:
         # Track quantization for unfused activation function.
-        out = self.QTensor(self._pre_activation_qt_name, out)
+        out = self.QAct(self._pre_activation_qt_name, out)
       if not p.is_inference:
         out = py_utils.CheckNumerics(out)
       out = activations.GetFn(p.activation)(out)
     if quant:
-      out = self.QTensor(self._output_qt_name, out)
+      out = self.QAct(self._output_qact_name, out)
     if not p.use_einsum:
       out = tf.reshape(
           out,
@@ -1963,7 +1963,7 @@ class PoolingLayer(quant_utils.QuantizableLayer):
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
-    self.TrackQTensor('output')
+    self.TrackQActs('output')
 
   @classmethod
   def OutputShape(cls, params, in_shape):
@@ -2018,7 +2018,7 @@ class PoolingLayer(quant_utils.QuantizableLayer):
                                          inputs, inputs.dtype.min)
       else:
         out_padding = None
-      inputs = self.QTensor('output', inputs)
+      inputs = self.QAct('output', inputs)
 
       out = tf.nn.pool(
           inputs,
@@ -2040,7 +2040,7 @@ class PoolingLayer(quant_utils.QuantizableLayer):
         # Divide by non-padding ratios to eliminate the effect of padded values.
         out *= tf.math.reciprocal_no_nan(non_padding_ratio)[..., tf.newaxis]
 
-      out = self.QTensor('output', out)
+      out = self.QAct('output', out)
       if out_padding is not None:
         out *= tf.expand_dims(tf.expand_dims(1.0 - out_padding, -1), -1)
         return out, out_padding
@@ -2375,8 +2375,11 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         'fprop_mode must be one of %r' % valid_fprop_modes)
 
     _, weight_shape = self._GetWeightShape()
-    self.CreateAqtWeight(
-        'wm', shape=weight_shape, feature_axis=-1, legacy_aqt_w_name='emb_aqt')
+    self.TrackQWeight(
+        'wm',
+        shape=weight_shape,
+        feature_axis=-1,
+        legacy_aqt_weight_name='emb_aqt')
     if p.pruning_hparams_dict:
       self.compression_op = None
     self.apply_compression = pruning_utils.ApplyCompression(p)
@@ -3302,11 +3305,11 @@ class SimpleFullSoftmax(SoftmaxLayer):
       assert p.num_sampled == 0, 'Sampled softmax requires bias.'
 
     if p.num_shards == 1:
-      self.CreateAqtWeight(
+      self.TrackQWeight(
           'weight_0',
           shape=[p.input_dim, p.num_classes],
           feature_axis=-1,
-          legacy_aqt_w_name='softmax_aqt')
+          legacy_aqt_weight_name='softmax_aqt')
     self.compression_ops = []
 
   def _CreateLayerVariables(self):
@@ -3376,8 +3379,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
       for i in range(p.num_shards):
         self.CreateVariable(f'bias_{i}', pc)
 
-    self.TrackQTensor('inputs')
-    self.TrackQTensor('logits', domain='logits')
+    self.TrackQActs('inputs')
+    self.TrackQActs('logits', domain='logits')
 
   def AddGlobalVN(self, theta):
     theta = super().AddGlobalVN(theta)
@@ -3422,7 +3425,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
   def _LogitsUsingConcatenatedWeightsHelper(self, theta, inputs):
     p = self.params
-    inputs = self.QTensor('inputs', inputs)
+    inputs = self.QAct('inputs', inputs)
     wm = self.QWeight(theta.wm)
     if p.num_shards == 1:
       if self._transpose_weight_params:
@@ -3476,7 +3479,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
   def _LogitsUsingConcatenatedWeights(self, theta, inputs):
     logits = self._LogitsUsingConcatenatedWeightsHelper(theta, inputs)
-    return self.QTensor('logits', logits)
+    return self.QAct('logits', logits)
 
   def SimpleLogits(self, theta, inputs):
     """Returns the simple logits computed before the softmax.
@@ -3492,13 +3495,13 @@ class SimpleFullSoftmax(SoftmaxLayer):
     Returns:
       logits: [N, num_classes]
     """
-    inputs = self.QTensor('inputs', inputs)
+    inputs = self.QAct('inputs', inputs)
     theta = self.DenseWeights(theta)
     wm = self.QWeight(theta.wm)
     logits = py_utils.Matmul(
         inputs, wm, transpose_b=self._transpose_weight_params)
 
-    return self.QTensor('logits', logits)
+    return self.QAct('logits', logits)
 
   def Logits(self, theta, inputs):
     """Returns the logits computed before the softmax.
@@ -4786,8 +4789,8 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
-    # The same QTensor is used for all inputs to the concat.
-    self.TrackQTensor('activation')
+    # The same QAct is used for all inputs to the concat.
+    self.TrackQActs('activation')
 
   def FProp(self, theta, inputs, paddings):
     """Apply all convolution sets to inputs and concatenate outputs.
@@ -4831,7 +4834,7 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
       conv_outputs.append(conv_i_output)
 
     # Track for quantization.
-    conv_outputs = [self.QTensor('activation', t) for t in conv_outputs]
+    conv_outputs = [self.QAct('activation', t) for t in conv_outputs]
 
     out = tf.concat(conv_outputs, -1)
     return out, output_paddings

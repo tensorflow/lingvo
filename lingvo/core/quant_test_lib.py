@@ -40,11 +40,11 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    self.CreateAqtWeight(
+    self.TrackQWeight(
         'w',
         shape=[p.input_dim, p.output_dim],
         feature_axis=-1,
-        legacy_aqt_w_name='aqt_w')
+        legacy_aqt_weight_name='aqt_w')
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -57,7 +57,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('w', w_pc)
 
-    self.TrackQTensor('inputs', 'transformed')
+    self.TrackQActs('inputs', 'transformed')
 
   def FProp(self, theta, inputs, paddings):
     p = self.params
@@ -66,13 +66,13 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     # It is the most important that weights and top-level activations
     # be tagged for quantization:
     #   - Weights use the self.QWeight() decorator
-    #   - Inputs/activations are decorated with self.QTensor(). In general,
-    #     the provided name should match a call to self.TrackQTensor in the
+    #   - Inputs/activations are decorated with self.QAct(). In general,
+    #     the provided name should match a call to self.TrackQActs in the
     #     constructor. This creates an tensor that is individually accounted
     #     for.
     w = self.QWeight(theta.w)
 
-    inputs = self.QTensor('inputs', inputs)
+    inputs = self.QAct('inputs', inputs)
 
     reshaped_inputs = tf.reshape(inputs, [-1, p.input_dim])
     reshaped_inputs, w = self.ToAqtInputs(
@@ -83,9 +83,9 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
         w_expected_scale_shape=(1, p.output_dim))
 
     # Note the use of the qmatmul from the function library. This will
-    # automatically track the output against the qtensor 'transformed'.
+    # automatically track the output against the qact 'transformed'.
     out = py_utils.Matmul(reshaped_inputs, w)
-    out = self.QTensor('transformed', out)
+    out = self.QAct('transformed', out)
     out = self.FromAqtMatmul('w', out)
 
     out = tf.reshape(out, tf.concat([tf.shape(inputs)[:-1], [p.output_dim]], 0))

@@ -31,7 +31,7 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
       p = quant_test_lib.SampleQuantizedProjectionLayer.Params()
       p.name = 'test'
       l = p.Instantiate()
-      l.TrackQTensor('test')
+      l.TrackQActs('test')
       fns = l.fns
 
       # Just testing one dynamic and one const op.
@@ -39,13 +39,13 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
       fns.qadd(1, 1, qout_name='test')
       with self.assertRaises(ValueError):
         fns.qadd(1, 1)  # No qout_name.
-      with self.assertRaisesRegex(AssertionError, 'first calling TrackQTensor'):
+      with self.assertRaisesRegex(ValueError, 'TrackQActs'):
         fns.qadd(1, 1, qout_name='non_existing')  # Test qout_name is resolved.
 
       # Known range tests.
       fns.qtanh(6.0)
       fns.qtanh(6.0, qout_name='test')
-      with self.assertRaisesRegex(AssertionError, 'first calling TrackQTensor'):
+      with self.assertRaisesRegex(ValueError, 'TrackQActs'):
         fns.qtanh(6.0, qout_name='non_existing')  # Test qout_name precedence.
 
   def testLayerWithNoQDomain(self):

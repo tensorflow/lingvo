@@ -619,7 +619,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
 
   def __init__(self, params):
     super().__init__(params)
-    self.CreateAqtWeight('w', self._GetWeightShape(), feature_axis=(2, 3))
+    self.TrackQWeight('w', self._GetWeightShape(), feature_axis=(2, 3))
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()

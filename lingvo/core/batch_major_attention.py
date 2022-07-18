@@ -264,11 +264,11 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
     super().__init__(params)
     p = self.params
     feature_axis = 0 if p.is_output_projection else (-2, -1)
-    self.CreateAqtWeight(
+    self.TrackQWeight(
         'w',
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
         feature_axis=feature_axis,
-        legacy_aqt_w_name='aqt_w')
+        legacy_aqt_weight_name='aqt_w')
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()

@@ -15,7 +15,7 @@
 """Utilities for model quantization."""
 
 import enum
-from typing import Optional
+from typing import Iterable, Optional
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -91,11 +91,11 @@ class QuantizableLayer(base_layer.BaseLayer):
 
   The "decorators" are:
 
-  - QWeight: Tags a tensor (typically a var) as a weight quantized type.
-  - QRAct(act, dist: QDistribution): Tags a tensor as an activation
-    with a known or configurable quantization range.
-  - QTensor: Tags a tensor as a generic quantized intermediate value.
-    These are also tagged with a layer-unique name. All QTensors with the
+  - QWeight: Tags a weight (typically a tf.Variable) as a weight quantized type.
+  - QRAct(act, dist: QDistribution): Tags an activation with a known or
+    configurable quantization range.
+  - QAct: Tags an activation as a generic quantized intermediate value.
+    These are also tagged with a layer-unique name. All QActs with the
     same name will be considered the same from a numerical range/precision
     perspective.
 
@@ -121,7 +121,7 @@ class QuantizableLayer(base_layer.BaseLayer):
   automatically add the necessary annotations. All such functions take the
   following named parameters:
 
-    - qout_name: Name of QTensor (setup with TrackQTensor) for dynamic range
+    - qout_name: Name of QAct (setup with TrackQActs) for dynamic range
       tracking.
 
   Functions that have a natural output range will have default values for
@@ -159,9 +159,10 @@ class QuantizableLayer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
 
-    self._tracked_tensors = dict()  # tracked t_name -> (QDomain)
-    self._aqt_weights = dict()  # aqt w_name -> (Qdomain)
-    self._qstate = None  # t_name -> Tensor
+    # A set of all tracked activation and weight names.
+    self._all_names = set()
+    self._act_name_to_qdomain_name = dict()
+    self._weight_name_to_qdomain_name = dict()
 
     # Instantiate quantization domains.
     self._qdomains = dict()  # Dict of qdname -> QDomain or None
@@ -188,43 +189,53 @@ class QuantizableLayer(base_layer.BaseLayer):
       res[qdchild_name] = [p.name + '/q']
     return res
 
-  def TrackQTensor(self, *t_names, domain='default'):
-    r"""Creates one or more QTensors for later use.
+  def TrackQActs(self,
+                 *act_names: str,
+                 shape: Optional[Iterable[int]] = None,
+                 feature_axes: Optional[Iterable[int]] = None,
+                 domain: str = 'default'):
+    """Track activations and create variables for quantization as needed.
 
-    Any tensor that will later be quantized must be created first, preferably
-    in _CreateLayerVariables().
-
-    Along with a list of tensor names to create, they can be associated with
-    a 'domain'. Most layers are simple enough to only have a single quantization
-    domain (QDomain), typically 'default'. However, additional QDomains can
-    be defined as parameters to control fine grained aspects of quantization.
+    The activations will be associated with a specific named QDomain. Most
+    layers are simple enough to only require a single 'default' QDomain.
+    Additional QDomains can be defined as parameters to control fine grained
+    aspects of quantization.
 
     Args:
-      *t_names: Positional parameters are taken to be QTensor names to create.
-      domain: name of the qdomain to use
+      *act_names: A sequence of names to use to track statistics for layer
+        activations.
+      shape: The optional shape of the activation(s) to track. Can be used for
+        static per-channel activation quantization.
+      feature_axes: The optional feature axes of the activation(s) to track. Can
+        be used for static per-channel activation quantization.
+      domain: The name of the QDomain to use to for quantization.
     """
+    for act_name in act_names:
+      if act_name in self._all_names:
+        raise ValueError(
+            f"act_name='{act_name}' is already tracked for this layer.")
+      self._all_names.add(act_name)
+      self._act_name_to_qdomain_name[act_name] = domain
     qd = self._GetQDomain(domain)
-    for t_name in t_names:
-      self._tracked_tensors[t_name] = qd
-      if qd:
-        qd.CreateTensor(t_name)
+    if qd is not None:
+      qd.TrackQActs(*act_names, shape=shape, feature_axes=feature_axes)
 
-  def CreateAqtWeight(self,
-                      w_name,
-                      shape,
-                      feature_axis,
-                      domain='weight',
-                      *,
-                      tensor_split_dims_mapping=None,
-                      device_mesh=None,
-                      legacy_aqt_w_name=None):
+  def TrackQWeight(self,
+                   weight_name,
+                   shape,
+                   feature_axis,
+                   domain='weight',
+                   *,
+                   tensor_split_dims_mapping=None,
+                   device_mesh=None,
+                   legacy_aqt_weight_name=None):
     """Creates Quantized weights for later use.
 
     Weight that will later be quantized must be created first, preferably
     in _CreateLayerVariables().
 
     Args:
-      w_name: Positional parameters are taken to be QTensor names to create.
+      weight_name: Positional parameters are taken to be weight names to create.
       shape: Shape of the weight.
       feature_axis: axis corresponding to output channel/feature for weights.
       domain: Custom domain to match (defaults to 'weight').
@@ -232,11 +243,15 @@ class QuantizableLayer(base_layer.BaseLayer):
         to the device mesh axis along which it is sharded.
       device_mesh: A numpy.ndarray describing the topology of a device mesh to
         partition the created variable onto.
-      legacy_aqt_w_name: Used for compatibility with old checkpoints.
+      legacy_aqt_weight_name: Used for compatibility with old checkpoints.
     """
+    if weight_name in self._all_names:
+      raise ValueError(
+          f"weight_name='{weight_name}' is already tracked for this layer.")
+    self._all_names.add(weight_name)
+    self._weight_name_to_qdomain_name[weight_name] = domain
     qd = self._GetQDomain(domain)
-    self._aqt_weights[w_name] = qd
-    if qd:
+    if qd is not None:
       # We're calling child.CreateVariable() here rather than
       # self.CreateVariable(), which messes up the automatic variable scope
       # handing, so we need to set some manual variable scopes for backwards
@@ -246,32 +261,34 @@ class QuantizableLayer(base_layer.BaseLayer):
           qdchild_name = 'qdomain_' + qdname
           with self._CreateChildContext(qdchild_name):
             with tf.variable_scope(qd.params.name):
-              qd.CreateTensorWithShape(w_name, shape, feature_axis,
-                                       tensor_split_dims_mapping, device_mesh,
-                                       legacy_aqt_w_name)
+              qd.TrackQWeight(weight_name, shape, feature_axis,
+                              tensor_split_dims_mapping, device_mesh,
+                              legacy_aqt_weight_name)
           break
 
-  def QTensor(self, t_name, t, eval_only=False):
-    """Quantizes a general tensor input/output in one step.
+  def QAct(self, act_name, act, eval_only=False):
+    """Quantizes an activation.
 
-    t_name must have been previously created via TrackQTensor.
+    act_name must have been previously created via TrackQActs.
 
     Args:
-      t_name: Previously created QTensor t_name to quantize to.
-      t: Tensor to quantize.
+      act_name: Previously created act_name to quantize to.
+      act: Activation to quantize.
       eval_only: Whether to only apply quantization pressure at eval time.
 
     Returns:
       The tensor, quantized.
     """
-    assert t_name in self._tracked_tensors, (
-        ('Call to QTensor without first calling TrackQTensor: %s '
-         '(all known = %r)') % (t_name, list(self._tracked_tensors.keys())))
-    qd = self._tracked_tensors[t_name]
+    if act_name not in self._act_name_to_qdomain_name:
+      raise ValueError(
+          f"The given act_name='{act_name}' must first be tracked using "
+          f'TrackQActs. Expected one of {self._act_name_to_qdomain_name.keys()}'
+      )
+    qd = self._GetQDomain(self._act_name_to_qdomain_name[act_name])
     if not qd:
-      return t
+      return act
     else:
-      return qd.QuantizeTensors(t_name, [t], eval_only=eval_only)[0]
+      return qd.QuantizeAct(act_name, act, eval_only=eval_only)
 
   def QWeight(self, w, domain='weight'):
     """Quantizes a weight.
@@ -285,17 +302,25 @@ class QuantizableLayer(base_layer.BaseLayer):
     qd = self._GetQDomain(domain)
     return qd.QuantizeWeight(w) if qd else w
 
+  def _ValidateArgName(self, op_arg_name: str, name: Optional[str]):
+    if name is not None and name not in self._all_names:
+      raise ValueError(
+          f"Expected {op_arg_name}='{name}' to be None or one of "
+          f'{self._all_names}. Use TrackQActs or TrackQWeight to create it')
+
   def QMatmul(self,
               lhs,
               rhs,
               *,
-              lhs_name: Optional[str],
-              rhs_name: Optional[str],
+              lhs_name: Optional[str] = None,
+              rhs_name: Optional[str] = None,
               lhs_dist: QDistribution = QDistribution.SYMMETRIC,
               rhs_dist: QDistribution = QDistribution.SYMMETRIC,
               ensure2d: bool = False,
               qdomain=None,
               **op_kwargs):
+    self._ValidateArgName('lhs_name', lhs_name)
+    self._ValidateArgName('rhs_name', rhs_name)
     qd = self._GetQDomain(qdomain)
     if qd is None:
       if ensure2d:
@@ -319,12 +344,14 @@ class QuantizableLayer(base_layer.BaseLayer):
               strides,
               padding,
               *,
-              inputs_name: Optional[str],
-              filters_name: Optional[str],
+              inputs_name: Optional[str] = None,
+              filters_name: Optional[str] = None,
               inputs_dist: QDistribution = QDistribution.SYMMETRIC,
               filters_dist: QDistribution = QDistribution.SYMMETRIC,
               qdomain=None,
               **op_kwargs):
+    self._ValidateArgName('inputs_name', inputs_name)
+    self._ValidateArgName('filters_name', filters_name)
     qd = self._GetQDomain(qdomain)
     if qd is None:
       return tf.nn.conv1d(inputs, filters, strides, padding, **op_kwargs)
@@ -346,13 +373,15 @@ class QuantizableLayer(base_layer.BaseLayer):
               strides,
               padding,
               *,
-              inputs_name: Optional[str],
-              filters_name: Optional[str],
+              inputs_name: Optional[str] = None,
+              filters_name: Optional[str] = None,
               inputs_dist: QDistribution = QDistribution.SYMMETRIC,
               filters_dist: QDistribution = QDistribution.SYMMETRIC,
               is_depthwise: bool = False,
               qdomain=None,
               **op_kwargs):
+    self._ValidateArgName('inputs_name', inputs_name)
+    self._ValidateArgName('filters_name', filters_name)
     qd = self._GetQDomain(qdomain)
     if qd is None:
       if is_depthwise:
@@ -377,12 +406,14 @@ class QuantizableLayer(base_layer.BaseLayer):
               lhs,
               rhs,
               *,
-              lhs_name: Optional[str],
-              rhs_name: Optional[str],
+              lhs_name: Optional[str] = None,
+              rhs_name: Optional[str] = None,
               lhs_dist: QDistribution = QDistribution.SYMMETRIC,
               rhs_dist: QDistribution = QDistribution.SYMMETRIC,
               qdomain=None,
               **einsum_kwargs):
+    self._ValidateArgName('lhs_name', lhs_name)
+    self._ValidateArgName('rhs_name', rhs_name)
     qd = self._GetQDomain(qdomain)
     if qd is None:
       return tf.einsum(equation, lhs, rhs, **einsum_kwargs)
@@ -397,13 +428,30 @@ class QuantizableLayer(base_layer.BaseLayer):
           rhs_dist=rhs_dist,
           **einsum_kwargs)
 
+  def _ValidateWeight(self, w_name, w=None):
+    if w_name not in self._weight_name_to_qdomain_name:
+      raise ValueError(
+          f"The given w_name='{w_name}' must first be tracked using "
+          'TrackQWeight. Expected one of '
+          f'{self._weight_name_to_qdomain_name.keys()}')
+
+    # If w is a variable on this layer, then validate that w_name matches the
+    # name given to w in self.CreateVariable.
+    if w is not None and hasattr(w, 'ref') and w.ref() in self.vars:
+      expected_name = w.name.split('/')[-2]  # model/path/layer/weight/var:0
+      if w_name != expected_name:
+        raise ValueError(
+            f'Expected the AQT weight name to match the name of non-AQT '
+            f"weight, but got '{w_name}' and '{expected_name}'."
+            f'\nFull weight info:\n  {w}')
+
   def ToAqtWeight(self, w_name, w, feature_axis, expected_scale_shape=None):
     """Quantized integer weight AQT style.
 
     This only scales, rounds and clips; resulting quantized weight would be
     either integer or integer emulated in float.
 
-    w_name must have been previously created via CreateAqtWeight.
+    w_name must have been previously created via TrackQWeight.
 
     Args:
       w_name: Previously created w_name QWeight to quantize weight.
@@ -415,21 +463,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       Quantized weights.
     """
-    assert w_name in self._aqt_weights, (
-        ('Call to ToAqtWeight without first calling CreateAqtWeight: %s '
-         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
-
-    # If w is a variable on this layer, then validate that w_name matches the
-    # name given to w in self.CreateVariable.
-    if w.ref() in self.vars:
-      expected_name = w.name.split('/')[-2]  # model/path/layer/weight/var:0
-      if w_name != expected_name:
-        raise ValueError(
-            f'Expected the AQT weight name to match the name of non-AQT '
-            f"weight, but got '{w_name}' and '{expected_name}'."
-            f'\nFull weight info:\n  {w}')
-
-    qd = self._aqt_weights[w_name]
+    self._ValidateWeight(w_name, w)
+    qd = self._GetQDomain(self._weight_name_to_qdomain_name[w_name])
     if not qd:
       return w
     return qd.ToAqtWeight(
@@ -443,7 +478,7 @@ class QuantizableLayer(base_layer.BaseLayer):
 
     Uses the same scale used by `ToAqtWeight` and apply its inverse to rescale.
 
-    w_name must have been previously created via CreateAqtWeight.
+    w_name must have been previously created via TrackQWeight.
 
     Args:
       w_name: Previously created w_name QWeight to quantize weight.
@@ -454,10 +489,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       Rescaled output.
     """
-    assert w_name in self._aqt_weights, (
-        ('Call to FromAqtWeight without first calling CreateAqtWeight: %s '
-         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
-    qd = self._aqt_weights[w_name]
+    self._ValidateWeight(w_name)
+    qd = self._GetQDomain(self._weight_name_to_qdomain_name[w_name])
     return qd.FromAqtWeight(w_name, out) if qd else out
 
   def ToAqtConv(self,
@@ -483,10 +516,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       Quantized act and weight.
     """
-    assert w_name in self._aqt_weights, (
-        ('Call to ToAqtConv without first calling CreateAqtWeight: %s '
-         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
-    qd = self._aqt_weights[w_name]
+    self._ValidateWeight(w_name, weight)
+    qd = self._GetQDomain(self._weight_name_to_qdomain_name[w_name])
     if not qd:
       return act, weight
     return qd.ToAqtConv(
@@ -511,10 +542,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       Rescaled output.
     """
-    assert w_name in self._aqt_weights, (
-        ('Call to FromAqtConv without first calling CreateAqtWeight: %s '
-         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
-    qd = self._aqt_weights[w_name]
+    self._ValidateWeight(w_name)
+    qd = self._GetQDomain(self._weight_name_to_qdomain_name[w_name])
     if qd is None:
       return output
     return qd.FromAqtConv(w_name, output, is_depthwise=is_depthwise)
@@ -531,7 +560,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     This only scales, rounds and clips; resulting quantized inputs would be
     either integer ot integer emulated in float.
 
-    w_name must have been previously created via CreateAqtWeight.
+    w_name must have been previously created via TrackQWeight.
 
     Args:
       w_name: Previously created w_name QWeight to quantize weight.
@@ -545,10 +574,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       Quantized act and weight.
     """
-    assert w_name in self._aqt_weights, (
-        ('Call to ToAqtInputs without first calling CreateAqtWeight: %s '
-         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
-    qd = self._aqt_weights[w_name]
+    self._ValidateWeight(w_name, weight)
+    qd = self._GetQDomain(self._weight_name_to_qdomain_name[w_name])
     if not qd:
       return act, weight
     return qd.ToAqtInputs(
@@ -564,7 +591,7 @@ class QuantizableLayer(base_layer.BaseLayer):
 
     Uses the same scales used by `ToAqtInputs` and apply its inverse to rescale.
 
-    w_name must have been previously created via CreateAqtWeight.
+    w_name must have been previously created via TrackQWeight.
 
     Args:
       w_name: Previously created w_name QWeight to quantize weight.
@@ -573,10 +600,8 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       Rescaled output.
     """
-    assert w_name in self._aqt_weights, (
-        ('Call to FromAqtWeight without first calling CreateAqtWeight: %s '
-         '(all known = %r)') % (w_name, list(self._aqt_weights.keys())))
-    qd = self._aqt_weights[w_name]
+    self._ValidateWeight(w_name)
+    qd = self._GetQDomain(self._weight_name_to_qdomain_name[w_name])
     return qd.FromAqtMatmul(w_name, output) if qd else output
 
   def ToAqtActActInputs(self,
@@ -685,7 +710,7 @@ class QuantizableLayer(base_layer.BaseLayer):
 
         # Handle the output.
         if qout_name is not None:
-          y = self.QTensor(qout_name, y)
+          y = self.QAct(qout_name, y)
         else:
           y = self.QRAct(y, dist, qdomain)  # pytype: disable=wrong-arg-types  # dynamic-method-lookup
         return y
@@ -721,6 +746,12 @@ class QDomain(base_layer.BaseLayer):
 
   This implementation doubles as a no-op quantization domain.
   """
+
+  def __init__(self, params):
+    super().__init__(params)
+    self.all_names = set()
+    self.act_names = set()
+    self.weight_names = set()
 
   @property
   def bits(self):
@@ -987,50 +1018,55 @@ class QDomain(base_layer.BaseLayer):
     """
     return t
 
-  def CreateTensor(self, t_name):
-    """Creates a QTensor with t_name.
+  def TrackQActs(self,
+                 *act_names: str,
+                 shape: Optional[Iterable[int]] = None,
+                 feature_axes: Optional[Iterable[int]] = None):
+    """Tracks activations and creates variables for quantization as needed."""
+    for act_name in act_names:
+      if act_name in self.all_names:
+        raise ValueError(
+            f"act_name '{act_name}' is already tracked for this qdomain.")
+      self.all_names.add(act_name)
+      self.act_names.add(act_name)
+
+  def TrackQWeight(self,
+                   weight_name,
+                   shape,
+                   feature_axis,
+                   mesh_split=None,
+                   device_mesh=None,
+                   legacy_aqt_weight_name=None):
+    """Creates a QWeight with weight_name and given shape.
 
     Args:
-      t_name: Unique name (within layer) for this tensor.
-    """
-    pass
-
-  def CreateTensorWithShape(self,
-                            t_name,
-                            shape,
-                            feature_axis,
-                            mesh_split=None,
-                            device_mesh=None,
-                            legacy_aqt_t_name=None):
-    """Creates a QTensor with t_name and given shape.
-
-    Args:
-      t_name: Unique name (within layer) for this tensor.
-      shape: Expected shape of the tensor.
+      weight_name: Unique name (within layer) for this weight.
+      shape: Expected shape of the weight.
       feature_axis: axis corresponding to output channel/feature for weights.
-      mesh_split: A list of integers that map each tensor axis
-        to the device mesh axis along which it is sharded.
+      mesh_split: A list of integers that map each tensor axis to the device
+        mesh axis along which it is sharded.
       device_mesh: A numpy.ndarray describing the topology of a device mesh to
         partition the created variable onto.
-      legacy_aqt_t_name: Used for compatibility with old checkpoints.
+      legacy_aqt_weight_name: Used for compatibility with old checkpoints.
     """
-    pass
+    if weight_name in self.all_names:
+      raise ValueError(
+          f"weight_name '{weight_name}' is already tracked for this qdomain.")
+    self.all_names.add(weight_name)
+    self.weight_names.add(weight_name)
 
-  def QuantizeTensors(self, t_name, ts, eval_only=False):
-    """Quantizes a tensor with t_name previously created with CreateTensor.
-
-    If applicable, each of the passed tensors contributes to a shared
-    range.
+  def QuantizeAct(self, act_name: str, act: tf.Tensor, eval_only: bool = False):
+    """Quantizes a tensor with act_name previously created with TrackQActs.
 
     Args:
-      t_name: Tensor name.
-      ts: List of tensors to quantize.
+      act_name: Activation name.
+      act: Activations to quantize.
       eval_only: Whether to only apply quantization pressure at eval time.
 
     Returns:
-      Quantized tensors.
+      Quantized tensor.
     """
-    return ts
+    return act
 
 
 class FakeQDomain(QDomain):
@@ -1526,13 +1562,11 @@ class SymmetricScheduledClipQDomain(FakeQDomain):
     # This is used for padding.
     return tf.clip_by_value(t, min_value, max_value)
 
-  def QuantizeTensors(self, t_name, ts, eval_only=False):
+  def QuantizeAct(self, act_name, act, eval_only=False):
     if eval_only and not self.do_eval:
-      return ts
+      return act
     else:
-      return [
-          self.cc_schedule.ApplyClipping(self.theta.cc_schedule, t) for t in ts
-      ]
+      return self.cc_schedule.ApplyClipping(self.theta.cc_schedule, act)
 
 
 class _CountedMinMaxAccumulator(base_layer.Accumulator):
@@ -1592,8 +1626,6 @@ class PassiveAsymQDomain(FakeQDomain):
 
   def __init__(self, params):
     super().__init__(params)
-
-    self._t_names = set()  # set of known t_name (from CreateTensor)
     self._qvars = py_utils.NestedMap()  # var_name -> tf.Variable
 
   def _CreateLayerVariables(self):
@@ -1648,117 +1680,114 @@ class PassiveAsymQDomain(FakeQDomain):
     p = self.params
     return self._MaybeFakeQuant(t, min_value, max_value, num_bits=p.bits)
 
-  def CreateTensor(self, t_name):
+  def TrackQActs(self,
+                 *act_names: str,
+                 shape: Optional[Iterable[int]] = None,
+                 feature_axes: Optional[Iterable[int]] = None):
+    super().TrackQActs(*act_names, shape=shape, feature_axes=feature_axes)
     p = self.params
-    assert t_name not in self._t_names, (
-        'QTensor already registered: %s' % t_name)
-    self._t_names.add(t_name)
+    for act_name in act_names:
+      # Create accumulator
+      accumulator_name = self._GetAccumulatorNameForTensor(act_name)
+      self.RegisterAccumulator(accumulator_name,
+                               _CountedMinMaxAccumulator(p.dtype))
+      # Register vars.
+      min_pc = py_utils.WeightParams(
+          (), py_utils.WeightInit.Constant(p.default_min), p.dtype)
+      max_pc = py_utils.WeightParams(
+          (), py_utils.WeightInit.Constant(p.default_max), p.dtype)
+      self._CreateQStateVar(act_name, 'min', min_pc)
+      self._CreateQStateVar(act_name, 'max', max_pc)
 
-    # Create accumulator
-    accumulator_name = self._GetAccumulatorNameForTensor(t_name)
-    self.RegisterAccumulator(accumulator_name,
-                             _CountedMinMaxAccumulator(p.dtype))
-    # Register vars.
-    min_pc = py_utils.WeightParams((),
-                                   py_utils.WeightInit.Constant(p.default_min),
-                                   p.dtype)
-    max_pc = py_utils.WeightParams((),
-                                   py_utils.WeightInit.Constant(p.default_max),
-                                   p.dtype)
-    self._CreateQStateVar(t_name, 'min', min_pc)
-    self._CreateQStateVar(t_name, 'max', max_pc)
-
-  def QuantizeTensors(self, t_name, ts, eval_only=False):
+  def QuantizeAct(self, act_name, act, eval_only=False):
     p = self.params
     # Always straddle a real zero point.
     if self.do_eval:
       # At eval/inference time, use the memorized range.
       # Important: Don't capture these variables in training mode so as to
       # avoid extra/unnecessary captures.
-      min_var = self._GetQStateVar(t_name, 'min')
-      max_var = self._GetQStateVar(t_name, 'max')
-      return [
-          self._MaybeFakeQuant(t, min_var, max_var, num_bits=p.bits) for t in ts
-      ]
+      min_var = self._GetQStateVar(act_name, 'min')
+      max_var = self._GetQStateVar(act_name, 'max')
+      return self._MaybeFakeQuant(act, min_var, max_var, num_bits=p.bits)
     else:
       # At training time, use the batch calculated min/max.
-      accumulator_name = self._GetAccumulatorNameForTensor(t_name)
-      # Calculate min/max for all tensors.
-      batch_min = 0.0
-      batch_max = 0.0
-      for t in ts:
-        batch_min = tf.minimum(tf.reduce_min(t), batch_min)
-        batch_max = tf.maximum(tf.reduce_max(t), batch_max)
+      accumulator_name = self._GetAccumulatorNameForTensor(act_name)
+      # Calculate min/max for this batch.
+      batch_min = tf.reduce_min(act)
+      batch_max = tf.reduce_max(act)
+      # NOTE: This QDomain was implemented such that batch_min <= 0.0 and
+      # batch_max >= 0.0 even if that is not the case in the input data.
+      batch_min = tf.minimum(batch_min, 0.0)
+      batch_max = tf.maximum(batch_max, 0.0)
 
       # New state.
       state1 = tf.stack([1.0, batch_min, batch_max])
       self.accumulators[accumulator_name].Update(state1)
 
       # Results.
-      ts_out = []
-      for i, t in enumerate(ts):
-        if eval_only:
-          # If only quantizing at eval time, still record ranges as above
-          # but don't quantize.
-          quant_t = t
-        else:
-          # If quantizing during training, skip quantization if it produces
-          # NANs. Sometimes early in the training process, things are unstable
-          # and ranges can produce numerical instability that makes it
-          # impossible to perform a fake_quant.
-          quant_t = self._MaybeFakeQuant(
-              t, batch_min, batch_max, num_bits=p.bits)
-          # TODO(laurenzo): Plumb quant_t_has_nans through state and report.
-          quant_t_has_nans = tf.math.is_nan(quant_t)
-          quant_t = tf.where(quant_t_has_nans, t, quant_t)
-        ts_out.append(quant_t)
-        summary_utils.histogram(
-            '%s/%s_%d' % (self._qvars_scope.name, t_name, i), t)
-      return ts_out
+      if eval_only:
+        # If only quantizing at eval time, still record ranges as above
+        # but don't quantize.
+        quant_act = act
+      else:
+        # If quantizing during training, skip quantization if it produces
+        # NANs. Sometimes early in the training process, things are unstable
+        # and ranges can produce numerical instability that makes it
+        # impossible to perform a fake_quant.
+        quant_act = self._MaybeFakeQuant(
+            act, batch_min, batch_max, num_bits=p.bits)
+        # TODO(laurenzo): Plumb quant_act_has_nans through state and report.
+        quant_act_has_nans = tf.math.is_nan(quant_act)
+        quant_act = tf.where(quant_act_has_nans, act, quant_act)
+      summary_utils.histogram(f'{self._qvars_scope.name}/{act_name}', act)
+      return quant_act
 
   def PostTrainingStepUpdate(self):
     if self.params.freeze:
       return super().PostTrainingStepUpdate()
     ops = [super().PostTrainingStepUpdate()]
-    for t_name in self._t_names:
-      ops.extend(self._RecordTensor(t_name))
-      self._SummarizeTensor(t_name)
+    for act_name in self.act_names:
+      ops.extend(self._RecordTensor(act_name))
+      self._SummarizeTensor(act_name)
     return tf.group(ops)
 
-  def _CreateQStateVar(self, t_name, suffix, params):
-    name = t_name + '_' + suffix
+  def _GetAccumulatorNameForTensor(self, act_name):
+    return f'qact_{act_name}'
+
+  def _GetQStateVarName(self, act_name, suffix):
+    return f'{act_name}_{suffix}'
+
+  def _CreateQStateVar(self, act_name, suffix, params):
+    name = self._GetQStateVarName(act_name, suffix)
     assert name not in self._qvars, 'QState var already exists: %s' % name
-    var_name = self._qvars_scope.name + '/' + name
+    var_name = f'{self._qvars_scope.name}/{name}'
     with tf.variable_scope(py_utils.GetGlobalVariableScope()):
       v = py_utils.CreateVariable(var_name, params, trainable=False)
     self._qvars[name] = v
     return v
 
-  def _GetAccumulatorNameForTensor(self, t_name):
-    return 'qtensor_' + t_name
-
-  def _GetQStateVar(self, t_name, suffix):
-    v = self._qvars[t_name + '_' + suffix]
+  def _GetQStateVar(self, act_name, suffix):
+    v = self._qvars[self._GetQStateVarName(act_name, suffix)]
     return v
 
-  def _SummarizeTensor(self, t_name):
-    min_var = self._GetQStateVar(t_name, 'min')
-    max_var = self._GetQStateVar(t_name, 'max')
+  def _SummarizeTensor(self, act_name):
+    min_var = self._GetQStateVar(act_name, 'min')
+    max_var = self._GetQStateVar(act_name, 'max')
     # foo/q/somet_min:0 -> foo/q/somet_min
     summary_name_min = min_var.name.split(':')[0]
     summary_name_max = max_var.name.split(':')[0]
     summary_utils.scalar(summary_name_min, min_var)
     summary_utils.scalar(summary_name_max, max_var)
 
-  def _RecordTensor(self, t_name):
+  def _RecordTensor(self, act_name):
     p = self.params
     if self.do_eval:
       return []
 
-    accumulator_name = self._GetAccumulatorNameForTensor(t_name)
+    accumulator_name = self._GetAccumulatorNameForTensor(act_name)
     accumulator = self.accumulators[accumulator_name]
-    min_var = self._GetQStateVar(t_name, 'min')
-    max_var = self._GetQStateVar(t_name, 'max')
+    min_var = self._GetQStateVar(act_name, 'min')
+    max_var = self._GetQStateVar(act_name, 'max')
 
     # Unpack state tensor.
     current_value = accumulator.GetValue()

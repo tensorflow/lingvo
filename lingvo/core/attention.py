@@ -213,7 +213,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
-    self.TrackQTensor('logits', domain='fullyconnected')
+    self.TrackQActs('logits', domain='fullyconnected')
 
   def InitForSourcePacked(self,
                           theta,
@@ -397,7 +397,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
         tf.ones_like(logits) * logits.dtype.max *
         tf.constant(-0.7, dtype=logits.dtype))
     if self.do_eval:
-      very_negative_logits = self.QTensor('logits', very_negative_logits)
+      very_negative_logits = self.QAct('logits', very_negative_logits)
     padded_logits = tf.where(padding > 0.0, very_negative_logits, logits)
     # TFLite hardcodes the range of qsoftmax, setting explicitly to avoid
     # incompatible concats.
@@ -1259,26 +1259,26 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     if p.attention_head_prob_index >= 0:
       assert p.attention_head_prob_index < p.num_attention_heads
 
-    self.CreateAqtWeight(
+    self.TrackQWeight(
         'query_proj',
         shape=[p.query_dim, p.hidden_dim],
         feature_axis=-1,
-        legacy_aqt_w_name='query_proj_aqt')
-    self.CreateAqtWeight(
+        legacy_aqt_weight_name='query_proj_aqt')
+    self.TrackQWeight(
         'source_proj',
         shape=[p.source_dim, p.hidden_dim],
         feature_axis=-1,
-        legacy_aqt_w_name='source_proj_aqt')
-    self.CreateAqtWeight(
+        legacy_aqt_weight_name='source_proj_aqt')
+    self.TrackQWeight(
         'ctx_proj',
         shape=[p.context_dim, p.hidden_dim],
         feature_axis=-1,
-        legacy_aqt_w_name='ctx_pre_proj_aqt')
-    self.CreateAqtWeight(
+        legacy_aqt_weight_name='ctx_pre_proj_aqt')
+    self.TrackQWeight(
         'ctx_post_proj',
         shape=[p.hidden_dim, p.ctx_post_proj_dim],
         feature_axis=-1,
-        legacy_aqt_w_name='ctx_post_proj_aqt')
+        legacy_aqt_weight_name='ctx_post_proj_aqt')
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -1371,14 +1371,14 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             collections=[self.__class__.__name__ + '_vars'])
         self.CreateVariable('ctx_post_proj_b', pc_bias_post_proj)
 
-    self.TrackQTensor('source_proj_matmul', 'source_proj_add',
-                      'query_proj_matmul', 'query_proj_add',
-                      'ctx_pre_proj_matmul', 'ctx_pre_proj_add')
+    self.TrackQActs('source_proj_matmul', 'source_proj_add',
+                    'query_proj_matmul', 'query_proj_add',
+                    'ctx_pre_proj_matmul', 'ctx_pre_proj_add')
     # TODO(suderman): Remove the self.do_eval check below once brop quant within
     # defun is fixed on the training side. This is less than ideal as-is because
     # training will just trend to match downstream quant constraints vs force
     # alignment.
-    self.TrackQTensor(
+    self.TrackQActs(
         'ctx_post_proj_matmul', 'ctx_post_proj_add', domain='atten_context')
 
   @classmethod
@@ -1434,8 +1434,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
               w_feature_axis=-1)
           w_source_proj = self.QWeight(w_source_proj)
           source_projected = tf.matmul(source_vecs, w_source_proj)
-          source_projected = self.QTensor('source_proj_matmul',
-                                          source_projected)
+          source_projected = self.QAct('source_proj_matmul', source_projected)
           source_projected = self.FromAqtMatmul('source_proj', source_projected)
           if p.use_bias:
             source_projected = fns.qadd(
@@ -1473,8 +1472,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           w_ctx_proj = self.QWeight(w_ctx_proj)
 
           source_contexts_projected = tf.matmul(source_contexts, w_ctx_proj)
-          source_contexts_projected = self.QTensor('ctx_pre_proj_matmul',
-                                                   source_contexts_projected)
+          source_contexts_projected = self.QAct('ctx_pre_proj_matmul',
+                                                source_contexts_projected)
           source_contexts_projected = self.FromAqtMatmul(
               'ctx_proj', source_contexts_projected)
           if p.use_bias:
@@ -1702,8 +1701,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           w_feature_axis=-1)
       w_query_proj = self.QWeight(w_query_proj)
       query_vec_projected = tf.matmul(query_vec, w_query_proj)
-      query_vec_projected = self.QTensor('query_proj_matmul',
-                                         query_vec_projected)
+      query_vec_projected = self.QAct('query_proj_matmul', query_vec_projected)
       query_vec_projected = self.FromAqtMatmul('query_proj',
                                                query_vec_projected)
       if p.use_bias:
@@ -1769,7 +1767,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             w_feature_axis=-1)
         w_ctx_post_proj = self.QWeight(w_ctx_post_proj)
         ctx_vec = tf.matmul(ctx_vec, w_ctx_post_proj)
-        ctx_vec = self.QTensor('ctx_post_proj_matmul', ctx_vec)
+        ctx_vec = self.QAct('ctx_post_proj_matmul', ctx_vec)
         ctx_vec = self.FromAqtMatmul('ctx_post_proj', ctx_vec)
         if p.use_bias:
           ctx_vec = fns.qadd(
@@ -1980,7 +1978,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       location_feats = tf.transpose(inputs.location_feats, [2, 0, 1])
       location_hidden = py_utils.Matmul(
           CollapseOutDim(location_feats), inputs.location_var)
-      location_hidden = self.QTensor('logits_mul', location_hidden)
+      location_hidden = self.QAct('logits_mul', location_hidden)
 
       sl = py_utils.GetShape(location_feats)[0]
       tb = py_utils.GetShape(location_feats)[1]
@@ -2003,7 +2001,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       logits = py_utils.Matmul(
           tf.reshape(summed, [-1, p.hidden_dim]),
           tf.reshape(inputs.hidden_var, [p.hidden_dim, 1]))
-      logits = self.QTensor('logits', logits)
+      logits = self.QAct('logits', logits)
       logits = tf.reshape(logits, py_utils.GetShape(summed)[:3])
       return logits
 
@@ -2033,7 +2031,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       location_feats = tf.transpose(inputs.location_feats, [2, 0, 1])
       location_hidden = py_utils.Matmul(
           CollapseOutDim(location_feats), inputs.location_var)
-      location_hidden = self.QTensor('logits_mul', location_hidden)
+      location_hidden = self.QAct('logits_mul', location_hidden)
       sl = tf.shape(location_feats)[0]
       tb = tf.shape(location_feats)[1]
       hd = tf.shape(inputs.location_var)[1]
@@ -2054,7 +2052,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       logits = py_utils.Matmul(
           tf.reshape(summed, [-1, p.hidden_dim]),
           tf.reshape(inputs.hidden_var, [p.hidden_dim, 1]))
-      logits = self.QTensor('logits', logits)
+      logits = self.QAct('logits', logits)
       logits = tf.reshape(logits, py_utils.GetShape(summed)[:2])
       return logits
 
@@ -2079,8 +2077,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       # concated_source_vecs is reshaped to [sl, 1, sb, hidden_dims]
       concated_source_vecs = tf.expand_dims(concated_source_vecs, 1)
       query_vec_transformed = py_utils.Matmul(query_vec, query_var)
-      query_vec_transformed = self.QTensor('atten_matmul',
-                                           query_vec_transformed)
+      query_vec_transformed = self.QAct('atten_matmul', query_vec_transformed)
       # query_vec is reshaped to [1, tb/sb, sb, hidden_dims].
       query_vec_reshaped = tf.reshape(query_vec_transformed,
                                       [1, multiplier, sb, p.hidden_dim])
@@ -2116,7 +2113,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       summed = tf.matmul(
           tf.cast(probs_reshaped, concated_source_contexts.dtype),
           concated_source_contexts)
-      summed = self.QTensor('atten_context', summed)
+      summed = self.QAct('atten_context', summed)
       # summed is of shape [tb/sb, sb, context_dim]
       summed = tf.transpose(summed, [1, 0, 2])
       return tf.reshape(summed, [tb, -1]), probs
@@ -2138,8 +2135,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
       location_feats = self._ApplyConv(attention_state, location_filter_var)
       query_vec_transformed = py_utils.Matmul(query_vec, query_var)
-      query_vec_transformed = self.QTensor('atten_matmul',
-                                           query_vec_transformed)
+      query_vec_transformed = self.QAct('atten_matmul', query_vec_transformed)
       # logits is of shape [sl, sb]
       logits = _ConditionalCallDefun(
           not self._is_quantized, AttenLogitsSameBatchSize,
@@ -2159,7 +2155,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       summed = tf.matmul(
           tf.cast(tf.expand_dims(probs, 1), concated_source_contexts.dtype),
           concated_source_contexts)
-      summed = self.QTensor('atten_context', summed)
+      summed = self.QAct('atten_context', summed)
       return tf.squeeze(summed, 1), probs
 
     if p.same_batch_size:
@@ -2173,7 +2169,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       transformed_vecs = py_utils.Matmul(
           tf.reshape(vecs, [-1, p.source_dim]), self.QWeight(theta.source_var))
       transformed_vecs = tf.reshape(transformed_vecs, [time, batch, -1])
-      transformed_vecs = self.QTensor('encode_matmul', transformed_vecs)
+      transformed_vecs = self.QAct('encode_matmul', transformed_vecs)
       transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
       return transformed_vecs, transposed_ctxs
 
@@ -2226,9 +2222,9 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         collections=['LocationSensitiveAttention_vars'])
     self.CreateVariable('location_var', location_pc)
 
-    self.TrackQTensor('atten_conv')
-    self.TrackQTensor('atten_context', domain='atten_context')
-    self.TrackQTensor(
+    self.TrackQActs('atten_conv')
+    self.TrackQActs('atten_context', domain='atten_context')
+    self.TrackQActs(
         'atten_matmul',
         'logits_add',
         'encode_matmul',

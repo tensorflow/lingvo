@@ -159,7 +159,7 @@ class RNNCell(quant_utils.QuantizableLayer):
       is_eval: A bool, whether or not in eval mode.
       random_uniform: a tensor of random uniform numbers. This can be None if
         zo_prob=0.0
-      qout_name: A string, name of the qtensor for zone out math.
+      qout_name: A string, name of the qact for zone out math.
       qdomain: A string, name of the qdomain for quantized zone out math.
 
     Returns:
@@ -418,13 +418,13 @@ class LSTMCellSimple(RNNCell):
                                                 self.vars.proj_mask,
                                                 self.vars.proj_threshold)
 
-    self.TrackQTensor(
+    self.TrackQActs(
         'zero_m',
         'm_output',
         'm_output_projection',
         'm_zoneout',
         domain='m_state')
-    self.TrackQTensor(
+    self.TrackQActs(
         'zero_c',
         'mixed',
         'c_couple_invert',
@@ -433,7 +433,7 @@ class LSTMCellSimple(RNNCell):
         'c_output_gate',
         'c_zoneout',
         domain='c_state')
-    self.TrackQTensor('add_bias', domain='fullyconnected')
+    self.TrackQActs('add_bias', domain='fullyconnected')
 
     # Collect some stats if wm exists.
     if not p.no_wm_if_compress:
@@ -494,8 +494,8 @@ class LSTMCellSimple(RNNCell):
                                          dtype=py_utils.FPropDtype(p),
                                          is_eval=self.do_eval)
     if p.is_inference:
-      zero_m = self.QTensor('zero_m', zero_m)
-      zero_c = self.QTensor('zero_c', zero_c)
+      zero_m = self.QAct('zero_m', zero_m)
+      zero_c = self.QAct('zero_c', zero_c)
 
     if p.deterministic:
       # The first random seed changes for different layers and training steps.
@@ -638,7 +638,7 @@ class LSTMCellSimple(RNNCell):
       w_proj = self.QWeight(w_proj, domain='m_state')
 
       new_m = py_utils.Matmul(new_m, w_proj)
-      new_m = self.QTensor('m_output_projection', new_m)
+      new_m = self.QAct('m_output_projection', new_m)
 
     # Apply Zoneout.
     return self._ApplyZoneOut(state0, inputs, new_c, new_m)
@@ -1079,7 +1079,7 @@ class LayerNormalizedLSTMCell(RNNCell):
       assert params.pruning_hparams_dict['prune_option'] == 'compression'
 
     self._timestep = -1
-    self.CreateAqtWeight(
+    self.TrackQWeight(
         'wm',
         shape=[
             params.num_input_nodes + params.num_output_nodes,
@@ -1305,7 +1305,7 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
     p = self.params
 
     add_biases = ['add_bias_{}'.format(i) for i in range(self.num_gates)]
-    self.TrackQTensor(*add_biases, domain='fullyconnected')
+    self.TrackQActs(*add_biases, domain='fullyconnected')
 
     ln_scale_pc = py_utils.WeightParams(
         shape=[self.num_gates * self.hidden_size],
@@ -1396,7 +1396,7 @@ class WeightNormalizedLSTMCellSimple(LSTMCellSimple):
     p = self.params
 
     add_biases = ['add_bias_{}'.format(i) for i in range(self.num_gates)]
-    self.TrackQTensor(*add_biases, domain='fullyconnected')
+    self.TrackQActs(*add_biases, domain='fullyconnected')
 
     wn_scale_pc = py_utils.WeightParams(
         shape=[self.num_gates * self.hidden_size],

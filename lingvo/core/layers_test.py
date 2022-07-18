@@ -2368,10 +2368,10 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
     # pyformat: enable
     # pylint: enable=bad-whitespace
     def CheckLayer(proj_layer):
-      # Should not error because this qtensor is defined.
-      proj_layer.QTensor('activation', tf.convert_to_tensor(0.))
+      # Should not error because this QAct is defined.
+      proj_layer.QAct('activation', tf.convert_to_tensor(0.))
       # The intermediate tensor should be defined.
-      proj_layer.QTensor('affine_matmul', tf.convert_to_tensor(0.))
+      proj_layer.QAct('affine_matmul', tf.convert_to_tensor(0.))
 
     # When quantization enabled, batchnorm folding should auto enable.
     # TANH is unfused.
@@ -2399,11 +2399,11 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
     # pyformat: enable
     # pylint: enable=bad-whitespace
     def CheckLayer(proj_layer):
-      # Should not error because this qtensor is defined.
-      proj_layer.QTensor('activation', tf.convert_to_tensor(0.))
-      with self.assertRaises(AssertionError):
+      # Should not error because this QAct is defined.
+      proj_layer.QAct('activation', tf.convert_to_tensor(0.))
+      with self.assertRaises(ValueError):
         # The intermediate tensor should *not* be quantized.
-        proj_layer.QTensor('affine_matmul', tf.convert_to_tensor(0.))
+        proj_layer.QAct('affine_matmul', tf.convert_to_tensor(0.))
 
     # When quantization enabled, batchnorm folding should auto enable.
     # RELU6 is fused.
@@ -2431,8 +2431,8 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
     # pyformat: enable
     # pylint: enable=bad-whitespace
     def CheckLayer(proj_layer):
-      # Should not error because this qtensor is defined.
-      proj_layer.QTensor('affine_matmul', tf.convert_to_tensor(0.))
+      # Should not error because this QAct is defined.
+      proj_layer.QAct('affine_matmul', tf.convert_to_tensor(0.))
 
     actual = self._evalProjectionLayer(
         activation='NONE',
@@ -2456,8 +2456,8 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
     # pyformat: enable
     # pylint: enable=bad-whitespace
     def CheckLayer(proj_layer):
-      # Should not error because this qtensor is defined.
-      proj_layer.QTensor('affine_matmul', tf.convert_to_tensor(0.))
+      # Should not error because this QAct is defined.
+      proj_layer.QAct('affine_matmul', tf.convert_to_tensor(0.))
 
     actual = self._evalProjectionLayer(
         activation='NONE',

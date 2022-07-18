@@ -234,7 +234,7 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
-    self.TrackQTensor('residual')
+    self.TrackQActs('residual')
 
   def _child_variable_scope_override(self):
     return {
@@ -325,7 +325,7 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
-    self.TrackQTensor('residual')
+    self.TrackQActs('residual')
 
   def _child_variable_scope_override(self):
     return {
