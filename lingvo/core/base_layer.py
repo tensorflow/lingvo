@@ -571,7 +571,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # inside an EMA-disabled sub-model created by the main model, None will be
     # returned.
     root = self
-    while root.parent:
+    while root.parent:  # pytype: disable=attribute-error  # py310-upgrade
       root = root.parent
     # pylint: disable=protected-access
     # Note: 'root' may not be a BaseModel, but we want it to be. So to avoid
