@@ -852,7 +852,7 @@
         <span class="n">inference_with_merged_var</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_use_merged_variable</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_variable_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inference_variable_dtype</span>
-        <span class="n">is_inference_with_bfloat16</span> <span class="o">=</span> <span class="p">(</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+        <span class="n">is_inference_with_bfloat16</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">inference_variable_dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">dtype</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">]:</span>
           <span class="c1"># Note: it doesn&#39;t matter what initialization value is used, the</span>
           <span class="c1"># actual value of the variable will be loaded from checkpoint.</span>
