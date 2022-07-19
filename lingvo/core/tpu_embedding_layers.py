@@ -786,7 +786,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         inference_with_merged_var = p.inference_use_merged_variable
         if p.inference_variable_dtype is not None:
           dtype = p.inference_variable_dtype
-        is_inference_with_bfloat16 = (dtype == tf.bfloat16)
+        is_inference_with_bfloat16 = (p.inference_variable_dtype == tf.bfloat16)
         if dtype not in [tf.float32, tf.bfloat16]:
           # Note: it doesn't matter what initialization value is used, the
           # actual value of the variable will be loaded from checkpoint.
