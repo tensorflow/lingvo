@@ -637,7 +637,7 @@
     <span class="c1"># inside an EMA-disabled sub-model created by the main model, None will be</span>
     <span class="c1"># returned.</span>
     <span class="n">root</span> <span class="o">=</span> <span class="bp">self</span>
-    <span class="k">while</span> <span class="n">root</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>
+    <span class="k">while</span> <span class="n">root</span><span class="o">.</span><span class="n">parent</span><span class="p">:</span>  <span class="c1"># pytype: disable=attribute-error  # py310-upgrade</span>
       <span class="n">root</span> <span class="o">=</span> <span class="n">root</span><span class="o">.</span><span class="n">parent</span>
     <span class="c1"># pylint: disable=protected-access</span>
     <span class="c1"># Note: &#39;root&#39; may not be a BaseModel, but we want it to be. So to avoid</span>
