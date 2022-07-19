@@ -2502,6 +2502,11 @@ class DenseBuilder(MoEBuilder):
         name, self._device_mesh, self.params.mhd_w_split,
         self._attention_output_hdm_w_split)
 
+  def DecMultiDconvHeadAttention(self, name):
+    return super().DecMultiDconvHeadAttention(
+        name, self._device_mesh, self.params.mhd_w_split,
+        self._attention_output_hdm_w_split)
+
   def DecMultiDconvHeadAttentionRelativeBias(self, name):
     return super().DecMultiDconvHeadAttentionRelativeBias(
         name, self._device_mesh, self.params.mhd_w_split,
