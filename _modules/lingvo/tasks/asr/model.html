@@ -242,10 +242,16 @@
         <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">aux_loss</span> <span class="o">=</span> <span class="n">aux_loss</span>
       <span class="k">return</span> <span class="n">encoder_outputs</span></div>
 
-<div class="viewcode-block" id="AsrModel._GetTopK"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._GetTopK">[docs]</a>  <span class="k">def</span> <span class="nf">_GetTopK</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_outs</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrModel._GetTopK"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._GetTopK">[docs]</a>  <span class="k">def</span> <span class="nf">_GetTopK</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_outs</span><span class="p">,</span> <span class="n">encoder_outs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="s1">&#39;feed_encoder_outs&#39;</span> <span class="ow">in</span> <span class="nb">vars</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="p">):</span>
+      <span class="n">feed_encoder_outs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">feed_encoder_outs</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">feed_encoder_outs</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_metrics</span><span class="o">.</span><span class="n">GetTopK</span><span class="p">(</span>
         <span class="n">decoder_outs</span><span class="p">,</span>
         <span class="n">ids_to_strings_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">IdsToStrings</span><span class="p">,</span>
+        <span class="n">feed_encoder_outs</span><span class="o">=</span><span class="n">feed_encoder_outs</span><span class="p">,</span>
+        <span class="n">encoder_outs</span><span class="o">=</span><span class="n">encoder_outs</span><span class="p">,</span>
         <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrModel._ComputeNormalizedWER"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._ComputeNormalizedWER">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeNormalizedWER</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">,</span> <span class="n">refs</span><span class="p">):</span>

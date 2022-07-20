@@ -105,6 +105,8 @@
 <div class="viewcode-block" id="BeamSearchDecodeOutputToDecoderTopK"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.BeamSearchDecodeOutputToDecoderTopK">[docs]</a><span class="k">def</span> <span class="nf">BeamSearchDecodeOutputToDecoderTopK</span><span class="p">(</span><span class="n">decoder_outs</span><span class="p">,</span>
                                         <span class="o">*</span><span class="p">,</span>
                                         <span class="n">ids_to_strings_fn</span><span class="p">,</span>
+                                        <span class="n">feed_encoder_outs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                        <span class="n">encoder_outs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                         <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Converts BeamSearchDecodeOutput to DecoderTopK.</span>
 
@@ -115,6 +117,8 @@
 <span class="sd">    decoder_outs: a beam_search_helper.BeamSearchDecodeOutput instance.</span>
 <span class="sd">    ids_to_strings_fn: a function of (ids, lens) -&gt; strings, where ids has shape</span>
 <span class="sd">      [batch, length], lens has shape [batch], and strings has shape [batch].</span>
+<span class="sd">    feed_encoder_outs: whether feed encoder_outs to ids_to_strings_fn or not.</span>
+<span class="sd">    encoder_outs: outputs derived from the encoder.</span>
 <span class="sd">    tag: optional tag for tf.identity() names.</span>
 
 <span class="sd">  Returns:</span>
@@ -130,7 +134,10 @@
     <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;TopKLabelIds&#39;</span> <span class="o">+</span> <span class="n">tag</span><span class="p">)</span>
     <span class="c1"># With the assumption that ids[-1] is always EOS token.</span>
     <span class="c1"># TODO(b/195027707): remove EOS token in better way.</span>
-    <span class="n">decoded</span> <span class="o">=</span> <span class="n">ids_to_strings_fn</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">feed_encoder_outs</span><span class="p">:</span>
+      <span class="n">decoded</span> <span class="o">=</span> <span class="n">ids_to_strings_fn</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">encoder_outs</span><span class="o">=</span><span class="n">encoder_outs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">decoded</span> <span class="o">=</span> <span class="n">ids_to_strings_fn</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">lens</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">decoded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;top_k_decoded</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">tag</span><span class="p">)</span>
     <span class="n">decoded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">decoded</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">scores</span><span class="p">))</span>
   <span class="k">if</span> <span class="n">scores</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">hyps</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -165,9 +172,18 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;params.name not set.&#39;</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DecoderMetrics.GetTopK"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.DecoderMetrics.GetTopK">[docs]</a>  <span class="k">def</span> <span class="nf">GetTopK</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_outs</span><span class="p">,</span> <span class="n">ids_to_strings_fn</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
+<div class="viewcode-block" id="DecoderMetrics.GetTopK"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.DecoderMetrics.GetTopK">[docs]</a>  <span class="k">def</span> <span class="nf">GetTopK</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+              <span class="n">decoder_outs</span><span class="p">,</span>
+              <span class="n">ids_to_strings_fn</span><span class="p">,</span>
+              <span class="n">feed_encoder_outs</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">encoder_outs</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+              <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">BeamSearchDecodeOutputToDecoderTopK</span><span class="p">(</span>
-        <span class="n">decoder_outs</span><span class="p">,</span> <span class="n">ids_to_strings_fn</span><span class="o">=</span><span class="n">ids_to_strings_fn</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">)</span></div>
+        <span class="n">decoder_outs</span><span class="p">,</span>
+        <span class="n">ids_to_strings_fn</span><span class="o">=</span><span class="n">ids_to_strings_fn</span><span class="p">,</span>
+        <span class="n">feed_encoder_outs</span><span class="o">=</span><span class="n">feed_encoder_outs</span><span class="p">,</span>
+        <span class="n">encoder_outs</span><span class="o">=</span><span class="n">encoder_outs</span><span class="p">,</span>
+        <span class="n">tag</span><span class="o">=</span><span class="n">tag</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DecoderMetrics.ComputeNormalizedWER"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.DecoderMetrics.ComputeNormalizedWER">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeNormalizedWER</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">hyps</span><span class="p">,</span> <span class="n">refs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">):</span>
     <span class="c1"># Filter out all &#39;&lt;epsilon&gt;&#39; tokens for norm_wer computation.</span>
