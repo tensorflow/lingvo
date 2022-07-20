@@ -14,6 +14,7 @@
 # ==============================================================================
 """Programs for interleaving execution on TPU."""
 
+import _thread
 import contextlib
 import functools
 import multiprocessing.dummy
@@ -1408,7 +1409,9 @@ class DecodeProgram(BaseProgram):
     if threadpool:
 
       def _HandleError(e):
-        raise e
+        tf.logging.exception(e)
+        # Terminate the main thread.
+        _thread.interrupt_main()
 
       # Async. TPU+host processing is done and can move on to Train.
       return threadpool.apply_async(
@@ -1558,6 +1561,14 @@ class ExperimentalDecodeProgram(DecodeProgram):
     p.num_threads = 2
     return p
 
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
+    self._program_name = 'ExperimentalDecodeProgram'
+    self._dataset_summaries = {}
+
+  def Summary(self):
+    return self._dataset_summaries
+
   def DecodeFunc(self):
     """Wrap the DecodeLoop with split_compile_and_shard."""
 
@@ -1631,42 +1642,104 @@ class ExperimentalDecodeProgram(DecodeProgram):
             outfeed_ops[idx_outfeed] = outfeed_ops[idx_outfeed] + [out_feed]
     return [tf.concat(per_outfeed, axis=0) for per_outfeed in outfeed_ops]
 
+  def FinalizeCallback(self, unused_finalize_ret):
+    """Callback after _FinalizeDecode thread done."""
+    tf.logging.info('ExperimentalDecodeProgram skip FinalizeCallback.')
+
   def _DecodeLoop(self, sess=None):
     sess.run(self.decode_loop)
 
-  def Run(self, sess=None, threadpool=None):
-    global_step = sess.run(self._model.global_step)
-    self.SetStatusMessage(
-        f'Executing decode program on dataset {self.params.dataset_name} '
-        f'at step {global_step}')
-
-    if self._task.input.params.resettable:
-      tf.logging.info('Resetting input_generator.')
-      self._task.input.Reset(sess)
-
-    infeed_future = self._infeed_pool.apply_async(
-        self._InfeedLoop, args=(sess,))
-    decode_future = self._infeed_pool.apply_async(
-        self._DecodeLoop, args=(sess,))
-
-    dec_metrics = self._task.CreateDecoderMetrics()
-    start_time = time.time()
-    for _ in range(self._steps_per_loop):
-      decode_out_dict = _FetchDecodeOut(self.tpu_outs, sess)
-      self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
-    decode_future.get()
-    infeed_future.get()
+  def _PostProcess(self, global_step, dec_metrics, elapsed_secs):
+    """Postprocess decoded metrics."""
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
-    elapsed_secs = time.time() - start_time
     num_examples_metric = dec_metrics['num_samples_in_batch']
+    summaries['cumulative_num_examples'] = tf.Summary(value=[
+        tf.Summary.Value(
+            tag='cumulative_num_examples',
+            simple_value=num_examples_metric.total_value)
+    ])
     example_rate = num_examples_metric.total_value / elapsed_secs
     summaries['examples/sec'] = tf.Summary(
         value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
     self._WriteSummaries(
         os.path.basename(self._program_dir), self.params.dataset_name,
         global_step, summaries)
+    self._ReportVizierMetrics(global_step, dec_metrics)
+    self._dataset_summaries[self.params.dataset_name] = summaries
+    return self.params.dataset_name, summaries
 
-    return self._ReportVizierMetrics(global_step, dec_metrics)
+  def _ThreadCall(self, func, args, callback=None, thread=None):
+    """Call async thread with default Error callback to break main."""
+    if thread is None:
+      thread = self._infeed_pool
+
+    def _ErrorCallback(e):
+      tf.logging.exception(e)
+      # Terminate the main thread.
+      _thread.interrupt_main()
+
+    return thread.apply_async(
+        func, args, callback=callback, error_callback=_ErrorCallback)
+
+  def WaitThread(self, futures):
+    if not isinstance(futures, list):
+      futures = [futures]
+    for future in futures:
+      future.get()
+
+  def Run(self, sess=None, threadpool=None):
+    global_step = sess.run(self._model.global_step)
+    self.SetStatusMessage(f'Executing experimental decode program on dataset '
+                          f'{self.params.dataset_name} at step {global_step}, '
+                          f'total steps {self._steps_per_loop}.')
+
+    if self._task.input.params.resettable:
+      tf.logging.info('Resetting input_generator.')
+      self._task.input.Reset(sess)
+
+    infeed_future = self._ThreadCall(self._InfeedLoop, args=(sess,))
+    decode_future = self._ThreadCall(self._DecodeLoop, args=(sess,))
+
+    dec_metrics = self._task.CreateDecoderMetrics()
+    start_time = time.time()
+    post_futures = []
+    decode_out_dict_list = []
+    for _ in range(self._steps_per_loop):
+      decode_out_dict = _FetchDecodeOut(self.tpu_outs, sess)
+      if self.params.postprocess_all_at_once:
+        decode_out_dict_list.append(decode_out_dict)
+      elif threadpool:
+        post_futures.append(
+            self._ThreadCall(
+                self._task.PostProcessDecodeOut,
+                args=(decode_out_dict, dec_metrics),
+                thread=threadpool))
+      else:
+        self._task.PostProcessDecodeOut(decode_out_dict, dec_metrics)
+    if self.params.postprocess_all_at_once:
+      if threadpool:
+        post_futures.append(
+            self._ThreadCall(
+                self._task.PostProcessDecodeOut,
+                args=(decode_out_dict_list, dec_metrics),
+                thread=threadpool))
+      else:
+        self._task.PostProcessDecodeOut(decode_out_dict_list, dec_metrics)
+
+    self.WaitThread([infeed_future, decode_future] + post_futures)
+    elapsed_secs = time.time() - start_time
+
+    return_future = None
+    if threadpool:
+      return_future = self._ThreadCall(
+          self._PostProcess,
+          args=(global_step, dec_metrics, elapsed_secs),
+          callback=self.FinalizeCallback,
+          thread=threadpool)
+    else:
+      data_summaries = self._PostProcess(global_step, dec_metrics, elapsed_secs)
+      self.FinalizeCallback(data_summaries)
+    return return_future
 
 
 class MLPerfTrainDecodeProgram(BaseProgram):
@@ -2003,7 +2076,8 @@ class SimpleProgramSchedule:
     for eval_program in self.eval_programs:
       futures = None
       eval_program.train_executions_per_eval = p.train_executions_per_eval
-      if p.async_postprocess and isinstance(eval_program, DecodeProgram):
+      if p.async_postprocess and isinstance(
+          eval_program, (DecodeProgram, ExperimentalDecodeProgram)):
         futures = eval_program.Run(sess, threadpool)
         if not isinstance(futures, list):
           futures = [futures]
@@ -2059,6 +2133,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  eval_program_cls=EvalProgram,
                                  summary_exporter_cls=None,
                                  async_postprocess=True,
+                                 experimental_async_postprocess=False,
                                  decode_until_out_of_range=False,
                                  postprocess_all_at_once=False,
                                  emails=None,
@@ -2092,6 +2167,9 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       to Train, then multiple Train loops could complete before Decode finishes
       for an older global step. Then the latest Decode results do not correspond
       to the latest trained model.
+    experimental_async_postprocess: bool. Whether to run CPU postprocessing in
+      separate thread to save time. This flag is only used for
+      ExperimentalDecodeProgram, when experimental_decoder=True.
     decode_until_out_of_range: bool. Whether to run Decode (and its Infeed loop)
       until there is no more data (OutOfRange error is thrown). If this is True,
       decode_steps_per_loop is ignored (and not required). Currently do not
@@ -2120,7 +2198,10 @@ def SimpleProgramScheduleForTask(train_dataset_name,
 
   program_schedule_params.dataset_names = []
 
-  program_schedule_params.async_postprocess = async_postprocess
+  if experimental_decoder:
+    program_schedule_params.async_postprocess = experimental_async_postprocess
+  else:
+    program_schedule_params.async_postprocess = async_postprocess
 
   if emails:
     program_schedule_params.emails = emails
