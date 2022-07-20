@@ -1458,6 +1458,7 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     super().__init__(params)
 
     p = self.params
+    self.feed_encoder_outs = False
 
     if p.tokenizer:
       assert DEFAULT_TOKENIZER_KEY not in p.tokenizer_dict

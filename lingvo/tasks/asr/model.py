@@ -176,10 +176,16 @@ class AsrModel(base_model.BaseTask):
         encoder_outputs.aux_loss = aux_loss
       return encoder_outputs
 
-  def _GetTopK(self, decoder_outs, tag=''):
+  def _GetTopK(self, decoder_outs, encoder_outs=None, tag=''):
+    if 'feed_encoder_outs' in vars(self.input_generator):
+      feed_encoder_outs = self.input_generator.feed_encoder_outs
+    else:
+      feed_encoder_outs = False
     return self.decoder_metrics.GetTopK(
         decoder_outs,
         ids_to_strings_fn=self.input_generator.IdsToStrings,
+        feed_encoder_outs=feed_encoder_outs,
+        encoder_outs=encoder_outs,
         tag=tag)
 
   def _ComputeNormalizedWER(self, hyps, refs):

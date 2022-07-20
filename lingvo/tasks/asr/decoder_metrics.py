@@ -39,6 +39,8 @@ PostProcessInputs = metrics_calculator.PostProcessInputs
 def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
                                         *,
                                         ids_to_strings_fn,
+                                        feed_encoder_outs=False,
+                                        encoder_outs=None,
                                         tag=''):
   """Converts BeamSearchDecodeOutput to DecoderTopK.
 
@@ -49,6 +51,8 @@ def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
     decoder_outs: a beam_search_helper.BeamSearchDecodeOutput instance.
     ids_to_strings_fn: a function of (ids, lens) -> strings, where ids has shape
       [batch, length], lens has shape [batch], and strings has shape [batch].
+    feed_encoder_outs: whether feed encoder_outs to ids_to_strings_fn or not.
+    encoder_outs: outputs derived from the encoder.
     tag: optional tag for tf.identity() names.
 
   Returns:
@@ -64,7 +68,10 @@ def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
     ids = tf.identity(ids, name='TopKLabelIds' + tag)
     # With the assumption that ids[-1] is always EOS token.
     # TODO(b/195027707): remove EOS token in better way.
-    decoded = ids_to_strings_fn(ids, lens - 1)
+    if feed_encoder_outs:
+      decoded = ids_to_strings_fn(ids, lens - 1, encoder_outs=encoder_outs)
+    else:
+      decoded = ids_to_strings_fn(ids, lens - 1)
     decoded = tf.identity(decoded, name='top_k_decoded%s' % tag)
     decoded = tf.reshape(decoded, tf.shape(scores))
   if scores is not None and hyps is not None:
@@ -99,9 +106,18 @@ class DecoderMetrics(base_layer.BaseLayer):
       raise ValueError('params.name not set.')
     super().__init__(params)
 
-  def GetTopK(self, decoder_outs, ids_to_strings_fn, tag=''):
+  def GetTopK(self,
+              decoder_outs,
+              ids_to_strings_fn,
+              feed_encoder_outs=False,
+              encoder_outs=None,
+              tag=''):
     return BeamSearchDecodeOutputToDecoderTopK(
-        decoder_outs, ids_to_strings_fn=ids_to_strings_fn, tag=tag)
+        decoder_outs,
+        ids_to_strings_fn=ids_to_strings_fn,
+        feed_encoder_outs=feed_encoder_outs,
+        encoder_outs=encoder_outs,
+        tag=tag)
 
   def ComputeNormalizedWER(self, hyps, refs, num_hyps_per_beam):
     # Filter out all '<epsilon>' tokens for norm_wer computation.
