@@ -718,6 +718,11 @@ graph mode, or a callable returning such in eager mode.</p></li>
 
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.program._InferStepsPerLoop">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_InferStepsPerLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_samples</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">global_batch_size</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">drop_remainder</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_InferStepsPerLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._InferStepsPerLoop" title="Permalink to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.core.program.ExperimentalDecodeProgram">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">ExperimentalDecodeProgram</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">params</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram" title="Permalink to this definition"></a></dt>
@@ -923,13 +928,19 @@ Run all the eval_programs</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program._CreateProgramParams">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_CreateProgramParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">program_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps_per_loop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_CreateProgramParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._CreateProgramParams" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_CreateProgramParams</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">program_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_num_samples</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_CreateProgramParams"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._CreateProgramParams" title="Permalink to this definition"></a></dt>
 <dd><p>Create different program param instance per inputs.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt class="sig sig-object py" id="lingvo.core.program._CheckLengthOrExpand">
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_CheckLengthOrExpand</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param_per_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">expected_len</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">param_name</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_CheckLengthOrExpand"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._CheckLengthOrExpand" title="Permalink to this definition"></a></dt>
+<dd><p>Check the length of param_per_dataset, if it’s not list, expand to list.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program.SimpleProgramScheduleForTask">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_dataset_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_inputs_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary_exporter_cls=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_postprocess=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_async_postprocess=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_until_out_of_range=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_all_at_once=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emails=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_summary_interval_steps=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">SimpleProgramScheduleForTask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset_name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_dataset_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_steps_per_loop</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_steps_per_loop=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_num_samples=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">multi_inputs_decoder=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.TrainProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eval_program_cls=&lt;class</span> <span class="pre">'lingvo.core.program.EvalProgram'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">summary_exporter_cls=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">async_postprocess=True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">experimental_async_postprocess=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">decode_until_out_of_range=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">postprocess_all_at_once=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">emails=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_summary_interval_steps=None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition"></a></dt>
 <dd><p>Convenient helper method for common case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -942,8 +953,11 @@ single value or a list of values corresponding to the entries in
 eval_dataset_names.</p></li>
 <li><p><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program. Can be
 a single value or a list of values corresponding to the entries in
-eval_dataset_names. If it is None, then decode_until_out_of_range must be
-True.</p></li>
+eval_dataset_names. If the value is negative, DecodeProgram will
+automatically decoding until out of range; ExperimentalDecodeProgram will
+infer the steps_per_loop from <code class="xref py py-obj docutils literal notranslate"><span class="pre">decode_num_samples</span></code>.</p></li>
+<li><p><strong>decode_num_samples</strong> – Number of samples to run decode program. This is only
+used when decode_steps_per_loop&lt;0, and ExperimentalDecodeProgram is used.</p></li>
 <li><p><strong>experimental_decoder</strong> – bool. Whether to use experimental deocder which is
 placed in a tpu loop.</p></li>
 <li><p><strong>multi_inputs_decoder</strong> – bool. Whether to use multi inputs decoder for all
@@ -963,11 +977,11 @@ to the latest trained model.</p></li>
 <li><p><strong>experimental_async_postprocess</strong> – bool. Whether to run CPU postprocessing in
 separate thread to save time. This flag is only used for
 ExperimentalDecodeProgram, when experimental_decoder=True.</p></li>
-<li><p><strong>decode_until_out_of_range</strong> – bool. Whether to run Decode (and its Infeed loop)
-until there is no more data (OutOfRange error is thrown). If this is True,
-decode_steps_per_loop is ignored (and not required). Currently do not
-support ExperimentalDecodeProgram, which uses loop on TPU. So keep
-experimental_decoder=False</p></li>
+<li><p><strong>decode_until_out_of_range</strong> (<em>DEPRECATED</em>) – bool. Whether to run Decode (and its
+Infeed loop) until there is no more data (OutOfRange error is thrown). If
+this is True, decode_steps_per_loop is ignored (and not required).
+Currently do not support ExperimentalDecodeProgram, which uses loop on
+TPU. So keep experimental_decoder=False</p></li>
 <li><p><strong>postprocess_all_at_once</strong> – bool/List. Whether to postprocess the (combined)
 batches at once at the end of Decode program, instead of once per step.
 This is needed if one needs to reference/combine data across different
@@ -985,16 +999,6 @@ summaries to disk.</p></li>
 </dd>
 </dl>
 </dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.program._GetDecodeStepsPerLoop">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_GetDecodeStepsPerLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decode_program</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_GetDecodeStepsPerLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._GetDecodeStepsPerLoop" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.program._SetDecodeStepsPerLoop">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.program.</span></span><span class="sig-name descname"><span class="pre">_SetDecodeStepsPerLoop</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decode_program</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">steps_per_loop</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#_SetDecodeStepsPerLoop"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.program._SetDecodeStepsPerLoop" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.program._ClearSpecifiedProgram">
@@ -1020,8 +1024,9 @@ program’s steps_per_loop.</p></li>
 <li><p><strong>eval_steps_per_loop</strong> – Optional[int], if not None, it will override all the
 eval programs steps_per_loop. Currently list not supported.</p></li>
 <li><p><strong>decode_steps_per_loop</strong> – Optional[int], if not None, it will override all the
-decode programs steps_per_loop. If set to -1, it will set
-decode_until_out_of_range=True. Currently list not supported.</p></li>
+decode programs steps_per_loop. Currently list not supported. If it’s
+negative, e.g. -1, DecodeProgram will decode until out of range;
+ExperimentalDecodeProgram will infer steps from decode_num_samples.</p></li>
 <li><p><strong>multi_inputs_decoder</strong> – Optional[bool], if not None, update all testsets to
 use MultiInputsDecodeProgram (if true) or DecodeProgram (if False).</p></li>
 <li><p><strong>decode_summary_emails</strong> – List of emails to send Decode summary to.</p></li>
