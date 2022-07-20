@@ -138,7 +138,8 @@ class BaseProgram:
     if (hasattr(self._task_params, 'input') and
         not getattr(self._task_params.input, 'resettable', True) and
         hasattr(self._task_params.input, 'repeat_steps') and
-        self._task_params.input.repeat_steps is None and self._steps_per_loop):
+        self._task_params.input.repeat_steps is None and
+        self._steps_per_loop > 0):
       tf.logging.info('Setting input repeat_steps to %d', self._steps_per_loop)
       self._task_params.input.repeat_steps = self._steps_per_loop
 
@@ -1016,7 +1017,8 @@ class DecodeProgram(BaseProgram):
     p = super().Params()
     p.Define('decode_until_out_of_range', False,
              ('If set, ignores steps_per_loop and Decode proceeds until an '
-              'OutOfRangeError is triggered by hitting the end of dataset.'))
+              'OutOfRangeError is triggered by hitting the end of dataset.'
+              'DEPRECATED, pls set steps_per_loop to -1 instead.'))
     p.Define(
         'postprocess_all_at_once', False,
         'If set, decode_out_dict of all steps are accumulated into a list '
@@ -1031,6 +1033,9 @@ class DecodeProgram(BaseProgram):
     self._decode_out_dict_lst = []
     self._ema_applied = False
     self._dataset_summaries = {}
+    # TODO(xingwu): fully deprecate decode_until_out_of_range
+    if self.params.decode_until_out_of_range:
+      self.params.steps_per_loop = -1
 
   def _DatasetSummaryWriter(self, unused_dataset_name):
     """Returns the FileWriter object to use for summaries."""
@@ -1346,10 +1351,10 @@ class DecodeProgram(BaseProgram):
     # from the queue (i.e. there is available data). If End of Dataset is
     # reached (OutOfRangeError), _InfeedLoop inserts a special value of "-1",
     # which will terminate the Decode loop once it's consumed from the queue.
-    if self.params.decode_until_out_of_range:
+    if self.params.steps_per_loop < 0:
       if py_utils.IsEagerMode():
         raise NotImplementedError(
-            'p.decode_until_out_of_range is not supported in eager mode.')
+            'p.steps_per_loop < 0 is not supported in eager mode.')
       infeed_step_queue = queue.Queue()
       infeed_future = self._infeed_pool.apply_async(
           self._DecodeUntilOutOfRangeInfeedLoop,
@@ -1382,7 +1387,7 @@ class DecodeProgram(BaseProgram):
     postprocess_futures = []
 
     start_time = time.time()
-    if self.params.decode_until_out_of_range:
+    if self.params.steps_per_loop < 0:
       while True:
         step = infeed_step_queue.get()  # Blocks until an item is returned.
         if step == -1:
@@ -1544,6 +1549,13 @@ class MultiInputsDecodeProgram(DecodeProgram):
     return futures
 
 
+def _InferStepsPerLoop(num_samples, global_batch_size, drop_remainder):
+  if drop_remainder:
+    return num_samples // global_batch_size
+  else:
+    return -(-num_samples // global_batch_size)
+
+
 class ExperimentalDecodeProgram(DecodeProgram):
   """DecodeProgram in a tpu loop.
 
@@ -1558,6 +1570,18 @@ class ExperimentalDecodeProgram(DecodeProgram):
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define(
+        'decode_num_samples', None,
+        'ONLY used when steps_per_loop<0, then the actual steps_per_loop will '
+        'be inferred from decode_num_samples and global batch size.')
+    p.Define(
+        'drop_remainder', False,
+        'When `decode_num_samples` specified, whether to drop the remainder to '
+        'infer the actual steps_per_loop. If True, we infer steps_per_loop as '
+        'floor(decode_num_samples/batch_size), otherwise, we infer it as '
+        'ceil(decode_num_samples/batch_size). '
+        'Note: when drop_remainder=False, it is user\'s repsonsibility to pad '
+        'the data for the last batch.')
     p.num_threads = 2
     return p
 
@@ -1612,6 +1636,14 @@ class ExperimentalDecodeProgram(DecodeProgram):
       if not py_utils.IsEagerMode():
         self._task.input.InfeedSetupGraph(cpu_passthrough=True)
 
+      if p.steps_per_loop < 0:
+        assert p.decode_num_samples, (
+            'When steps_per_loop<0, ExperimentalDecodeProgram must set '
+            'p.decode_num_samples!')
+        p.steps_per_loop = _InferStepsPerLoop(
+            p.decode_num_samples, self._task.input.GlobalBatchSize(),
+            p.drop_remainder)
+        self._steps_per_loop = p.steps_per_loop
       self.tpu_outs = self.DecodeFunc()
 
   def _OutfeedDequeue(self, decode_nm):
@@ -2106,7 +2138,11 @@ class SimpleProgramSchedule:
       eval_program.Shutdown()
 
 
-def _CreateProgramParams(cls, program_name, dataset_name, steps_per_loop):
+def _CreateProgramParams(cls,
+                         program_name,
+                         dataset_name,
+                         steps_per_loop,
+                         decode_num_samples=None):
   """Create different program param instance per inputs."""
   p = cls.Params()
   p.name = program_name
@@ -2115,11 +2151,24 @@ def _CreateProgramParams(cls, program_name, dataset_name, steps_per_loop):
     p.dataset_names = dataset_name
   else:
     p.dataset_name = dataset_name
-  if program_name == 'decode_tpu':
-    _SetDecodeStepsPerLoop(p, steps_per_loop)
-  else:
-    p.steps_per_loop = steps_per_loop
+  p.steps_per_loop = steps_per_loop
+  if 'decode_num_samples' in p and decode_num_samples:
+    p.decode_num_samples = decode_num_samples
   return p
+
+
+def _CheckLengthOrExpand(param_per_dataset, expected_len, param_name):
+  """Check the length of param_per_dataset, if it's not list, expand to list."""
+  if param_per_dataset is None:
+    return None
+  if isinstance(param_per_dataset, list):
+    if len(param_per_dataset) != expected_len:
+      raise ValueError(f'{param_name} doesn\'t match the size of '
+                       f'eval_dataset_names: {len(param_per_dataset)} vs '
+                       f'{expected_len}.')
+  else:
+    param_per_dataset = [param_per_dataset] * expected_len
+  return param_per_dataset
 
 
 def SimpleProgramScheduleForTask(train_dataset_name,
@@ -2127,6 +2176,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  eval_dataset_names,
                                  eval_steps_per_loop,
                                  decode_steps_per_loop=None,
+                                 decode_num_samples=None,
                                  experimental_decoder=False,
                                  multi_inputs_decoder=False,
                                  train_program_cls=TrainProgram,
@@ -2149,8 +2199,11 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       eval_dataset_names.
     decode_steps_per_loop: Number of steps to execute the decode program. Can be
       a single value or a list of values corresponding to the entries in
-      eval_dataset_names. If it is None, then decode_until_out_of_range must be
-      True.
+      eval_dataset_names. If the value is negative, DecodeProgram will
+      automatically decoding until out of range; ExperimentalDecodeProgram will
+      infer the steps_per_loop from `decode_num_samples`.
+    decode_num_samples: Number of samples to run decode program. This is only
+      used when decode_steps_per_loop<0, and ExperimentalDecodeProgram is used.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
     multi_inputs_decoder: bool. Whether to use multi inputs decoder for all
@@ -2170,11 +2223,11 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     experimental_async_postprocess: bool. Whether to run CPU postprocessing in
       separate thread to save time. This flag is only used for
       ExperimentalDecodeProgram, when experimental_decoder=True.
-    decode_until_out_of_range: bool. Whether to run Decode (and its Infeed loop)
-      until there is no more data (OutOfRange error is thrown). If this is True,
-      decode_steps_per_loop is ignored (and not required). Currently do not
-      support ExperimentalDecodeProgram, which uses loop on TPU. So keep
-      experimental_decoder=False
+    decode_until_out_of_range(DEPRECATED): bool. Whether to run Decode (and its
+      Infeed loop) until there is no more data (OutOfRange error is thrown). If
+      this is True, decode_steps_per_loop is ignored (and not required).
+      Currently do not support ExperimentalDecodeProgram, which uses loop on
+      TPU. So keep experimental_decoder=False
     postprocess_all_at_once: bool/List. Whether to postprocess the (combined)
       batches at once at the end of Decode program, instead of once per step.
       This is needed if one needs to reference/combine data across different
@@ -2209,44 +2262,31 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   if summary_exporter_cls:
     program_schedule_params.summary_exporter = summary_exporter_cls.Params()
 
-  if isinstance(eval_steps_per_loop, list):
-    if len(eval_steps_per_loop) != len(eval_dataset_names):
-      raise ValueError('eval_step_per_loop doesn\'t match the size of '
-                       f'eval_dataset_names: {len(eval_steps_per_loop)} vs '
-                       f'{len(eval_dataset_names)}.')
-  else:
-    eval_steps_per_loop = [eval_steps_per_loop] * len(eval_dataset_names)
+  num_eval_datasets = len(eval_dataset_names)
+  eval_steps_per_loop = _CheckLengthOrExpand(eval_steps_per_loop,
+                                             num_eval_datasets,
+                                             'eval_steps_per_loop')
+  # TODO(xingwu): fully deprecate decode_until_out_of_range.
+  if decode_until_out_of_range and decode_steps_per_loop is None:
+    decode_steps_per_loop = [-1] * num_eval_datasets
 
-  if multi_inputs_decoder:
-    assert decode_until_out_of_range or isinstance(
-        decode_steps_per_loop, int), (
-            'MultiInputsDecodeProgram requires single decode_steps_per_loop or '
-            'decode_until_out_of_range to be True!')
-    assert isinstance(postprocess_all_at_once, (int, bool)), (
-        'MultiInputsDecodeProgram requires single postprocess_all_at_once!')
-  else:
-    # decode_steps_per_loop for DecodeProgram.
-    if isinstance(decode_steps_per_loop, list):
-      if len(decode_steps_per_loop) != len(eval_dataset_names):
-        raise ValueError('decode_steps_per_loop doesn\'t match the size of '
-                         f'eval_dataset_names: {len(decode_steps_per_loop)} vs '
-                         f'{len(eval_dataset_names)}.')
-    elif decode_steps_per_loop is None:
-      if not decode_until_out_of_range:
-        raise ValueError('decode_until_out_of_range must be set to True if '
-                         'decode_steps_per_loop is not specified (None).')
-    else:
-      decode_steps_per_loop = [decode_steps_per_loop] * len(eval_dataset_names)
-    # postprocess_all_at_once for DecodeProgram.
-    if isinstance(postprocess_all_at_once, list):
-      if len(postprocess_all_at_once) != len(eval_dataset_names):
-        raise ValueError(
-            'postprocess_all_at_once doesn\'t match the size of '
-            f'eval_dataset_names: {len(postprocess_all_at_once)} vs '
-            f'{len(eval_dataset_names)}.')
-    else:
-      postprocess_all_at_once = [postprocess_all_at_once
-                                ] * len(eval_dataset_names)
+  if decode_steps_per_loop is None:
+    raise ValueError('decode_steps_per_loop must be specified as int or list!')
+
+  decode_steps_per_loop = _CheckLengthOrExpand(decode_steps_per_loop,
+                                               num_eval_datasets,
+                                               'decode_steps_per_loop')
+
+  if decode_num_samples is not None:
+    if not isinstance(decode_num_samples, list):
+      raise ValueError('decode_num_samples must be a list.')
+
+  decode_num_samples = _CheckLengthOrExpand(decode_num_samples,
+                                            num_eval_datasets,
+                                            'decode_num_samples')
+  postprocess_all_at_once = _CheckLengthOrExpand(postprocess_all_at_once,
+                                                 num_eval_datasets,
+                                                 'postprocess_all_at_once')
 
   for idx, dataset_name in enumerate(eval_dataset_names):
     program_schedule_params.dataset_names.append(dataset_name)
@@ -2254,53 +2294,21 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       program_schedule_params.eval_programs.append(
           _CreateProgramParams(eval_program_cls, 'eval_tpu', dataset_name,
                                eval_steps_per_loop[idx]))
-
-    if not multi_inputs_decoder:
-      decoder_param = None
-      if decode_until_out_of_range:
-        if decode_steps_per_loop is not None:
-          tf.logging.warning('decode_until_out_of_range set to True, ignoring '
-                             'decode_steps_per_loop setting.')
-        if experimental_decoder:
-          raise ValueError(
-              'experimental_decoder must be False for decode_until_out_of_range'
-          )
-        decoder_param = _CreateProgramParams(DecodeProgram, 'decode_tpu',
-                                             dataset_name, -1)
-        decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
-      elif decode_steps_per_loop[idx] > 0:
-        decoder = (
-            ExperimentalDecodeProgram
-            if experimental_decoder else DecodeProgram)
-        decoder_param = _CreateProgramParams(decoder, 'decode_tpu',
-                                             dataset_name,
-                                             decode_steps_per_loop[idx])
-        decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
-      if decoder_param is not None:
-        program_schedule_params.eval_programs.append(decoder_param)
+    if not multi_inputs_decoder and decode_steps_per_loop[idx] != 0:
+      decoder = (
+          ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
+      decoder_param = _CreateProgramParams(
+          decoder, 'decode_tpu', dataset_name, decode_steps_per_loop[idx],
+          decode_num_samples[idx] if decode_num_samples else None)
+      decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
+      program_schedule_params.eval_programs.append(decoder_param)
 
   if multi_inputs_decoder:
     program_schedule_params.eval_programs.append(
-        _CreateProgramParams(
-            MultiInputsDecodeProgram, 'decode_tpu', eval_dataset_names,
-            -1 if decode_until_out_of_range else decode_steps_per_loop))
+        _CreateProgramParams(MultiInputsDecodeProgram, 'decode_tpu',
+                             eval_dataset_names, decode_steps_per_loop))
 
   return program_schedule_params
-
-
-def _GetDecodeStepsPerLoop(decode_program):
-  if decode_program.decode_until_out_of_range:
-    return -1
-  else:
-    return decode_program.steps_per_loop
-
-
-def _SetDecodeStepsPerLoop(decode_program, steps_per_loop):
-  if steps_per_loop == -1:
-    decode_program.decode_until_out_of_range = True
-  else:
-    decode_program.decode_until_out_of_range = False
-    decode_program.steps_per_loop = steps_per_loop
 
 
 def _ClearSpecifiedProgram(program_list, program_cls_to_clear):
@@ -2336,8 +2344,9 @@ def UpdateProgramSchedule(ps_params,
     eval_steps_per_loop: Optional[int], if not None, it will override all the
       eval programs steps_per_loop. Currently list not supported.
     decode_steps_per_loop: Optional[int], if not None, it will override all the
-      decode programs steps_per_loop. If set to -1, it will set
-      decode_until_out_of_range=True. Currently list not supported.
+      decode programs steps_per_loop. Currently list not supported. If it's
+      negative, e.g. -1, DecodeProgram will decode until out of range;
+      ExperimentalDecodeProgram will infer steps from decode_num_samples.
     multi_inputs_decoder: Optional[bool], if not None, update all testsets to
       use MultiInputsDecodeProgram (if true) or DecodeProgram (if False).
     decode_summary_emails: List of emails to send Decode summary to.
@@ -2362,7 +2371,7 @@ def UpdateProgramSchedule(ps_params,
       if issubclass(eval_program.cls, EvalProgram):
         default_eval_steps_per_loop = eval_program.steps_per_loop
       elif issubclass(eval_program.cls, DecodeProgram):
-        default_decode_steps_per_loop = _GetDecodeStepsPerLoop(eval_program)
+        default_decode_steps_per_loop = eval_program.steps_per_loop
         if multi_inputs_decoder is None:
           multi_inputs_decoder = issubclass(eval_program.cls,
                                             MultiInputsDecodeProgram)
@@ -2419,7 +2428,7 @@ def UpdateProgramSchedule(ps_params,
     else:
       for eval_program in ps_params.eval_programs:
         if issubclass(eval_program.cls, DecodeProgram):
-          _SetDecodeStepsPerLoop(eval_program, decode_steps_per_loop)
+          eval_program.steps_per_loop = decode_steps_per_loop
 
   if oneoff_checkpoint_to_load:
     if ps_params.train_executions_per_eval:
