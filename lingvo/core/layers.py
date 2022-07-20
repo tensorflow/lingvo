@@ -3279,17 +3279,20 @@ class SimpleFullSoftmax(SoftmaxLayer):
         '(num_sampled > 0).')
     p.Define('bias_init', 0, 'Weight initialization constant for bias.')
     p.qdomain.Define(
-        'b_compression', None, 'Quantization domain for the b_matrix'
-        'introduced by input/output compression. None means no quantization.'
-        'Otherwise will be set to an instance of the QDomain class.')
+        'b_compression', None,
+        'QDomain params for the b_matrix introduced by input/output '
+        'compression. The configuration of p.qdomain.default will be used if '
+        'this is set to None.')
     p.qdomain.Define(
-        'c_compression', None, 'Quantization domain for the c_matrix'
-        'introduced by input/output compression. None means no quantization.'
-        'Otherwise will be set to an instance of the QDomain class.')
+        'c_compression', None,
+        'QDomain params for the b_matrix introduced by input/output '
+        'compression. The configuration of p.qdomain.default will be used if '
+        'this is set to None.')
     p.qdomain.Define(
-        'd_compression', None, 'Quantization domain for the d_matrix'
-        'introduced by input/output compression. None means no quantization.'
-        'Otherwise will be set to an instance of the QDomain class.')
+        'd_compression', None,
+        'QDomain params for the b_matrix introduced by input/output '
+        'compression. The configuration of p.qdomain.default will be used if '
+        'this is set to None.')
 
     return p
 

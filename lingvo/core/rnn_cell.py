@@ -276,29 +276,26 @@ class LSTMCellSimple(RNNCell):
         'will store the random states in the cell. This will make it '
         'completely deterministic.')
     # Non-default quantization behaviour.
-    p.qdomain.Define('weight', None, 'Quantization for the weights')
-    p.qdomain.Define('c_state', None, 'Quantization for the c-state.')
-    p.qdomain.Define('m_state', None, 'Quantization for the m-state.')
+    p.qdomain.Define('weight', None, 'QDomain params for the weights')
+    p.qdomain.Define('c_state', None, 'QDomain params for the c-state.')
+    p.qdomain.Define('m_state', None, 'QDomain params for the m-state.')
     p.qdomain.Define('fullyconnected', None,
-                     'Quantization for fully connected node.')
+                     'QDomain params for fully connected node.')
     p.qdomain.Define(
         'b_compression', None,
-        'Quantization for b_matrix for input/output compression.'
-        'introduced by input/output compression. None means no'
-        'quantization. Otherwise will be set to an instance of the'
-        'QDomain class.')
+        'QDomain params for the b_matrix introduced by input/output '
+        'compression. The configuration of p.qdomain.default will be used if '
+        'this is set to None.')
     p.qdomain.Define(
         'c_compression', None,
-        'Quantization for c_matrix for input/output compression'
-        'introduced by input/output compression. None means no'
-        'quantization. Otherwise will be set to an instance of the'
-        'QDomain class.')
+        'QDomain params for the c_matrix introduced by input/output '
+        'compression. The configuration of p.qdomain.default will be used if '
+        'this is set to None.')
     p.qdomain.Define(
         'd_compression', None,
-        'Quantization for d_matrix for input/output compression'
-        'introduced by input/output compression. None means no'
-        'quantization. Otherwise will be set to an instance of the'
-        'QDomain class.')
+        'QDomain params for the d_matrix introduced by input/output '
+        'compression. The configuration of p.qdomain.default will be used if '
+        'this is set to None.')
     return p
 
   def __init__(self, params):
