@@ -342,29 +342,26 @@
         <span class="s1">&#39;will store the random states in the cell. This will make it &#39;</span>
         <span class="s1">&#39;completely deterministic.&#39;</span><span class="p">)</span>
     <span class="c1"># Non-default quantization behaviour.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization for the weights&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;c_state&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization for the c-state.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;m_state&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Quantization for the m-state.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;QDomain params for the weights&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;c_state&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;QDomain params for the c-state.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;m_state&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;QDomain params for the m-state.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-                     <span class="s1">&#39;Quantization for fully connected node.&#39;</span><span class="p">)</span>
+                     <span class="s1">&#39;QDomain params for fully connected node.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;b_compression&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Quantization for b_matrix for input/output compression.&#39;</span>
-        <span class="s1">&#39;introduced by input/output compression. None means no&#39;</span>
-        <span class="s1">&#39;quantization. Otherwise will be set to an instance of the&#39;</span>
-        <span class="s1">&#39;QDomain class.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;QDomain params for the b_matrix introduced by input/output &#39;</span>
+        <span class="s1">&#39;compression. The configuration of p.qdomain.default will be used if &#39;</span>
+        <span class="s1">&#39;this is set to None.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;c_compression&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Quantization for c_matrix for input/output compression&#39;</span>
-        <span class="s1">&#39;introduced by input/output compression. None means no&#39;</span>
-        <span class="s1">&#39;quantization. Otherwise will be set to an instance of the&#39;</span>
-        <span class="s1">&#39;QDomain class.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;QDomain params for the c_matrix introduced by input/output &#39;</span>
+        <span class="s1">&#39;compression. The configuration of p.qdomain.default will be used if &#39;</span>
+        <span class="s1">&#39;this is set to None.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;d_compression&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;Quantization for d_matrix for input/output compression&#39;</span>
-        <span class="s1">&#39;introduced by input/output compression. None means no&#39;</span>
-        <span class="s1">&#39;quantization. Otherwise will be set to an instance of the&#39;</span>
-        <span class="s1">&#39;QDomain class.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;QDomain params for the d_matrix introduced by input/output &#39;</span>
+        <span class="s1">&#39;compression. The configuration of p.qdomain.default will be used if &#39;</span>
+        <span class="s1">&#39;this is set to None.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
