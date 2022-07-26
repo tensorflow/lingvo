@@ -573,10 +573,7 @@ class TrainProgram(BaseProgram):
 
     def InfeedBody(i):
       self._task.input.CreateTpuEnqueueOps()
-      # Auto control dependency may not support TPU infeed ops, so add the
-      # dependency manually.
-      with tf.control_dependencies(self._task.input.tpu_infeed_op):
-        return i + 1
+      return i + 1
 
     tf.while_loop(
         cond=lambda i: i < self._steps_per_loop,
@@ -804,10 +801,7 @@ class EvalProgram(BaseProgram):
 
     def InfeedBody(i):
       self._task.input.CreateTpuEnqueueOps()
-      # Auto control dependency may not support TPU infeed ops, so add the
-      # dependency manually.
-      with tf.control_dependencies(self._task.input.tpu_infeed_op):
-        return i + 1
+      return i + 1
 
     tf.while_loop(
         cond=lambda i: i < self._steps_per_loop,
