@@ -639,10 +639,7 @@
 
     <span class="k">def</span> <span class="nf">InfeedBody</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="c1"># Auto control dependency may not support TPU infeed ops, so add the</span>
-      <span class="c1"># dependency manually.</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
         <span class="n">cond</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
@@ -870,10 +867,7 @@
 
     <span class="k">def</span> <span class="nf">InfeedBody</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="c1"># Auto control dependency may not support TPU infeed ops, so add the</span>
-      <span class="c1"># dependency manually.</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">tpu_infeed_op</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="k">return</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span>
         <span class="n">cond</span><span class="o">=</span><span class="k">lambda</span> <span class="n">i</span><span class="p">:</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
