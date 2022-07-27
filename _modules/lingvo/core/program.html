@@ -2306,7 +2306,7 @@
   <span class="n">program_schedule_params</span> <span class="o">=</span> <span class="n">SimpleProgramSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">train_program</span> <span class="o">=</span> <span class="n">_CreateProgramParams</span><span class="p">(</span>
       <span class="n">train_program_cls</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="n">train_dataset_name</span><span class="p">,</span> <span class="n">train_steps_per_loop</span><span class="p">)</span>
-  <span class="k">if</span> <span class="n">train_program_cls</span> <span class="o">==</span> <span class="n">TrainProgram</span><span class="p">:</span>
+  <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">train_program_cls</span><span class="p">,</span> <span class="n">TrainProgram</span><span class="p">):</span>
     <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">summary_interval_steps</span> <span class="o">=</span> <span class="n">train_summary_interval_steps</span>
 
   <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span> <span class="o">=</span> <span class="p">[]</span>
