@@ -1607,7 +1607,7 @@ class AsrDecoder(AsrDecoderBase):
     return initial_results, other_states
 
   def _PreBeamSearchStepCallback(self, theta, encoder_outputs, step_ids, states,
-                                 num_hyps_per_beam, unused_cur_step):
+                                 num_hyps_per_beam, cur_step):
     p = self.params
     step_paddings = tf.zeros(tf.shape(step_ids), dtype=p.dtype)
     embs = self.emb.EmbLookup(theta.emb, tf.reshape(step_ids, [-1]))
@@ -1661,11 +1661,10 @@ class AsrDecoder(AsrDecoderBase):
       softmax_input, _ = tf.split(
           step_out, [rnn_output_dim, atten_context_dim], axis=-1)
 
-    softmax_input, fusion_states = self.fusion.FProp(theta.fusion,
-                                                     prev_fusion_states,
-                                                     softmax_input,
-                                                     cur_target_info.id,
-                                                     cur_target_info.padding)
+    misc = py_utils.NestedMap(cur_step=cur_step)
+    softmax_input, fusion_states = self.fusion.FProp(
+        theta.fusion, prev_fusion_states, softmax_input, cur_target_info.id,
+        cur_target_info.padding, misc)
 
     logits = self._ComputeLogits(theta, softmax_input)
     logits = self.fusion.ComputeLogitsWithLM(
