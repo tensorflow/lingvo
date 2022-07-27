@@ -2240,7 +2240,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   program_schedule_params = SimpleProgramSchedule.Params()
   program_schedule_params.train_program = _CreateProgramParams(
       train_program_cls, 'train', train_dataset_name, train_steps_per_loop)
-  if train_program_cls == TrainProgram:
+  if issubclass(train_program_cls, TrainProgram):
     program_schedule_params.train_program.summary_interval_steps = train_summary_interval_steps
 
   program_schedule_params.dataset_names = []
