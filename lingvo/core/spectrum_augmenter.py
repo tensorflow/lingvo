@@ -134,8 +134,10 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         'freq_noise stddev increases linearly.')
     p.Define('unstack', False,
              'Whether to unstack features before applying SpecAugment.')
-    p.Define('stack_height', 3,
-             'Number of frames stacked on top of each other.')
+    p.Define(
+        'stack_height', 3,
+        'Number of frames stacked on top of each other. Only used when '
+        '`unstack` is true.')
     p.Define(
         'domain_ids', [0],
         'If domain ids was given, this parameters describe which domain '
