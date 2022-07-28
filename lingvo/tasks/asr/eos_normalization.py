@@ -58,8 +58,8 @@ def NormalizeTrailingEos(ids: tf.Tensor,
 
   Args:
     ids: a [B, max_label_len] int tensor.
-    id_len: a [B,] int tensor. `id_len` indicates the last symbol's position.
-    need_trailing_eos: bool. if True, then the return id_len include the last
+    id_len: a [B,] int tensor. `id_len`-1 is the last symbol's 0-based index.
+    need_trailing_eos: bool. if True, then the output id_len includes the last
       eos symbol; otherwise, it does not include the last eos.
     eos_id: int. The index of eos symbol.
 
@@ -103,8 +103,8 @@ def NumpyNormalizeTrailingEos(ids: np.ndarray,
 
   Args:
     ids: a [B, max_label_len] int np.array.
-    id_len: a [B,] int np.array. `id_len` indicates the last symbol's position.
-    need_trailing_eos: bool. if True, then the return id_len include the last
+    id_len: a [B,] int np.array. `id_len`-1 is the last symbol's 0-based index.
+    need_trailing_eos: bool. if True, then the output id_len includes the last
       eos symbol; otherwise, it does not include the last eos.
     eos_id: int. The index of eos symbol.
 
