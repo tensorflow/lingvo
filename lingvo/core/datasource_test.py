@@ -460,7 +460,8 @@ class TFDatasetSourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
     files = []
-    with self.session(), cluster_factory.SetRequireSequentialInputOrder(False):
+    with self.session(), cluster_factory.SetEval(
+        False), cluster_factory.SetRequireSequentialInputOrder(False):
       batch = ds.GetNext()
       for _ in range(len(self.files) * 5):
         file, source_id = self.evaluate([batch.data, batch.source_id])
@@ -482,21 +483,25 @@ class TFDatasetSourceTest(test_utils.TestCase):
       ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
       ds.GetNext()
 
-    with cluster_factory.SetRequireSequentialInputOrder(False):
+    with cluster_factory.SetEval(
+        False), cluster_factory.SetRequireSequentialInputOrder(False):
       with self.assertRaisesRegex(ValueError,
                                   'shuffle_buffer_size must be set.'):
         CreateDatasource()
 
     # Setting shuffle_buffer_size works.
-    with cluster_factory.SetRequireSequentialInputOrder(False):
+    with cluster_factory.SetEval(
+        False), cluster_factory.SetRequireSequentialInputOrder(False):
       CreateDatasource(shuffle_buffer_size=1)
 
     # Setting require_sequential_input_order works.
-    with cluster_factory.SetRequireSequentialInputOrder(True):
+    with cluster_factory.SetEval(
+        True), cluster_factory.SetRequireSequentialInputOrder(True):
       CreateDatasource()
 
     # Sanity check that params are not persisting between calls.
-    with cluster_factory.SetRequireSequentialInputOrder(False):
+    with cluster_factory.SetEval(
+        False), cluster_factory.SetRequireSequentialInputOrder(False):
       with self.assertRaisesRegex(ValueError,
                                   'shuffle_buffer_size must be set.'):
         CreateDatasource()
@@ -507,7 +512,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
         kwargs=dict(file_pattern=os.path.join(self.tmpdir, '*file_*')))
     ds = ds_params.Instantiate()
     ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
-    with self.session() as sess:
+    with self.session() as sess, cluster_factory.SetEval(True):
       batch = ds.GetNext()
       for expected_file in self.files:
         file, source_id = self.evaluate([batch.data, batch.source_id])
@@ -538,8 +543,8 @@ class TFDatasetSourceTest(test_utils.TestCase):
         self.assertEqual(expected_file, file)
         self.assertEqual(len(expected_file), length)
 
-  def testRepeatableCustomTFDatasetTransform(self):
-    ds_params = datasource.RepeatableCustomTFDatasetTransform.Params().Set(
+  def testRepeatableTFDatasetTransform(self):
+    ds_params = datasource.RepeatableTFDatasetTransform.Params().Set(
         sub=datasource.TFDatasetSource.Params())
     ds = ds_params.Instantiate()
     ds._input_generator = mock.Mock()
@@ -551,14 +556,14 @@ class TFDatasetSourceTest(test_utils.TestCase):
     })
     dataset = tf.data.Dataset.range(5)
     with self.session(), mock.patch.object(
-        ds, 'GetDataset', return_value=dataset, autospec=True):
+        ds.sub, 'GetDataset', return_value=dataset, autospec=True):
       elem = ds.GetNext()
       for idx in range(6):
         value = self.evaluate(elem)
         self.assertEqual(value, idx % 3)
 
     # Test repeat_with_sentinel using sentinel_key and sentinel_value.
-    ds_params = datasource.RepeatableCustomTFDatasetTransform.Params().Set(
+    ds_params = datasource.RepeatableTFDatasetTransform.Params().Set(
         sub=datasource.TFDatasetSource.Params(),
         sentinel_key='positive_key',
         sentinel_value=-1)
@@ -576,7 +581,7 @@ class TFDatasetSourceTest(test_utils.TestCase):
 
     dataset = dataset.map(_ConvertToNestedMap)
     with self.session(), mock.patch.object(
-        ds, 'GetDataset', return_value=dataset, autospec=True):
+        ds.sub, 'GetDataset', return_value=dataset, autospec=True):
       batch = ds.GetNext()
       for idx in range(3):
         nested_map = self.evaluate(batch)
@@ -681,7 +686,8 @@ class TFDatasetSourceTest(test_utils.TestCase):
       # Cannot run another self.evaluate(batch) here, as ds2 is exhausted but
       # ds1 has 0 prob so the op just hangs.
 
-    with self.subTest(name='Mixed'), self.session(graph=tf.Graph()) as sess:
+    with self.subTest(name='Mixed'), self.session(
+        graph=tf.Graph()) as sess, cluster_factory.SetEval(True):
       ds_params = datasource.TFDatasetMixer.Params().Set(
           sub=[ds1, ds2], weights=[0.5, 0.5])
       ds = ds_params.Instantiate()
@@ -702,7 +708,8 @@ class TFDatasetSourceTest(test_utils.TestCase):
           # ds2 should have been reset.
           break
 
-    with self.subTest(name='MixedDS2'), self.session(graph=tf.Graph()):
+    with self.subTest(name='MixedDS2'), self.session(
+        graph=tf.Graph()), cluster_factory.SetEval(True):
       ds_params = datasource.TFDatasetMixer.Params().Set(
           sub=[ds2, ds2], weights=[0.5, 0.5])
       ds = ds_params.Instantiate()

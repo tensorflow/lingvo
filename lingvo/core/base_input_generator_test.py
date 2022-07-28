@@ -465,6 +465,13 @@ _TestTFDataInputV2 = base_input_generator.DefineTFDataInput(
 
 class TFDataInputTest(test_utils.TestCase):
 
+  def setUp(self):
+    super().setUp()
+    cluster = cluster_factory.SetRequireSequentialInputOrder(True)
+    cluster.params.in_unit_test = True
+    cluster.params.do_eval = True
+    cluster.__enter__()
+
   def testModule(self):
     self.assertEqual(_TestTFDataInput.__module__, '__main__')
     self.assertEqual(_TestTFDataInputWithIgnoreArgs.__module__, '__main__')
