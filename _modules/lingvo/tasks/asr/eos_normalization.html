@@ -124,8 +124,8 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    ids: a [B, max_label_len] int tensor.</span>
-<span class="sd">    id_len: a [B,] int tensor. `id_len` indicates the last symbol&#39;s position.</span>
-<span class="sd">    need_trailing_eos: bool. if True, then the return id_len include the last</span>
+<span class="sd">    id_len: a [B,] int tensor. `id_len`-1 is the last symbol&#39;s 0-based index.</span>
+<span class="sd">    need_trailing_eos: bool. if True, then the output id_len includes the last</span>
 <span class="sd">      eos symbol; otherwise, it does not include the last eos.</span>
 <span class="sd">    eos_id: int. The index of eos symbol.</span>
 
@@ -169,8 +169,8 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    ids: a [B, max_label_len] int np.array.</span>
-<span class="sd">    id_len: a [B,] int np.array. `id_len` indicates the last symbol&#39;s position.</span>
-<span class="sd">    need_trailing_eos: bool. if True, then the return id_len include the last</span>
+<span class="sd">    id_len: a [B,] int np.array. `id_len`-1 is the last symbol&#39;s 0-based index.</span>
+<span class="sd">    need_trailing_eos: bool. if True, then the output id_len includes the last</span>
 <span class="sd">      eos symbol; otherwise, it does not include the last eos.</span>
 <span class="sd">    eos_id: int. The index of eos symbol.</span>
 

@@ -133,8 +133,8 @@ positions are filled with eos.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ids</strong> – a [B, max_label_len] int tensor.</p></li>
-<li><p><strong>id_len</strong> – a [B,] int tensor. <code class="xref py py-obj docutils literal notranslate"><span class="pre">id_len</span></code> indicates the last symbol’s position.</p></li>
-<li><p><strong>need_trailing_eos</strong> – bool. if True, then the return id_len include the last
+<li><p><strong>id_len</strong> – a [B,] int tensor. <code class="xref py py-obj docutils literal notranslate"><span class="pre">id_len</span></code>-1 is the last symbol’s 0-based index.</p></li>
+<li><p><strong>need_trailing_eos</strong> – bool. if True, then the output id_len includes the last
 eos symbol; otherwise, it does not include the last eos.</p></li>
 <li><p><strong>eos_id</strong> – int. The index of eos symbol.</p></li>
 </ul>
@@ -170,8 +170,8 @@ as well.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>ids</strong> – a [B, max_label_len] int np.array.</p></li>
-<li><p><strong>id_len</strong> – a [B,] int np.array. <code class="xref py py-obj docutils literal notranslate"><span class="pre">id_len</span></code> indicates the last symbol’s position.</p></li>
-<li><p><strong>need_trailing_eos</strong> – bool. if True, then the return id_len include the last
+<li><p><strong>id_len</strong> – a [B,] int np.array. <code class="xref py py-obj docutils literal notranslate"><span class="pre">id_len</span></code>-1 is the last symbol’s 0-based index.</p></li>
+<li><p><strong>need_trailing_eos</strong> – bool. if True, then the output id_len includes the last
 eos symbol; otherwise, it does not include the last eos.</p></li>
 <li><p><strong>eos_id</strong> – int. The index of eos symbol.</p></li>
 </ul>
