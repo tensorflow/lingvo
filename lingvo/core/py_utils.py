@@ -84,6 +84,8 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 ThreadLocalStack = thread_local_utils.ThreadLocalStack
 ThreadLocalDict = thread_local_utils.ThreadLocalDict
 NestedMap = nested_map.NestedMap
+Params = hyperparams.Params
+InstantiableParams = hyperparams.InstantiableParams
 
 
 def Assert(condition, data, *args, **kwargs):
