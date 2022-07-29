@@ -84,6 +84,7 @@
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">dataclasses</span>
 <span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
@@ -946,7 +947,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseTask.InferenceEager"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.InferenceEager">[docs]</a>  <span class="k">def</span> <span class="nf">InferenceEager</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTask.InferenceEager"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.InferenceEager">[docs]</a>  <span class="k">def</span> <span class="nf">InferenceEager</span><span class="p">(</span>
+      <span class="bp">self</span>
+  <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">ConcreteFunction</span><span class="p">,</span>
+                       <span class="n">tf</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">experimental</span><span class="o">.</span><span class="n">GenericFunction</span><span class="p">]]:</span>
     <span class="sd">&quot;&quot;&quot;Constructs the inference function graphs for running on TPUs in TF2.</span>
 
 <span class="sd">    Returns:</span>
