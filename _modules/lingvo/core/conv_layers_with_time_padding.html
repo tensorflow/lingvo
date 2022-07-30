@@ -529,6 +529,12 @@
     <span class="sd">&quot;&quot;&quot;The number of output channels for this conv layer.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
 
+<div class="viewcode-block" id="Conv2DLayerWithPadding.OutputShape"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding.OutputShape">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">OutputShape</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ComputeConvOutputShape</span><span class="p">(</span><span class="n">in_shape</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                  <span class="n">params</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                  <span class="n">params</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
 <div class="viewcode-block" id="Conv2DLayerWithPadding._GetWeight"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._GetWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_GetWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
