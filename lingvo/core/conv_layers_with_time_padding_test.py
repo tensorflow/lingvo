@@ -70,10 +70,14 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       conv_layer = params.Instantiate()
       in_shape = [None, None, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
+      out_shape2 = params.cls.OutputShape(params, in_shape)
       self.assertEqual(out_shape, [None, None, 5, 32])
+      self.assertEqual(out_shape2, [None, None, 5, 32])
       in_shape = [None, 20, 10, 3]
       out_shape = conv_layer.OutShape(in_shape)
+      out_shape2 = params.cls.OutputShape(params, in_shape)
       self.assertEqual(out_shape, [None, 10, 5, 32])
+      self.assertEqual(out_shape2, [None, 10, 5, 32])
 
   # ComputeConvOutputPadding is broken for strided convolutions. Below we mark
   # cases that are in correct with "Bug". testComputeConvOutputPaddingV2 below

@@ -463,6 +463,12 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
     """The number of output channels for this conv layer."""
     return p.filter_shape[-1]
 
+  @classmethod
+  def OutputShape(cls, params, in_shape):
+    return ComputeConvOutputShape(in_shape, params.filter_stride[0],
+                                  params.filter_stride[1],
+                                  params.filter_shape[-1])
+
   def _GetWeight(self, theta):
     p = self.params
     if p.weight_norm:
