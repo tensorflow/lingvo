@@ -1149,7 +1149,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           # compression_option 9 corresponds to input compression
           # redirect w to point to c
           w = theta.c_matrix_tfvar
-      w = self.QWeight(w)
+      w = self.QWeight(w, domain='weight')
 
       proj_kwargs = {
           'mix_kernel': theta.mix_kernel
@@ -3414,10 +3414,13 @@ class SimpleFullSoftmax(SoftmaxLayer):
       weight = theta[f'weight_{i}']
       if p.apply_pruning:
         weight = tf.multiply(weight, theta[f'mask_{i}'], 'masked_weights')
-      weights.append(self.QWeight(weight))
+      weights.append(self.QWeight(weight, domain='weight'))
     new_theta = py_utils.NestedMap()
     if p.use_bias:
-      biases = [self.QWeight(theta[f'bias_{i}']) for i in range(p.num_shards)]
+      biases = [
+          self.QWeight(theta[f'bias_{i}'], domain='weight')
+          for i in range(p.num_shards)
+      ]
       new_theta.bias = self.AddVN(tf.concat(biases, axis=0), per_step=True)
     if p.num_shards == 1:
       new_theta.wm = self.AddVN(weights[0], per_step=True)
@@ -3429,7 +3432,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
   def _LogitsUsingConcatenatedWeightsHelper(self, theta, inputs):
     p = self.params
     inputs = self.QAct('inputs', inputs)
-    wm = self.QWeight(theta.wm)
+    wm = self.QWeight(theta.wm, domain='weight')
     if p.num_shards == 1:
       if self._transpose_weight_params:
         # TODO(shivaniagrawal): having two transpose is expensive, we should
@@ -3461,7 +3464,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
           inputs, wm, transpose_b=self._transpose_weight_params)
 
     if p.use_bias:
-      bias = self.QWeight(theta.bias)
+      bias = self.QWeight(theta.bias, domain='weight')
 
       # x * w + b
       # Note that theta.wm and theta.bias are transformed to concated/clipped
@@ -3500,7 +3503,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
     """
     inputs = self.QAct('inputs', inputs)
     theta = self.DenseWeights(theta)
-    wm = self.QWeight(theta.wm)
+    wm = self.QWeight(theta.wm, domain='weight')
     logits = py_utils.Matmul(
         inputs, wm, transpose_b=self._transpose_weight_params)
 

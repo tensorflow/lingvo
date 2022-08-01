@@ -145,7 +145,7 @@ class RNNCell(quant_utils.QuantizableLayer):
                is_eval,
                random_uniform,
                qout_name=None,
-               qdomain=''):
+               qdomain='default'):
     """Apply ZoneOut regularlization to cur_v.
 
     Implements ZoneOut regularization as described in
@@ -569,7 +569,7 @@ class LSTMCellSimple(RNNCell):
     wm = theta.wm
     if self.params.apply_pruning:
       wm = tf.multiply(wm, theta.mask, 'masked_weights')
-    wm = self.QWeight(wm)
+    wm = self.QWeight(wm, domain='weight')
     # Defer quantization until after adding in the bias to support fusing
     # matmul and bias add during inference.
     return tf.matmul(concat, wm)
@@ -581,7 +581,8 @@ class LSTMCellSimple(RNNCell):
 
   def _RetrieveAndSplitGates(self, xmw, theta):
     p = self.params
-    b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
+    b = self.QWeight(
+        tf.expand_dims(self._GetBias(theta), 0), domain='fullyconnected')
     xmw = self.fns.qadd(xmw, b, qout_name='add_bias')
     gates = tf.split(value=xmw, num_or_size_splits=self.num_gates, axis=1)
     if p.couple_input_forget_gates:
@@ -1332,7 +1333,8 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
       return (x - mean) * tf.math.rsqrt(variance + p.layer_norm_epsilon)
 
     p = self.params
-    b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
+    b = self.QWeight(
+        tf.expand_dims(self._GetBias(theta), 0), domain='fullyconnected')
 
     bs = tf.split(b, num_or_size_splits=self.num_gates, axis=1)
     ln_scales = tf.split(

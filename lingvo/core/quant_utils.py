@@ -169,13 +169,14 @@ class QuantizableLayer(base_layer.BaseLayer):
     for qdname in dir(p.qdomain):
       qdparams = p.qdomain.Get(qdname)
       if qdparams is None:
-        continue
-      assert issubclass(
-          qdparams.cls,
-          QDomain), ('Expected quantized domain %s to extend QDomain' % qdname)
-      qdchild_name = 'qdomain_' + qdname
-      self.CreateChild(qdchild_name, qdparams)
-      self._qdomains[qdname] = self.children[qdchild_name]
+        self._qdomains[qdname] = None
+      else:
+        if not issubclass(qdparams.cls, QDomain):
+          raise TypeError(f'Expected p.qdomain.{qdname} to extend QDomain, but '
+                          f'got {qdparams.cls}')
+        qdchild_name = 'qdomain_' + qdname
+        self.CreateChild(qdchild_name, qdparams)
+        self._qdomains[qdname] = self.children[qdchild_name]
     self._AddQuantizationFunctions()
 
   def _child_variable_scope_override(self):
@@ -224,7 +225,7 @@ class QuantizableLayer(base_layer.BaseLayer):
                    weight_name,
                    shape,
                    feature_axis,
-                   domain='weight',
+                   domain: str = 'default',
                    *,
                    tensor_split_dims_mapping=None,
                    device_mesh=None,
@@ -238,7 +239,7 @@ class QuantizableLayer(base_layer.BaseLayer):
       weight_name: Positional parameters are taken to be weight names to create.
       shape: Shape of the weight.
       feature_axis: axis corresponding to output channel/feature for weights.
-      domain: Custom domain to match (defaults to 'weight').
+      domain: Name of the QDomain to use for quantization.
       tensor_split_dims_mapping: A list of integers that map each tensor axis
         to the device mesh axis along which it is sharded.
       device_mesh: A numpy.ndarray describing the topology of a device mesh to
@@ -290,12 +291,12 @@ class QuantizableLayer(base_layer.BaseLayer):
     else:
       return qd.QuantizeAct(act_name, act, eval_only=eval_only)
 
-  def QWeight(self, w, domain='weight'):
+  def QWeight(self, w, domain: str = 'default'):
     """Quantizes a weight.
 
     Args:
       w: The weight tensor.
-      domain: Custom domain to match (defaults to 'weight' or 'default').
+      domain: Name of the QDomain to use for quantization.
     Returns:
       The weights quantized.
     """
@@ -317,7 +318,7 @@ class QuantizableLayer(base_layer.BaseLayer):
               lhs_dist: QDistribution = QDistribution.SYMMETRIC,
               rhs_dist: QDistribution = QDistribution.SYMMETRIC,
               ensure2d: bool = False,
-              qdomain=None,
+              qdomain: str = 'default',
               **op_kwargs):
     self._ValidateArgName('lhs_name', lhs_name)
     self._ValidateArgName('rhs_name', rhs_name)
@@ -348,7 +349,7 @@ class QuantizableLayer(base_layer.BaseLayer):
               filters_name: Optional[str] = None,
               inputs_dist: QDistribution = QDistribution.SYMMETRIC,
               filters_dist: QDistribution = QDistribution.SYMMETRIC,
-              qdomain=None,
+              qdomain: str = 'default',
               **op_kwargs):
     self._ValidateArgName('inputs_name', inputs_name)
     self._ValidateArgName('filters_name', filters_name)
@@ -378,7 +379,7 @@ class QuantizableLayer(base_layer.BaseLayer):
               inputs_dist: QDistribution = QDistribution.SYMMETRIC,
               filters_dist: QDistribution = QDistribution.SYMMETRIC,
               is_depthwise: bool = False,
-              qdomain=None,
+              qdomain: str = 'default',
               **op_kwargs):
     self._ValidateArgName('inputs_name', inputs_name)
     self._ValidateArgName('filters_name', filters_name)
@@ -410,7 +411,7 @@ class QuantizableLayer(base_layer.BaseLayer):
               rhs_name: Optional[str] = None,
               lhs_dist: QDistribution = QDistribution.SYMMETRIC,
               rhs_dist: QDistribution = QDistribution.SYMMETRIC,
-              qdomain=None,
+              qdomain: str = 'default',
               **einsum_kwargs):
     self._ValidateArgName('lhs_name', lhs_name)
     self._ValidateArgName('rhs_name', rhs_name)
@@ -610,7 +611,7 @@ class QuantizableLayer(base_layer.BaseLayer):
                         *,
                         act_lhs_distribution=QDistribution.SYMMETRIC,
                         act_rhs_distribution=QDistribution.SYMMETRIC,
-                        domain=None):
+                        domain: str = 'default'):
     """Quantizes activations for (act * act) matmul AQT style.
 
     This only scales, rounds and clips; resulting quantized acts would be
@@ -636,7 +637,7 @@ class QuantizableLayer(base_layer.BaseLayer):
         act_lhs_distribution=act_lhs_distribution,
         act_rhs_distribution=act_rhs_distribution)
 
-  def FromAqtActActMatmul(self, output, domain=None):
+  def FromAqtActActMatmul(self, output, domain: str = 'default'):
     """Rescales the output of (act*act) matmul for AQT style quantized acts.
 
     Args:
@@ -652,7 +653,7 @@ class QuantizableLayer(base_layer.BaseLayer):
 
     return qd.FromAqtActActMatmul(output)
 
-  def _GetQDomain(self, domain):
+  def _GetQDomain(self, domain: str):
     """Gets the QDomain matching a given domain name.
 
     Args:
@@ -661,13 +662,13 @@ class QuantizableLayer(base_layer.BaseLayer):
     Returns:
       The requested QDomain, the 'default' QDomain or None.
     """
-    qd = self._qdomains.get(domain)
-    if qd:
+    qd = self._qdomains[domain]
+    if qd is not None:
       return qd
-    qd = self._qdomains.get('default')
-    return qd
+    else:
+      return self._qdomains['default']
 
-  def GetQDomainParams(self, domain):
+  def GetQDomainParams(self, domain: str):
     """Gets domain's Params if they're set, and the default Params otherwise.
 
     Args:
@@ -695,7 +696,10 @@ class QuantizableLayer(base_layer.BaseLayer):
     def WrapOp(op_name, op, dist=None):
       """Adds a wrapper op to the layer's fns."""
 
-      def Wrapped(*op_args, qout_name=None, qdomain=None, **op_kwargs):
+      def Wrapped(*op_args,
+                  qout_name=None,
+                  qdomain: str = 'default',
+                  **op_kwargs):
         """Wraps a native op."""
         if qout_name is None and dist is None:
           raise ValueError(
