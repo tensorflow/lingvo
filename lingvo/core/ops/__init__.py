@@ -24,11 +24,14 @@ except ImportError:
       tf.resource_loader.get_path_to_datafile('x_ops.so'))
 
 # Set gen_x_ops function module so sphinx generates documentation.
-for v in gen_x_ops.__dict__.values():
-  try:
-    v.__module__ = 'lingvo.core.ops'
-  except:  # pylint: disable=bare-except
-    pass
+for k, v in gen_x_ops.__dict__.items():
+  # We should not override __module__ on objects that don't belong to
+  # lingvo. The following list is incomplete but avoids some egregious cases.
+  if k not in ['TypeVar', 'collections']:
+    try:
+      v.__module__ = 'lingvo.core.ops'
+    except:  # pylint: disable=bare-except
+      pass
 
 assert_shape_match = gen_x_ops.assert_shape_match
 assert_same_dim0 = gen_x_ops.assert_same_dim0
