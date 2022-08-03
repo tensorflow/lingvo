@@ -90,11 +90,14 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">resource_loader</span><span class="o">.</span><span class="n">get_path_to_datafile</span><span class="p">(</span><span class="s1">&#39;x_ops.so&#39;</span><span class="p">))</span>
 
 <span class="c1"># Set gen_x_ops function module so sphinx generates documentation.</span>
-<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-  <span class="k">try</span><span class="p">:</span>
-    <span class="n">v</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="s1">&#39;lingvo.core.ops&#39;</span>
-  <span class="k">except</span><span class="p">:</span>  <span class="c1"># pylint: disable=bare-except</span>
-    <span class="k">pass</span>
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+  <span class="c1"># We should not override __module__ on objects that don&#39;t belong to</span>
+  <span class="c1"># lingvo. The following list is incomplete but avoids some egregious cases.</span>
+  <span class="k">if</span> <span class="n">k</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;TypeVar&#39;</span><span class="p">,</span> <span class="s1">&#39;collections&#39;</span><span class="p">]:</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="n">v</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="s1">&#39;lingvo.core.ops&#39;</span>
+    <span class="k">except</span><span class="p">:</span>  <span class="c1"># pylint: disable=bare-except</span>
+      <span class="k">pass</span>
 
 <span class="n">assert_shape_match</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">assert_shape_match</span>
 <span class="n">assert_same_dim0</span> <span class="o">=</span> <span class="n">gen_x_ops</span><span class="o">.</span><span class="n">assert_same_dim0</span>
