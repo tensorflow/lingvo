@@ -2138,10 +2138,12 @@ def _CreateProgramParams(cls,
                          program_name,
                          dataset_name,
                          steps_per_loop,
-                         decode_num_samples=None):
+                         decode_num_samples=None,
+                         spmd=False):
   """Create different program param instance per inputs."""
   p = cls.Params()
   p.name = program_name
+  p.spmd = spmd
   if issubclass(cls, MultiInputsDecodeProgram):
     assert isinstance(dataset_name, list)
     p.dataset_names = dataset_name
@@ -2183,7 +2185,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  decode_until_out_of_range=False,
                                  postprocess_all_at_once=False,
                                  emails=None,
-                                 train_summary_interval_steps=None):
+                                 train_summary_interval_steps=None,
+                                 spmd=False):
   """Convenient helper method for common case.
 
   Args:
@@ -2234,6 +2237,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     emails: List of emails to email decode/scoring summaries.
     train_summary_interval_steps: Number of steps to wait before flushing
       summaries to disk.
+    spmd: Wether all the programs are running in SPMD mode.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -2241,7 +2245,11 @@ def SimpleProgramScheduleForTask(train_dataset_name,
 
   program_schedule_params = SimpleProgramSchedule.Params()
   program_schedule_params.train_program = _CreateProgramParams(
-      train_program_cls, 'train', train_dataset_name, train_steps_per_loop)
+      train_program_cls,
+      'train',
+      train_dataset_name,
+      train_steps_per_loop,
+      spmd=spmd)
   if issubclass(train_program_cls, TrainProgram):
     program_schedule_params.train_program.summary_interval_steps = train_summary_interval_steps
 
@@ -2288,21 +2296,33 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     program_schedule_params.dataset_names.append(dataset_name)
     if eval_steps_per_loop[idx] > 0:
       program_schedule_params.eval_programs.append(
-          _CreateProgramParams(eval_program_cls, 'eval_tpu', dataset_name,
-                               eval_steps_per_loop[idx]))
+          _CreateProgramParams(
+              eval_program_cls,
+              'eval_tpu',
+              dataset_name,
+              eval_steps_per_loop[idx],
+              spmd=spmd))
     if not multi_inputs_decoder and decode_steps_per_loop[idx] != 0:
       decoder = (
           ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
       decoder_param = _CreateProgramParams(
-          decoder, 'decode_tpu', dataset_name, decode_steps_per_loop[idx],
-          decode_num_samples[idx] if decode_num_samples else None)
+          decoder,
+          'decode_tpu',
+          dataset_name,
+          decode_steps_per_loop[idx],
+          decode_num_samples[idx] if decode_num_samples else None,
+          spmd=spmd)
       decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
       program_schedule_params.eval_programs.append(decoder_param)
 
   if multi_inputs_decoder:
     program_schedule_params.eval_programs.append(
-        _CreateProgramParams(MultiInputsDecodeProgram, 'decode_tpu',
-                             eval_dataset_names, decode_steps_per_loop))
+        _CreateProgramParams(
+            MultiInputsDecodeProgram,
+            'decode_tpu',
+            eval_dataset_names,
+            decode_steps_per_loop,
+            spmd=spmd))
 
   return program_schedule_params
 
