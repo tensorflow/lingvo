@@ -1341,6 +1341,7 @@ class MultiHeadAttentionStateLayer(StateLayer):
     p = self.params
     fprop_dtype = p.dtype or py_utils.FPropDtype(p)
 
+    tf.logging.info('fprop_dtype: %r', fprop_dtype)
     if len(shape) == 2:
       # For use with beam_search_tpu_helper batch_major_compute=1
       shape = tuple(shape) + tuple(p.shape[2:])
@@ -1379,6 +1380,8 @@ class MultiHeadAttentionStateLayer(StateLayer):
       z = tf.expand_dims(z, 0)
       while len(z.shape) < len(x.shape):
         z = tf.expand_dims(z, -1)
+      state = tf.cast(state, z.dtype) if state.dtype != z.dtype else state
+      x = tf.cast(x, z.dtype) if x.dtype != z.dtype else x
       y = state = (1 - z) * state + z * x
 
     if self._use_flat_beam_search and not p.use_xla_dynamic_update_slice:
