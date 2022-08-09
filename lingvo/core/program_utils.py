@@ -106,3 +106,24 @@ class DecodeStatusCache:
         f.write(f.read().strip() + '\n' + dataset_name)
       return summaries
     return None
+
+
+class TriggerScheduler:
+  """A trigger scheduler with offset, and interval.
+
+  Maintains an counter, incremented when Trigger() called. ShouldRun() only
+  returns True when (counter - offset) % interval == 0.
+  """
+
+  def __init__(self, offset, interval):
+    self.offset = offset
+    self.interval = interval
+    self.counter = -offset
+
+  def Trigger(self):
+    self.counter += 1
+    if self.counter >= self.interval:
+      self.counter = 0
+
+  def ShouldRun(self):
+    return self.counter == 0

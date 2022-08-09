@@ -1019,6 +1019,13 @@ class DecodeProgram(BaseProgram):
         'and passed to PostProcess to run only once at the end. Note that'
         ' the PostProcess of the Task should define logic for aggregating'
         'data from the list of decode_out_dict.')
+    p.Define(
+        'trigger_offset', 0, 'The program is only effectively triggered after '
+        'this num of runs. The default is 0 where no runs is skipped. '
+        'It is used with trigger_interval below to control trigger schedule.')
+    p.Define(
+        'trigger_interval', 1, 'The program is only effectively triggered '
+        'every this num of runs, after trigger_offset is met.')
     return p
 
   def __init__(self, params, **kwargs):
@@ -1030,6 +1037,8 @@ class DecodeProgram(BaseProgram):
     # TODO(xingwu): fully deprecate decode_until_out_of_range
     if self.params.decode_until_out_of_range:
       self.params.steps_per_loop = -1
+    self._trigger_scheduler = program_utils.TriggerScheduler(
+        self.params.trigger_offset, self.params.trigger_interval)
 
   def _DatasetSummaryWriter(self, unused_dataset_name):
     """Returns the FileWriter object to use for summaries."""
@@ -1432,6 +1441,9 @@ class DecodeProgram(BaseProgram):
       return None
 
   def Run(self, sess=None, threadpool=None):
+    self._trigger_scheduler.Trigger()
+    if not self._trigger_scheduler.ShouldRun():
+      return
     return self.RunForInput(self.params.dataset_name, self._task.input, sess,
                             threadpool)
 
@@ -1716,6 +1728,9 @@ class ExperimentalDecodeProgram(DecodeProgram):
       future.get()
 
   def Run(self, sess=None, threadpool=None):
+    self._trigger_scheduler.Trigger()
+    if not self._trigger_scheduler.ShouldRun():
+      return
     global_step = sess.run(self._model.global_step)
     self.SetStatusMessage(f'Executing experimental decode program on dataset '
                           f'{self.params.dataset_name} at step {global_step}, '
@@ -2175,6 +2190,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  eval_steps_per_loop,
                                  decode_steps_per_loop=None,
                                  decode_num_samples=None,
+                                 decode_trigger_offset=0,
+                                 decode_trigger_interval=1,
                                  experimental_decoder=False,
                                  multi_inputs_decoder=False,
                                  train_program_cls=TrainProgram,
@@ -2203,6 +2220,11 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       infer the steps_per_loop from `decode_num_samples`.
     decode_num_samples: Number of samples to run decode program. This is only
       used when decode_steps_per_loop<0, and ExperimentalDecodeProgram is used.
+    decode_trigger_offset: The program is only effectively triggered after this
+      many of runs. The default is 0 where no runs is skipped. It is used with
+      trigger_interval below to control trigger schedule.
+    decode_trigger_interval: The program is only effectively triggered every
+      this num of runs, after trigger_offset is met.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
     multi_inputs_decoder: bool. Whether to use multi inputs decoder for all
@@ -2280,6 +2302,12 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   decode_steps_per_loop = _CheckLengthOrExpand(decode_steps_per_loop,
                                                num_eval_datasets,
                                                'decode_steps_per_loop')
+  decode_trigger_offset = _CheckLengthOrExpand(decode_trigger_offset,
+                                               num_eval_datasets,
+                                               'decode_trigger_offset')
+  decode_trigger_interval = _CheckLengthOrExpand(decode_trigger_interval,
+                                                 num_eval_datasets,
+                                                 'decode_trigger_interval')
 
   if decode_num_samples is not None:
     if not isinstance(decode_num_samples, list):
@@ -2313,6 +2341,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
           decode_num_samples[idx] if decode_num_samples else None,
           spmd=spmd)
       decoder_param.postprocess_all_at_once = postprocess_all_at_once[idx]
+      decoder_param.trigger_offset = decode_trigger_offset[idx]
+      decoder_param.trigger_interval = decode_trigger_interval[idx]
       program_schedule_params.eval_programs.append(decoder_param)
 
   if multi_inputs_decoder:
