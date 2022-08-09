@@ -1085,6 +1085,13 @@
         <span class="s1">&#39;and passed to PostProcess to run only once at the end. Note that&#39;</span>
         <span class="s1">&#39; the PostProcess of the Task should define logic for aggregating&#39;</span>
         <span class="s1">&#39;data from the list of decode_out_dict.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;trigger_offset&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The program is only effectively triggered after &#39;</span>
+        <span class="s1">&#39;this num of runs. The default is 0 where no runs is skipped. &#39;</span>
+        <span class="s1">&#39;It is used with trigger_interval below to control trigger schedule.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;trigger_interval&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The program is only effectively triggered &#39;</span>
+        <span class="s1">&#39;every this num of runs, after trigger_offset is met.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -1096,6 +1103,8 @@
     <span class="c1"># TODO(xingwu): fully deprecate decode_until_out_of_range</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">decode_until_out_of_range</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">steps_per_loop</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_scheduler</span> <span class="o">=</span> <span class="n">program_utils</span><span class="o">.</span><span class="n">TriggerScheduler</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">trigger_offset</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">trigger_interval</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DecodeProgram._DatasetSummaryWriter"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._DatasetSummaryWriter">[docs]</a>  <span class="k">def</span> <span class="nf">_DatasetSummaryWriter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unused_dataset_name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the FileWriter object to use for summaries.&quot;&quot;&quot;</span>
@@ -1498,6 +1507,9 @@
       <span class="k">return</span> <span class="kc">None</span></div>
 
 <div class="viewcode-block" id="DecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_scheduler</span><span class="o">.</span><span class="n">Trigger</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_scheduler</span><span class="o">.</span><span class="n">ShouldRun</span><span class="p">():</span>
+      <span class="k">return</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">RunForInput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span>
                             <span class="n">threadpool</span><span class="p">)</span></div></div>
 
@@ -1782,6 +1794,9 @@
       <span class="n">future</span><span class="o">.</span><span class="n">get</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="ExperimentalDecodeProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.ExperimentalDecodeProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">threadpool</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_scheduler</span><span class="o">.</span><span class="n">Trigger</span><span class="p">()</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trigger_scheduler</span><span class="o">.</span><span class="n">ShouldRun</span><span class="p">():</span>
+      <span class="k">return</span>
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">SetStatusMessage</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Executing experimental decode program on dataset &#39;</span>
                           <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dataset_name</span><span class="si">}</span><span class="s1"> at step </span><span class="si">{</span><span class="n">global_step</span><span class="si">}</span><span class="s1">, &#39;</span>
@@ -2241,6 +2256,8 @@
                                  <span class="n">eval_steps_per_loop</span><span class="p">,</span>
                                  <span class="n">decode_steps_per_loop</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                                  <span class="n">decode_num_samples</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                 <span class="n">decode_trigger_offset</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                 <span class="n">decode_trigger_interval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                  <span class="n">experimental_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                  <span class="n">multi_inputs_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
                                  <span class="n">train_program_cls</span><span class="o">=</span><span class="n">TrainProgram</span><span class="p">,</span>
@@ -2269,6 +2286,11 @@
 <span class="sd">      infer the steps_per_loop from `decode_num_samples`.</span>
 <span class="sd">    decode_num_samples: Number of samples to run decode program. This is only</span>
 <span class="sd">      used when decode_steps_per_loop&lt;0, and ExperimentalDecodeProgram is used.</span>
+<span class="sd">    decode_trigger_offset: The program is only effectively triggered after this</span>
+<span class="sd">      many of runs. The default is 0 where no runs is skipped. It is used with</span>
+<span class="sd">      trigger_interval below to control trigger schedule.</span>
+<span class="sd">    decode_trigger_interval: The program is only effectively triggered every</span>
+<span class="sd">      this num of runs, after trigger_offset is met.</span>
 <span class="sd">    experimental_decoder: bool. Whether to use experimental deocder which is</span>
 <span class="sd">      placed in a tpu loop.</span>
 <span class="sd">    multi_inputs_decoder: bool. Whether to use multi inputs decoder for all</span>
@@ -2346,6 +2368,12 @@
   <span class="n">decode_steps_per_loop</span> <span class="o">=</span> <span class="n">_CheckLengthOrExpand</span><span class="p">(</span><span class="n">decode_steps_per_loop</span><span class="p">,</span>
                                                <span class="n">num_eval_datasets</span><span class="p">,</span>
                                                <span class="s1">&#39;decode_steps_per_loop&#39;</span><span class="p">)</span>
+  <span class="n">decode_trigger_offset</span> <span class="o">=</span> <span class="n">_CheckLengthOrExpand</span><span class="p">(</span><span class="n">decode_trigger_offset</span><span class="p">,</span>
+                                               <span class="n">num_eval_datasets</span><span class="p">,</span>
+                                               <span class="s1">&#39;decode_trigger_offset&#39;</span><span class="p">)</span>
+  <span class="n">decode_trigger_interval</span> <span class="o">=</span> <span class="n">_CheckLengthOrExpand</span><span class="p">(</span><span class="n">decode_trigger_interval</span><span class="p">,</span>
+                                                 <span class="n">num_eval_datasets</span><span class="p">,</span>
+                                                 <span class="s1">&#39;decode_trigger_interval&#39;</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">decode_num_samples</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">decode_num_samples</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -2379,6 +2407,8 @@
           <span class="n">decode_num_samples</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="k">if</span> <span class="n">decode_num_samples</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
           <span class="n">spmd</span><span class="o">=</span><span class="n">spmd</span><span class="p">)</span>
       <span class="n">decoder_param</span><span class="o">.</span><span class="n">postprocess_all_at_once</span> <span class="o">=</span> <span class="n">postprocess_all_at_once</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+      <span class="n">decoder_param</span><span class="o">.</span><span class="n">trigger_offset</span> <span class="o">=</span> <span class="n">decode_trigger_offset</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+      <span class="n">decoder_param</span><span class="o">.</span><span class="n">trigger_interval</span> <span class="o">=</span> <span class="n">decode_trigger_interval</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
       <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">eval_programs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">decoder_param</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">multi_inputs_decoder</span><span class="p">:</span>

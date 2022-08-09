@@ -172,6 +172,27 @@
         <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">dataset_name</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">summaries</span>
     <span class="k">return</span> <span class="kc">None</span></div></div>
+
+
+<div class="viewcode-block" id="TriggerScheduler"><a class="viewcode-back" href="../../../lingvo.core.program_utils.html#lingvo.core.program_utils.TriggerScheduler">[docs]</a><span class="k">class</span> <span class="nc">TriggerScheduler</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;A trigger scheduler with offset, and interval.</span>
+
+<span class="sd">  Maintains an counter, incremented when Trigger() called. ShouldRun() only</span>
+<span class="sd">  returns True when (counter - offset) % interval == 0.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="n">interval</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">offset</span> <span class="o">=</span> <span class="n">offset</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">interval</span> <span class="o">=</span> <span class="n">interval</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="o">-</span><span class="n">offset</span>
+
+<div class="viewcode-block" id="TriggerScheduler.Trigger"><a class="viewcode-back" href="../../../lingvo.core.program_utils.html#lingvo.core.program_utils.TriggerScheduler.Trigger">[docs]</a>  <span class="k">def</span> <span class="nf">Trigger</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interval</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">=</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="TriggerScheduler.ShouldRun"><a class="viewcode-back" href="../../../lingvo.core.program_utils.html#lingvo.core.program_utils.TriggerScheduler.ShouldRun">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldRun</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">counter</span> <span class="o">==</span> <span class="mi">0</span></div></div>
 </pre></div>
 
            </div>
