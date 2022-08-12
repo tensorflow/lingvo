@@ -95,6 +95,12 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
+<span class="c1"># If a metric is sliced by some categories, we always use format: metric/@slice</span>
+<span class="c1"># for example, &#39;examples/sec&#39; sliced by language, then we can have metric key</span>
+<span class="c1"># as, &#39;examples/sec/@en_us&#39;, &#39;examples/sec/@en_gb&#39;, etc.</span>
+<span class="n">METRIC_SLICE_SEPARATOR</span> <span class="o">=</span> <span class="s1">&#39;/@&#39;</span>
+
+
 <div class="viewcode-block" id="_ShouldAddSummary"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils._ShouldAddSummary">[docs]</a><span class="k">def</span> <span class="nf">_ShouldAddSummary</span><span class="p">():</span>
   <span class="k">return</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">add_summary</span></div>
 
