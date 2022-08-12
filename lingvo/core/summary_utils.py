@@ -29,6 +29,12 @@ from tensorflow.python.distribute import tpu_values as tpu_values_lib
 # pylint: enable=g-direct-tensorflow-import
 
 
+# If a metric is sliced by some categories, we always use format: metric/@slice
+# for example, 'examples/sec' sliced by language, then we can have metric key
+# as, 'examples/sec/@en_us', 'examples/sec/@en_gb', etc.
+METRIC_SLICE_SEPARATOR = '/@'
+
+
 def _ShouldAddSummary():
   return cluster_factory.Current().add_summary
 

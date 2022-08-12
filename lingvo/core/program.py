@@ -15,6 +15,7 @@
 """Programs for interleaving execution on TPU."""
 
 import _thread
+import collections
 import contextlib
 import functools
 import multiprocessing.dummy
@@ -1055,25 +1056,41 @@ class DecodeProgram(BaseProgram):
     """
     if not summaries:
       return
+
+    sliced_summaries = collections.defaultdict(dict)
+    for name, summary in summaries.items():
+      arr = name.split(summary_utils.METRIC_SLICE_SEPARATOR)
+      if len(arr) == 2:
+        metric, slice_name = arr
+        summary.value[0].tag = metric
+        sliced_summaries[slice_name][metric] = summary
+      else:
+        metric = arr[0]
+        sliced_summaries[''][metric] = summary
     with contextlib.ExitStack() as stack:
       if py_utils.IsEagerMode():
         stack.enter_context(
             self._DatasetSummaryWriter(dataset_name).as_default())
-      for unused_name, summary in sorted(summaries.items()):
-        if py_utils.IsEagerMode():
-          # TODO(laigd): make this work with v1 summaries.
-          # tf.compat.v2.summary.scalar(tag, value, step=steps)
-          pass
+      for slice_name, summaries in sliced_summaries.items():
+        if slice_name:
+          slice_writer = tf.summary.FileWriter(
+              os.path.join(self._program_dir, slice_name))
         else:
-          self._DatasetSummaryWriter(dataset_name).add_summary(
-              summary, global_step)
-        if summary.value:
-          for value in summary.value:
-            if value.HasField('simple_value'):
-              tf.logging.info('%s@%s summary on checkpoint@%d %s = %.8g',
-                              job_name, dataset_name, global_step, value.tag,
-                              value.simple_value)
-        self._DatasetSummaryWriter(dataset_name).flush()
+          slice_writer = self._DatasetSummaryWriter(dataset_name)
+        for unused_name, summary in sorted(summaries.items()):
+          if py_utils.IsEagerMode():
+            # TODO(laigd): make this work with v1 summaries.
+            # tf.compat.v2.summary.scalar(tag, value, step=steps)
+            pass
+          else:
+            slice_writer.add_summary(summary, global_step)
+          if summary.value:
+            for value in summary.value:
+              if value.HasField('simple_value'):
+                tf.logging.info('%s@%s summary on checkpoint@%d %s:%s = %.8g',
+                                job_name, dataset_name, global_step, slice_name,
+                                value.tag, value.simple_value)
+        slice_writer.flush()
 
   def _WriteInputDataStats(self, sess=None, **kwargs):
     """Write input data stats for model training as TF summaries.
