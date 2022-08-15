@@ -549,7 +549,12 @@ class ExecutorTpu(base_runner.BaseRunner):
             sess, program_threadpool)
 
         executor_cycle_in_secs = time.time() - cycle_start_time
+        if py_utils.IsEagerMode():
+          global_step = py_utils.GetGlobalStep().numpy()
+        else:
+          global_step = sess.run(py_utils.GetGlobalStep())
         self._ExportMetrics(
+            global_step=global_step,
             executor_cycle_secs=executor_cycle_in_secs,
             executor_train_time_secs=train_time_in_secs,
             executor_eval_time_secs=eval_time_in_secs,
@@ -574,10 +579,6 @@ class ExecutorTpu(base_runner.BaseRunner):
           _ShutDown()
           return
 
-        if py_utils.IsEagerMode():
-          global_step = py_utils.GetGlobalStep().numpy()
-        else:
-          global_step = sess.run(py_utils.GetGlobalStep())
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           if not self._ml_perf_log:
