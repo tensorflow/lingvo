@@ -153,18 +153,20 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertAllClose(x_val, x_recover)
 
   @parameterized.named_parameters(
-      ('single_block', 7, 2, 1),
-      ('single_frame_context', 1, 1, 0),
-      ('other_case_1', 3, 4, 1),
-      ('other_case_2', 4, 2, 4),
+      ('single_block', 7, 2, 1, 0),
+      ('single_frame_context', 1, 1, 0, 0),
+      ('other_case_1', 3, 4, 1, 0),
+      ('other_case_2', 4, 2, 4, 0),
+      ('padding_value', 3, 4, 1, -1),
   )
-  def testExtractBlockContext(self, block_size, left_context, right_context):
+  def testExtractBlockContext(self, block_size, left_context, right_context,
+                              padding_val):
     x_val = np.random.random([2, 6, 2, 3, 4])
     with self.session() as sess:
       x = tf.convert_to_tensor(x_val, tf.float32)
       x_context = attention_util.ExtractBlockContext(x, block_size,
                                                      left_context,
-                                                     right_context)
+                                                     right_context, padding_val)
       x_context_val = sess.run(x_context)
     # Check shape.
     batch_size = x_val.shape[0]
@@ -185,8 +187,18 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
       # remove paddings
       front_padding = slice_start - context_start
       back_padding = context_end - slice_end
-      actual_val = actual_val[:, front_padding:context_size - back_padding, ...]
-      self.assertAllClose(expected_val, actual_val)
+      valid_value = actual_val[:, front_padding:context_size - back_padding,
+                               ...]
+      self.assertAllClose(expected_val, valid_value)
+
+      if front_padding > 0:
+        actual_padded_value = actual_val[:, :front_padding]
+        expected_padded_value = np.ones_like(actual_padded_value) * padding_val
+        self.assertAllClose(expected_padded_value, actual_padded_value)
+      if back_padding > 0:
+        actual_padded_value = actual_val[:, -back_padding:]
+        expected_padded_value = np.ones_like(actual_padded_value) * padding_val
+        self.assertAllClose(expected_padded_value, actual_padded_value)
 
   def testExtractBlockContextV2Basic(self):
     """this test shows an visualized example.
