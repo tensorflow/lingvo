@@ -1387,6 +1387,17 @@ class MultiTaskSubModel(SingleTaskBase):
     if self._ema:
       raise ValueError('EMA for MultiTaskSubModel is not supported.')
 
+  def GetVariablesDict(self, visited=None):
+    """Returns a dict of variables from the model and all its children."""
+    if visited is None:
+      visited = set()
+    res = super().GetVariablesDict(visited)
+    for task in self.tasks:
+      res = py_utils.MergeDictsWithValueCheck(res,
+                                              task.GetVariablesDict(visited))
+
+    return res
+
 
 class MultiTaskModel(BaseModel):
   """Model that consists of multiple tasks."""

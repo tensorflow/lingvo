@@ -424,6 +424,46 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     ], [x.name for x in model.variables])
 
 
+class MultiTaskSubModelTest(test_utils.TestCase):
+
+  def testModuleVarsTracking(self):
+    task = BaseTaskTest.TestParams()
+    p = base_model.SingleTaskModel.Params(task)
+    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.task.train.learner = learner.Learner.Params().Set(
+        name='loss', optimizer=optimizer.Adam.Params())
+    model = p.Instantiate()
+
+    def RunOnce():
+      model.ConstructFPropBPropGraph()
+
+    mt_p = base_model.MultiTaskSubModel.Params().Set(task_name='_task')
+    mt_model = mt_p.Instantiate(shared_model=model)
+
+    if tf.executing_eagerly():
+      tf.function(RunOnce)()
+    else:
+      RunOnce()
+    self.assertEqual([
+        'base_mdl/a/var:0',
+        'base_mdl/b/var:0',
+        'base_mdl/a/var/Adam:0',
+        'base_mdl/a/var/Adam_1:0',
+        'beta1_power:0',
+        'beta2_power:0',
+        'base_mdl/x/beta/var:0',
+        'base_mdl/x/gamma/var:0',
+        'base_mdl/x/moving_mean/var:0',
+        'base_mdl/x/moving_variance/var:0',
+        'base_mdl/y/w/var:0',
+        'base_mdl/y/b/var:0',
+        'base_mdl/y/beta/var:0',
+        'base_mdl/y/gamma/var:0',
+        'base_mdl/y/moving_mean/var:0',
+        'base_mdl/y/moving_variance/var:0',
+    ], [x.name for x in mt_model.GetVariablesDict().values()])
+
+
 class MultiTaskModelTest(test_utils.TestCase):
 
   def testInitMissingInputParams(self):
