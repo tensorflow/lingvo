@@ -786,7 +786,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     return py_utils.NestedMap(
         cached_sum=cached_sum, cached_count=cached_count, cached_var=cached_var)
 
-  def _Normalize(self, theta, grouped_inputs, group_mean, group_variance):
+  def _Normalize(self, grouped_inputs, group_mean, group_variance):
     p = self.params
     group_mean = py_utils.CheckNumerics(
         group_mean, f'mean of {p.name} failed numeric check.')
@@ -820,13 +820,8 @@ class GroupNormLayer(base_layer.BaseLayer):
     else:
       group_stddev_inv = tf.math.rsqrt(group_variance + p.epsilon)
 
-    grouped_inputs = (grouped_inputs - group_mean) * group_stddev_inv
-    # Merges the last two dims.
-    grouped_inputs = tf.reshape(grouped_inputs, input_shape[:-2] + [-1])
-
-    # Note, The real gamma to use is 1 + gamma.
-    outputs = grouped_inputs * (theta.gamma + 1) + theta.beta
-    return outputs
+    output = (grouped_inputs - group_mean) * group_stddev_inv
+    return output
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply group normalization.
@@ -883,7 +878,11 @@ class GroupNormLayer(base_layer.BaseLayer):
             enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
             keepdims=True)
 
-      outputs = self._Normalize(theta, x, group_mean, group_variance)
+      outputs = self._Normalize(x, group_mean, group_variance)
+      # Merge the last two dims back.
+      outputs = tf.reshape(outputs, input_shape)
+      # Note, The real gamma to use is 1 + gamma.
+      outputs = outputs * (theta.gamma + 1) + theta.beta
 
       if paddings is None:
         return outputs
@@ -1003,7 +1002,11 @@ class GroupNormLayer(base_layer.BaseLayer):
        cached_var) = self._StreamMoments(x, expanded_paddings,
                                          state0.cached_sum, state0.cached_count,
                                          state0.cached_var)
-      outputs = self._Normalize(theta, x, group_mean, group_variance)
+      outputs = self._Normalize(x, group_mean, group_variance)
+      # Merge the last two dims back.
+      outputs = tf.reshape(outputs, input_shape)
+      # Note, The real gamma to use is 1 + gamma.
+      outputs = outputs * (theta.gamma + 1) + theta.beta
 
       return outputs, paddings, py_utils.NestedMap(
           cached_sum=cached_sum,
