@@ -286,7 +286,7 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     if py_utils.IsEagerMode():
       kwargs['allow_eager'] = True
       # Pass `extra_input_kwargs` into GenericInput calls.
-      kwargs = {**kwargs, **extra_input_kwargs}
+      kwargs |= extra_input_kwargs
 
     features, bucket_keys = generic_input.GenericInput(
         file_pattern=file_pattern,
@@ -861,7 +861,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
       # ops get used instead of `GenericInput`.
       kwargs['allow_eager'] = True
       # Pass `extra_input_kwargs` into GenericInput calls.
-      kwargs = {**kwargs, **extra_input_kwargs}
+      kwargs |= extra_input_kwargs
 
     batch, _ = generic_input.GenericInput(
         processor=Processor,
