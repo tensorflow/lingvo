@@ -6718,16 +6718,13 @@ def UpdateProcessedCheckpoints(runner_dir, ckpt_path):
 
 
 def MergeDictsWithValueCheck(dict1, dict2):
-  """Merges two dictionaries with same-key values."""
-  common_keys = set(dict1.keys()) & set(dict2.keys())
-  for key in common_keys:
+  """Merge two dictionaries and assert keys in both have identical values."""
+  for key in set(dict1) & set(dict2):
     # The values must be the same object
     if dict1[key] is not dict2[key]:
       raise RuntimeError(f'The same key {key} corresponds to different values '
                          f'in the dictionaries: {dict1[key]} vs {dict2[key]}')
-
-  dict1.update(dict2)
-  return dict1
+  return dict1 | dict2
 
 
 def MergeDuplicateIds(ids, paddings, extra_tensors=None):
