@@ -852,7 +852,7 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">cached_sum</span><span class="o">=</span><span class="n">cached_sum</span><span class="p">,</span> <span class="n">cached_count</span><span class="o">=</span><span class="n">cached_count</span><span class="p">,</span> <span class="n">cached_var</span><span class="o">=</span><span class="n">cached_var</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="GroupNormLayer._Normalize"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer._Normalize">[docs]</a>  <span class="k">def</span> <span class="nf">_Normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">grouped_inputs</span><span class="p">,</span> <span class="n">group_mean</span><span class="p">,</span> <span class="n">group_variance</span><span class="p">):</span>
+<div class="viewcode-block" id="GroupNormLayer._Normalize"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer._Normalize">[docs]</a>  <span class="k">def</span> <span class="nf">_Normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grouped_inputs</span><span class="p">,</span> <span class="n">group_mean</span><span class="p">,</span> <span class="n">group_variance</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">group_mean</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span>
         <span class="n">group_mean</span><span class="p">,</span> <span class="sa">f</span><span class="s1">&#39;mean of </span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1"> failed numeric check.&#39;</span><span class="p">)</span>
@@ -886,13 +886,8 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">group_stddev_inv</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">group_variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
 
-    <span class="n">grouped_inputs</span> <span class="o">=</span> <span class="p">(</span><span class="n">grouped_inputs</span> <span class="o">-</span> <span class="n">group_mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">group_stddev_inv</span>
-    <span class="c1"># Merges the last two dims.</span>
-    <span class="n">grouped_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">grouped_inputs</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-
-    <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="n">grouped_inputs</span> <span class="o">*</span> <span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gamma</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
-    <span class="k">return</span> <span class="n">outputs</span></div>
+    <span class="n">output</span> <span class="o">=</span> <span class="p">(</span><span class="n">grouped_inputs</span> <span class="o">-</span> <span class="n">group_mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">group_stddev_inv</span>
+    <span class="k">return</span> <span class="n">output</span></div>
 
 <div class="viewcode-block" id="GroupNormLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply group normalization.</span>
@@ -949,7 +944,11 @@
             <span class="n">enable_cross_replica_sum_on_tpu</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_cross_replica_sum_on_tpu</span><span class="p">,</span>
             <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-      <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Normalize</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">group_mean</span><span class="p">,</span> <span class="n">group_variance</span><span class="p">)</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Normalize</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">group_mean</span><span class="p">,</span> <span class="n">group_variance</span><span class="p">)</span>
+      <span class="c1"># Merge the last two dims back.</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
+      <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span> <span class="o">*</span> <span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gamma</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
 
       <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">outputs</span>
@@ -1069,7 +1068,11 @@
        <span class="n">cached_var</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamMoments</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">expanded_paddings</span><span class="p">,</span>
                                          <span class="n">state0</span><span class="o">.</span><span class="n">cached_sum</span><span class="p">,</span> <span class="n">state0</span><span class="o">.</span><span class="n">cached_count</span><span class="p">,</span>
                                          <span class="n">state0</span><span class="o">.</span><span class="n">cached_var</span><span class="p">)</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Normalize</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">group_mean</span><span class="p">,</span> <span class="n">group_variance</span><span class="p">)</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Normalize</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">group_mean</span><span class="p">,</span> <span class="n">group_variance</span><span class="p">)</span>
+      <span class="c1"># Merge the last two dims back.</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">outputs</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
+      <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span> <span class="o">*</span> <span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gamma</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
 
       <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
           <span class="n">cached_sum</span><span class="o">=</span><span class="n">cached_sum</span><span class="p">,</span>
