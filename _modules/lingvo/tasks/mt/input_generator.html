@@ -352,7 +352,7 @@
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;allow_eager&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="c1"># Pass `extra_input_kwargs` into GenericInput calls.</span>
-      <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">}</span>
+      <span class="n">kwargs</span> <span class="o">|=</span> <span class="n">extra_input_kwargs</span>
 
     <span class="n">features</span><span class="p">,</span> <span class="n">bucket_keys</span> <span class="o">=</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
@@ -927,7 +927,7 @@
       <span class="c1"># ops get used instead of `GenericInput`.</span>
       <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;allow_eager&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="c1"># Pass `extra_input_kwargs` into GenericInput calls.</span>
-      <span class="n">kwargs</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">extra_input_kwargs</span><span class="p">}</span>
+      <span class="n">kwargs</span> <span class="o">|=</span> <span class="n">extra_input_kwargs</span>
 
     <span class="n">batch</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
         <span class="n">processor</span><span class="o">=</span><span class="n">Processor</span><span class="p">,</span>

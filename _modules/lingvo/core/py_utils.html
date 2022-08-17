@@ -6784,16 +6784,13 @@
 
 
 <div class="viewcode-block" id="MergeDictsWithValueCheck"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MergeDictsWithValueCheck">[docs]</a><span class="k">def</span> <span class="nf">MergeDictsWithValueCheck</span><span class="p">(</span><span class="n">dict1</span><span class="p">,</span> <span class="n">dict2</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Merges two dictionaries with same-key values.&quot;&quot;&quot;</span>
-  <span class="n">common_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">dict1</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">dict2</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
-  <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">common_keys</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Merge two dictionaries and assert keys in both have identical values.&quot;&quot;&quot;</span>
+  <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="n">dict1</span><span class="p">)</span> <span class="o">&amp;</span> <span class="nb">set</span><span class="p">(</span><span class="n">dict2</span><span class="p">):</span>
     <span class="c1"># The values must be the same object</span>
     <span class="k">if</span> <span class="n">dict1</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="n">dict2</span><span class="p">[</span><span class="n">key</span><span class="p">]:</span>
       <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;The same key </span><span class="si">{</span><span class="n">key</span><span class="si">}</span><span class="s1"> corresponds to different values &#39;</span>
                          <span class="sa">f</span><span class="s1">&#39;in the dictionaries: </span><span class="si">{</span><span class="n">dict1</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s1"> vs </span><span class="si">{</span><span class="n">dict2</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
-
-  <span class="n">dict1</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">dict2</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">dict1</span></div>
+  <span class="k">return</span> <span class="n">dict1</span> <span class="o">|</span> <span class="n">dict2</span></div>
 
 
 <div class="viewcode-block" id="MergeDuplicateIds"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.MergeDuplicateIds">[docs]</a><span class="k">def</span> <span class="nf">MergeDuplicateIds</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">extra_tensors</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
