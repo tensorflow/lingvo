@@ -122,6 +122,16 @@
 <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;TF_ENABLE_EAGER_CLIENT_STREAMING_ENQUEUE&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;False&#39;</span>
 
 
+<div class="viewcode-block" id="_RewriteV1SummaryInTF2"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program._RewriteV1SummaryInTF2">[docs]</a><span class="k">def</span> <span class="nf">_RewriteV1SummaryInTF2</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+  <span class="c1"># TODO(laigd): make this work for other v1 summaries.</span>
+  <span class="k">if</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">WhichOneof</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">)</span> <span class="o">!=</span> <span class="s1">&#39;simple_value&#39;</span><span class="p">:</span>
+        <span class="k">return</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v2</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span>
+          <span class="n">value</span><span class="o">.</span><span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="o">.</span><span class="n">simple_value</span><span class="p">,</span> <span class="n">step</span><span class="o">=</span><span class="n">global_step</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="BaseProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram">[docs]</a><span class="k">class</span> <span class="nc">BaseProgram</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;A Program associated with a Task.</span>
 
@@ -292,9 +302,7 @@
         <span class="n">stack</span><span class="o">.</span><span class="n">enter_context</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">as_default</span><span class="p">())</span>
       <span class="k">for</span> <span class="n">unused_name</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">summaries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
         <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-          <span class="c1"># TODO(laigd): make this work with v1 summaries.</span>
-          <span class="c1"># tf.compat.v2.summary.scalar(tag, value, step=steps)</span>
-          <span class="k">pass</span>
+          <span class="n">_RewriteV1SummaryInTF2</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
@@ -1145,9 +1153,7 @@
           <span class="n">slice_writer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DatasetSummaryWriter</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">unused_name</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">summaries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
           <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-            <span class="c1"># TODO(laigd): make this work with v1 summaries.</span>
-            <span class="c1"># tf.compat.v2.summary.scalar(tag, value, step=steps)</span>
-            <span class="k">pass</span>
+            <span class="n">_RewriteV1SummaryInTF2</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="n">slice_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">summary</span><span class="o">.</span><span class="n">value</span><span class="p">:</span>
