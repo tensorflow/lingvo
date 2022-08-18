@@ -258,8 +258,21 @@
       <span class="k">def</span> <span class="nf">_Test</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">model_name</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_testOneModelParams</span><span class="p">(</span><span class="n">registry</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
 
-      <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;testModelParams_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">model_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">),</span> <span class="n">_Test</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_models</span><span class="p">)</span><span class="si">}</span><span class="s1"> tests: </span><span class="si">{</span><span class="n">valid_models</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div></div>
+      <span class="nb">setattr</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;testModelParams_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">model_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">),</span>
+              <span class="bp">cls</span><span class="o">.</span><span class="n">TransformTest</span><span class="p">(</span><span class="n">_Test</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Created </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">valid_models</span><span class="p">)</span><span class="si">}</span><span class="s1"> tests: </span><span class="si">{</span><span class="n">valid_models</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModelsTest.TransformTest"><a class="viewcode-back" href="../../lingvo.models_test_helper.html#lingvo.models_test_helper.BaseModelsTest.TransformTest">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">TransformTest</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">test_method</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Hook for subclass to transform test method.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      test_method: a function that runs a model test.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A transformed function that runs a model test.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">test_method</span></div></div>
 </pre></div>
 
            </div>
