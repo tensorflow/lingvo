@@ -56,6 +56,16 @@ FLAGS = tf.flags.FLAGS
 os.environ['TF_ENABLE_EAGER_CLIENT_STREAMING_ENQUEUE'] = 'False'
 
 
+def _RewriteV1SummaryInTF2(summary, global_step):
+  # TODO(laigd): make this work for other v1 summaries.
+  if summary.value:
+    for value in summary.value:
+      if value.WhichOneof('value') != 'simple_value':
+        return
+      tf.compat.v2.summary.scalar(
+          value.tag, value.simple_value, step=global_step)
+
+
 class BaseProgram:
   """A Program associated with a Task.
 
@@ -226,9 +236,7 @@ class BaseProgram:
         stack.enter_context(self._summary_writer.as_default())
       for unused_name, summary in sorted(summaries.items()):
         if py_utils.IsEagerMode():
-          # TODO(laigd): make this work with v1 summaries.
-          # tf.compat.v2.summary.scalar(tag, value, step=steps)
-          pass
+          _RewriteV1SummaryInTF2(summary, global_step)
         else:
           self._summary_writer.add_summary(summary, global_step)
         if summary.value:
@@ -1079,9 +1087,7 @@ class DecodeProgram(BaseProgram):
           slice_writer = self._DatasetSummaryWriter(dataset_name)
         for unused_name, summary in sorted(summaries.items()):
           if py_utils.IsEagerMode():
-            # TODO(laigd): make this work with v1 summaries.
-            # tf.compat.v2.summary.scalar(tag, value, step=steps)
-            pass
+            _RewriteV1SummaryInTF2(summary, global_step)
           else:
             slice_writer.add_summary(summary, global_step)
           if summary.value:
