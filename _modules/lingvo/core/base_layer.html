@@ -342,6 +342,10 @@
         <span class="s1">&#39;Relevant only if device_mesh above is not None. If not None, it &#39;</span>
         <span class="s1">&#39;specifies how activation of this layer or those of the sublayers &#39;</span>
         <span class="s1">&#39;should be sharded over device mesh. &#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;child_variable_scope_override&#39;</span><span class="p">,</span> <span class="p">{},</span>
+        <span class="s1">&#39;Allows for _child_variable_scope_override without requiring new&#39;</span>
+        <span class="s1">&#39;subclasses to be created for every layer.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="BaseLayer.CopyBaseParams"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CopyBaseParams">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -968,7 +972,9 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A dict mapping child names to a list of variable scopes to apply.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">{}</span></div>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">child_variable_scope_override</span><span class="p">,</span>
+    <span class="p">}</span></div>
 
 <div class="viewcode-block" id="BaseLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Create variables for this layer.</span>
