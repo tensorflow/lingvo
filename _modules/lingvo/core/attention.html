@@ -1811,6 +1811,8 @@
         <span class="n">inner_state</span> <span class="o">=</span> <span class="n">attention_state</span>
       <span class="k">elif</span> <span class="s1">&#39;inner&#39;</span> <span class="ow">in</span> <span class="n">attention_state</span><span class="p">:</span>
         <span class="n">inner_state</span> <span class="o">=</span> <span class="n">attention_state</span><span class="o">.</span><span class="n">inner</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">inner_state</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">inner_state</span> <span class="o">=</span> <span class="n">attention_state</span>
     <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">new_inner_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
