@@ -48,6 +48,17 @@ _ACTIVATIONS = {
         lambda x: tf.math.square(tf.nn.relu(x)),
     'SILU':
         tf.nn.silu,
+    # GLU Variants: https://arxiv.org/abs/2002.05202
+    'GLU':
+        lambda x: GLUVariants(x, 'SIGMOID'),
+    'BILINEAR_GLU':
+        lambda x: GLUVariants(x, 'NONE'),
+    'RELU_GLU':
+        lambda x: GLUVariants(x, 'RELU'),
+    'GELU_GLU':
+        lambda x: GLUVariants(x, 'GELU'),
+    'SWISH_GLU':
+        lambda x: GLUVariants(x, 'SWISH'),
     'NONE':
         tf.identity,
 }
@@ -74,6 +85,11 @@ _ACTIVATIONS_FLOPS = {
     # ln(1+exp(x))
     'SOFTPLUS': 3,  # exp, add, ln
     'SQUARED_RELU': 2,  # relu, mul
+    'GLU': 5,  # SIGMOID, mul
+    'BILINEAR_GLU': 1,  # NONE, mul
+    'RELU_GLU': 2,  # RELU, mul
+    'GELU_GLU': 16,  # GELU, mul
+    'SWISH_GLU': 6,  # SWISH, mul
 }
 
 
@@ -90,6 +106,20 @@ def GetFlops(activation_name):
 def IsSupported(activation_name):
   """Checks if the activation is supported."""
   return activation_name in _ACTIVATIONS
+
+
+def DimMultiplier(activation_name):
+  """Returns dimension multiplier for the activation."""
+  assert IsSupported(activation_name)
+  if activation_name.endswith('GLU'):
+    return 2
+  return 1
+
+
+def GLUVariants(x, activation_name):
+  """Returns function corresponding to GLU variants."""
+  x1, x2 = tf.split(x, 2, axis=-1)
+  return x1 * _ACTIVATIONS[activation_name](x2)
 
 
 class ActivationLayer(base_layer.BaseLayer):

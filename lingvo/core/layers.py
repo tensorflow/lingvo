@@ -935,10 +935,20 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       bn_params.dim = p.input_dim if p.affine_last else p.output_dim
 
       self.CreateChild('bn', bn_params)
+
+    act_multiplier = activations.DimMultiplier(p.activation)
+    self._internal_output_dim = p.output_dim * act_multiplier
+    if act_multiplier > 1:
+      assert not p.affine_last, ('Affine last does not support GLU variants.')
+      assert not p.use_blocked_matmul, (
+          'Blocked matmul does not support GLU variants.')
+      assert not p.use_block_diagonal_matmul, (
+          'Block diagonal matmul does not support GLU variants.')
+
     # TODO(yonghui): implement the variational noise logic.
     self.TrackQWeight(
         'w',
-        shape=[p.input_dim, p.output_dim],
+        shape=[p.input_dim, self._internal_output_dim],
         feature_axis=-1,
         legacy_aqt_weight_name='projection_aqt')
 
@@ -946,7 +956,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.compression_op = None
     # only apply compression on tall matrices (input_dim > output_dim)
     self.apply_compression = pruning_utils.ApplyCompression(p) and (
-        p.input_dim > p.output_dim)
+        p.input_dim > self._internal_output_dim)
 
     if p.use_block_diagonal_matmul:
       assert p.bd_num_blocks > 0
@@ -1021,7 +1031,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           collections=[self.__class__.__name__ + '_vars'])
     else:
       w_pc = py_utils.WeightParams(
-          shape=[p.input_dim, p.output_dim],
+          shape=[p.input_dim, self._internal_output_dim],
           init=p.params_init,
           dtype=p.dtype,
           device_mesh=p.device_mesh,
@@ -1041,7 +1051,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       else:
         bias_split_dims_mapping = None
       b_pc = py_utils.WeightParams(
-          shape=[p.output_dim],
+          shape=[self._internal_output_dim],
           init=py_utils.WeightInit.Constant(scale=p.bias_init),
           dtype=p.dtype,
           device_mesh=p.device_mesh,
@@ -1049,7 +1059,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           collections=[self.__class__.__name__ + '_vars'])
     if p.weight_norm:
       g_pc = py_utils.WeightParams(
-          shape=[p.output_dim],
+          shape=[self._internal_output_dim],
           init=py_utils.WeightInit.Constant(0.0),
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
@@ -1231,8 +1241,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         w = tf.nn.l2_normalize(w, 0)
     else:
       if p.weight_norm:
-        w = tf.reshape((theta.g + 1.0) * tf.nn.l2_normalize(w, [0]),
-                       py_utils.ToStaticShape([p.input_dim, p.output_dim]))
+        w = tf.reshape(
+            (theta.g + 1.0) * tf.nn.l2_normalize(w, [0]),
+            py_utils.ToStaticShape([p.input_dim, self._internal_output_dim]))
 
     if not self._is_bn_folded:
       return w, b
@@ -1295,7 +1306,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       if p.use_einsum:
         if self.apply_compression:
           out = pruning_utils.PruningOp.GetProjectLastDim(
-              inputs, w, p.input_dim, p.output_dim, self)
+              inputs, w, p.input_dim, self._internal_output_dim, self)
         elif p.use_block_diagonal_matmul:
           if mix_kernel is not None:
             out = py_utils.BlockDiagonalProjectLastDimWithMix(
@@ -1306,7 +1317,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                                                        p.output_dim,
                                                        p.bd_num_blocks)
         else:
-          out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
+          out = py_utils.ProjectLastDim(inputs, w, p.input_dim,
+                                        self._internal_output_dim)
       else:
         if p.use_block_diagonal_matmul:
           if mix_kernel is not None:
@@ -1332,8 +1344,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       # Create an output layer [b, num_outputs].
       bsz = py_utils.GetShape(out)[0]
       out = tf.reshape(out, [bsz, -1])
-      if p.output_dim % p.block_dim != 0:
-        out_shape = [bsz, p.output_dim]
+      if self._internal_output_dim % p.block_dim != 0:
+        out_shape = [bsz, self._internal_output_dim]
         out = tf.slice(out, [0, 0], out_shape)
 
     if b is not None:
@@ -1385,21 +1397,23 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     flops = 0
     in_dim = inputs[-1]
     other_dims = inputs.num_elements() / in_dim
+    internal_output_dim = p.output_dim * activations.DimMultiplier(p.activation)
     # matmuls.
-    flops += other_dims * p.input_dim * p.output_dim * 2
+    flops += other_dims * p.input_dim * internal_output_dim * 2
     # activations.
     flops += other_dims * p.output_dim * activations.GetFlops(p.activation)
     if p.has_bias:
-      flops += p.output_dim
-    out_shape = tshape.Shape(inputs[:-1] + [p.output_dim])
+      flops += internal_output_dim
     if p.batch_norm:
+      out_shape = tshape.Shape(inputs[:-1] + [internal_output_dim])
       bn_meta = p.bn_params.cls.FPropMeta(
-          p.bn_params.Copy().Set(dim=p.output_dim), out_shape)
+          p.bn_params.Copy().Set(dim=internal_output_dim), out_shape)
       flops += bn_meta.flops
     if p.weight_norm:
       # l2 normalize + element-wise multiply.
-      flops += 2 * p.input_dim + 2 * p.input_dim * p.output_dim + 2
+      flops += 2 * p.input_dim + 2 * p.input_dim * internal_output_dim + 2
 
+    out_shape = tshape.Shape(inputs[:-1] + [p.output_dim])
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
 

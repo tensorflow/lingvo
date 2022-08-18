@@ -2176,6 +2176,28 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
     tf.logging.info('actual = %s', np.array_repr(actual))
     self.assertAllClose(expected_output, actual)
 
+  @parameterized.parameters(
+      ('RELU', [[0., 0.07840855], [0.01560314, 0.08165982]]),
+      ('SWISH_GLU', [[0., 0.07840855], [0.01560314, 0.08165982]]))
+  def testProjectionLayerActivation(self, activation, expected):
+    with self.session(use_gpu=True):
+      params = layers.ProjectionLayer.Params()
+      params.name = 'proj'
+      params.batch_norm = False
+      params.has_bias = True
+      params.input_dim = 3
+      params.output_dim = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+
+      proj_layer = layers.ProjectionLayer(params)
+      inputs = tf.constant(np.random.normal(0.1, 0.5, [2, 3]), dtype=tf.float32)
+
+      output = proj_layer.FProp(proj_layer.theta, inputs)
+      self.evaluate(tf.global_variables_initializer())
+      actual = self.evaluate(output)
+      print(f'actual {activation} = {np.array_repr(actual)}')
+      self.assertAllClose(expected, actual)
+
   def testProjectionLayerExplicitFolding(self):
     unfolded = self._evalProjectionLayer(
         bn_fold_weights=False, expect_bn_fold_weights=False)

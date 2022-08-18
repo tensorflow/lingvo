@@ -68,6 +68,18 @@ class ActivationsTest(test_utils.TestCase):
       self.assertAllClose([0., 0., 0., 0., 0., 0., 2., 4., 6., 8., 10.],
                           grads_squared_relu)
 
+  def testSwiGLUActivation(self):
+    with self.session(use_gpu=True) as sess:
+      inputs = tf.random.uniform([4, 2])
+      outputs = activations.GetFn('SWISH_GLU')(inputs)
+      grads = tf.gradients(outputs, inputs)[0]
+      outputs, grads = sess.run([outputs, grads])
+      self.assertAllClose(
+          [[0.07095878], [0.02098426], [0.02584705], [0.21230409]], outputs)
+      self.assertAllClose([[0.7035191, 0.09264363], [0.02472331, 0.4448639],
+                           [0.53267556, 0.0413832], [0.25140572, 0.5933618]],
+                          grads)
+
 
 if __name__ == '__main__':
   test_utils.main()
