@@ -1745,6 +1745,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         inner_state = attention_state
       elif 'inner' in attention_state:
         inner_state = attention_state.inner
+      else:
+        inner_state = None
     else:
       inner_state = attention_state
     ctx_vec, prob, new_inner_state = self.atten.ComputeContextVectorWithSource(
