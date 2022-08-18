@@ -192,5 +192,18 @@ class BaseModelsTest(test_utils.TestCase):
       def _Test(self, name=model_name):
         self._testOneModelParams(registry, name)  # pylint: disable=protected-access
 
-      setattr(cls, 'testModelParams_%s' % model_name.replace('.', '_'), _Test)
+      setattr(cls, 'testModelParams_%s' % model_name.replace('.', '_'),
+              cls.TransformTest(_Test))
     print(f'Created {len(valid_models)} tests: {valid_models}')
+
+  @classmethod
+  def TransformTest(cls, test_method):
+    """Hook for subclass to transform test method.
+
+    Args:
+      test_method: a function that runs a model test.
+
+    Returns:
+      A transformed function that runs a model test.
+    """
+    return test_method
