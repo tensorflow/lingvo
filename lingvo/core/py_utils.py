@@ -6397,7 +6397,10 @@ def SequencePaddings(seqlen, maxlen=None):
 
 
 def AppendDims(x, ndims):
-  return tf.reshape(x, GetShape(x) + [1] * ndims)
+  if ndims == 1:
+    return tf.expand_dims(x, -1)
+  else:
+    return tf.reshape(x, tf.concat([tf.shape(x), [1] * ndims], axis=0))
 
 
 def MaybeSoftCapLogits(x, cap=0.0):
