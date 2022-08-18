@@ -114,6 +114,17 @@
         <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span>
     <span class="s1">&#39;SILU&#39;</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">silu</span><span class="p">,</span>
+    <span class="c1"># GLU Variants: https://arxiv.org/abs/2002.05202</span>
+    <span class="s1">&#39;GLU&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">GLUVariants</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;SIGMOID&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;BILINEAR_GLU&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">GLUVariants</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;RELU_GLU&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">GLUVariants</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;GELU_GLU&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">GLUVariants</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;GELU&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;SWISH_GLU&#39;</span><span class="p">:</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">GLUVariants</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;SWISH&#39;</span><span class="p">),</span>
     <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span>
 <span class="p">}</span>
@@ -140,6 +151,11 @@
     <span class="c1"># ln(1+exp(x))</span>
     <span class="s1">&#39;SOFTPLUS&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># exp, add, ln</span>
     <span class="s1">&#39;SQUARED_RELU&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># relu, mul</span>
+    <span class="s1">&#39;GLU&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># SIGMOID, mul</span>
+    <span class="s1">&#39;BILINEAR_GLU&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>  <span class="c1"># NONE, mul</span>
+    <span class="s1">&#39;RELU_GLU&#39;</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>  <span class="c1"># RELU, mul</span>
+    <span class="s1">&#39;GELU_GLU&#39;</span><span class="p">:</span> <span class="mi">16</span><span class="p">,</span>  <span class="c1"># GELU, mul</span>
+    <span class="s1">&#39;SWISH_GLU&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># SWISH, mul</span>
 <span class="p">}</span>
 
 
@@ -156,6 +172,20 @@
 <div class="viewcode-block" id="IsSupported"><a class="viewcode-back" href="../../../lingvo.core.activations.html#lingvo.core.activations.IsSupported">[docs]</a><span class="k">def</span> <span class="nf">IsSupported</span><span class="p">(</span><span class="n">activation_name</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Checks if the activation is supported.&quot;&quot;&quot;</span>
   <span class="k">return</span> <span class="n">activation_name</span> <span class="ow">in</span> <span class="n">_ACTIVATIONS</span></div>
+
+
+<div class="viewcode-block" id="DimMultiplier"><a class="viewcode-back" href="../../../lingvo.core.activations.html#lingvo.core.activations.DimMultiplier">[docs]</a><span class="k">def</span> <span class="nf">DimMultiplier</span><span class="p">(</span><span class="n">activation_name</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns dimension multiplier for the activation.&quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">IsSupported</span><span class="p">(</span><span class="n">activation_name</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">activation_name</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s1">&#39;GLU&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="mi">2</span>
+  <span class="k">return</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="GLUVariants"><a class="viewcode-back" href="../../../lingvo.core.activations.html#lingvo.core.activations.GLUVariants">[docs]</a><span class="k">def</span> <span class="nf">GLUVariants</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">activation_name</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns function corresponding to GLU variants.&quot;&quot;&quot;</span>
+  <span class="n">x1</span><span class="p">,</span> <span class="n">x2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">x1</span> <span class="o">*</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">activation_name</span><span class="p">](</span><span class="n">x2</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="ActivationLayer"><a class="viewcode-back" href="../../../lingvo.core.activations.html#lingvo.core.activations.ActivationLayer">[docs]</a><span class="k">class</span> <span class="nc">ActivationLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
