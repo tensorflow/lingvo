@@ -464,11 +464,7 @@ class CategoricalBN(BatchNormLayer):
       gamma = 1.0 + gamma
 
     # Extend to [batch, 1, ... 1, dim]
-    batch = py_utils.GetShape(inputs)[0]
-    to_shape = tf.concat(
-        [[batch],
-         tf.ones([py_utils.GetRank(inputs) - 2], tf.int32), [self.params.dim]],
-        axis=0)
+    to_shape = [-1] + [1] * (py_utils.GetRank(inputs) - 2) + [self.params.dim]
     beta = tf.reshape(beta, to_shape)
     gamma = tf.reshape(gamma, to_shape)
     return beta, gamma
@@ -880,7 +876,7 @@ class GroupNormLayer(base_layer.BaseLayer):
 
       outputs = self._Normalize(x, group_mean, group_variance)
       # Merge the last two dims back.
-      outputs = tf.reshape(outputs, input_shape)
+      outputs = tf.reshape(outputs, tf.shape(inputs))
       # Note, The real gamma to use is 1 + gamma.
       outputs = outputs * (theta.gamma + 1) + theta.beta
 
@@ -1004,7 +1000,7 @@ class GroupNormLayer(base_layer.BaseLayer):
                                          state0.cached_var)
       outputs = self._Normalize(x, group_mean, group_variance)
       # Merge the last two dims back.
-      outputs = tf.reshape(outputs, input_shape)
+      outputs = tf.reshape(outputs, tf.shape(inputs))
       # Note, The real gamma to use is 1 + gamma.
       outputs = outputs * (theta.gamma + 1) + theta.beta
 
