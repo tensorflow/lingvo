@@ -1298,10 +1298,14 @@ class DecodeProgram(BaseProgram):
         # Add summaries only for the first batch of data.
         for key, value in decode_out:
           if isinstance(value, tf.Summary):
-            tf.logging.info(f'Adding summary {key} with tags '
-                            f'{[x.tag for x in value.value]}.')
-            self._summary_writer.add_summary(value, global_step)
-        self._summary_writer.flush()
+            tags = f'{[x.tag for x in value.value]}'
+            tf.logging.info(f'Adding summary {key} with tags {tags}.')
+            if py_utils.IsEagerMode():
+              # TODO(b/241113869): Logging summary in eager mode
+              pass
+            else:
+              self._summary_writer.add_summary(value, global_step)
+              self._summary_writer.flush()
 
       buffered_decode_out.extend(
           kv for kv in decode_out if not isinstance(kv[1], tf.Summary))
