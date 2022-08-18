@@ -276,6 +276,10 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         'Relevant only if device_mesh above is not None. If not None, it '
         'specifies how activation of this layer or those of the sublayers '
         'should be sharded over device mesh. ')
+    p.Define(
+        'child_variable_scope_override', {},
+        'Allows for _child_variable_scope_override without requiring new'
+        'subclasses to be created for every layer.')
     return p
 
   @staticmethod
@@ -902,7 +906,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     Returns:
       A dict mapping child names to a list of variable scopes to apply.
     """
-    return {}
+    return {
+        **self.params.child_variable_scope_override,
+    }
 
   def _CreateLayerVariables(self) -> None:
     """Create variables for this layer.

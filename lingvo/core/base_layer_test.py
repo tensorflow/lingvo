@@ -120,6 +120,32 @@ class BaseLayerTest(test_utils.TestCase):
             },
         }, tf.nest.map_structure(lambda v: v.shape.as_list(), layer.vars))
 
+  def testChildVariableScopeOverride(self):
+
+    class TestParentLayerWithScopeOverride(TestParentLayer):
+
+      def _child_variable_scope_override(self):
+        return {'child_0': ['new_scope1']}
+
+    # Check default scope in the base case.
+    layer_p = TestParentLayer.Params().Set(name='test0')
+    layer = layer_p.Instantiate()
+    self.assertEqual('test0/child_0/w/var:0', layer.child_0.vars.w.name)
+    self.assertEqual('test0/child_1/w/var:0', layer.child_1.vars.w.name)
+
+    # Check updating scope with _child_variable_scope_override().
+    layer_p = TestParentLayerWithScopeOverride.Params().Set(name='test1')
+    layer = layer_p.Instantiate()
+    self.assertEqual('new_scope1/child_0/w/var:0', layer.child_0.vars.w.name)
+    self.assertEqual('test1/child_1/w/var:0', layer.child_1.vars.w.name)
+
+    # Check updating scope with p.child_variable_scope_override.
+    layer_p = TestParentLayer.Params().Set(
+        name='test2', child_variable_scope_override={'child_1': ['new_scope2']})
+    layer = layer_p.Instantiate()
+    self.assertEqual('test2/child_0/w/var:0', layer.child_0.vars.w.name)
+    self.assertEqual('new_scope2/child_1/w/var:0', layer.child_1.vars.w.name)
+
   def testCreateChildren(self):
     layer_p = base_layer.BaseLayer.Params()
     layer_p.name = 'test'
