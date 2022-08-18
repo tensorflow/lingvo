@@ -1065,7 +1065,7 @@ lingvo_cuda_py_test(
     deps = [":layers_test_lib"],
 )
 
-lingvo_cuda_py_test(
+py_test(
     name = "layers_eager_test",
     timeout = "short",
     srcs = ["layers_test.py"],
