@@ -4617,24 +4617,21 @@ class LayerNorm(base_layer.BaseLayer):
 
       def Normalize(xs):
         """Normalize `xs.x` w/ `xs.scale` and `xs.bias` gain/shift."""
-        x_shape = py_utils.GetShape(xs.x)
-        x_reshaped = tf.reshape(xs.x, [-1, x_shape[-1]])
-        mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
         if p.center:
-          x_in = x_reshaped - mean
+          mean = tf.reduce_mean(xs.x, axis=[-1], keepdims=True)
+          x_in = xs.x - mean
         else:
-          x_in = x_reshaped
+          x_in = xs.x
         if x_in.dtype == tf.bfloat16:
           # tf.rsqrt and SquaredDifference are not implemented for bfloat16,
           # hence we always cast into tf.float32.
           x_cast = tf.cast(x_in, tf.float32)
         else:
           x_cast = x_in
-        variance = tf.reduce_mean(tf.square(x_cast), axis=[1], keepdims=True)
+        variance = tf.reduce_mean(tf.square(x_cast), axis=[-1], keepdims=True)
         x_norm_den_inv = tf.cast(
             tf.math.rsqrt(variance + p.epsilon), x_in.dtype)
         x_norm = x_in * x_norm_den_inv
-        x_norm = tf.reshape(x_norm, x_shape)
         return x_norm * xs.scale + xs.bias
 
     if p.use_defun:
