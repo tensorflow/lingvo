@@ -1,6 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 # First 100 sentences of the news-test 2013 from WMT'14 development set.
 # http://www.statmt.org/wmt14/dev.tgz

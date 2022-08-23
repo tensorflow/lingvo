@@ -11,7 +11,7 @@ package(default_visibility = [
     "//visibility:public",
 ])
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 lingvo_cc_library(
     name = "box_util",

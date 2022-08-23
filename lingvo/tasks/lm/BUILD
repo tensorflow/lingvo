@@ -8,7 +8,7 @@ package(
     default_visibility = ["//visibility:public"],
 )
 
-licenses(["notice"])  # Apache 2.0
+licenses(["notice"])
 
 py_library(
     name = "input_generator",
