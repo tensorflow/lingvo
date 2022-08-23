@@ -1382,13 +1382,11 @@
           <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ProjectLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
                                         <span class="bp">self</span><span class="o">.</span><span class="n">_internal_output_dim</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]))</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_block_diagonal_matmul</span><span class="p">:</span>
-          <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">BlockDiagonalMatmul</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])),</span> <span class="n">w</span><span class="p">,</span>
-              <span class="n">p</span><span class="o">.</span><span class="n">bd_num_blocks</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="p">)</span>
+          <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">BlockDiagonalMatmul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bd_num_blocks</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])),</span> <span class="n">w</span><span class="p">)</span>
+          <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FromAqtMatmul</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]))</span>
@@ -1409,18 +1407,25 @@
       <span class="n">out</span> <span class="o">+=</span> <span class="n">b</span>  <span class="c1"># NOTE: Bias on matmul is never quantized.</span>
     <span class="n">out</span> <span class="o">=</span> <span class="n">gshard_utils</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">device_mesh</span><span class="p">,</span>
                                  <span class="n">p</span><span class="o">.</span><span class="n">activation_split_dims_mapping</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyActivationFunction</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">with_activation</span><span class="p">,</span> <span class="n">quant</span><span class="p">)</span></div>
+    <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyActivationFunction</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">with_activation</span><span class="p">,</span> <span class="n">quant</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">out</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+              <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+              <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">])</span>
+          <span class="p">],</span>
+                    <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">out</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer._ApplyActivationFunction"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._ApplyActivationFunction">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyActivationFunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                                <span class="n">out</span><span class="p">,</span>
-                               <span class="n">inputs</span><span class="p">,</span>
                                <span class="n">with_activation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
                                <span class="n">quant</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies the activation function in one step.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      out: The result of applying the weight matrix (and bias) to the inputs.</span>
-<span class="sd">      inputs: FProp inputs.</span>
 <span class="sd">      with_activation: Whether to also compute the activation function.</span>
 <span class="sd">      quant: Whether to apply quantization.</span>
 
@@ -1437,14 +1442,6 @@
       <span class="n">out</span> <span class="o">=</span> <span class="n">activations</span><span class="o">.</span><span class="n">GetFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)(</span><span class="n">out</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">quant</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QAct</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qact_name</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-          <span class="n">out</span><span class="p">,</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
-              <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-              <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">])</span>
-          <span class="p">],</span>
-                    <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">out</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
