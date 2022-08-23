@@ -3397,30 +3397,7 @@ input_num_blocks).</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.BlockDiagonalProjectLastDim">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">BlockDiagonalProjectLastDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#BlockDiagonalProjectLastDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.BlockDiagonalProjectLastDim" title="Permalink to this definition"></a></dt>
-<dd><p>Block diagonal linear projection on the last dim of the input tensor.</p>
-<p>This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
-tensor by using Einsum for the compute.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>inputs</strong> – An input Tensor, the last dimension of which is input_dim.</p></li>
-<li><p><strong>weight</strong> – A weight matrix with shape [input_dim, output_dim].</p></li>
-<li><p><strong>input_dim</strong> – An integer or a symbolic dim, the last dimension of the inputs.</p></li>
-<li><p><strong>output_dim</strong> – An integer or a symbolic dim, the last dimension of the outputs.</p></li>
-<li><p><strong>num_blocks</strong> – An integer or a symbolic dim, the number of blocks.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>An output Tensor of the same rank as inputs, the last dimension is
-output_dim.</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.py_utils.BlockDiagonalProjectLastDimWithMix">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">BlockDiagonalProjectLastDimWithMix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#BlockDiagonalProjectLastDimWithMix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.BlockDiagonalProjectLastDimWithMix" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">BlockDiagonalProjectLastDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#BlockDiagonalProjectLastDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.BlockDiagonalProjectLastDim" title="Permalink to this definition"></a></dt>
 <dd><p>Block diagonal linear projection on the last dim with mix.</p>
 <p>This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
 tensor by using Einsum for the compute.</p>
@@ -3431,8 +3408,9 @@ tensor by using Einsum for the compute.</p>
 <li><p><strong>weight</strong> – A weight matrix with shape [input_dim, output_dim].</p></li>
 <li><p><strong>input_dim</strong> – An integer or a symbolic dim, the last dimension of the inputs.</p></li>
 <li><p><strong>output_dim</strong> – An integer or a symbolic dim, the last dimension of the outputs.</p></li>
-<li><p><strong>mix_kernel</strong> – an order-2 tf.Tensor of shape (num_blocks, num_blocks).</p></li>
 <li><p><strong>num_blocks</strong> – An integer or a symbolic dim, the number of blocks.</p></li>
+<li><p><strong>mix_kernel</strong> – an (optional) order-2 tf.Tensor of shape [num_blocks,
+num_blocks].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
