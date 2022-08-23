@@ -1308,14 +1308,10 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           out = pruning_utils.PruningOp.GetProjectLastDim(
               inputs, w, p.input_dim, self._internal_output_dim, self)
         elif p.use_block_diagonal_matmul:
-          if mix_kernel is not None:
-            out = py_utils.BlockDiagonalProjectLastDimWithMix(
-                inputs, w, p.input_dim, p.output_dim, mix_kernel,
-                p.bd_num_blocks)
-          else:
-            out = py_utils.BlockDiagonalProjectLastDim(inputs, w, p.input_dim,
-                                                       p.output_dim,
-                                                       p.bd_num_blocks)
+          out = py_utils.BlockDiagonalProjectLastDim(inputs, w, p.input_dim,
+                                                     p.output_dim,
+                                                     p.bd_num_blocks,
+                                                     mix_kernel)
         else:
           out = py_utils.ProjectLastDim(inputs, w, p.input_dim,
                                         self._internal_output_dim)
