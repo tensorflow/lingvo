@@ -1316,13 +1316,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           out = py_utils.ProjectLastDim(inputs, w, p.input_dim,
                                         self._internal_output_dim)
       else:
+        x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
         if p.use_block_diagonal_matmul:
-          out = py_utils.BlockDiagonalMatmul(
-              tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w,
-              p.bd_num_blocks, mix_kernel)
+          out = py_utils.BlockDiagonalMatmul(x, w, p.bd_num_blocks, mix_kernel)
         else:
-          out = py_utils.Matmul(
-              tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
+          out = py_utils.Matmul(x, w)
       out = self.FromAqtMatmul('w', out)
     else:
       x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
@@ -1343,18 +1341,25 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       out += b  # NOTE: Bias on matmul is never quantized.
     out = gshard_utils.MeshSplit(out, p.device_mesh,
                                  p.activation_split_dims_mapping)
-    return self._ApplyActivationFunction(out, inputs, with_activation, quant)
+    out = self._ApplyActivationFunction(out, with_activation, quant)
+    if not p.use_einsum:
+      out = tf.reshape(
+          out,
+          tf.concat([
+              py_utils.GetShape(inputs)[:-1],
+              py_utils.ToStaticShape([p.output_dim])
+          ],
+                    axis=0))
+    return out
 
   def _ApplyActivationFunction(self,
                                out,
-                               inputs,
                                with_activation=True,
                                quant=False):
     """Applies the activation function in one step.
 
     Args:
       out: The result of applying the weight matrix (and bias) to the inputs.
-      inputs: FProp inputs.
       with_activation: Whether to also compute the activation function.
       quant: Whether to apply quantization.
 
@@ -1371,14 +1376,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       out = activations.GetFn(p.activation)(out)
     if quant:
       out = self.QAct(self._output_qact_name, out)
-    if not p.use_einsum:
-      out = tf.reshape(
-          out,
-          tf.concat([
-              py_utils.GetShape(inputs)[:-1],
-              py_utils.ToStaticShape([p.output_dim])
-          ],
-                    axis=0))
     return out
 
   @classmethod
