@@ -1459,7 +1459,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
                             dtype=tf.float32)
     x = tf.constant([[1, 1, 1, 1], [0.5, 1, 1.5, 2]], dtype=tf.float32)
     mix_kernel = tf.constant([[1, 0], [0, 1]], dtype=tf.float32)
-    y = py_utils.BlockDiagonalMatmulWithMix(x, block_mat, mix_kernel, 2)
+    y = py_utils.BlockDiagonalMatmul(x, block_mat, 2, mix_kernel)
     with self.session():
       y_val = self.evaluate(y)
       self.assertAllClose([[1, 1, 2, 2], [0.5, 1, 3, 4]], y_val)

@@ -6499,27 +6499,8 @@ def GetTrainableVariables(scope, bprop_variable_filter,
   return vmap.Filter(VariableFilter)
 
 
-def BlockDiagonalMatmul(inputs, w, input_num_blocks):
+def BlockDiagonalMatmul(inputs, w, input_num_blocks, mix_kernel=None):
   """Block diagonal matmul.
-
-  Args:
-    inputs: a tf.Tensor with the last dimension being the dimension for matmul.
-    w: an order-3 tf.Tensor of shape (input_num_blocks, input_dim //
-      input_num_blocks, output_dim // input_num_blocks)
-    input_num_blocks: an int specifying number of blocks for the input.
-
-  Returns:
-    A tf.Tensor of shape: inputs.shape[:-1] + [w.shape[-1]].
-  """
-  input_splitted = tf.split(inputs, input_num_blocks, axis=-1)
-  output_splitted = []
-  for i, input_i in enumerate(input_splitted):
-    output_splitted.append(tf.matmul(input_i, w[i, :, :]))
-  return tf.concat(output_splitted, axis=-1)
-
-
-def BlockDiagonalMatmulWithMix(inputs, w, mix_kernel, input_num_blocks):
-  """Block diagonal matmul with mix.
 
   With mix, the results from the blocked matmul are (linearly) mixed with
   trainable weights in mix_kernel.
@@ -6527,10 +6508,10 @@ def BlockDiagonalMatmulWithMix(inputs, w, mix_kernel, input_num_blocks):
   Args:
     inputs: a tf.Tensor with the last dimension being the dimension for matmul.
     w: an order-3 tf.Tensor of shape (input_num_blocks, input_dim //
-      input_num_blocks, output_dim // input_num_blocks).
-    mix_kernel: an order-2 tf.Tensor of shape (input_num_blocks,
-      input_num_blocks).
+      input_num_blocks, output_dim // input_num_blocks)
     input_num_blocks: an int specifying number of blocks for the input.
+    mix_kernel: an (optional) order-2 tf.Tensor of shape (input_num_blocks,
+      input_num_blocks).
 
   Returns:
     A tf.Tensor of shape: inputs.shape[:-1] + [w.shape[-1]].
@@ -6540,11 +6521,12 @@ def BlockDiagonalMatmulWithMix(inputs, w, mix_kernel, input_num_blocks):
   for i, input_i in enumerate(input_splitted):
     output_splitted.append(tf.matmul(input_i, w[i, :, :]))
 
-  output_mixed = [0.0] * input_num_blocks
-  for i in range(input_num_blocks):
-    for j in range(input_num_blocks):
-      output_mixed[i] += mix_kernel[i, j] * output_splitted[j]
-  output_splitted = output_mixed
+  if mix_kernel is not None:
+    output_mixed = [0.0] * input_num_blocks
+    for i in range(input_num_blocks):
+      for j in range(input_num_blocks):
+        output_mixed[i] += mix_kernel[i, j] * output_splitted[j]
+    output_splitted = output_mixed
 
   return tf.concat(output_splitted, axis=-1)
 
@@ -6660,8 +6642,7 @@ def BlockDiagonalProjectLastDimWithMix(inputs,
       inputs.shape.rank is not None and inputs.shape.rank < 26):
     # Avoids reshape if feasible and uses Einsum.
     if inputs.shape.rank == 2:
-      outputs = BlockDiagonalMatmulWithMix(inputs, weight, mix_kernel,
-                                           num_blocks)
+      outputs = BlockDiagonalMatmul(inputs, weight, num_blocks, mix_kernel)
     else:
       # This is equivalent to:
       #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
@@ -6681,9 +6662,9 @@ def BlockDiagonalProjectLastDimWithMix(inputs,
       output_splitted = output_mixed
       outputs = tf.concat(output_splitted, axis=-1)
   else:
-    outputs = BlockDiagonalMatmulWithMix(
-        tf.reshape(inputs, ToStaticShape([-1, input_dim])), weight, mix_kernel,
-        num_blocks)
+    outputs = BlockDiagonalMatmul(
+        tf.reshape(inputs, ToStaticShape([-1, input_dim])), weight, num_blocks,
+        mix_kernel)
     outputs = tf.reshape(
         outputs,
         tf.concat([

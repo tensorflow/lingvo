@@ -1321,14 +1321,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                                         self._internal_output_dim)
       else:
         if p.use_block_diagonal_matmul:
-          if mix_kernel is not None:
-            out = py_utils.BlockDiagonalMatmulWithMix(
-                tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])),
-                w, mix_kernel, p.bd_num_blocks)
-          else:
-            out = py_utils.BlockDiagonalMatmul(
-                tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])),
-                w, p.bd_num_blocks)
+          out = py_utils.BlockDiagonalMatmul(
+              tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w,
+              p.bd_num_blocks, mix_kernel)
         else:
           out = py_utils.Matmul(
               tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
