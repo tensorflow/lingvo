@@ -3371,30 +3371,8 @@ when creating an inner context.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.BlockDiagonalMatmul">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">BlockDiagonalMatmul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_num_blocks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#BlockDiagonalMatmul"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.BlockDiagonalMatmul" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">BlockDiagonalMatmul</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_num_blocks</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#BlockDiagonalMatmul"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.BlockDiagonalMatmul" title="Permalink to this definition"></a></dt>
 <dd><p>Block diagonal matmul.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>inputs</strong> – a tf.Tensor with the last dimension being the dimension for matmul.</p></li>
-<li><p><strong>w</strong> – an order-3 tf.Tensor of shape (input_num_blocks, input_dim //
-input_num_blocks, output_dim // input_num_blocks)</p></li>
-<li><p><strong>input_num_blocks</strong> – an int specifying number of blocks for the input.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>inputs.shape[:-1] + [w.shape[-1]].</p>
-</dd>
-<dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>A tf.Tensor of shape</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.py_utils.BlockDiagonalMatmulWithMix">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">BlockDiagonalMatmulWithMix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_num_blocks</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#BlockDiagonalMatmulWithMix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.BlockDiagonalMatmulWithMix" title="Permalink to this definition"></a></dt>
-<dd><p>Block diagonal matmul with mix.</p>
 <p>With mix, the results from the blocked matmul are (linearly) mixed with
 trainable weights in mix_kernel.</p>
 <dl class="field-list simple">
@@ -3402,10 +3380,10 @@ trainable weights in mix_kernel.</p>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>inputs</strong> – a tf.Tensor with the last dimension being the dimension for matmul.</p></li>
 <li><p><strong>w</strong> – an order-3 tf.Tensor of shape (input_num_blocks, input_dim //
-input_num_blocks, output_dim // input_num_blocks).</p></li>
-<li><p><strong>mix_kernel</strong> – an order-2 tf.Tensor of shape (input_num_blocks,
-input_num_blocks).</p></li>
+input_num_blocks, output_dim // input_num_blocks)</p></li>
 <li><p><strong>input_num_blocks</strong> – an int specifying number of blocks for the input.</p></li>
+<li><p><strong>mix_kernel</strong> – an (optional) order-2 tf.Tensor of shape (input_num_blocks,
+input_num_blocks).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

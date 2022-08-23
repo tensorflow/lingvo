@@ -6565,27 +6565,8 @@
   <span class="k">return</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">VariableFilter</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="BlockDiagonalMatmul"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.BlockDiagonalMatmul">[docs]</a><span class="k">def</span> <span class="nf">BlockDiagonalMatmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">input_num_blocks</span><span class="p">):</span>
+<div class="viewcode-block" id="BlockDiagonalMatmul"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.BlockDiagonalMatmul">[docs]</a><span class="k">def</span> <span class="nf">BlockDiagonalMatmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">input_num_blocks</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Block diagonal matmul.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    inputs: a tf.Tensor with the last dimension being the dimension for matmul.</span>
-<span class="sd">    w: an order-3 tf.Tensor of shape (input_num_blocks, input_dim //</span>
-<span class="sd">      input_num_blocks, output_dim // input_num_blocks)</span>
-<span class="sd">    input_num_blocks: an int specifying number of blocks for the input.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    A tf.Tensor of shape: inputs.shape[:-1] + [w.shape[-1]].</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">input_splitted</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">input_num_blocks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-  <span class="n">output_splitted</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">input_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_splitted</span><span class="p">):</span>
-    <span class="n">output_splitted</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">input_i</span><span class="p">,</span> <span class="n">w</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]))</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">output_splitted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
-
-
-<div class="viewcode-block" id="BlockDiagonalMatmulWithMix"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.BlockDiagonalMatmulWithMix">[docs]</a><span class="k">def</span> <span class="nf">BlockDiagonalMatmulWithMix</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="p">,</span> <span class="n">input_num_blocks</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Block diagonal matmul with mix.</span>
 
 <span class="sd">  With mix, the results from the blocked matmul are (linearly) mixed with</span>
 <span class="sd">  trainable weights in mix_kernel.</span>
@@ -6593,10 +6574,10 @@
 <span class="sd">  Args:</span>
 <span class="sd">    inputs: a tf.Tensor with the last dimension being the dimension for matmul.</span>
 <span class="sd">    w: an order-3 tf.Tensor of shape (input_num_blocks, input_dim //</span>
-<span class="sd">      input_num_blocks, output_dim // input_num_blocks).</span>
-<span class="sd">    mix_kernel: an order-2 tf.Tensor of shape (input_num_blocks,</span>
-<span class="sd">      input_num_blocks).</span>
+<span class="sd">      input_num_blocks, output_dim // input_num_blocks)</span>
 <span class="sd">    input_num_blocks: an int specifying number of blocks for the input.</span>
+<span class="sd">    mix_kernel: an (optional) order-2 tf.Tensor of shape (input_num_blocks,</span>
+<span class="sd">      input_num_blocks).</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A tf.Tensor of shape: inputs.shape[:-1] + [w.shape[-1]].</span>
@@ -6606,11 +6587,12 @@
   <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">input_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_splitted</span><span class="p">):</span>
     <span class="n">output_splitted</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">input_i</span><span class="p">,</span> <span class="n">w</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]))</span>
 
-  <span class="n">output_mixed</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_num_blocks</span>
-  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">input_num_blocks</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">input_num_blocks</span><span class="p">):</span>
-      <span class="n">output_mixed</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mix_kernel</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">output_splitted</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-  <span class="n">output_splitted</span> <span class="o">=</span> <span class="n">output_mixed</span>
+  <span class="k">if</span> <span class="n">mix_kernel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">output_mixed</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">input_num_blocks</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">input_num_blocks</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">input_num_blocks</span><span class="p">):</span>
+        <span class="n">output_mixed</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mix_kernel</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">output_splitted</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+    <span class="n">output_splitted</span> <span class="o">=</span> <span class="n">output_mixed</span>
 
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">output_splitted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span></div>
 
@@ -6726,8 +6708,7 @@
       <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">26</span><span class="p">):</span>
     <span class="c1"># Avoids reshape if feasible and uses Einsum.</span>
     <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="n">BlockDiagonalMatmulWithMix</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="p">,</span>
-                                           <span class="n">num_blocks</span><span class="p">)</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="n">BlockDiagonalMatmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># This is equivalent to:</span>
       <span class="c1">#   outputs = tf.einsum(&#39;...y,yz-&gt;...z&#39;, inputs, weight)</span>
@@ -6747,9 +6728,9 @@
       <span class="n">output_splitted</span> <span class="o">=</span> <span class="n">output_mixed</span>
       <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">output_splitted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="n">BlockDiagonalMatmulWithMix</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">])),</span> <span class="n">weight</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="p">,</span>
-        <span class="n">num_blocks</span><span class="p">)</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">BlockDiagonalMatmul</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">])),</span> <span class="n">weight</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span>
+        <span class="n">mix_kernel</span><span class="p">)</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">outputs</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
