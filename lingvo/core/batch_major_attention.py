@@ -4087,6 +4087,14 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
                        f'{len(p.num_heads)} vs {len(atten_tpl)}')
 
     def _SetCommonParams(params, name, num_heads):
+      # Raise warning if self.params override params from atten_tpl
+      for key in ['input_dim', 'hidden_dim', 'num_heads', 'atten_dropout_prob']:
+        if params.Get(key) is not p.Get(key):
+          tf.logging.warning('attention param {} overriding: {} -> {}'.format(
+              key, params.Get(key), p.Get(key)))
+      if params.name is not name:
+        tf.logging.warning('attention param name overriding: {} -> {}'.format(
+            params.name, name))
       params.name = name
       params.input_dim = p.input_dim
       params.hidden_dim = p.hidden_dim
