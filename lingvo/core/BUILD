@@ -740,7 +740,6 @@ py_library(
         ":cluster",
         ":py_utils",
         "//lingvo:compat",
-        # Implicit tensorflow_datasets dependency.
     ],
 )
 
@@ -755,6 +754,34 @@ py_test(
         ":cluster_factory",
         ":datasource",
         ":generic_input",
+        ":py_utils",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit mock dependency.
+    ],
+)
+
+# Build rule which isolates the large TFDS dependency from most of lingvo.
+# See build_defs.bzl for a list of tasks which include it.
+py_library(
+    name = "datasource_tfds",
+    srcs = ["datasource_tfds.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":datasource",
+        # Implicit tensorflow_datasets dependency.
+    ],
+)
+
+py_test(
+    name = "datasource_tfds_test",
+    size = "small",
+    srcs = ["datasource_tfds_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_input_generator",
+        ":datasource_tfds",
         ":py_utils",
         ":test_utils",
         "//lingvo:compat",

@@ -33,7 +33,6 @@ from lingvo.core import base_layer
 from lingvo.core import batch_utils
 from lingvo.core import cluster
 from lingvo.core import py_utils
-import tensorflow_datasets as tfds
 
 
 class DataSource(base_layer.BaseLayer):
@@ -579,48 +578,6 @@ class TFDatasetFnInput(TFDatasetSource):
       dataset = dataset.shuffle(
           p.shuffle_buffer_size, reshuffle_each_iteration=True)
     if not self.do_eval:
-      dataset = dataset.repeat()
-    return dataset
-
-
-class TFDSInput(TFDatasetSource):
-  """Load tfds datasets."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define('dataset', None, 'The tfds dataset to load.')
-    p.Define(
-        'split', None,
-        'The split to load. See https://www.tensorflow.org/datasets/splits.')
-    p.Define(
-        'load_fn', '',
-        'An input_generator method name to call to load data. It must accept '
-        '(info, features_dict) and return a NestedMap. If not specified, a '
-        'dataset containing features_dict is returned.')
-    p.Define('shuffle_buffer_size', 10000,
-             'Number of records buffered for random shuffling.')
-    return p
-
-  def GetDataset(self):
-    p = self.params
-    if not p.dataset or not p.split:
-      raise ValueError('A dataset and split must be specified.')
-
-    dataset, info = tfds.load(
-        p.dataset,
-        split=p.split,
-        download=True,  # download dataset locally.
-        shuffle_files=not self.cluster.require_sequential_input_order,
-        with_info=True)
-
-    if p.load_fn:
-      dataset = dataset.map(
-          functools.partial(getattr(self._input_generator, p.load_fn), info),
-          **self._map_args)
-
-    if not self.cluster.require_sequential_input_order:
-      dataset = dataset.shuffle(p.shuffle_buffer_size)
       dataset = dataset.repeat()
     return dataset
 

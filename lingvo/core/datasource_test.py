@@ -27,7 +27,6 @@ from lingvo.core import py_utils
 from lingvo.core import test_utils
 
 import mock
-import tensorflow_datasets as tfds
 
 
 class TestInputGenerator(base_input_generator.TFDataSequenceInputGenerator):
@@ -780,47 +779,6 @@ class TFDatasetSourceTest(test_utils.TestCase):
       ds = ds_params.Instantiate()
       with self.assertRaisesRegex(ValueError, 'Incompatible dataset specs'):
         self.evaluate(ds.GetNext())
-
-
-class TFDSMnistInputGenerator(base_input_generator.BaseInputGenerator):
-
-  def LoadTFDSDataset(self, info, features_dict):
-    example = py_utils.NestedMap.FromNestedDict(features_dict)
-    example.num_classes = info.features['label'].num_classes
-    return example
-
-
-class TFDSInputTest(test_utils.TestCase):
-
-  def testTFDSInput(self):
-    ds_params = datasource.TFDSInput.Params().Set(
-        dataset='mnist', split='train[:10]')
-    ds = ds_params.Instantiate()
-    with self.session():
-      with tfds.testing.mock_data(num_examples=10):
-        batch = ds.GetNext()
-      for _ in range(10):
-        res = self.evaluate(batch)
-        self.assertAllEqual((28, 28, 1), res['image'].shape)
-        self.assertLess(res['label'], 10)
-      with self.assertRaises(tf.errors.OutOfRangeError):
-        self.evaluate(batch)
-
-  def testTFDSInputLoadFn(self):
-    ds_params = datasource.TFDSInput.Params().Set(
-        dataset='mnist', split='train[:10]', load_fn='LoadTFDSDataset')
-    ds = ds_params.Instantiate()
-    ds.SetInputGenerator(TFDSMnistInputGenerator.Params().Instantiate())
-    with self.session():
-      with tfds.testing.mock_data(num_examples=10):
-        batch = ds.GetNext()
-      for _ in range(10):
-        res = self.evaluate(batch)
-        self.assertAllEqual((28, 28, 1), res.image.shape)
-        self.assertLess(res.label, 10)
-        self.assertEqual(res.num_classes, 10)
-      with self.assertRaises(tf.errors.OutOfRangeError):
-        self.evaluate(batch)
 
 
 if __name__ == '__main__':
