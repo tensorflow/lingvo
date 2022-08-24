@@ -66,7 +66,7 @@
   <h1>Source code for sympy.core.assumptions</h1><div class="highlight"><pre>
 <span></span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">This module contains the machinery handling assumptions.</span>
-<span class="sd">Do also consider the guide :ref:`assumptions`.</span>
+<span class="sd">Do also consider the guide :ref:`assumptions-guide`.</span>
 
 <span class="sd">All symbolic objects have assumption attributes that can be accessed via</span>
 <span class="sd">``.is_&lt;assumption name&gt;`` attribute.</span>
@@ -276,7 +276,7 @@
 
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">.facts</span> <span class="kn">import</span> <span class="n">FactRules</span><span class="p">,</span> <span class="n">FactKB</span><span class="p">,</span> <span class="n">InconsistentAssumptions</span>
+<span class="kn">from</span> <span class="nn">.facts</span> <span class="kn">import</span> <span class="n">FactRules</span><span class="p">,</span> <span class="n">FactKB</span>
 <span class="kn">from</span> <span class="nn">.core</span> <span class="kn">import</span> <span class="n">BasicMeta</span>
 <span class="kn">from</span> <span class="nn">.sympify</span> <span class="kn">import</span> <span class="n">sympify</span>
 
@@ -576,57 +576,84 @@
 <span class="sd">    In all cases, when we settle on some fact value, its implications are</span>
 <span class="sd">    deduced, and the result is cached in ._assumptions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># FactKB which is dict-like and maps facts to their known values:</span>
     <span class="n">assumptions</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">_assumptions</span>
+
+    <span class="c1"># A dict that maps facts to their handlers:</span>
     <span class="n">handler_map</span> <span class="o">=</span> <span class="n">obj</span><span class="o">.</span><span class="n">_prop_handler</span>
 
-    <span class="c1"># Store None into the assumptions so that recursive attempts at</span>
-    <span class="c1"># evaluating the same fact don&#39;t trigger infinite recursion.</span>
-    <span class="c1">#</span>
-    <span class="c1"># Potentially in a multithreaded context it is possible that the</span>
-    <span class="c1"># assumptions query for fact was already resolved in another thread. If</span>
-    <span class="c1"># that happens and the query was resolved as True or False then</span>
-    <span class="c1"># assumptions._tell will raise InconsistentAssumptions because of the</span>
-    <span class="c1"># attempt to replace True/False with None. In that case it should be safe</span>
-    <span class="c1"># to catch the exception and return the result that was computed in the</span>
-    <span class="c1"># other thread.</span>
-    <span class="c1">#</span>
-    <span class="c1"># XXX: Ideally this call to assumptions._tell would be removed. Its purpose</span>
-    <span class="c1"># is to guard against infinite recursion if a query for one fact attempts</span>
-    <span class="c1"># to evaluate a related fact for the same object. However really this is</span>
-    <span class="c1"># just masking bugs because a query for a fact about obj should only query</span>
-    <span class="c1"># the properties of obj.args and not obj itself. This is not easy to change</span>
-    <span class="c1"># though because it requires fixing all of the buggy _eval_is_* handlers.</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">assumptions</span><span class="o">.</span><span class="n">_tell</span><span class="p">(</span><span class="n">fact</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">except</span> <span class="n">InconsistentAssumptions</span><span class="p">:</span>
+    <span class="c1"># This is our queue of facts to check:</span>
+    <span class="n">facts_to_check</span> <span class="o">=</span> <span class="p">[</span><span class="n">fact</span><span class="p">]</span>
+    <span class="n">facts_queued</span> <span class="o">=</span> <span class="p">{</span><span class="n">fact</span><span class="p">}</span>
+
+    <span class="c1"># Loop over the queue as it extends</span>
+    <span class="k">for</span> <span class="n">fact_i</span> <span class="ow">in</span> <span class="n">facts_to_check</span><span class="p">:</span>
+
+        <span class="c1"># If fact_i has already been determined then we don&#39;t need to rerun the</span>
+        <span class="c1"># handler. There is a potential race condition for multithreaded code</span>
+        <span class="c1"># though because it&#39;s possible that fact_i was checked in another</span>
+        <span class="c1"># thread. The main logic of the loop below would potentially skip</span>
+        <span class="c1"># checking assumptions[fact] in this case so we check it once after the</span>
+        <span class="c1"># loop to be sure.</span>
+        <span class="k">if</span> <span class="n">fact_i</span> <span class="ow">in</span> <span class="n">assumptions</span><span class="p">:</span>
+            <span class="k">continue</span>
+
+        <span class="c1"># Now we call the associated handler for fact_i if it exists.</span>
+        <span class="n">fact_i_value</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">handler_i</span> <span class="o">=</span> <span class="n">handler_map</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fact_i</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">handler_i</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">fact_i_value</span> <span class="o">=</span> <span class="n">handler_i</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
+
+        <span class="c1"># If we get a new value for fact_i then we should update our knowledge</span>
+        <span class="c1"># of fact_i as well as any related facts that can be inferred using the</span>
+        <span class="c1"># inference rules connecting the fact_i and any other fact values that</span>
+        <span class="c1"># are already known.</span>
+        <span class="k">if</span> <span class="n">fact_i_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">assumptions</span><span class="o">.</span><span class="n">deduce_all_facts</span><span class="p">(((</span><span class="n">fact_i</span><span class="p">,</span> <span class="n">fact_i_value</span><span class="p">),))</span>
+
+        <span class="c1"># Usually if assumptions[fact] is now not None then that is because of</span>
+        <span class="c1"># the call to deduce_all_facts above. The handler for fact_i returned</span>
+        <span class="c1"># True or False and knowing fact_i (which is equal to fact in the first</span>
+        <span class="c1"># iteration) implies knowing a value for fact. It is also possible</span>
+        <span class="c1"># though that independent code e.g. called indirectly by the handler or</span>
+        <span class="c1"># called in another thread in a multithreaded context might have</span>
+        <span class="c1"># resulted in assumptions[fact] being set. Either way we return it.</span>
+        <span class="n">fact_value</span> <span class="o">=</span> <span class="n">assumptions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fact</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">fact_value</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">fact_value</span>
+
+        <span class="c1"># Extend the queue with other facts that might determine fact_i. Here</span>
+        <span class="c1"># we randomise the order of the facts that are checked. This should not</span>
+        <span class="c1"># lead to any non-determinism if all handlers are logically consistent</span>
+        <span class="c1"># with the inference rules for the facts. Non-deterministic assumptions</span>
+        <span class="c1"># queries can result from bugs in the handlers that are exposed by this</span>
+        <span class="c1"># call to shuffle. These are pushed to the back of the queue meaning</span>
+        <span class="c1"># that the inference graph is traversed in breadth-first order.</span>
+        <span class="n">new_facts_to_check</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_assume_rules</span><span class="o">.</span><span class="n">prereq</span><span class="p">[</span><span class="n">fact_i</span><span class="p">]</span> <span class="o">-</span> <span class="n">facts_queued</span><span class="p">)</span>
+        <span class="n">shuffle</span><span class="p">(</span><span class="n">new_facts_to_check</span><span class="p">)</span>
+        <span class="n">facts_to_check</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">new_facts_to_check</span><span class="p">)</span>
+        <span class="n">facts_queued</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">new_facts_to_check</span><span class="p">)</span>
+
+    <span class="c1"># The above loop should be able to handle everything fine in a</span>
+    <span class="c1"># single-threaded context but in multithreaded code it is possible that</span>
+    <span class="c1"># this thread skipped computing a particular fact that was computed in</span>
+    <span class="c1"># another thread (due to the continue). In that case it is possible that</span>
+    <span class="c1"># fact was inferred and is now stored in the assumptions dict but it wasn&#39;t</span>
+    <span class="c1"># checked for in the body of the loop. This is an obscure case but to make</span>
+    <span class="c1"># sure we catch it we check once here at the end of the loop.</span>
+    <span class="k">if</span> <span class="n">fact</span> <span class="ow">in</span> <span class="n">assumptions</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">assumptions</span><span class="p">[</span><span class="n">fact</span><span class="p">]</span>
 
-    <span class="c1"># First try the assumption evaluation function if it exists</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="n">evaluate</span> <span class="o">=</span> <span class="n">handler_map</span><span class="p">[</span><span class="n">fact</span><span class="p">]</span>
-    <span class="k">except</span> <span class="ne">KeyError</span><span class="p">:</span>
-        <span class="k">pass</span>
-    <span class="k">else</span><span class="p">:</span>
-        <span class="n">a</span> <span class="o">=</span> <span class="n">evaluate</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">a</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="n">assumptions</span><span class="o">.</span><span class="n">deduce_all_facts</span><span class="p">(((</span><span class="n">fact</span><span class="p">,</span> <span class="n">a</span><span class="p">),))</span>
-            <span class="k">return</span> <span class="n">a</span>
-
-    <span class="c1"># Try assumption&#39;s prerequisites</span>
-    <span class="n">prereq</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">_assume_rules</span><span class="o">.</span><span class="n">prereq</span><span class="p">[</span><span class="n">fact</span><span class="p">])</span>
-    <span class="n">shuffle</span><span class="p">(</span><span class="n">prereq</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">pk</span> <span class="ow">in</span> <span class="n">prereq</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">pk</span> <span class="ow">in</span> <span class="n">assumptions</span><span class="p">:</span>
-            <span class="k">continue</span>
-        <span class="k">if</span> <span class="n">pk</span> <span class="ow">in</span> <span class="n">handler_map</span><span class="p">:</span>
-            <span class="n">_ask</span><span class="p">(</span><span class="n">pk</span><span class="p">,</span> <span class="n">obj</span><span class="p">)</span>
-
-            <span class="c1"># we might have found the value of fact</span>
-            <span class="n">ret_val</span> <span class="o">=</span> <span class="n">assumptions</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">fact</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">ret_val</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-                <span class="k">return</span> <span class="n">ret_val</span>
-
-    <span class="c1"># Note: the result has already been cached</span>
+    <span class="c1"># This query can not be answered. It&#39;s possible that e.g. another thread</span>
+    <span class="c1"># has already stored None for fact but assumptions._tell does not mind if</span>
+    <span class="c1"># we call _tell twice setting the same value. If this raises</span>
+    <span class="c1"># InconsistentAssumptions then it probably means that another thread</span>
+    <span class="c1"># attempted to compute this and got a value of True or False rather than</span>
+    <span class="c1"># None. In that case there must be a bug in at least one of the handlers.</span>
+    <span class="c1"># If the handlers are all deterministic and are consistent with the</span>
+    <span class="c1"># inference rules then the same value should be computed for fact in all</span>
+    <span class="c1"># threads.</span>
+    <span class="n">assumptions</span><span class="o">.</span><span class="n">_tell</span><span class="p">(</span><span class="n">fact</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">None</span>
 
 

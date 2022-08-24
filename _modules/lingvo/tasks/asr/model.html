@@ -293,7 +293,9 @@
 
 <div class="viewcode-block" id="AsrModel._ComputeDecoderMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._ComputeDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_outs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">batch</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">DeepCopy</span><span class="p">()</span>
-    <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTargetForDecoderMetrics</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">decoder_metrics</span><span class="p">,</span> <span class="s1">&#39;pass_through_transcript_field&#39;</span><span class="p">,</span>
+                   <span class="kc">None</span><span class="p">):</span>
+      <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTargetForDecoderMetrics</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_metrics</span><span class="o">.</span><span class="n">ComputeMetrics</span><span class="p">(</span>
         <span class="n">decoder_outs</span><span class="p">,</span>
         <span class="n">batch</span><span class="p">,</span>

@@ -165,6 +165,11 @@
         <span class="s1">&#39;If True, ComputeMetrics() will only output TPU compatible tensors, &#39;</span>
         <span class="s1">&#39;no string output, and PostProcess() will run Detokenize. &#39;</span>
         <span class="s1">&#39;Note: This requires tokenizer implemented IdsToStringsPython().&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pass_through_transcript_field&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If None, we get ground truth transcripts for scoring by detokenizing &#39;</span>
+        <span class="s1">&#39;input_batch.tgt. Otherwise, the transcript is from the specified &#39;</span>
+        <span class="s1">&#39;field in the input batch.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -230,63 +235,71 @@
     <span class="n">topk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTopK</span><span class="p">(</span><span class="n">decoder_outs</span><span class="p">,</span> <span class="n">ids_to_strings_fn</span><span class="o">=</span><span class="n">ids_to_strings_fn</span><span class="p">)</span>
     <span class="n">tgt_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">topk</span><span class="o">.</span><span class="n">scores</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">num_hyps_per_beam</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">topk</span><span class="o">.</span><span class="n">scores</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span>
-    <span class="n">tgt_lens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="n">tgt_lens</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">tgt_lens</span><span class="p">,</span> <span class="p">[</span><span class="n">tgt_batch</span><span class="p">])</span>
-    <span class="k">if</span> <span class="n">eos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_lens</span> <span class="o">=</span> <span class="n">eos_normalization</span><span class="o">.</span><span class="n">NormalizeTrailingEos</span><span class="p">(</span>
-          <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">tgt_lens</span><span class="p">,</span> <span class="n">need_trailing_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">eos_id</span><span class="o">=</span><span class="n">eos_id</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span>
-    <span class="n">transcripts</span> <span class="o">=</span> <span class="n">ids_to_strings_fn</span><span class="p">(</span><span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_lens</span><span class="p">)</span>
-
-    <span class="c1"># Filter out all isolated &#39;&lt;noise&gt;&#39; tokens.</span>
-    <span class="n">noise_pattern</span> <span class="o">=</span> <span class="s1">&#39; &lt;noise&gt; |^&lt;noise&gt; | &lt;noise&gt;$|^&lt;noise&gt;$&#39;</span>
-    <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">noise_pattern</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
-    <span class="n">filtered_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">topk</span><span class="o">.</span><span class="n">decoded</span><span class="p">,</span> <span class="n">noise_pattern</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
-    <span class="c1"># Compute translation quality scores for all hyps.</span>
-    <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_refs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">])</span>
-    <span class="n">filtered_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_hyps</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_refs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;filtered_refs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filtered_refs</span><span class="p">)</span>
-    <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeNormalizedWER</span><span class="p">(</span>
-        <span class="n">filtered_hyps</span><span class="p">,</span> <span class="n">filtered_refs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="s1">&#39;example_weights&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
       <span class="n">example_weights</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">example_weights</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">example_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">tgt_batch</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="s1">&#39;target_ids&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
-        <span class="s1">&#39;target_labels&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
-        <span class="s1">&#39;target_weights&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
-        <span class="s1">&#39;target_paddings&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span>
-        <span class="s1">&#39;transcripts&#39;</span><span class="p">:</span> <span class="n">transcripts</span><span class="p">,</span>
         <span class="s1">&#39;topk_decoded&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">decoded</span><span class="p">,</span>
         <span class="s1">&#39;topk_ids&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
         <span class="s1">&#39;topk_lens&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">lens</span><span class="p">,</span>
         <span class="s1">&#39;topk_scores&#39;</span><span class="p">:</span> <span class="n">topk</span><span class="o">.</span><span class="n">scores</span><span class="p">,</span>
-        <span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">:</span> <span class="n">norm_wer_errors</span><span class="p">,</span>
-        <span class="s1">&#39;norm_wer_words&#39;</span><span class="p">:</span> <span class="n">norm_wer_words</span><span class="p">,</span>
         <span class="s1">&#39;example_weights&#39;</span><span class="p">:</span> <span class="n">example_weights</span>
     <span class="p">}</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="s1">&#39;sample_ids&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
-      <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;utt_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">sample_ids</span>
-
     <span class="k">if</span> <span class="s1">&#39;is_real&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
       <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;is_real&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">is_real</span>
+    <span class="c1"># For CPU run, we pass following string fields from input_batch to ret_dict.</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="k">if</span> <span class="s1">&#39;sample_ids&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+        <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;utt_id&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">sample_ids</span>
+      <span class="k">if</span> <span class="s1">&#39;language.raw&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+        <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;language&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">language</span><span class="o">.</span><span class="n">raw</span>
+      <span class="k">if</span> <span class="s1">&#39;testset_name&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
+        <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;testset_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">input_batch</span>
+      <span class="n">transcript_field</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span>
+      <span class="k">if</span> <span class="n">transcript_field</span><span class="p">:</span>
+        <span class="n">ret_dict</span><span class="p">[</span><span class="n">transcript_field</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">transcript_field</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="s1">&#39;language.raw&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
-      <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;language&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">language</span><span class="o">.</span><span class="n">raw</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="s1">&#39;testset_name&#39;</span> <span class="ow">in</span> <span class="n">input_batch</span><span class="p">:</span>
-      <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;testset_name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">input_batch</span><span class="p">[</span><span class="s1">&#39;testset_name&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span><span class="p">:</span>
+      <span class="n">tgt</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">tgt</span>
+      <span class="n">tgt_lens</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">tgt_lens</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">tgt_lens</span><span class="p">,</span> <span class="p">[</span><span class="n">tgt_batch</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">eos_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_lens</span> <span class="o">=</span> <span class="n">eos_normalization</span><span class="o">.</span><span class="n">NormalizeTrailingEos</span><span class="p">(</span>
+            <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span> <span class="n">tgt_lens</span><span class="p">,</span> <span class="n">need_trailing_eos</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">eos_id</span><span class="o">=</span><span class="n">eos_id</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span>
+      <span class="n">transcripts</span> <span class="o">=</span> <span class="n">ids_to_strings_fn</span><span class="p">(</span><span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_lens</span><span class="p">)</span>
 
-    <span class="n">ret_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">AddAdditionalDecoderMetricsToGraph</span><span class="p">(</span><span class="n">topk</span><span class="p">,</span> <span class="n">filtered_hyps</span><span class="p">,</span>
-                                                <span class="n">filtered_refs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span>
-                                                <span class="n">decoder_outs</span><span class="p">))</span>
+      <span class="c1"># Filter out all isolated &#39;&lt;noise&gt;&#39; tokens.</span>
+      <span class="n">noise_pattern</span> <span class="o">=</span> <span class="s1">&#39; &lt;noise&gt; |^&lt;noise&gt; | &lt;noise&gt;$|^&lt;noise&gt;$&#39;</span>
+      <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">transcripts</span><span class="p">,</span> <span class="n">noise_pattern</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+      <span class="n">filtered_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">topk</span><span class="o">.</span><span class="n">decoded</span><span class="p">,</span> <span class="n">noise_pattern</span><span class="p">,</span> <span class="s1">&#39; &#39;</span><span class="p">)</span>
+      <span class="c1"># Compute translation quality scores for all hyps.</span>
+      <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_refs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">])</span>
+      <span class="n">filtered_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_hyps</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">filtered_refs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">filtered_refs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;filtered_refs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">filtered_refs</span><span class="p">)</span>
+      <span class="n">norm_wer_errors</span><span class="p">,</span> <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeNormalizedWER</span><span class="p">(</span>
+          <span class="n">filtered_hyps</span><span class="p">,</span> <span class="n">filtered_refs</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">)</span>
+
+      <span class="n">ret_dict</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+          <span class="s1">&#39;target_ids&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span>
+          <span class="s1">&#39;target_labels&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
+          <span class="s1">&#39;target_weights&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span>
+          <span class="s1">&#39;target_paddings&#39;</span><span class="p">:</span> <span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span>
+          <span class="s1">&#39;transcripts&#39;</span><span class="p">:</span> <span class="n">transcripts</span><span class="p">,</span>
+          <span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">:</span> <span class="n">norm_wer_errors</span><span class="p">,</span>
+          <span class="s1">&#39;norm_wer_words&#39;</span><span class="p">:</span> <span class="n">norm_wer_words</span><span class="p">,</span>
+      <span class="p">})</span>
+      <span class="n">ret_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">AddAdditionalDecoderMetricsToGraph</span><span class="p">(</span><span class="n">topk</span><span class="p">,</span> <span class="n">filtered_hyps</span><span class="p">,</span>
+                                                  <span class="n">filtered_refs</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span>
+                                                  <span class="n">decoder_outs</span><span class="p">))</span>
     <span class="c1"># Remove string outputs</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">only_output_tpu_tensors</span><span class="p">:</span>
       <span class="k">del</span> <span class="n">ret_dict</span><span class="p">[</span><span class="s1">&#39;transcripts&#39;</span><span class="p">]</span>
@@ -345,10 +358,27 @@
         <span class="n">dec_out_dict</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
             <span class="p">[</span><span class="n">dec_out_dict</span><span class="p">[</span><span class="n">key</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">is_real</span><span class="p">))</span> <span class="k">if</span> <span class="n">is_real</span><span class="p">[</span><span class="n">i</span><span class="p">]])</span></div>
 
-<div class="viewcode-block" id="DecoderMetrics.DeTokenizeDecoderOuts"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.DecoderMetrics.DeTokenizeDecoderOuts">[docs]</a>  <span class="k">def</span> <span class="nf">DeTokenizeDecoderOuts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<div class="viewcode-block" id="DecoderMetrics.DeTokenizeTranscripts"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.DecoderMetrics.DeTokenizeTranscripts">[docs]</a>  <span class="k">def</span> <span class="nf">DeTokenizeTranscripts</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
                             <span class="n">tokenizer</span><span class="p">:</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">BaseTokenizer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="sd">&quot;&quot;&quot;Fill transcripts, topk_decoded.&quot;&quot;&quot;</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;DeTokenizeDecoderOuts not implemented!&#39;</span><span class="p">)</span></div>
+    <span class="sd">&quot;&quot;&quot;Fill transcripts in dec_out_dict.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;p.pass_through_transcript_field specified as &#39;</span>
+          <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span><span class="si">}</span><span class="s1">, but &#39;</span>
+          <span class="s1">&#39;this field not exist in dec_out_dict!&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span> <span class="o">!=</span> <span class="s1">&#39;transcripts&#39;</span><span class="p">:</span>
+        <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;transcripts&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="k">del</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+          <span class="s1">&#39;DeTokenizeTranscripts not implemented when &#39;</span>
+          <span class="s1">&#39;p.pass_through_transcript_field not specified!&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DecoderMetrics.DeTokenizeTopkDecoded"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.DecoderMetrics.DeTokenizeTopkDecoded">[docs]</a>  <span class="k">def</span> <span class="nf">DeTokenizeTopkDecoded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dec_out_dict</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+                            <span class="n">tokenizer</span><span class="p">:</span> <span class="n">tokenizers</span><span class="o">.</span><span class="n">BaseTokenizer</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Fill topk_decoded in dec_out_dict.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;DeTokenizeTopkDecoded not implemented!&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DecoderMetrics.PreparePostProcess"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_metrics.html#lingvo.tasks.asr.decoder_metrics.DecoderMetrics.PreparePostProcess">[docs]</a>  <span class="k">def</span> <span class="nf">PreparePostProcess</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                          <span class="n">dec_out_dict</span><span class="p">,</span>
@@ -357,9 +387,12 @@
     <span class="sd">&quot;&quot;&quot;Prepare the objects for PostProcess metrics calculations.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="s1">&#39;topk_scores&#39;</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
-    <span class="c1"># IdToString outside of tf session.</span>
+    <span class="c1"># Detokenize transcripts outside of tf session.</span>
     <span class="k">if</span> <span class="s1">&#39;transcripts&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">DeTokenizeDecoderOuts</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">DeTokenizeTranscripts</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
+    <span class="c1"># Detokenize topk_decoded outside of tf session.</span>
+    <span class="k">if</span> <span class="s1">&#39;topk_decoded&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">DeTokenizeTopkDecoded</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">,</span> <span class="n">tokenizer</span><span class="p">)</span>
     <span class="c1"># Filter out examples that is not real (dummy batch paddings).</span>
     <span class="k">if</span> <span class="s1">&#39;is_real&#39;</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">FilterRealExamples</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">)</span>
@@ -381,30 +414,38 @@
     <span class="k">elif</span> <span class="s1">&#39;sample_ids&#39;</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">:</span>
       <span class="n">utt_id</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;sample_ids&#39;</span><span class="p">]</span>
     <span class="k">assert</span> <span class="n">utt_id</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">utt_id</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
-    <span class="n">norm_wer_errors</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">]</span>
-    <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer_words&#39;</span><span class="p">]</span>
-    <span class="n">target_labels</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;target_labels&#39;</span><span class="p">]</span>
-    <span class="n">target_paddings</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;target_paddings&#39;</span><span class="p">]</span>
+
     <span class="n">topk_ids</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;topk_ids&#39;</span><span class="p">]</span>
     <span class="n">topk_lens</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;topk_lens&#39;</span><span class="p">]</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="s1">&#39;example_weights&#39;</span> <span class="ow">in</span> <span class="n">dec_out_dict</span><span class="p">:</span>
       <span class="n">example_weights</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;example_weights&#39;</span><span class="p">]</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">example_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)],</span> <span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_labels</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">topk_decoded</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">norm_wer_errors</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">norm_wer_words</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
-
     <span class="n">num_samples_in_batch</span> <span class="o">=</span> <span class="n">example_weights</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
     <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">num_samples_in_batch</span><span class="p">)</span>
 
-    <span class="n">total_norm_wer_errs</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm_wer_errors</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">example_weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-    <span class="n">total_norm_wer_words</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm_wer_words</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">example_weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
-
-    <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
-        <span class="n">total_norm_wer_errs</span> <span class="o">/</span> <span class="n">total_norm_wer_words</span><span class="p">,</span> <span class="n">total_norm_wer_words</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pass_through_transcript_field</span><span class="p">:</span>
+      <span class="c1"># When using pass through transcripts, we donot care token level metrics.</span>
+      <span class="c1"># Fake these np arrays to avoid crash.</span>
+      <span class="n">norm_wer_errors</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">topk_scores</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">target_labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">),</span> <span class="n">topk_ids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">target_paddings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">target_labels</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">norm_wer_errors</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer_errors&#39;</span><span class="p">]</span>
+      <span class="n">norm_wer_words</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer_words&#39;</span><span class="p">]</span>
+      <span class="n">target_labels</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;target_labels&#39;</span><span class="p">]</span>
+      <span class="n">target_paddings</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="p">[</span><span class="s1">&#39;target_paddings&#39;</span><span class="p">]</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">norm_wer_errors</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">norm_wer_words</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_labels</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">)</span>
+      <span class="n">total_norm_wer_errs</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm_wer_errors</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">example_weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+      <span class="n">total_norm_wer_words</span> <span class="o">=</span> <span class="p">(</span><span class="n">norm_wer_words</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">example_weights</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">total_norm_wer_errs</span> <span class="o">/</span> <span class="n">total_norm_wer_words</span><span class="p">,</span> <span class="n">total_norm_wer_words</span><span class="p">)</span>
 
     <span class="n">filtered_transcripts</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">filtered_top_hyps</span> <span class="o">=</span> <span class="p">[]</span>
