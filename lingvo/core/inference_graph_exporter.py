@@ -102,6 +102,10 @@ def IsTpu(device_options):
   return device_options.device == 'tpu'
 
 
+def IsGpu(device_options):
+  return device_options.device == 'gpu'
+
+
 def ShouldForceBfloat16ForWeightsAndActivations(device_options):
   return device_options.dtype_override == tf.bfloat16
 
@@ -413,9 +417,9 @@ class InferenceGraphExporter:
         # Hard-code TPU-related flags prior to instantiating model.
         old_enable_asserts = FLAGS.enable_asserts
         old_xla_device = FLAGS.xla_device
-        if IsTpu(device_options):
+        if IsTpu(device_options) or IsGpu(device_options):
           FLAGS.enable_asserts = False
-          FLAGS.xla_device = 'tpu'
+          FLAGS.xla_device = device_options.device
 
         try:
           mdl = model_cfg.Instantiate()
@@ -581,7 +585,7 @@ class InferenceGraphExporter:
       p.name = '/job:localhost'
       p.replicas = 1
       p.tpus_per_replica = 1 if IsTpu(device_options) else 0
-      p.gpus_per_replica = 0
+      p.gpus_per_replica = 1 if IsGpu(device_options) else 0
       p.devices_per_split = 1
 
     cluster_params.mode = 'sync'
