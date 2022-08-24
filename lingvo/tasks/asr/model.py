@@ -227,7 +227,9 @@ class AsrModel(base_model.BaseTask):
 
   def _ComputeDecoderMetrics(self, decoder_outs, input_batch):
     batch = input_batch.DeepCopy()
-    batch.tgt = self._GetTargetForDecoderMetrics(input_batch)
+    if not getattr(self.params.decoder_metrics, 'pass_through_transcript_field',
+                   None):
+      batch.tgt = self._GetTargetForDecoderMetrics(input_batch)
     return self.decoder_metrics.ComputeMetrics(
         decoder_outs,
         batch,

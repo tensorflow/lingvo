@@ -99,6 +99,11 @@ class DecoderMetrics(base_layer.BaseLayer):
         'If True, ComputeMetrics() will only output TPU compatible tensors, '
         'no string output, and PostProcess() will run Detokenize. '
         'Note: This requires tokenizer implemented IdsToStringsPython().')
+    p.Define(
+        'pass_through_transcript_field', None,
+        'If None, we get ground truth transcripts for scoring by detokenizing '
+        'input_batch.tgt. Otherwise, the transcript is from the specified '
+        'field in the input batch.')
     return p
 
   def __init__(self, params):
@@ -164,63 +169,71 @@ class DecoderMetrics(base_layer.BaseLayer):
     topk = self.GetTopK(decoder_outs, ids_to_strings_fn=ids_to_strings_fn)
     tgt_batch = tf.shape(topk.scores)[0]
     num_hyps_per_beam = tf.shape(topk.scores)[1]
-    tgt = input_batch.tgt
-    tgt_lens = tf.cast(tf.round(tf.reduce_sum(1.0 - tgt.paddings, 1)), tf.int32)
-    tgt_lens = py_utils.HasShape(tgt_lens, [tgt_batch])
-    if eos_id is not None:
-      tgt_labels, tgt_lens = eos_normalization.NormalizeTrailingEos(
-          tgt.labels, tgt_lens, need_trailing_eos=False, eos_id=eos_id)
-    else:
-      tgt_labels = tgt.labels
-    transcripts = ids_to_strings_fn(tgt_labels, tgt_lens)
-
-    # Filter out all isolated '<noise>' tokens.
-    noise_pattern = ' <noise> |^<noise> | <noise>$|^<noise>$'
-    filtered_refs = tf.strings.regex_replace(transcripts, noise_pattern, ' ')
-    filtered_hyps = tf.strings.regex_replace(topk.decoded, noise_pattern, ' ')
-    # Compute translation quality scores for all hyps.
-    filtered_refs = tf.tile(
-        tf.reshape(filtered_refs, [-1, 1]), [1, num_hyps_per_beam])
-    filtered_hyps = tf.reshape(filtered_hyps, [-1])
-    filtered_refs = tf.reshape(filtered_refs, [-1])
-    tf.logging.info('filtered_refs=%s', filtered_refs)
-    norm_wer_errors, norm_wer_words = self.ComputeNormalizedWER(
-        filtered_hyps, filtered_refs, num_hyps_per_beam)
 
     if 'example_weights' in input_batch:
       example_weights = input_batch.example_weights
     else:
       example_weights = tf.ones([tgt_batch], tf.float32)
     ret_dict = {
-        'target_ids': tgt.ids,
-        'target_labels': tgt.labels,
-        'target_weights': tgt.weights,
-        'target_paddings': tgt.paddings,
-        'transcripts': transcripts,
         'topk_decoded': topk.decoded,
         'topk_ids': topk.ids,
         'topk_lens': topk.lens,
         'topk_scores': topk.scores,
-        'norm_wer_errors': norm_wer_errors,
-        'norm_wer_words': norm_wer_words,
         'example_weights': example_weights
     }
 
-    if not py_utils.use_tpu() and 'sample_ids' in input_batch:
-      ret_dict['utt_id'] = input_batch.sample_ids
-
     if 'is_real' in input_batch:
       ret_dict['is_real'] = input_batch.is_real
+    # For CPU run, we pass following string fields from input_batch to ret_dict.
+    if not py_utils.use_tpu():
+      if 'sample_ids' in input_batch:
+        ret_dict['utt_id'] = input_batch.sample_ids
+      if 'language.raw' in input_batch:
+        ret_dict['language'] = input_batch.language.raw
+      if 'testset_name' in input_batch:
+        ret_dict['testset_name'] = input_batch.input_batch
+      transcript_field = self.params.pass_through_transcript_field
+      if transcript_field:
+        ret_dict[transcript_field] = input_batch.Get(transcript_field, None)
 
-    if not py_utils.use_tpu() and 'language.raw' in input_batch:
-      ret_dict['language'] = input_batch.language.raw
-    if not py_utils.use_tpu() and 'testset_name' in input_batch:
-      ret_dict['testset_name'] = input_batch['testset_name']
+    if not self.params.pass_through_transcript_field:
+      tgt = input_batch.tgt
+      tgt_lens = tf.cast(
+          tf.round(tf.reduce_sum(1.0 - tgt.paddings, 1)), tf.int32)
+      tgt_lens = py_utils.HasShape(tgt_lens, [tgt_batch])
+      if eos_id is not None:
+        tgt_labels, tgt_lens = eos_normalization.NormalizeTrailingEos(
+            tgt.labels, tgt_lens, need_trailing_eos=False, eos_id=eos_id)
+      else:
+        tgt_labels = tgt.labels
+      transcripts = ids_to_strings_fn(tgt_labels, tgt_lens)
 
-    ret_dict.update(
-        self.AddAdditionalDecoderMetricsToGraph(topk, filtered_hyps,
-                                                filtered_refs, input_batch,
-                                                decoder_outs))
+      # Filter out all isolated '<noise>' tokens.
+      noise_pattern = ' <noise> |^<noise> | <noise>$|^<noise>$'
+      filtered_refs = tf.strings.regex_replace(transcripts, noise_pattern, ' ')
+      filtered_hyps = tf.strings.regex_replace(topk.decoded, noise_pattern, ' ')
+      # Compute translation quality scores for all hyps.
+      filtered_refs = tf.tile(
+          tf.reshape(filtered_refs, [-1, 1]), [1, num_hyps_per_beam])
+      filtered_hyps = tf.reshape(filtered_hyps, [-1])
+      filtered_refs = tf.reshape(filtered_refs, [-1])
+      tf.logging.info('filtered_refs=%s', filtered_refs)
+      norm_wer_errors, norm_wer_words = self.ComputeNormalizedWER(
+          filtered_hyps, filtered_refs, num_hyps_per_beam)
+
+      ret_dict.update({
+          'target_ids': tgt.ids,
+          'target_labels': tgt.labels,
+          'target_weights': tgt.weights,
+          'target_paddings': tgt.paddings,
+          'transcripts': transcripts,
+          'norm_wer_errors': norm_wer_errors,
+          'norm_wer_words': norm_wer_words,
+      })
+      ret_dict.update(
+          self.AddAdditionalDecoderMetricsToGraph(topk, filtered_hyps,
+                                                  filtered_refs, input_batch,
+                                                  decoder_outs))
     # Remove string outputs
     if self.params.only_output_tpu_tensors:
       del ret_dict['transcripts']
@@ -279,10 +292,27 @@ class DecoderMetrics(base_layer.BaseLayer):
         dec_out_dict[key] = np.asarray(
             [dec_out_dict[key][i] for i in range(len(is_real)) if is_real[i]])
 
-  def DeTokenizeDecoderOuts(self, dec_out_dict: Dict[str, Any],
+  def DeTokenizeTranscripts(self, dec_out_dict: Dict[str, Any],
                             tokenizer: tokenizers.BaseTokenizer) -> None:
-    """Fill transcripts, topk_decoded."""
-    raise NotImplementedError('DeTokenizeDecoderOuts not implemented!')
+    """Fill transcripts in dec_out_dict."""
+    if self.params.pass_through_transcript_field:
+      assert self.params.pass_through_transcript_field in dec_out_dict, (
+          'p.pass_through_transcript_field specified as '
+          f'{self.params.pass_through_transcript_field}, but '
+          'this field not exist in dec_out_dict!')
+      if self.params.pass_through_transcript_field != 'transcripts':
+        dec_out_dict['transcripts'] = dec_out_dict[
+            self.params.pass_through_transcript_field].copy()
+        del dec_out_dict[self.params.pass_through_transcript_field]
+    else:
+      raise NotImplementedError(
+          'DeTokenizeTranscripts not implemented when '
+          'p.pass_through_transcript_field not specified!')
+
+  def DeTokenizeTopkDecoded(self, dec_out_dict: Dict[str, Any],
+                            tokenizer: tokenizers.BaseTokenizer) -> None:
+    """Fill topk_decoded in dec_out_dict."""
+    raise NotImplementedError('DeTokenizeTopkDecoded not implemented!')
 
   def PreparePostProcess(self,
                          dec_out_dict,
@@ -291,9 +321,12 @@ class DecoderMetrics(base_layer.BaseLayer):
     """Prepare the objects for PostProcess metrics calculations."""
     assert 'topk_scores' in dec_out_dict, list(dec_out_dict.keys())
 
-    # IdToString outside of tf session.
+    # Detokenize transcripts outside of tf session.
     if 'transcripts' not in dec_out_dict:
-      self.DeTokenizeDecoderOuts(dec_out_dict, tokenizer)
+      self.DeTokenizeTranscripts(dec_out_dict, tokenizer)
+    # Detokenize topk_decoded outside of tf session.
+    if 'topk_decoded' not in dec_out_dict:
+      self.DeTokenizeTopkDecoded(dec_out_dict, tokenizer)
     # Filter out examples that is not real (dummy batch paddings).
     if 'is_real' in dec_out_dict:
       self.FilterRealExamples(dec_out_dict)
@@ -315,30 +348,38 @@ class DecoderMetrics(base_layer.BaseLayer):
     elif 'sample_ids' in dec_out_dict:
       utt_id = dec_out_dict['sample_ids']
     assert utt_id is None or len(utt_id) == len(transcripts)
-    norm_wer_errors = dec_out_dict['norm_wer_errors']
-    norm_wer_words = dec_out_dict['norm_wer_words']
-    target_labels = dec_out_dict['target_labels']
-    target_paddings = dec_out_dict['target_paddings']
+
     topk_ids = dec_out_dict['topk_ids']
     topk_lens = dec_out_dict['topk_lens']
+    assert len(transcripts) == len(topk_decoded)
+
     if 'example_weights' in dec_out_dict:
       example_weights = dec_out_dict['example_weights']
     else:
       example_weights = np.ones([len(transcripts)], np.float32)
-    assert len(transcripts) == len(target_labels)
-    assert len(transcripts) == len(target_paddings)
-    assert len(transcripts) == len(topk_decoded)
-    assert len(norm_wer_errors) == len(transcripts)
-    assert len(norm_wer_words) == len(transcripts)
-
     num_samples_in_batch = example_weights.sum()
     dec_metrics_dict['num_samples_in_batch'].Update(num_samples_in_batch)
 
-    total_norm_wer_errs = (norm_wer_errors[:, 0] * example_weights).sum()
-    total_norm_wer_words = (norm_wer_words[:, 0] * example_weights).sum()
-
-    dec_metrics_dict['norm_wer'].Update(
-        total_norm_wer_errs / total_norm_wer_words, total_norm_wer_words)
+    if self.params.pass_through_transcript_field:
+      # When using pass through transcripts, we donot care token level metrics.
+      # Fake these np arrays to avoid crash.
+      norm_wer_errors = np.zeros_like(topk_scores, dtype=np.float32)
+      target_labels = np.zeros(
+          shape=[len(transcripts), topk_ids.shape[1]], dtype=np.int32)
+      target_paddings = np.ones_like(target_labels, dtype=np.int32)
+    else:
+      norm_wer_errors = dec_out_dict['norm_wer_errors']
+      norm_wer_words = dec_out_dict['norm_wer_words']
+      target_labels = dec_out_dict['target_labels']
+      target_paddings = dec_out_dict['target_paddings']
+      assert len(norm_wer_errors) == len(transcripts)
+      assert len(norm_wer_words) == len(transcripts)
+      assert len(transcripts) == len(target_labels)
+      assert len(transcripts) == len(target_paddings)
+      total_norm_wer_errs = (norm_wer_errors[:, 0] * example_weights).sum()
+      total_norm_wer_words = (norm_wer_words[:, 0] * example_weights).sum()
+      dec_metrics_dict['norm_wer'].Update(
+          total_norm_wer_errs / total_norm_wer_words, total_norm_wer_words)
 
     filtered_transcripts = []
     filtered_top_hyps = []
