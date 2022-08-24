@@ -168,6 +168,10 @@
   <span class="k">return</span> <span class="n">device_options</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="s1">&#39;tpu&#39;</span></div>
 
 
+<div class="viewcode-block" id="IsGpu"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.IsGpu">[docs]</a><span class="k">def</span> <span class="nf">IsGpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">device_options</span><span class="o">.</span><span class="n">device</span> <span class="o">==</span> <span class="s1">&#39;gpu&#39;</span></div>
+
+
 <div class="viewcode-block" id="ShouldForceBfloat16ForWeightsAndActivations"><a class="viewcode-back" href="../../../lingvo.core.inference_graph_exporter.html#lingvo.core.inference_graph_exporter.ShouldForceBfloat16ForWeightsAndActivations">[docs]</a><span class="k">def</span> <span class="nf">ShouldForceBfloat16ForWeightsAndActivations</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
   <span class="k">return</span> <span class="n">device_options</span><span class="o">.</span><span class="n">dtype_override</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span></div>
 
@@ -479,9 +483,9 @@
         <span class="c1"># Hard-code TPU-related flags prior to instantiating model.</span>
         <span class="n">old_enable_asserts</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span>
         <span class="n">old_xla_device</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span>
-        <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">or</span> <span class="n">IsGpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">):</span>
           <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="kc">False</span>
-          <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="s1">&#39;tpu&#39;</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="n">device_options</span><span class="o">.</span><span class="n">device</span>
 
         <span class="k">try</span><span class="p">:</span>
           <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
@@ -647,7 +651,7 @@
       <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;/job:localhost&#39;</span>
       <span class="n">p</span><span class="o">.</span><span class="n">replicas</span> <span class="o">=</span> <span class="mi">1</span>
       <span class="n">p</span><span class="o">.</span><span class="n">tpus_per_replica</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">gpus_per_replica</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">IsGpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="k">else</span> <span class="mi">0</span>
       <span class="n">p</span><span class="o">.</span><span class="n">devices_per_split</span> <span class="o">=</span> <span class="mi">1</span>
 
     <span class="n">cluster_params</span><span class="o">.</span><span class="n">mode</span> <span class="o">=</span> <span class="s1">&#39;sync&#39;</span>
