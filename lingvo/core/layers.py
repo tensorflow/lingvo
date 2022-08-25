@@ -1332,35 +1332,13 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     else:
       inputs, w = self.ToAqtInputs('w', act=inputs, weight=w, w_feature_axis=-1)
       if p.use_block_diagonal_matmul:
-        if p.use_einsum:
-          out = py_utils.BlockDiagonalProjectLastDim(inputs, w, p.input_dim,
-                                                     p.output_dim,
-                                                     p.bd_num_blocks,
-                                                     mix_kernel)
-        else:
-          x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
-          out = py_utils.BlockDiagonalMatmul(x, w, p.bd_num_blocks, mix_kernel)
-          out = tf.reshape(
-              out,
-              tf.concat([
-                  py_utils.GetShape(inputs)[:-1],
-                  py_utils.ToStaticShape([p.output_dim])
-              ],
-                        axis=0))
+        out = py_utils.BlockDiagonalProjectLastDim(inputs, w, p.input_dim,
+                                                   p.output_dim,
+                                                   p.bd_num_blocks, mix_kernel,
+                                                   p.use_einsum)
       else:
-        if p.use_einsum:
-          out = py_utils.ProjectLastDim(inputs, w, p.input_dim,
-                                        self._internal_output_dim)
-        else:
-          x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
-          out = py_utils.Matmul(x, w)
-          out = tf.reshape(
-              out,
-              tf.concat([
-                  py_utils.GetShape(inputs)[:-1],
-                  py_utils.ToStaticShape([p.output_dim])
-              ],
-                        axis=0))
+        out = py_utils.ProjectLastDim(inputs, w, p.input_dim,
+                                      self._internal_output_dim, p.use_einsum)
       out = self.FromAqtMatmul('w', out)
 
     if b is not None:

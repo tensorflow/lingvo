@@ -5152,7 +5152,7 @@ def CumSum(x, axis=0, exclusive=False, use_einsum=False):
   return result
 
 
-def ProjectLastDim(inputs, weight, input_dim, output_dim):
+def ProjectLastDim(inputs, weight, input_dim, output_dim, use_einsum=True):
   """Linear projection on the last dim of the input tensor.
 
   This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
@@ -5163,6 +5163,7 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim):
     weight: A weight matrix with shape [input_dim, output_dim].
     input_dim: An integer or a symbolic dim, the last dimension of the inputs.
     output_dim: An integer or a symbolic dim, the last dimension of the outputs.
+    use_einsum: use tf.einsum for calculation (True), or use tf.matmul (False)
 
   Returns:
     An output Tensor of the same rank as inputs, the last dimension is
@@ -5182,19 +5183,19 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim):
       assert_equal(GetShape(weight)[-1], output_dim)
   ], weight)
 
-  if (use_tpu() and inputs.shape is not None and
-      inputs.shape.rank is not None and inputs.shape.rank < 26):
-    # Avoids reshape if feasible and uses Einsum.
-    if inputs.shape.rank == 2:
-      outputs = tf.matmul(inputs, weight)
-    else:
-      # This is equivalent to:
-      #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
-      # Unfortunately ... in einsum() leads to extra HBM usage.
-      s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
-      r = inputs.shape.rank
-      outputs = tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, weight)
+  if inputs.shape.rank == 2:
+    # Shortcut for 2D inputs: just use tf.matmul, no need for Einsum.
+    outputs = tf.matmul(inputs, weight)
+  elif (use_einsum and use_tpu() and inputs.shape is not None and
+        inputs.shape.rank is not None and inputs.shape.rank < 26):
+    # This is equivalent to:
+    #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
+    # Unfortunately ... in einsum() leads to extra HBM usage.
+    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+    r = inputs.shape.rank
+    outputs = tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, weight)
   else:
+    # not use_einsum or not use_tpu() or inputs.shape.rank >= 26
     outputs = Matmul(tf.reshape(inputs, ToStaticShape([-1, input_dim])), weight)
     outputs = tf.reshape(
         outputs,
@@ -6536,7 +6537,8 @@ def BlockDiagonalProjectLastDim(inputs,
                                 input_dim,
                                 output_dim,
                                 num_blocks=1,
-                                mix_kernel=None):
+                                mix_kernel=None,
+                                use_einsum=True):
   """Block diagonal linear projection on the last dim with mix.
 
   This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
@@ -6550,6 +6552,7 @@ def BlockDiagonalProjectLastDim(inputs,
     num_blocks: An integer or a symbolic dim, the number of blocks.
     mix_kernel: an (optional) order-2 tf.Tensor of shape [num_blocks,
       num_blocks].
+    use_einsum: use tf.einsum for calculation (True), or use tf.matmul (False)
 
   Returns:
     An output Tensor of the same rank as inputs, the last dimension is
@@ -6570,32 +6573,33 @@ def BlockDiagonalProjectLastDim(inputs,
       assert_equal(GetShape(weight)[-1], output_dim // num_blocks)
   ], weight)
 
-  if (use_tpu() and inputs.shape is not None and
-      inputs.shape.rank is not None and inputs.shape.rank < 26):
+  if (inputs.shape is not None and inputs.shape.rank is not None and
+      inputs.shape.rank == 2):
+    # Shortcut for 2D inputs: just use tf.matmul, no need for Einsum.
+    outputs = BlockDiagonalMatmul(inputs, weight, num_blocks, mix_kernel)
+  elif (use_einsum and use_tpu() and inputs.shape is not None and
+        inputs.shape.rank is not None and inputs.shape.rank < 26):
     # Avoids reshape if feasible and uses Einsum.
-    if inputs.shape.rank == 2:
-      # outputs = tf.matmul(inputs, weight)
-      outputs = BlockDiagonalMatmul(inputs, weight, num_blocks, mix_kernel)
-    else:
-      # This is equivalent to:
-      #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
-      # Unfortunately ... in einsum() leads to extra HBM usage.
-      s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
-      r = inputs.shape.rank
-      input_splitted = tf.split(inputs, num_blocks, axis=-1)
-      output_splitted = []
-      for i, input_i in enumerate(input_splitted):
-        output_splitted.append(
-            tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), input_i,
-                      weight[i, :, :]))
-      if mix_kernel is not None:
-        output_mixed = [0.0] * num_blocks
-        for i in range(num_blocks):
-          for j in range(num_blocks):
-            output_mixed[i] += mix_kernel[i, j] * output_splitted[j]
-        output_splitted = output_mixed
-      outputs = tf.concat(output_splitted, axis=-1)
+    # This is equivalent to:
+    #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
+    # Unfortunately ... in einsum() leads to extra HBM usage.
+    s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
+    r = inputs.shape.rank
+    input_splitted = tf.split(inputs, num_blocks, axis=-1)
+    output_splitted = []
+    for i, input_i in enumerate(input_splitted):
+      output_splitted.append(
+          tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), input_i,
+                    weight[i, :, :]))
+    if mix_kernel is not None:
+      output_mixed = [0.0] * num_blocks
+      for i in range(num_blocks):
+        for j in range(num_blocks):
+          output_mixed[i] += mix_kernel[i, j] * output_splitted[j]
+      output_splitted = output_mixed
+    outputs = tf.concat(output_splitted, axis=-1)
   else:
+    # not use_einsum or not use_tpu() or inputs.shape.rank >= 26
     outputs = BlockDiagonalMatmul(
         tf.reshape(inputs, ToStaticShape([-1, input_dim])), weight, num_blocks,
         mix_kernel)
