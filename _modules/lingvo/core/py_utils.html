@@ -5218,7 +5218,7 @@
   <span class="k">return</span> <span class="n">result</span></div>
 
 
-<div class="viewcode-block" id="ProjectLastDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ProjectLastDim">[docs]</a><span class="k">def</span> <span class="nf">ProjectLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">):</span>
+<div class="viewcode-block" id="ProjectLastDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.tasks.mt.decoder.ProjectLastDim">[docs]</a><span class="k">def</span> <span class="nf">ProjectLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">use_einsum</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Linear projection on the last dim of the input tensor.</span>
 
 <span class="sd">  This is a TPU efficient implementation to avoid reshaping inputs to Rank-2</span>
@@ -5229,6 +5229,7 @@
 <span class="sd">    weight: A weight matrix with shape [input_dim, output_dim].</span>
 <span class="sd">    input_dim: An integer or a symbolic dim, the last dimension of the inputs.</span>
 <span class="sd">    output_dim: An integer or a symbolic dim, the last dimension of the outputs.</span>
+<span class="sd">    use_einsum: use tf.einsum for calculation (True), or use tf.matmul (False)</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    An output Tensor of the same rank as inputs, the last dimension is</span>
@@ -5248,19 +5249,19 @@
       <span class="n">assert_equal</span><span class="p">(</span><span class="n">GetShape</span><span class="p">(</span><span class="n">weight</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">output_dim</span><span class="p">)</span>
   <span class="p">],</span> <span class="n">weight</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="p">(</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-      <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">26</span><span class="p">):</span>
-    <span class="c1"># Avoids reshape if feasible and uses Einsum.</span>
-    <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="c1"># This is equivalent to:</span>
-      <span class="c1">#   outputs = tf.einsum(&#39;...y,yz-&gt;...z&#39;, inputs, weight)</span>
-      <span class="c1"># Unfortunately ... in einsum() leads to extra HBM usage.</span>
-      <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">97</span><span class="p">,</span> <span class="mi">123</span><span class="p">)])</span>  <span class="c1"># abc...xyz</span>
-      <span class="n">r</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">y,yz-&gt;</span><span class="si">{0}</span><span class="s1">z&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[:</span><span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+    <span class="c1"># Shortcut for 2D inputs: just use tf.matmul, no need for Einsum.</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="p">(</span><span class="n">use_einsum</span> <span class="ow">and</span> <span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">26</span><span class="p">):</span>
+    <span class="c1"># This is equivalent to:</span>
+    <span class="c1">#   outputs = tf.einsum(&#39;...y,yz-&gt;...z&#39;, inputs, weight)</span>
+    <span class="c1"># Unfortunately ... in einsum() leads to extra HBM usage.</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">97</span><span class="p">,</span> <span class="mi">123</span><span class="p">)])</span>  <span class="c1"># abc...xyz</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">y,yz-&gt;</span><span class="si">{0}</span><span class="s1">z&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[:</span><span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># not use_einsum or not use_tpu() or inputs.shape.rank &gt;= 26</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">])),</span> <span class="n">weight</span><span class="p">)</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">outputs</span><span class="p">,</span>
@@ -6602,7 +6603,8 @@
                                 <span class="n">input_dim</span><span class="p">,</span>
                                 <span class="n">output_dim</span><span class="p">,</span>
                                 <span class="n">num_blocks</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
-                                <span class="n">mix_kernel</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                                <span class="n">mix_kernel</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">use_einsum</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Block diagonal linear projection on the last dim with mix.</span>
 
 <span class="sd">  This is a TPU efficient implementation to avoid reshaping inputs to Rank-2</span>
@@ -6616,6 +6618,7 @@
 <span class="sd">    num_blocks: An integer or a symbolic dim, the number of blocks.</span>
 <span class="sd">    mix_kernel: an (optional) order-2 tf.Tensor of shape [num_blocks,</span>
 <span class="sd">      num_blocks].</span>
+<span class="sd">    use_einsum: use tf.einsum for calculation (True), or use tf.matmul (False)</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    An output Tensor of the same rank as inputs, the last dimension is</span>
@@ -6636,32 +6639,33 @@
       <span class="n">assert_equal</span><span class="p">(</span><span class="n">GetShape</span><span class="p">(</span><span class="n">weight</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">output_dim</span> <span class="o">//</span> <span class="n">num_blocks</span><span class="p">)</span>
   <span class="p">],</span> <span class="n">weight</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="p">(</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
-      <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">26</span><span class="p">):</span>
+  <span class="k">if</span> <span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+      <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+    <span class="c1"># Shortcut for 2D inputs: just use tf.matmul, no need for Einsum.</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">BlockDiagonalMatmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="p">(</span><span class="n">use_einsum</span> <span class="ow">and</span> <span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span>
+        <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">&lt;</span> <span class="mi">26</span><span class="p">):</span>
     <span class="c1"># Avoids reshape if feasible and uses Einsum.</span>
-    <span class="k">if</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
-      <span class="c1"># outputs = tf.matmul(inputs, weight)</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="n">BlockDiagonalMatmul</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weight</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">mix_kernel</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="c1"># This is equivalent to:</span>
-      <span class="c1">#   outputs = tf.einsum(&#39;...y,yz-&gt;...z&#39;, inputs, weight)</span>
-      <span class="c1"># Unfortunately ... in einsum() leads to extra HBM usage.</span>
-      <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">97</span><span class="p">,</span> <span class="mi">123</span><span class="p">)])</span>  <span class="c1"># abc...xyz</span>
-      <span class="n">r</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span>
-      <span class="n">input_splitted</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">output_splitted</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">input_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_splitted</span><span class="p">):</span>
-        <span class="n">output_splitted</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">y,yz-&gt;</span><span class="si">{0}</span><span class="s1">z&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[:</span><span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">input_i</span><span class="p">,</span>
-                      <span class="n">weight</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]))</span>
-      <span class="k">if</span> <span class="n">mix_kernel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">output_mixed</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_blocks</span>
-        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">):</span>
-          <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">):</span>
-            <span class="n">output_mixed</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mix_kernel</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">output_splitted</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
-        <span class="n">output_splitted</span> <span class="o">=</span> <span class="n">output_mixed</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">output_splitted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># This is equivalent to:</span>
+    <span class="c1">#   outputs = tf.einsum(&#39;...y,yz-&gt;...z&#39;, inputs, weight)</span>
+    <span class="c1"># Unfortunately ... in einsum() leads to extra HBM usage.</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="nb">chr</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">97</span><span class="p">,</span> <span class="mi">123</span><span class="p">)])</span>  <span class="c1"># abc...xyz</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">rank</span>
+    <span class="n">input_splitted</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">output_splitted</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">input_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">input_splitted</span><span class="p">):</span>
+      <span class="n">output_splitted</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{0}</span><span class="s1">y,yz-&gt;</span><span class="si">{0}</span><span class="s1">z&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">s</span><span class="p">[:</span><span class="n">r</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]),</span> <span class="n">input_i</span><span class="p">,</span>
+                    <span class="n">weight</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:]))</span>
+    <span class="k">if</span> <span class="n">mix_kernel</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">output_mixed</span> <span class="o">=</span> <span class="p">[</span><span class="mf">0.0</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_blocks</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_blocks</span><span class="p">):</span>
+          <span class="n">output_mixed</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+=</span> <span class="n">mix_kernel</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">*</span> <span class="n">output_splitted</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+      <span class="n">output_splitted</span> <span class="o">=</span> <span class="n">output_mixed</span>
+    <span class="n">outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">output_splitted</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># not use_einsum or not use_tpu() or inputs.shape.rank &gt;= 26</span>
     <span class="n">outputs</span> <span class="o">=</span> <span class="n">BlockDiagonalMatmul</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">])),</span> <span class="n">weight</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span>
         <span class="n">mix_kernel</span><span class="p">)</span>

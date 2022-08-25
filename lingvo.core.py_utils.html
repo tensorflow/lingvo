@@ -2705,7 +2705,7 @@ based on scanning and reducing which is not efficient on TPU.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.ProjectLastDim">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">ProjectLastDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ProjectLastDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.ProjectLastDim" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">ProjectLastDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_einsum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ProjectLastDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.ProjectLastDim" title="Permalink to this definition"></a></dt>
 <dd><p>Linear projection on the last dim of the input tensor.</p>
 <p>This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
 tensor by using Einsum for the compute.</p>
@@ -2716,6 +2716,7 @@ tensor by using Einsum for the compute.</p>
 <li><p><strong>weight</strong> – A weight matrix with shape [input_dim, output_dim].</p></li>
 <li><p><strong>input_dim</strong> – An integer or a symbolic dim, the last dimension of the inputs.</p></li>
 <li><p><strong>output_dim</strong> – An integer or a symbolic dim, the last dimension of the outputs.</p></li>
+<li><p><strong>use_einsum</strong> – use tf.einsum for calculation (True), or use tf.matmul (False)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -3397,7 +3398,7 @@ input_num_blocks).</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="lingvo.core.py_utils.BlockDiagonalProjectLastDim">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">BlockDiagonalProjectLastDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#BlockDiagonalProjectLastDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.BlockDiagonalProjectLastDim" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">lingvo.core.py_utils.</span></span><span class="sig-name descname"><span class="pre">BlockDiagonalProjectLastDim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dim</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_blocks</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mix_kernel</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_einsum</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#BlockDiagonalProjectLastDim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.py_utils.BlockDiagonalProjectLastDim" title="Permalink to this definition"></a></dt>
 <dd><p>Block diagonal linear projection on the last dim with mix.</p>
 <p>This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
 tensor by using Einsum for the compute.</p>
@@ -3411,6 +3412,7 @@ tensor by using Einsum for the compute.</p>
 <li><p><strong>num_blocks</strong> – An integer or a symbolic dim, the number of blocks.</p></li>
 <li><p><strong>mix_kernel</strong> – an (optional) order-2 tf.Tensor of shape [num_blocks,
 num_blocks].</p></li>
+<li><p><strong>use_einsum</strong> – use tf.einsum for calculation (True), or use tf.matmul (False)</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
