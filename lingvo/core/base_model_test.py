@@ -86,14 +86,14 @@ class BaseTaskTest(test_utils.TestCase):
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     FLAGS.enable_check_numerics = False
-    with self.session():
+    with self.session() as sess:
       self.evaluate(tf.global_variables_initializer())
-      self.assertEqual(1.0, scaled_grads_map.grad_scale.eval())
+      self.assertEqual(1.0, sess.run(scaled_grads_map.grad_scale))
       # The final gradient must be finite.
       self.assertFalse(
-          tf.math.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+          sess.run(tf.math.is_nan(scaled_grads_map.final_var_grads.a[1])))
       self.assertTrue(
-          tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
+          sess.run(tf.math.is_finite(scaled_grads_map.final_var_grads.a[1])))
 
   @flagsaver.flagsaver
   def testScaleGradientsInf(self):
@@ -105,14 +105,14 @@ class BaseTaskTest(test_utils.TestCase):
     var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, tf.math.log(0.)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
-    with self.session():
+    with self.session() as sess:
       self.evaluate(tf.global_variables_initializer())
-      self.assertEqual(0., scaled_grads_map.grad_scale.eval())
+      self.assertEqual(0., sess.run(scaled_grads_map.grad_scale))
       # The final gradient must be finite.
       self.assertFalse(
-          tf.math.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+          sess.run(tf.math.is_nan(scaled_grads_map.final_var_grads.a[1])))
       self.assertTrue(
-          tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
+          sess.run(tf.math.is_finite(scaled_grads_map.final_var_grads.a[1])))
 
   @flagsaver.flagsaver
   def testScaleGradientsNaN(self):
@@ -125,14 +125,14 @@ class BaseTaskTest(test_utils.TestCase):
         a=py_utils.VarGrad(var_a, 0. * tf.math.log(0.)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
-    with self.session():
+    with self.session() as sess:
       self.evaluate(tf.global_variables_initializer())
-      self.assertEqual(0., scaled_grads_map.grad_scale.eval())
+      self.assertEqual(0., sess.run(scaled_grads_map.grad_scale))
       # The final gradient must be finite.
       self.assertFalse(
-          tf.math.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+          sess.run(tf.math.is_nan(scaled_grads_map.final_var_grads.a[1])))
       self.assertTrue(
-          tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
+          sess.run(tf.math.is_finite(scaled_grads_map.final_var_grads.a[1])))
 
   @flagsaver.flagsaver
   def testScaleGradientsCheckNumerics(self):
@@ -144,15 +144,14 @@ class BaseTaskTest(test_utils.TestCase):
     # Make a NaN gradient.
     var_grads = py_utils.NestedMap(
         a=py_utils.VarGrad(var_a, 0. * tf.math.log(0.)))
-    scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
-
-    with self.session():
-      self.evaluate(tf.global_variables_initializer())
-      self.assertEqual(0., scaled_grads_map.grad_scale.eval())
-      # Fetching the gradient raises an exception with enable_check_numerics.
-      with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
-                                  'is not finite'):
-        _ = scaled_grads_map.final_var_grads.a[1].eval()
+    with self.assertRaisesRegex(  # pylint: disable=g-error-prone-assert-raises
+        tf.errors.InvalidArgumentError, 'is not finite'):
+      scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
+      with self.session() as sess:
+        self.evaluate(tf.global_variables_initializer())
+        self.assertEqual(0., sess.run(scaled_grads_map.grad_scale))
+        # Fetching the gradient raises an exception with enable_check_numerics.
+        _ = sess.run(scaled_grads_map.final_var_grads.a[1])
 
   def testScaleGradientsError(self):
     p = self.TestParams()
@@ -181,12 +180,11 @@ class BaseTaskTest(test_utils.TestCase):
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     FLAGS.enable_check_numerics = False
-    with self.session():
+    with self.session() as sess:
       self.evaluate(tf.global_variables_initializer())
-
       # Each variable is clipped indipendently to grad scale of 1.
-      self.assertAllClose(scaled_grads_map.final_var_grads.a[1].eval(), 1.0)
-      self.assertAllClose(scaled_grads_map.final_var_grads.b[1].eval(), 0.5)
+      self.assertAllClose(sess.run(scaled_grads_map.final_var_grads.a[1]), 1.0)
+      self.assertAllClose(sess.run(scaled_grads_map.final_var_grads.b[1]), 0.5)
 
 
 class TeacherTask(base_model.BaseTask):
@@ -252,12 +250,17 @@ class DistillationTaskTest(test_utils.TestCase):
     task = params.Instantiate()
     self.assertIsNotNone(task.teacher.params.input)
     self.assertIsNotNone(task.student.params.input)
-    metrics = task.FPropDefaultTheta()[0]
-    self.assertCountEqual(['loss', 'num_samples_in_batch'],
-                          list(metrics.keys()))
-    task.BProp()
-    # Expected side effects of BProp().
-    self.assertIsNotNone(task.train_op)
+
+    @test_utils.DefineAndTrace()
+    def train():
+      metrics = task.FPropDefaultTheta()[0]
+      self.assertCountEqual(['loss', 'num_samples_in_batch'],
+                            list(metrics.keys()))
+      task.BProp()
+      # Expected side effects of BProp().
+      self.assertIsNotNone(task.train_op)
+      if not tf.executing_eagerly_outside_functions():
+        return task.train_op
 
     with self.session():
       self.evaluate(tf.global_variables_initializer())
@@ -274,7 +277,7 @@ class DistillationTaskTest(test_utils.TestCase):
 
       # Train for a few steps.
       for _ in range(10):
-        self.evaluate(task.train_op)
+        self.evaluate(train)
       for child in ('teacher', 'student'):
         values_after_training[child] = self.evaluate(variables[child])
       return values_before_training, values_after_training
@@ -331,16 +334,21 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     p = base_model.SingleTaskModel.Params(task)
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
-    model.ConstructFPropBPropGraph()
+
+    @test_utils.DefineAndTrace()
+    def train():
+      model.ConstructFPropBPropGraph()
+
     # Test that EMA is accessible by a sublayer.
     x = model.GetTask().x
     self.assertIsNotNone(x.ema)
     self.assertIs(x.ema, model.ema)
-    with tf.variable_scope('base_mdl', reuse=True):
-      beta = tf.get_variable('x/beta/var')
-      mean = tf.get_variable('x/moving_mean/var')
-      self.assertIsNotNone(model.ema.average(beta))
-      self.assertIsNone(model.ema.average(mean))
+    # Cannot use `get_variable` in Eager mode
+    vars_dict = x.GetVariablesDict()
+    beta = vars_dict['base_mdl/x/beta/var:0']
+    mean = vars_dict['base_mdl/x/moving_mean/var:0']
+    self.assertIsNotNone(model.ema.average(beta))
+    self.assertIsNone(model.ema.average(mean))
 
   def testExponentialMovingAverageIncludingMovingVars(self):
     task = BaseTaskTest.TestParams()
@@ -350,12 +358,18 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     p = base_model.SingleTaskModel.Params(task)
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
-    model.ConstructFPropBPropGraph()
-    with tf.variable_scope('base_mdl', reuse=True):
-      beta = tf.get_variable('x/beta/var')
-      mean = tf.get_variable('x/moving_mean/var')
-      self.assertIsNotNone(model.ema.average(beta))
-      self.assertIsNotNone(model.ema.average(mean))
+
+    @test_utils.DefineAndTrace()
+    def train():
+      model.ConstructFPropBPropGraph()
+
+    x = model.GetTask().x
+    # Cannot use `get_variable` in Eager mode
+    vars_dict = x.GetVariablesDict()
+    beta = vars_dict['base_mdl/x/beta/var:0']
+    mean = vars_dict['base_mdl/x/moving_mean/var:0']
+    self.assertIsNotNone(model.ema.average(beta))
+    self.assertIsNotNone(model.ema.average(mean))
 
   @parameterized.named_parameters(
       ('SGD', optimizer.SGD.Params()),
@@ -369,7 +383,11 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     p.task.train.learner = learner.Learner.Params().Set(
         name='loss', optimizer=optimizer_params)
     model = p.Instantiate()
-    model.ConstructFPropBPropGraph()
+
+    @test_utils.DefineAndTrace()
+    def train():
+      model.ConstructFPropBPropGraph()
+
     self.assertEqual([
         'global_step:0',
         'base_mdl/a/var:0',
@@ -394,7 +412,11 @@ class SingleTaskModelTest(test_utils.TestCase, parameterized.TestCase):
     p = base_model.SingleTaskModel.Params(task)
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
-    model.ConstructFPropBPropGraph()
+
+    @test_utils.DefineAndTrace()
+    def train():
+      model.ConstructFPropBPropGraph()
+
     self.assertCountEqual([
         'global_step:0',
         'base_mdl/a/var:0',
@@ -434,23 +456,34 @@ class MultiTaskSubModelTest(test_utils.TestCase):
         name='loss', optimizer=optimizer.Adam.Params())
     model = p.Instantiate()
 
-    def RunOnce():
+    def run_once():
       model.ConstructFPropBPropGraph()
 
     mt_p = base_model.MultiTaskSubModel.Params().Set(task_name='_task')
     mt_model = mt_p.Instantiate(shared_model=model)
 
     if tf.executing_eagerly():
-      tf.function(RunOnce)()
+      tf.function(run_once)()
     else:
-      RunOnce()
+      run_once()
+
+    adam_var = 'base_mdl/a/var/Adam:0'
+    adam1_var = 'base_mdl/a/var/Adam_1:0'
+    beta1_var = 'beta1_power:0'
+    beta2_var = 'beta2_power:0'
+    if tf.executing_eagerly():
+      adam_var = 'base_mdl/loss/base_mdl/a/var/Adam:0'
+      adam1_var = 'base_mdl/loss/base_mdl/a/var/Adam_1:0'
+      beta1_var = 'loss/beta1_power:0'
+      beta2_var = 'loss/beta2_power:0'
+
     self.assertEqual([
         'base_mdl/a/var:0',
         'base_mdl/b/var:0',
-        'base_mdl/a/var/Adam:0',
-        'base_mdl/a/var/Adam_1:0',
-        'beta1_power:0',
-        'beta2_power:0',
+        adam_var,
+        adam1_var,
+        beta1_var,
+        beta2_var,
         'base_mdl/x/beta/var:0',
         'base_mdl/x/gamma/var:0',
         'base_mdl/x/moving_mean/var:0',
@@ -626,13 +659,19 @@ class PostTrainingTest(test_utils.TestCase):
   def testPost(self):
     p = self.TestParams()
     task = p.Instantiate()
-    task.FPropDefaultTheta()
-    task.BProp()
-    train_op = task.train_op
+
     with self.session():
+
+      @test_utils.DefineAndTrace()
+      def train():
+        task.FPropDefaultTheta()
+        task.BProp()
+        if not tf.executing_eagerly_outside_functions():
+          return task.train_op
+
       self.evaluate(tf.global_variables_initializer())
       for _ in range(20):
-        self.evaluate(train_op)
+        self.evaluate(train)
         c1, c2 = self.evaluate([task.vars.counter1, task.vars.counter2])
         # Both vars should have the same value if the PostTrainingStep
         # happens after the training step.
@@ -640,4 +679,4 @@ class PostTrainingTest(test_utils.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  test_utils.main()
