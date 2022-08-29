@@ -1328,18 +1328,20 @@ class DecodeProgram(BaseProgram):
       # Wait for all async postprocessing jobs to finish.
       for future in futures:
         future.get()
-    num_examples_metric = dec_metrics['num_samples_in_batch']
+    elapsed_secs = time.time() - start_time
     # TODO(xingwu): simplify summaries format.
     summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
-    summaries['cumulative_num_examples'] = tf.Summary(value=[
-        tf.Summary.Value(
-            tag='cumulative_num_examples',
-            simple_value=num_examples_metric.total_value)
-    ])
-    elapsed_secs = time.time() - start_time
-    example_rate = num_examples_metric.total_value / elapsed_secs
-    summaries['examples/sec'] = tf.Summary(
-        value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
+    for k, v in dec_metrics.items():
+      if k.startswith('num_samples_in_batch'):
+        cumulative_key = 'cumulative_num_examples' + k.removeprefix(
+            'num_samples_in_batch')
+        summaries[cumulative_key] = tf.Summary(value=[
+            tf.Summary.Value(tag=cumulative_key, simple_value=v.total_value)
+        ])
+        example_rate = v.total_value / elapsed_secs
+        speed_key = 'examples/sec' + k.removeprefix('num_samples_in_batch')
+        summaries[speed_key] = tf.Summary(
+            value=[tf.Summary.Value(tag=speed_key, simple_value=example_rate)])
 
     self._WriteSummaries(
         os.path.basename(self._program_dir), dataset_name, global_step,
