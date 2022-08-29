@@ -714,7 +714,10 @@ class TrainerTpu(base_runner.BaseRunner):
         # Always save a ckpt at step 0.
         self._checkpointer.MaybeSave(sess, global_step)
 
-      sess.run(self._load_ops)
+      if self._retrieve_ops:
+        sess.run(self._load_ops)
+        self._task.input.Initialize(sess)
+
       while True:
         train_steps_start = time.perf_counter()
 
