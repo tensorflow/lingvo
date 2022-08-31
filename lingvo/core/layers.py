@@ -1311,15 +1311,15 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       out = self.FromAqtMatmul('w', out)
       # Create an output layer [b, num_outputs].
       bsz = py_utils.GetShape(out)[0]
-      out = tf.reshape(out, [bsz, -1])
       if self._internal_output_dim % p.block_dim != 0:
+        out = tf.reshape(out, [bsz, -1])
         out_shape = [bsz, self._internal_output_dim]
         out = tf.slice(out, [0, 0], out_shape)
       out = tf.reshape(
           out,
           tf.concat([
               py_utils.GetShape(inputs)[:-1],
-              py_utils.ToStaticShape([p.output_dim])
+              py_utils.ToStaticShape([self._internal_output_dim])
           ],
                     axis=0))
     elif self.apply_compression and p.use_einsum:
@@ -1333,7 +1333,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       inputs, w = self.ToAqtInputs('w', act=inputs, weight=w, w_feature_axis=-1)
       if p.use_block_diagonal_matmul:
         out = py_utils.BlockDiagonalProjectLastDim(inputs, w, p.input_dim,
-                                                   p.output_dim,
+                                                   self._internal_output_dim,
                                                    p.bd_num_blocks, mix_kernel,
                                                    p.use_einsum)
       else:
