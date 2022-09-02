@@ -328,6 +328,12 @@ class MoEBuilder(builder.Base):
           weights=weights,
           device_mesh=device_mesh)
 
+  def get_quantized_weight_scale(self, shape):
+    return py_utils.WeightParams(
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=self.params.dtype,
+        shape=shape)
+
   def _ShardedVarOn1DDeviceArray(self, name, weights):
     """Variables sharded along dimension 0.
 
@@ -884,19 +890,23 @@ class MoEBuilder(builder.Base):
                              device_mesh=None,
                              wi_mesh_split=None,
                              wo_mesh_split=None,
-                             use_bias=False):
+                             use_bias=False,
+                             is_quantize=False):
+    weight_dtype = self.params.dtype
+    if is_quantize:
+      weight_dtype = tf.int8
     weights = [('wi',
                 gshard_layers.ShardedWeightParams(
                     init=py_utils.WeightInit.Uniform(
                         (((1. / self.params.model_dim)**0.5) * 3.0**0.5)),
-                    dtype=self.params.dtype,
+                    dtype=weight_dtype,
                     shape=[self.params.model_dim, self.params.ff_dim],
                     tensor_split_dims_mapping=wi_mesh_split)),
                ('wo',
                 gshard_layers.ShardedWeightParams(
                     init=py_utils.WeightInit.Uniform(
                         (((1. / self.params.ff_dim)**0.5) * 3.0**0.5)),
-                    dtype=self.params.dtype,
+                    dtype=weight_dtype,
                     shape=[self.params.ff_dim, self.params.model_dim],
                     tensor_split_dims_mapping=wo_mesh_split))]
     if use_bias:
@@ -910,6 +920,13 @@ class MoEBuilder(builder.Base):
                        init=py_utils.WeightInit.Constant(0.0),
                        dtype=self.params.dtype,
                        shape=[self.params.model_dim]))]
+
+    if is_quantize:
+      weights += [
+          ('wi_s', self.get_quantized_weight_scale([self.params.ff_dim])),
+          ('wo_s', self.get_quantized_weight_scale([self.params.model_dim]))
+      ]
+
     return self._ShardedVar(name=name, weights=weights, device_mesh=device_mesh)
 
   def DenseReluDense(self, name, decoder=False, activation='relu'):
@@ -1255,6 +1272,58 @@ class MoEBuilder(builder.Base):
         ('q,k_full,v_full,bias_full->o', self.Attention('attention')),
         ('->aux_loss', self._zero_aux_loss('aux_loss')),
         ('o,wo->outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)))
+    # pyformat: enable
+
+  def DecSelfAttentionQuantized(self,
+                                name,
+                                device_mesh=None,
+                                w_qkv_mhd_mesh_split=None,
+                                wo_hdm_mesh_split=None):
+    """TransformerDecoder SelfAttention quantized.
+
+    Note that attention bias (see _DecNotvisible) ensures that current position
+    (~row) is less that memory position(~column).
+
+    Args:
+      name: name of the layer.
+      device_mesh: device_mesh for sharding (if specified)
+      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified)
+      wo_hdm_mesh_split: mesh split for output weights (if specified)
+
+    Returns:
+      layer params for TransformerDecoder SelfAttention.
+    """
+    p = self.params
+    state_shape = [
+        None, None, p.attention_num_memory_heads or p.attention_num_heads,
+        p.attention_key_value_dim
+    ]
+
+    rope_fn = self._GetRopeFn(p.use_rotary_position_emb,
+                              p.rope_emb_max_timescale)
+
+    # pyformat: disable
+    return self._Graph(
+        name, self._DecoderLayerInMapKeys, [
+            'outputs',
+            'aux_loss',
+        ],
+        ('->wq,wk,wv,wo,wq_s,wk_s,wv_s,wo_s', self._AttentionWeights(
+            'w', device_mesh, w_qkv_mhd_mesh_split, wo_hdm_mesh_split, True)),
+        ('vec,wq,wk,wv->q_q_no_rot,q_k_no_rot,q_v', self._ComputeQKVCombine('qkv')),
+        ('q_q_no_rot,wq_s->q_no_rot', self._Fn('q_rescale', fn=tf.math.multiply)),
+        ('q_k_no_rot,wk_s->k_no_rot', self._Fn('k_rescale', fn=tf.math.multiply)),
+        ('q_v,wv_s->v', self._Fn('v_rescale', fn=tf.math.multiply)),
+        ('q_no_rot,segment_pos->q', self._Fn('rot_q', rope_fn)),
+        ('k_no_rot,segment_pos->k', self._Fn('rot_k', rope_fn)),
+        ('k->k_full', self._AttentionState('k_state', state_shape)),
+        ('v->v_full', self._AttentionState('v_state', state_shape)),
+        self._DecComputeBiasGraphEdge(),
+        ('qq_bias->bias_full', self._Override('dec_self_attention_bias')),
+        ('q,k_full,v_full,bias_full->o', self.Attention('attention')),
+        ('->aux_loss', self._zero_aux_loss('aux_loss')),
+        ('o,wo->q_outputs', self._Fn('outputs', fn=self._ComputeAttenOutputs)),
+        ('q_outputs,wo_s->outputs', self._Fn('out_rescale', fn=tf.math.multiply)))
     # pyformat: enable
 
   def DecMultiDconvHeadAttention(self,
@@ -1885,7 +1954,8 @@ class MoEBuilder(builder.Base):
                         name,
                         device_mesh=None,
                         w_qkv_mhd_mesh_split=None,
-                        wo_hdm_mesh_split=None):
+                        wo_hdm_mesh_split=None,
+                        is_quantize=False):
     """Helper for '->wq,wk,wv,wo' Graph edge."""
 
     p = self.params
@@ -1930,29 +2000,35 @@ class MoEBuilder(builder.Base):
       w_qkv_mesh_split = w_qkv_mhd_mesh_split
       wo_mesh_split = wo_hdm_mesh_split
 
+    weight_dtype = self.params.dtype
+    if is_quantize:
+      weight_dtype = tf.int8
     wq_tpl = gshard_layers.ShardedWeightParams(
         shape=[p.model_dim] + hd_dims,
-        dtype=self.params.dtype,
+        dtype=weight_dtype,
         init=py_utils.WeightInit.Gaussian(q_stddev),
         tensor_split_dims_mapping=w_qkv_mesh_split)
     kv_stddev = (p.model_dim)**-0.5
     wkv_tpl = gshard_layers.ShardedWeightParams(
         shape=[p.model_dim] + kv_hd_dims,
-        dtype=self.params.dtype,
+        dtype=weight_dtype,
         init=py_utils.WeightInit.Gaussian(kv_stddev),
         tensor_split_dims_mapping=w_qkv_mesh_split)
     o_stddev = (p.attention_num_heads * p.attention_key_value_dim)**-0.5
     wo_tpl = gshard_layers.ShardedWeightParams(
         shape=hd_dims + [p.model_dim],
-        dtype=self.params.dtype,
+        dtype=weight_dtype,
         init=py_utils.WeightInit.Gaussian(o_stddev),
         tensor_split_dims_mapping=wo_mesh_split)
 
-    return self._ShardedVar(
-        name=name,
-        weights=[('wq', wq_tpl), ('wk', wkv_tpl), ('wv', wkv_tpl),
-                 ('wo', wo_tpl)],
-        device_mesh=device_mesh)
+    weights = [('wq', wq_tpl), ('wk', wkv_tpl), ('wv', wkv_tpl), ('wo', wo_tpl)]
+
+    if is_quantize:
+      weights += [('wq_s', self.get_quantized_weight_scale(hd_dims)),
+                  ('wk_s', self.get_quantized_weight_scale(kv_hd_dims)),
+                  ('wv_s', self.get_quantized_weight_scale(kv_hd_dims)),
+                  ('wo_s', self.get_quantized_weight_scale([p.model_dim]))]
+    return self._ShardedVar(name=name, weights=weights, device_mesh=device_mesh)
 
   def _ComputeQKV(self, name):
     p = self.params
@@ -2262,6 +2338,10 @@ class DenseBuilder(MoEBuilder):
     Returns:
       tf.einsum(maybe_modified_equation, x, y)
     """
+    if x.dtype == tf.int8:
+      x = tf.cast(x, tf.bfloat16)
+    if y.dtype == tf.int8:
+      y = tf.cast(y, tf.bfloat16)
     if self._model_dim_reshape_segments is None:
       return tf.einsum(equation, x, y)
     new_equation = gshard_layers._EinsumEqWithModelDim(  # pylint: disable=protected-access
@@ -2275,6 +2355,10 @@ class DenseBuilder(MoEBuilder):
   def EinsumWithModelDim(self, name, equation):
 
     def _Fn(x, y):
+      if x.dtype == tf.int8:
+        x = tf.cast(x, tf.bfloat16)
+      if y.dtype == tf.int8:
+        y = tf.cast(y, tf.bfloat16)
       return gshard_layers.EinsumWithModelDim(equation, x, y,
                                               self._model_dim_reshape_segments)
 
@@ -2873,6 +2957,60 @@ class DenseBuilder(MoEBuilder):
                           self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),)
       downwards_project = (('wo_reshaped,h_dropout->outputs_pre_split',
                             self.EinsumWithModelDim('wo', 'HM,BLH->BLM')),)
+    return self._Graph(
+        name,
+        input_endpoints,
+        ['outputs', 'aux_loss'],
+        loaded_weights,
+        ('wi->wi_reshaped',
+         self._Fn('wi_reshape', fn=lambda x: self._ReshapeM(x, 0))),
+        ('wo->wo_reshaped',
+         self._Fn('wo_reshape', fn=lambda x: self._ReshapeM(x, 1))),
+        *upwards_project,
+        ('h->h_split', self.MeshSplit('_h_split', p.blh_split)),
+        ('h_split->h_%s' % activation, self._Fn(activation, activation_fn)),
+        ('h_%s->h_dropout' % activation,
+         self._Dropout('input_dropout', 1 - p.dropout_rate)),
+        *downwards_project,
+        ('outputs_pre_split->outputs',
+         self.MeshSplit('outputs_split', self._AdjustMSplit(p.blm_split, 2))),
+        ('->aux_loss', self._zero_aux_loss('aux_loss')),
+    )
+
+  def DenseReluDenseQuantized(self, name, decoder=False, activation='relu'):
+    if decoder:
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
+
+    if activation == 'relu':
+      activation_fn = tf.nn.relu
+    elif activation == 'gelu':
+      activation_fn = lambda x: tf.nn.gelu(x, approximate=True)
+    elif activation == 'sqr_relu':
+      activation_fn = lambda x: tf.math.square(tf.nn.relu(x))
+    else:
+      raise ValueError('Activation %s not supported.' % activation)
+
+    p = self.params
+
+    loaded_weights = ('->wi,wo,bi,bo,wi_s,wo_s',
+                      self._DenseReluDenseWeights('w', self._device_mesh,
+                                                  p.mh_wi_split, p.hm_wo_split,
+                                                  p.ff_use_bias, True))
+    upwards_project = (
+        ('wi_reshaped,vec->q_h', self.EinsumWithModelDim('wi', 'MH,BLM->BLH')),
+        ('q_h,wi_s->h_i', self._Fn('wi_rescale', fn=tf.math.multiply)),
+        ('h_i,bi->h', self._Fn('add_input_bias', tf.nn.bias_add)),
+    )
+    downwards_project = (
+        ('wo_reshaped,h_dropout->q_outputs_pre_split',
+         self.EinsumWithModelDim('wo', 'HM,BLH->BLM')),
+        ('q_outputs_pre_split,wo_s->h_o',
+         self._Fn('wo_rescale', fn=tf.math.multiply)),
+        ('h_o,bo->outputs_pre_split', self._Fn('add_output_bias',
+                                               tf.nn.bias_add)),
+    )
     return self._Graph(
         name,
         input_endpoints,
@@ -3499,6 +3637,7 @@ class UniTransformer(base_model.BaseTask):
     p.Define('has_final_layer', True, 'The model has the final layer such as '
              'feedforward net.')
     p.Define('softmax_logit_cap', 0.0, 'Softmax logit cap.')
+    p.Define('is_quantize', False, 'Whether or not the model is quantized.')
     return p
 
   def __init__(self, params):
@@ -3582,15 +3721,22 @@ class UniTransformer(base_model.BaseTask):
         if p.multi_dconv_head_att:
           atten_layer = b.DecMultiDconvHeadAttention('multi_dconv_head_att')
         else:
-          atten_layer = b.DecSelfAttention('dec_self_attention')
+          if p.is_quantize:
+            atten_layer = b.DecSelfAttentionQuantized('dec_self_attention')
+          else:
+            atten_layer = b.DecSelfAttention('dec_self_attention')
       elif p.multi_dconv_head_att:
         atten_layer = b.DecMultiDconvHeadAttentionRelativeBias(
             'multi_dconv_head_att')
       else:
         atten_layer = b.DecSelfAttentionRelativeBias('dec_self_attention')
       if gated_ffn_activation is None:
-        ffw_layer = b.DenseReluDense(
-            'dense_relu_dense', decoder=True, activation=p.activation)
+        if p.is_quantize:
+          ffw_layer = b.DenseReluDenseQuantized(
+              'dense_relu_dense', decoder=True, activation=p.activation)
+        else:
+          ffw_layer = b.DenseReluDense(
+              'dense_relu_dense', decoder=True, activation=p.activation)
       else:
         ffw_layer = b.DenseReluDenseGated(
             'dense_relu_dense', gated_ffn_activation, decoder=True)
