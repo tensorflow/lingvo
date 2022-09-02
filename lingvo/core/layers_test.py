@@ -2898,6 +2898,28 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
 class StackingOverTimeLayerTest(test_utils.TestCase, parameterized.TestCase):
 
+  def testInvalidInputShape(self):
+    params = layers.StackingOverTime.Params().Set(
+        name='stackingOverTime',
+        left_context=2,
+        right_context=0,
+        stride=2,
+        pad_with_left_frame=True)
+    stacker = layers.StackingOverTime(params)
+
+    inputs = tf.constant([[[1, 1], [2, 2], [3, 3], [4, 4], [5, 5], [6, 6]],
+                          [[7, 7], [8, 8], [0, 0], [0, 0], [0, 0], [0, 0]]],
+                         dtype=tf.float32)
+    # Insert extra dimension to make invalid shape.
+    inputs = tf.reshape(inputs, [2, 6, 1, 2])
+
+    paddings = tf.constant(
+        [[[0], [0], [0], [0], [0], [0]], [[0], [0], [1], [1], [1], [1]]],
+        dtype=tf.float32)
+
+    with self.session(), self.assertRaises(ValueError):
+      _, _ = stacker.FProp(inputs, paddings)
+
   @parameterized.named_parameters(
       {
           'testcase_name': 'pad_with_left_frame',

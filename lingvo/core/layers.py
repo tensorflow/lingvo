@@ -1794,8 +1794,9 @@ class StackingOverTime(base_layer.BaseLayer):
     inputs = py_utils.with_dependencies(
         [
             # Checks the inputs shape has 3 dimensions.
-            py_utils.assert_shape_match(tf.shape(inputs), [-1, -1, -1]),
+            tf.assert_rank(inputs, 3),
             # Checks the paddings shape has 3 dimensions, and the last one is 1.
+            tf.assert_rank(paddings, 3),
             py_utils.assert_shape_match(tf.shape(paddings), [-1, -1, 1]),
             # Checks the first two dimensions of inputs and paddings match.
             py_utils.assert_shape_match(
