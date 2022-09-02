@@ -146,7 +146,8 @@ class Checkpointer:
                train_dir,
                models,
                train_params=None,
-               save_only=False):
+               save_only=False,
+               check_loading_status=True):
     """Initialize Checkpointer.
 
     Args:
@@ -157,10 +158,16 @@ class Checkpointer:
      train_params: If specified, use these training params instead of those in
        the `model`.
      save_only: This checkpointer is only intended for saving checkpoints.
+     check_loading_status: Set to True to have extra safety checks when loading
+       a checkpoint file. The safety check should be skipped when a mismatch is
+       expected between the model and the checkpoint file. For example, a evaler
+       is not expected to load all the checkpointed variables from a trainer
+       because the evaler does not have an optimizer.
     """
     self._train_dir = train_dir
     self._save_only = save_only
     self._save_path = os.path.join(self._train_dir, 'ckpt')
+    self._check_loading_status = check_loading_status
 
     if not isinstance(models, (list, tuple)):
       models = [models]
@@ -277,7 +284,9 @@ class Checkpointer:
     tf.logging.info('Load checkpoint done.')
     # Successfully restored from checkpoint.
     uninitialized_var_names = self._GetUninitializedVarNames(sess)
-    assert not uninitialized_var_names, uninitialized_var_names
+    if self._check_loading_status:
+      assert not uninitialized_var_names, uninitialized_var_names
+
     return checkpoint_path
 
   def ShouldSave(self, gsteps):
@@ -459,7 +468,8 @@ class _EagerCheckpointer(Checkpointer):
                train_dir,
                models,
                train_params=None,
-               save_only=False):
+               save_only=False,
+               check_loading_status=True):
     """Initialize Checkpointer.
 
     Args:
@@ -470,6 +480,11 @@ class _EagerCheckpointer(Checkpointer):
      train_params: If specified, use these training params instead of those in
        the `model`.
      save_only: This checkpointer is only intended for saving checkpoints.
+     check_loading_status: Set to True to have extra safety checks when loading
+       a checkpoint file. The safety check should be skipped when a mismatch is
+       expected between the model and the checkpoint file. For example, a evaler
+       is not expected to load all the checkpointed variables from a trainer
+       because the evaler does not have an optimizer.
     """
     # This cannot be None because in Eager mode the models are necessary to
     # get saveable variables.
@@ -477,7 +492,8 @@ class _EagerCheckpointer(Checkpointer):
       models = [models]
     self._models = models
     self._init_rules_built = False
-    super().__init__(train_dir, models, train_params, save_only)
+    super().__init__(train_dir, models, train_params, save_only,
+                     check_loading_status)
 
   def _MaybeBuildInitFromCheckpointRules(self):
     """Build restore fns for init_from_checkpoint_rules."""
@@ -519,9 +535,16 @@ class EagerCheckpointerV1(_EagerCheckpointer):
                train_dir,
                models,
                train_params=None,
-               save_only=False):
-    super().__init__(train_dir, models, train_params, save_only)
+               save_only=False,
+               check_loading_status=True):
+    super().__init__(train_dir, models, train_params, save_only,
+                     check_loading_status)
     tf.logging.info('EagerCheckpointerV1')
+    if check_loading_status:
+      tf.logging.warning('This checkpointer is used for backwards '
+                         'compatibility and does not support '
+                         '`check_loading_status`. In the long term please '
+                         'consider moving to EagerCheckpointerV2.')
     # Distinct from EagerCheckpointerV2
     self._train_dir = os.path.join(self._train_dir, 'ckpt_V1')
     if not tf.io.gfile.exists(self._train_dir):
@@ -595,6 +618,8 @@ class EagerCheckpointerV1(_EagerCheckpointer):
 
   def RestoreFromPath(self, sess=None, checkpoint_path=None):
     """`sess` is unused in Eager context."""
+    # TODO(jiaweix): `check_loading_status` is not supported in V1 checkpointer.
+    # For robustness we need to use V2 checkpointer as much as posisble.
     assert sess is None
     assert not self._save_only
 
@@ -607,12 +632,10 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     tf.logging.info('Load from checkpoint (V1) %s.', checkpoint_path)
 
     try:
-      load_status = self._restorer.restore(save_path=checkpoint_path)
+      self._restorer.restore(save_path=checkpoint_path)
     except tf.errors.NotFoundError as err:
       raise self._WrapRestoreErrorWithGraphModeWarning(err)
 
-    # Check all model vars are matched from the checkpoint.
-    load_status.assert_existing_objects_matched().assert_consumed()
     tf.logging.info('Load checkpoint done.')
     self._MaybeOverwriteModelVariablesWithEMA()
     return checkpoint_path
@@ -645,8 +668,10 @@ class EagerCheckpointerV2(_EagerCheckpointer):
                train_dir,
                models,
                train_params=None,
-               save_only=False):
-    super().__init__(train_dir, models, train_params, save_only)
+               save_only=False,
+               check_loading_status=True):
+    super().__init__(train_dir, models, train_params, save_only,
+                     check_loading_status)
     tf.logging.info('EagerCheckpointerV2')
     # Distinct from EagerCheckpointerV1
     self._train_dir = os.path.join(self._train_dir, 'ckpt_V2')
@@ -717,7 +742,9 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     tf.logging.info('Load from checkpoint (V2) %s.', checkpoint_path)
     load_status = self._saver.restore(checkpoint_path)
     tf.logging.info('Load checkpoint done.')
-    load_status.assert_existing_objects_matched().assert_consumed()
+    if self._check_loading_status:
+      load_status.assert_existing_objects_matched().assert_consumed()
+
     self._MaybeOverwriteModelVariablesWithEMA()
     return checkpoint_path
 

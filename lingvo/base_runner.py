@@ -141,7 +141,8 @@ class BaseRunner:
     """Wrapper method for override purposes."""
     if py_utils.IsEagerMode():
       if FLAGS.write_v2_checkpoints:
-        return checkpointer.EagerCheckpointerV2(train_dir, model)
+        return checkpointer.EagerCheckpointerV2(
+            train_dir, model, check_loading_status=False)
       return checkpointer.EagerCheckpointerV1(train_dir, model)
     return checkpointer.Checkpointer(train_dir, model)
 

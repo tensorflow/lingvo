@@ -199,6 +199,46 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
     graph_keys = _GetCheckpointKeys(os.path.join(graph_logdir, 'ckpt-00000000'))
     self.assertEqual(eager_v1_keys, graph_keys)
 
+  def testEagerCheckpointConsumptionCheck(self):
+    self.assertTrue(tf.executing_eagerly())
+    cfg = model_registry.GetParams('test.LinearModelParams', 'Train')
+
+    eager_v1_logdir = os.path.join(self.get_temp_dir(), 'eager_v1')
+    eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
+    mdl = cfg.Instantiate()
+
+    @tf.function
+    def _Update():
+      with py_utils.GradientTape(persistent=True):
+        mdl.ConstructFPropBPropGraph()
+
+    # Step 1
+    _Update()
+    # Save V1 checkpoint.
+    ckpt_v1 = checkpointer.EagerCheckpointerV1(eager_v1_logdir, mdl)
+    ckpt_v1.Save(gsteps=1)
+    # Save V2 checkpoint.
+    ckpt_v2 = checkpointer.EagerCheckpointerV2(eager_v2_logdir, mdl)
+    ckpt_v2.Save(gsteps=1)
+
+    mdl_eval = cfg.Instantiate()
+    ckpt_eval_v1 = checkpointer.EagerCheckpointerV1(eager_v1_logdir, mdl_eval)
+    ckpt_eval_v2 = checkpointer.EagerCheckpointerV2(eager_v2_logdir, mdl_eval)
+    ckpt_eval_v2_2 = checkpointer.EagerCheckpointerV2(
+        eager_v2_logdir, mdl_eval, check_loading_status=False)
+    # Because `mdl_eval` does not have any vars related to training,
+    # We expect `EagerCheckpointerV2.Restore` to fail in its matching checks.
+    # `EagerCheckpointerV1.Restore`, however, does not have this feature.
+    with cluster_factory.SetEval(True):
+      # Restores variables to values saved in `eager_v1_logdir`
+      ckpt_eval_v1.Restore()
+
+    with cluster_factory.SetEval(True):
+      # Restores variables to values saved in `eager_v2_logdir`
+      with self.assertRaisesRegex(AssertionError, 'Unresolved object'):
+        ckpt_eval_v2.Restore()
+      ckpt_eval_v2_2.Restore()
+
 
 if __name__ == '__main__':
   py_utils.SetEagerMode(True)
