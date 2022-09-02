@@ -394,6 +394,12 @@
           <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
           <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="MoEBuilder.get_quantized_weight_scale"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.get_quantized_weight_scale">[docs]</a>  <span class="k">def</span> <span class="nf">get_quantized_weight_scale</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="MoEBuilder._ShardedVarOn1DDeviceArray"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ShardedVarOn1DDeviceArray">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVarOn1DDeviceArray</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Variables sharded along dimension 0.</span>
 
@@ -950,19 +956,23 @@
                              <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                              <span class="n">wi_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                              <span class="n">wo_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                             <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                             <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                             <span class="n">is_quantize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">weight_dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">if</span> <span class="n">is_quantize</span><span class="p">:</span>
+      <span class="n">weight_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span>
     <span class="n">weights</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span>
                 <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                     <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
                         <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">weight_dtype</span><span class="p">,</span>
                     <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">],</span>
                     <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wi_mesh_split</span><span class="p">)),</span>
                <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span>
                 <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
                     <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span>
                         <span class="p">(((</span><span class="mf">1.</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mf">3.0</span><span class="o">**</span><span class="mf">0.5</span><span class="p">)),</span>
-                    <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+                    <span class="n">dtype</span><span class="o">=</span><span class="n">weight_dtype</span><span class="p">,</span>
                     <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
                     <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wo_mesh_split</span><span class="p">))]</span>
     <span class="k">if</span> <span class="n">use_bias</span><span class="p">:</span>
@@ -976,6 +986,13 @@
                        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
                        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
                        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))]</span>
+
+    <span class="k">if</span> <span class="n">is_quantize</span><span class="p">:</span>
+      <span class="n">weights</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;wi_s&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_quantized_weight_scale</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">ff_dim</span><span class="p">])),</span>
+          <span class="p">(</span><span class="s1">&#39;wo_s&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_quantized_weight_scale</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))</span>
+      <span class="p">]</span>
+
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder.DenseReluDense"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DenseReluDense">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">):</span>
@@ -1321,6 +1338,58 @@
         <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,bias_full-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;o,wo-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)))</span></div>
+    <span class="c1"># pyformat: enable</span>
+
+<div class="viewcode-block" id="MoEBuilder.DecSelfAttentionQuantized"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecSelfAttentionQuantized">[docs]</a>  <span class="k">def</span> <span class="nf">DecSelfAttentionQuantized</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">name</span><span class="p">,</span>
+                                <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;TransformerDecoder SelfAttention quantized.</span>
+
+<span class="sd">    Note that attention bias (see _DecNotvisible) ensures that current position</span>
+<span class="sd">    (~row) is less that memory position(~column).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of the layer.</span>
+<span class="sd">      device_mesh: device_mesh for sharding (if specified)</span>
+<span class="sd">      w_qkv_mhd_mesh_split: mesh split for qkv weigthts (if specified)</span>
+<span class="sd">      wo_hdm_mesh_split: mesh split for output weights (if specified)</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      layer params for TransformerDecoder SelfAttention.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">state_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_memory_heads</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span>
+    <span class="p">]</span>
+
+    <span class="n">rope_fn</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetRopeFn</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">use_rotary_position_emb</span><span class="p">,</span>
+                              <span class="n">p</span><span class="o">.</span><span class="n">rope_emb_max_timescale</span><span class="p">)</span>
+
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span><span class="p">,</span> <span class="p">[</span>
+            <span class="s1">&#39;outputs&#39;</span><span class="p">,</span>
+            <span class="s1">&#39;aux_loss&#39;</span><span class="p">,</span>
+        <span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;wq,wk,wv,wo,wq_s,wk_s,wv_s,wo_s&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionWeights</span><span class="p">(</span>
+            <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">device_mesh</span><span class="p">,</span> <span class="n">w_qkv_mhd_mesh_split</span><span class="p">,</span> <span class="n">wo_hdm_mesh_split</span><span class="p">,</span> <span class="kc">True</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;vec,wq,wk,wv-&gt;q_q_no_rot,q_k_no_rot,q_v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeQKVCombine</span><span class="p">(</span><span class="s1">&#39;qkv&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q_q_no_rot,wq_s-&gt;q_no_rot&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;q_rescale&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q_k_no_rot,wk_s-&gt;k_no_rot&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;k_rescale&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q_v,wv_s-&gt;v&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;v_rescale&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q_no_rot,segment_pos-&gt;q&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;rot_q&#39;</span><span class="p">,</span> <span class="n">rope_fn</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k_no_rot,segment_pos-&gt;k&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;rot_k&#39;</span><span class="p">,</span> <span class="n">rope_fn</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;k-&gt;k_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;k_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;v-&gt;v_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttentionState</span><span class="p">(</span><span class="s1">&#39;v_state&#39;</span><span class="p">,</span> <span class="n">state_shape</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_DecComputeBiasGraphEdge</span><span class="p">(),</span>
+        <span class="p">(</span><span class="s1">&#39;qq_bias-&gt;bias_full&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Override</span><span class="p">(</span><span class="s1">&#39;dec_self_attention_bias&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q,k_full,v_full,bias_full-&gt;o&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">Attention</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;o,wo-&gt;q_outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ComputeAttenOutputs</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q_outputs,wo_s-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;out_rescale&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">)))</span></div>
     <span class="c1"># pyformat: enable</span>
 
 <div class="viewcode-block" id="MoEBuilder.DecMultiDconvHeadAttention"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder.DecMultiDconvHeadAttention">[docs]</a>  <span class="k">def</span> <span class="nf">DecMultiDconvHeadAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -1951,7 +2020,8 @@
                         <span class="n">name</span><span class="p">,</span>
                         <span class="n">device_mesh</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                         <span class="n">w_qkv_mhd_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                        <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                        <span class="n">wo_hdm_mesh_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                        <span class="n">is_quantize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Helper for &#39;-&gt;wq,wk,wv,wo&#39; Graph edge.&quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1996,29 +2066,35 @@
       <span class="n">w_qkv_mesh_split</span> <span class="o">=</span> <span class="n">w_qkv_mhd_mesh_split</span>
       <span class="n">wo_mesh_split</span> <span class="o">=</span> <span class="n">wo_hdm_mesh_split</span>
 
+    <span class="n">weight_dtype</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">if</span> <span class="n">is_quantize</span><span class="p">:</span>
+      <span class="n">weight_dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span>
     <span class="n">wq_tpl</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span> <span class="o">+</span> <span class="n">hd_dims</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">weight_dtype</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">q_stddev</span><span class="p">),</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">w_qkv_mesh_split</span><span class="p">)</span>
     <span class="n">kv_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
     <span class="n">wkv_tpl</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]</span> <span class="o">+</span> <span class="n">kv_hd_dims</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">weight_dtype</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">kv_stddev</span><span class="p">),</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">w_qkv_mesh_split</span><span class="p">)</span>
     <span class="n">o_stddev</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">attention_num_heads</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_key_value_dim</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span>
     <span class="n">wo_tpl</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">ShardedWeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">hd_dims</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">],</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">weight_dtype</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span><span class="n">o_stddev</span><span class="p">),</span>
         <span class="n">tensor_split_dims_mapping</span><span class="o">=</span><span class="n">wo_mesh_split</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
-        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;wq&#39;</span><span class="p">,</span> <span class="n">wq_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wk&#39;</span><span class="p">,</span> <span class="n">wkv_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wv&#39;</span><span class="p">,</span> <span class="n">wkv_tpl</span><span class="p">),</span>
-                 <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_tpl</span><span class="p">)],</span>
-        <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
+    <span class="n">weights</span> <span class="o">=</span> <span class="p">[(</span><span class="s1">&#39;wq&#39;</span><span class="p">,</span> <span class="n">wq_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wk&#39;</span><span class="p">,</span> <span class="n">wkv_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wv&#39;</span><span class="p">,</span> <span class="n">wkv_tpl</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="n">wo_tpl</span><span class="p">)]</span>
+
+    <span class="k">if</span> <span class="n">is_quantize</span><span class="p">:</span>
+      <span class="n">weights</span> <span class="o">+=</span> <span class="p">[(</span><span class="s1">&#39;wq_s&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_quantized_weight_scale</span><span class="p">(</span><span class="n">hd_dims</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;wk_s&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_quantized_weight_scale</span><span class="p">(</span><span class="n">kv_hd_dims</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;wv_s&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_quantized_weight_scale</span><span class="p">(</span><span class="n">kv_hd_dims</span><span class="p">)),</span>
+                  <span class="p">(</span><span class="s1">&#39;wo_s&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_quantized_weight_scale</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">]))]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span> <span class="n">device_mesh</span><span class="o">=</span><span class="n">device_mesh</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MoEBuilder._ComputeQKV"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.MoEBuilder._ComputeQKV">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeQKV</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -2328,6 +2404,10 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      tf.einsum(maybe_modified_equation, x, y)</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span>
+      <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
     <span class="n">new_equation</span> <span class="o">=</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">_EinsumEqWithModelDim</span><span class="p">(</span>  <span class="c1"># pylint: disable=protected-access</span>
@@ -2341,6 +2421,10 @@
 <div class="viewcode-block" id="DenseBuilder.EinsumWithModelDim"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.EinsumWithModelDim">[docs]</a>  <span class="k">def</span> <span class="nf">EinsumWithModelDim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">equation</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">y</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">int8</span><span class="p">:</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">gshard_layers</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="n">equation</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span>
                                               <span class="bp">self</span><span class="o">.</span><span class="n">_model_dim_reshape_segments</span><span class="p">)</span>
 
@@ -2939,6 +3023,60 @@
                           <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">)),)</span>
       <span class="n">downwards_project</span> <span class="o">=</span> <span class="p">((</span><span class="s1">&#39;wo_reshaped,h_dropout-&gt;outputs_pre_split&#39;</span><span class="p">,</span>
                             <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="s1">&#39;HM,BLH-&gt;BLM&#39;</span><span class="p">)),)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="n">input_endpoints</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">,</span> <span class="s1">&#39;aux_loss&#39;</span><span class="p">],</span>
+        <span class="n">loaded_weights</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;wi-&gt;wi_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;wo-&gt;wo_reshaped&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wo_reshape&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReshapeM</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">1</span><span class="p">))),</span>
+        <span class="o">*</span><span class="n">upwards_project</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;h-&gt;h_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;_h_split&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">blh_split</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h_split-&gt;h_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">activation</span><span class="p">,</span> <span class="n">activation_fn</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h_</span><span class="si">%s</span><span class="s1">-&gt;h_dropout&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_rate</span><span class="p">)),</span>
+        <span class="o">*</span><span class="n">downwards_project</span><span class="p">,</span>
+        <span class="p">(</span><span class="s1">&#39;outputs_pre_split-&gt;outputs&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">MeshSplit</span><span class="p">(</span><span class="s1">&#39;outputs_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AdjustMSplit</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">blm_split</span><span class="p">,</span> <span class="mi">2</span><span class="p">))),</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;aux_loss&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_zero_aux_loss</span><span class="p">(</span><span class="s1">&#39;aux_loss&#39;</span><span class="p">)),</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="DenseBuilder.DenseReluDenseQuantized"><a class="viewcode-back" href="../../../lingvo.core.gshard_builder.html#lingvo.core.gshard_builder.DenseBuilder.DenseReluDenseQuantized">[docs]</a>  <span class="k">def</span> <span class="nf">DenseReluDenseQuantized</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;relu&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">decoder</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DecoderLayerInMapKeys</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">input_endpoints</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EncoderLayerInMapKeys</span>
+
+    <span class="k">if</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;relu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;gelu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">gelu</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">approximate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;sqr_relu&#39;</span><span class="p">:</span>
+      <span class="n">activation_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Activation </span><span class="si">%s</span><span class="s1"> not supported.&#39;</span> <span class="o">%</span> <span class="n">activation</span><span class="p">)</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">loaded_weights</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;-&gt;wi,wo,bi,bo,wi_s,wo_s&#39;</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">_DenseReluDenseWeights</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_mesh</span><span class="p">,</span>
+                                                  <span class="n">p</span><span class="o">.</span><span class="n">mh_wi_split</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hm_wo_split</span><span class="p">,</span>
+                                                  <span class="n">p</span><span class="o">.</span><span class="n">ff_use_bias</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+    <span class="n">upwards_project</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s1">&#39;wi_reshaped,vec-&gt;q_h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wi&#39;</span><span class="p">,</span> <span class="s1">&#39;MH,BLM-&gt;BLH&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q_h,wi_s-&gt;h_i&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wi_rescale&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h_i,bi-&gt;h&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;add_input_bias&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">)),</span>
+    <span class="p">)</span>
+    <span class="n">downwards_project</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="s1">&#39;wo_reshaped,h_dropout-&gt;q_outputs_pre_split&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">EinsumWithModelDim</span><span class="p">(</span><span class="s1">&#39;wo&#39;</span><span class="p">,</span> <span class="s1">&#39;HM,BLH-&gt;BLM&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;q_outputs_pre_split,wo_s-&gt;h_o&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;wo_rescale&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">multiply</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;h_o,bo-&gt;outputs_pre_split&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;add_output_bias&#39;</span><span class="p">,</span>
+                                               <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">bias_add</span><span class="p">)),</span>
+    <span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
         <span class="n">input_endpoints</span><span class="p">,</span>
@@ -3565,6 +3703,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;has_final_layer&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;The model has the final layer such as &#39;</span>
              <span class="s1">&#39;feedforward net.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;softmax_logit_cap&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Softmax logit cap.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;is_quantize&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether or not the model is quantized.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -3648,15 +3787,22 @@
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">multi_dconv_head_att</span><span class="p">:</span>
           <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecMultiDconvHeadAttention</span><span class="p">(</span><span class="s1">&#39;multi_dconv_head_att&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttention</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_quantize</span><span class="p">:</span>
+            <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttentionQuantized</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttention</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
       <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">multi_dconv_head_att</span><span class="p">:</span>
         <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecMultiDconvHeadAttentionRelativeBias</span><span class="p">(</span>
             <span class="s1">&#39;multi_dconv_head_att&#39;</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">atten_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DecSelfAttentionRelativeBias</span><span class="p">(</span><span class="s1">&#39;dec_self_attention&#39;</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">gated_ffn_activation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDense</span><span class="p">(</span>
-            <span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_quantize</span><span class="p">:</span>
+          <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDenseQuantized</span><span class="p">(</span>
+              <span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDense</span><span class="p">(</span>
+              <span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">ffw_layer</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">DenseReluDenseGated</span><span class="p">(</span>
             <span class="s1">&#39;dense_relu_dense&#39;</span><span class="p">,</span> <span class="n">gated_ffn_activation</span><span class="p">,</span> <span class="n">decoder</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
