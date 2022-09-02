@@ -212,7 +212,8 @@
                <span class="n">train_dir</span><span class="p">,</span>
                <span class="n">models</span><span class="p">,</span>
                <span class="n">train_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">check_loading_status</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Initialize Checkpointer.</span>
 
 <span class="sd">    Args:</span>
@@ -223,10 +224,16 @@
 <span class="sd">     train_params: If specified, use these training params instead of those in</span>
 <span class="sd">       the `model`.</span>
 <span class="sd">     save_only: This checkpointer is only intended for saving checkpoints.</span>
+<span class="sd">     check_loading_status: Set to True to have extra safety checks when loading</span>
+<span class="sd">       a checkpoint file. The safety check should be skipped when a mismatch is</span>
+<span class="sd">       expected between the model and the checkpoint file. For example, a evaler</span>
+<span class="sd">       is not expected to load all the checkpointed variables from a trainer</span>
+<span class="sd">       because the evaler does not have an optimizer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">train_dir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span> <span class="o">=</span> <span class="n">save_only</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_check_loading_status</span> <span class="o">=</span> <span class="n">check_loading_status</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">models</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">models</span><span class="p">]</span>
@@ -343,7 +350,9 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
     <span class="c1"># Successfully restored from checkpoint.</span>
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetUninitializedVarNames</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">,</span> <span class="n">uninitialized_var_names</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_loading_status</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">uninitialized_var_names</span><span class="p">,</span> <span class="n">uninitialized_var_names</span>
+
     <span class="k">return</span> <span class="n">checkpoint_path</span></div>
 
 <div class="viewcode-block" id="Checkpointer.ShouldSave"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.ShouldSave">[docs]</a>  <span class="k">def</span> <span class="nf">ShouldSave</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
@@ -525,7 +534,8 @@
                <span class="n">train_dir</span><span class="p">,</span>
                <span class="n">models</span><span class="p">,</span>
                <span class="n">train_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">check_loading_status</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Initialize Checkpointer.</span>
 
 <span class="sd">    Args:</span>
@@ -536,6 +546,11 @@
 <span class="sd">     train_params: If specified, use these training params instead of those in</span>
 <span class="sd">       the `model`.</span>
 <span class="sd">     save_only: This checkpointer is only intended for saving checkpoints.</span>
+<span class="sd">     check_loading_status: Set to True to have extra safety checks when loading</span>
+<span class="sd">       a checkpoint file. The safety check should be skipped when a mismatch is</span>
+<span class="sd">       expected between the model and the checkpoint file. For example, a evaler</span>
+<span class="sd">       is not expected to load all the checkpointed variables from a trainer</span>
+<span class="sd">       because the evaler does not have an optimizer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># This cannot be None because in Eager mode the models are necessary to</span>
     <span class="c1"># get saveable variables.</span>
@@ -543,7 +558,8 @@
       <span class="n">models</span> <span class="o">=</span> <span class="p">[</span><span class="n">models</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_models</span> <span class="o">=</span> <span class="n">models</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_init_rules_built</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">,</span>
+                     <span class="n">check_loading_status</span><span class="p">)</span>
 
 <div class="viewcode-block" id="_EagerCheckpointer._MaybeBuildInitFromCheckpointRules"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer._EagerCheckpointer._MaybeBuildInitFromCheckpointRules">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeBuildInitFromCheckpointRules</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Build restore fns for init_from_checkpoint_rules.&quot;&quot;&quot;</span>
@@ -585,9 +601,16 @@
                <span class="n">train_dir</span><span class="p">,</span>
                <span class="n">models</span><span class="p">,</span>
                <span class="n">train_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">)</span>
+               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">check_loading_status</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">,</span>
+                     <span class="n">check_loading_status</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;EagerCheckpointerV1&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">check_loading_status</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;This checkpointer is used for backwards &#39;</span>
+                         <span class="s1">&#39;compatibility and does not support &#39;</span>
+                         <span class="s1">&#39;`check_loading_status`. In the long term please &#39;</span>
+                         <span class="s1">&#39;consider moving to EagerCheckpointerV2.&#39;</span><span class="p">)</span>
     <span class="c1"># Distinct from EagerCheckpointerV2</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt_V1&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">):</span>
@@ -661,6 +684,8 @@
 
 <div class="viewcode-block" id="EagerCheckpointerV1.RestoreFromPath"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV1.RestoreFromPath">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreFromPath</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;`sess` is unused in Eager context.&quot;&quot;&quot;</span>
+    <span class="c1"># TODO(jiaweix): `check_loading_status` is not supported in V1 checkpointer.</span>
+    <span class="c1"># For robustness we need to use V2 checkpointer as much as posisble.</span>
     <span class="k">assert</span> <span class="n">sess</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span>
 
@@ -673,12 +698,10 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint (V1) </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
 
     <span class="k">try</span><span class="p">:</span>
-      <span class="n">load_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_restorer</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_restorer</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">save_path</span><span class="o">=</span><span class="n">checkpoint_path</span><span class="p">)</span>
     <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">NotFoundError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
       <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">_WrapRestoreErrorWithGraphModeWarning</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
 
-    <span class="c1"># Check all model vars are matched from the checkpoint.</span>
-    <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span><span class="o">.</span><span class="n">assert_consumed</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeOverwriteModelVariablesWithEMA</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">checkpoint_path</span></div>
@@ -711,8 +734,10 @@
                <span class="n">train_dir</span><span class="p">,</span>
                <span class="n">models</span><span class="p">,</span>
                <span class="n">train_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">)</span>
+               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">check_loading_status</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">,</span>
+                     <span class="n">check_loading_status</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;EagerCheckpointerV2&#39;</span><span class="p">)</span>
     <span class="c1"># Distinct from EagerCheckpointerV1</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt_V2&#39;</span><span class="p">)</span>
@@ -783,7 +808,9 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load from checkpoint (V2) </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
     <span class="n">load_status</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Load checkpoint done.&#39;</span><span class="p">)</span>
-    <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span><span class="o">.</span><span class="n">assert_consumed</span><span class="p">()</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_check_loading_status</span><span class="p">:</span>
+      <span class="n">load_status</span><span class="o">.</span><span class="n">assert_existing_objects_matched</span><span class="p">()</span><span class="o">.</span><span class="n">assert_consumed</span><span class="p">()</span>
+
     <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeOverwriteModelVariablesWithEMA</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">checkpoint_path</span></div>
 

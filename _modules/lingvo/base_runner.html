@@ -207,7 +207,8 @@
     <span class="sd">&quot;&quot;&quot;Wrapper method for override purposes.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
       <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">write_v2_checkpoints</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV2</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV2</span><span class="p">(</span>
+            <span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">check_loading_status</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV1</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">Checkpointer</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">)</span></div>
 
