@@ -366,6 +366,8 @@
       <span class="c1"># Create the ExponentialMovingAverage singleton shared by all programs, if</span>
       <span class="c1"># applicable.</span>
       <span class="n">ema</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateEMAForModel</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ps_params_dict=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">ToText</span><span class="p">()</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ps_params_dict</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
       <span class="k">for</span> <span class="n">task_string</span><span class="p">,</span> <span class="n">program_schedule_params</span> <span class="ow">in</span> <span class="n">ps_params_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">logdir</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span>
         <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">num_splits_per_client</span> <span class="o">=</span> <span class="n">data_parallelism</span>
@@ -443,12 +445,14 @@
           <span class="n">program</span><span class="o">.</span><span class="n">GetModel</span><span class="p">()</span> <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ckpt_programs</span>
       <span class="p">]</span>
       <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">IsEagerMode</span><span class="p">():</span>
-        <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_v2_checkpoints_in_eager</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">use_eager_v2_checkpoints</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV2</span><span class="p">(</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>
               <span class="n">models</span><span class="o">=</span><span class="n">checkpointer_models</span><span class="p">,</span>
               <span class="n">train_params</span><span class="o">=</span><span class="n">train_cfg</span><span class="o">.</span><span class="n">train</span><span class="p">,</span>
-              <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+              <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+              <span class="n">experimental_enable_async_checkpoint</span><span class="o">=</span><span class="n">FLAGS</span>
+              <span class="o">.</span><span class="n">experimental_enable_async_checkpoint</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span> <span class="o">=</span> <span class="n">checkpointer</span><span class="o">.</span><span class="n">EagerCheckpointerV1</span><span class="p">(</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span><span class="p">,</span>

@@ -90,7 +90,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">saver</span> <span class="k">as</span> <span class="n">custom_saver</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
-
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_boolean</span><span class="p">(</span><span class="s1">&#39;use_custom_saver&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
                         <span class="s1">&#39;Uses customized saver if True.&#39;</span><span class="p">)</span>
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
@@ -230,6 +229,7 @@
 <span class="sd">       is not expected to load all the checkpointed variables from a trainer</span>
 <span class="sd">       because the evaler does not have an optimizer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting checkpointer&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">train_dir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span> <span class="o">=</span> <span class="n">save_only</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
@@ -263,7 +263,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_BuildInitFromCheckpointRules</span><span class="p">()</span>
 
   <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">checkpoint_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+  <span class="k">def</span> <span class="nf">checkpoint_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span>
 
 <div class="viewcode-block" id="Checkpointer._GetSaver"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -378,6 +378,7 @@
 <span class="sd">      gsteps: Current global step.</span>
 <span class="sd">      sync: Whether to wait for the saving operations to finish. Only applicable</span>
 <span class="sd">        when async checkpointing is used.</span>
+
 <span class="sd">    Returns:</span>
 <span class="sd">      Whether a checkpoint was saved.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -605,12 +606,7 @@
                <span class="n">check_loading_status</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">,</span>
                      <span class="n">check_loading_status</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;EagerCheckpointerV1&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">check_loading_status</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;This checkpointer is used for backwards &#39;</span>
-                         <span class="s1">&#39;compatibility and does not support &#39;</span>
-                         <span class="s1">&#39;`check_loading_status`. In the long term please &#39;</span>
-                         <span class="s1">&#39;consider moving to EagerCheckpointerV2.&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting eager checkpointer v1&#39;</span><span class="p">)</span>
     <span class="c1"># Distinct from EagerCheckpointerV2</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt_V1&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">):</span>
@@ -735,10 +731,11 @@
                <span class="n">models</span><span class="p">,</span>
                <span class="n">train_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-               <span class="n">check_loading_status</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+               <span class="n">check_loading_status</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+               <span class="n">experimental_enable_async_checkpoint</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_dir</span><span class="p">,</span> <span class="n">models</span><span class="p">,</span> <span class="n">train_params</span><span class="p">,</span> <span class="n">save_only</span><span class="p">,</span>
                      <span class="n">check_loading_status</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;EagerCheckpointerV2&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Starting eager checkpointer v2&#39;</span><span class="p">)</span>
     <span class="c1"># Distinct from EagerCheckpointerV1</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt_V2&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">):</span>
@@ -747,6 +744,7 @@
     <span class="c1"># Set to None; delay the initialization after the model ran at least once</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_enable_async</span> <span class="o">=</span> <span class="n">experimental_enable_async_checkpoint</span>
 
 <div class="viewcode-block" id="EagerCheckpointerV2._GetSaver"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.EagerCheckpointerV2._GetSaver">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSaver</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Checkpoint</span><span class="p">(</span><span class="n">variables</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_models</span><span class="p">)</span>
@@ -824,7 +822,9 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSaver</span><span class="p">()</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint (V2)&#39;</span><span class="p">)</span>
-    <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver_mgr</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint_number</span><span class="o">=</span><span class="n">gsteps</span><span class="p">)</span>
+    <span class="n">options</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">CheckpointOptions</span><span class="p">(</span>
+        <span class="n">experimental_enable_async_checkpoint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_enable_async</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_saver_mgr</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">checkpoint_number</span><span class="o">=</span><span class="n">gsteps</span><span class="p">,</span> <span class="n">options</span><span class="o">=</span><span class="n">options</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Save checkpoint (V2) done: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_prev_ckpt_step</span> <span class="o">=</span> <span class="n">gsteps</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateNextSaveTime</span><span class="p">()</span></div>

@@ -85,7 +85,6 @@
 <span class="c1">#       and tensorflow.</span>
 <span class="c1"># ==============================================================================</span>
 
-
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
@@ -137,10 +136,13 @@
     <span class="s1">&#39;since XLA does not fully respect the contract with respect to &#39;</span>
     <span class="s1">&#39;user-specified seeds, when using TensorFlow stateful RNGs.&#39;</span><span class="p">)</span>
 
-<span class="c1"># TODO(jiaweix): add the flag in launch.py</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
-    <span class="s1">&#39;use_v2_checkpoints_in_eager&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="s1">&#39;Whether to use v2 object based checkpoints or v1 checkpoints.&#39;</span><span class="p">)</span>
+    <span class="s1">&#39;use_eager_v2_checkpoints&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Determines whether, when in eager mode, V1 or V2 checkpoints are saved.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;experimental_enable_async_checkpoint&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Whether to configure the V2 Eager checkpointer to run in async mode.&#39;</span><span class="p">)</span>
 
 <span class="c1"># NOTE: Using absl flags in libraries are frowned upon for several reasons:</span>
 <span class="c1">#</span>
@@ -189,6 +191,8 @@
   <span class="c1"># If not explicitly set, get the field from the FLAGS object.  If FLAGS</span>
   <span class="c1"># have not been parsed yet, the default value of the flag will be used.</span>
   <span class="k">return</span> <span class="n">FLAGS</span><span class="p">[</span><span class="n">field_name</span><span class="p">]</span><span class="o">.</span><span class="n">value</span></div>
+
+
 <span class="c1"># pylint: enable=invalid-name</span>
 
 
