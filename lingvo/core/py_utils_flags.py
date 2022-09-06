@@ -19,7 +19,6 @@
 #       and tensorflow.
 # ==============================================================================
 
-
 import lingvo.compat as tf
 
 from lingvo.core import cluster_factory
@@ -71,10 +70,13 @@ tf.flags.DEFINE_bool(
     'since XLA does not fully respect the contract with respect to '
     'user-specified seeds, when using TensorFlow stateful RNGs.')
 
-# TODO(jiaweix): add the flag in launch.py
 tf.flags.DEFINE_bool(
-    'use_v2_checkpoints_in_eager', False,
-    'Whether to use v2 object based checkpoints or v1 checkpoints.')
+    'use_eager_v2_checkpoints', False,
+    'Determines whether, when in eager mode, V1 or V2 checkpoints are saved.')
+
+tf.flags.DEFINE_bool(
+    'experimental_enable_async_checkpoint', False,
+    'Whether to configure the V2 Eager checkpointer to run in async mode.')
 
 # NOTE: Using absl flags in libraries are frowned upon for several reasons:
 #
@@ -123,6 +125,8 @@ def _FromGlobal(field_name, allow_override_from_cluster=False):
   # If not explicitly set, get the field from the FLAGS object.  If FLAGS
   # have not been parsed yet, the default value of the flag will be used.
   return FLAGS[field_name].value
+
+
 # pylint: enable=invalid-name
 
 

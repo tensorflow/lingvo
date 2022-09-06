@@ -57,6 +57,3 @@ tf.flags.DEFINE_bool('run_functions_eagerly', False,
 tf.flags.DEFINE_bool(
     'enable_tf_data_debug_mode', False,
     'Whether to enable debug mode in tf.data. Only works in tf2 eager mode.')
-tf.flags.DEFINE_bool(
-    'write_v2_checkpoints', False,
-    'Whether to write v2 object based checkpoints or v1 checkpoints.')

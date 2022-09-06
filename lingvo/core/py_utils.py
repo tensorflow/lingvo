@@ -32,7 +32,7 @@ import re
 import threading
 import traceback
 import typing
-from typing import Any, Optional, Union
+from typing import Any, Callable, Optional, Union
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -4590,7 +4590,9 @@ def StackTensorsRecursively(values):
   return ret
 
 
-def MixByWeight(inputs, weights, seed=None):
+def MixByWeight(inputs: list[Callable[..., tf.Tensor]],
+                weights: tf.Tensor,
+                seed: Optional[int] = None) -> tuple[tf.Tensor, tf.Tensor]:
   """Returns a weighted random choice and bprop type from the give inputs.
 
   Args:

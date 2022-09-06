@@ -300,6 +300,8 @@ class ExecutorTpu(base_runner.BaseRunner):
       # Create the ExponentialMovingAverage singleton shared by all programs, if
       # applicable.
       ema = py_utils.CreateEMAForModel(train_cfg, self._global_step_var)
+      tf.logging.info('ps_params_dict=%s',
+                      {k: v.ToText() for k, v in ps_params_dict.items()})
       for task_string, program_schedule_params in ps_params_dict.items():
         program_schedule_params.logdir = self._logdir
         program_schedule_params.num_splits_per_client = data_parallelism
@@ -377,12 +379,14 @@ class ExecutorTpu(base_runner.BaseRunner):
           program.GetModel() for program in self._ckpt_programs
       ]
       if py_utils.IsEagerMode():
-        if FLAGS.use_v2_checkpoints_in_eager:
+        if FLAGS.use_eager_v2_checkpoints:
           self._checkpointer = checkpointer.EagerCheckpointerV2(
               self._checkpoint_dir,
               models=checkpointer_models,
               train_params=train_cfg.train,
-              save_only=False)
+              save_only=False,
+              experimental_enable_async_checkpoint=FLAGS
+              .experimental_enable_async_checkpoint)
         else:
           self._checkpointer = checkpointer.EagerCheckpointerV1(
               self._checkpoint_dir,

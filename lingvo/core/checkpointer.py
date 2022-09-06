@@ -24,7 +24,6 @@ from lingvo.core import py_utils
 from lingvo.core import saver as custom_saver
 import six
 
-
 tf.flags.DEFINE_boolean('use_custom_saver', True,
                         'Uses customized saver if True.')
 FLAGS = tf.flags.FLAGS
@@ -164,6 +163,7 @@ class Checkpointer:
        is not expected to load all the checkpointed variables from a trainer
        because the evaler does not have an optimizer.
     """
+    tf.logging.info('Starting checkpointer')
     self._train_dir = train_dir
     self._save_only = save_only
     self._save_path = os.path.join(self._train_dir, 'ckpt')
@@ -197,7 +197,7 @@ class Checkpointer:
       self._BuildInitFromCheckpointRules()
 
   @property
-  def checkpoint_dir(self):
+  def checkpoint_dir(self) -> str:
     return self._train_dir
 
   def _GetSaver(self):
@@ -312,6 +312,7 @@ class Checkpointer:
       gsteps: Current global step.
       sync: Whether to wait for the saving operations to finish. Only applicable
         when async checkpointing is used.
+
     Returns:
       Whether a checkpoint was saved.
     """
@@ -539,12 +540,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
                check_loading_status=True):
     super().__init__(train_dir, models, train_params, save_only,
                      check_loading_status)
-    tf.logging.info('EagerCheckpointerV1')
-    if check_loading_status:
-      tf.logging.warning('This checkpointer is used for backwards '
-                         'compatibility and does not support '
-                         '`check_loading_status`. In the long term please '
-                         'consider moving to EagerCheckpointerV2.')
+    tf.logging.info('Starting eager checkpointer v1')
     # Distinct from EagerCheckpointerV2
     self._train_dir = os.path.join(self._train_dir, 'ckpt_V1')
     if not tf.io.gfile.exists(self._train_dir):
@@ -669,10 +665,11 @@ class EagerCheckpointerV2(_EagerCheckpointer):
                models,
                train_params=None,
                save_only=False,
-               check_loading_status=True):
+               check_loading_status=True,
+               experimental_enable_async_checkpoint=False):
     super().__init__(train_dir, models, train_params, save_only,
                      check_loading_status)
-    tf.logging.info('EagerCheckpointerV2')
+    tf.logging.info('Starting eager checkpointer v2')
     # Distinct from EagerCheckpointerV1
     self._train_dir = os.path.join(self._train_dir, 'ckpt_V2')
     if not tf.io.gfile.exists(self._train_dir):
@@ -681,6 +678,7 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     # Set to None; delay the initialization after the model ran at least once
     self._saver = None
     self._save_path = os.path.join(self._train_dir, 'ckpt')
+    self._enable_async = experimental_enable_async_checkpoint
 
   def _GetSaver(self):
     saver = tf.train.Checkpoint(variables=self._models)
@@ -758,7 +756,9 @@ class EagerCheckpointerV2(_EagerCheckpointer):
       self._saver = self._GetSaver()
 
     tf.logging.info('Save checkpoint (V2)')
-    path = self._saver_mgr.save(checkpoint_number=gsteps)
+    options = tf.train.CheckpointOptions(
+        experimental_enable_async_checkpoint=self._enable_async)
+    path = self._saver_mgr.save(checkpoint_number=gsteps, options=options)
     tf.logging.info('Save checkpoint (V2) done: %s', path)
     self._prev_ckpt_step = gsteps
     self._UpdateNextSaveTime()

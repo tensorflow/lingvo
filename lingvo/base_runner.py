@@ -19,6 +19,7 @@ import os
 import time
 import traceback
 
+from typing import Optional
 from lingvo import base_trial
 from lingvo import pdb_wrapper
 from lingvo import trainer_utils  # pylint: disable=unused-import
@@ -78,10 +79,7 @@ class BaseRunner:
     self._checkpointer = None
     self._should_report_metrics = False
 
-    if py_utils.IsEagerMode():
-      self._graph = None
-    else:
-      self._graph = tf.Graph()
+    self._graph = None if py_utils.IsEagerMode() else tf.Graph()
     self._summary_writer = None
     self._initialize_tables = None
     self._dequeue_thread_complete = False
@@ -140,7 +138,7 @@ class BaseRunner:
   def _CreateCheckpointer(self, train_dir, model):
     """Wrapper method for override purposes."""
     if py_utils.IsEagerMode():
-      if FLAGS.write_v2_checkpoints:
+      if FLAGS.use_eager_v2_checkpoints:
         return checkpointer.EagerCheckpointerV2(
             train_dir, model, check_loading_status=False)
       return checkpointer.EagerCheckpointerV1(train_dir, model)
@@ -167,10 +165,10 @@ class BaseRunner:
     """Exports metrics externally."""
     pass
 
-  def _ShouldEarlyStop(self, sess=None):
+  def _ShouldEarlyStop(self, sess: Optional[tf.Session] = None) -> bool:
     return self._early_stop and self._early_stop.Stop(sess)
 
-  def _ShouldStop(self, sess=None, step=None, check_early_stop=True):
+  def _ShouldStop(self, sess=None, step=None, check_early_stop=True) -> bool:
     """Check if the runner should stop.
 
     Args:
@@ -226,14 +224,27 @@ class BaseRunner:
       raise RuntimeError('No new check point is found: %s' % path)
     return path
 
-  def _TrainerFinished(self, sess=None):
+  def _TrainerFinished(self, sess=None) -> bool:
     """Infer if training finished using the latest training checkpoint."""
     latest_ckpt_path = tf.train.latest_checkpoint(
         self._checkpointer.checkpoint_dir)
     if latest_ckpt_path is None:
       return self._ShouldStop(sess, step=0)
+
+    # Load the checkpoint and pull out the global step variable.
     latest_ckpt = tf.train.load_checkpoint(latest_ckpt_path)
-    return self._ShouldStop(sess, step=latest_ckpt.get_tensor('global_step'))
+    if not py_utils.IsEagerMode():
+      return self._ShouldStop(sess, step=latest_ckpt.get_tensor('global_step'))
+    # The reason to run the following heuristic is that in Eager mode it'll have
+    # a name like 'variables/0/_global_step_var/.ATTRIBUTES/VARIABLE_VALUE'.
+    for key in latest_ckpt.get_variable_to_shape_map():
+      if 'global_step' in key:
+        global_step = latest_ckpt.get_tensor(key)
+        tf.logging.info('Found global_step variable in checkpoint (%d)',
+                        global_step)
+        return self._ShouldStop(sess, step=global_step)
+    tf.logging.info('Failed to find global_step variable in checkpoint')
+    return self._ShouldStop(sess, step=0)
 
   def _RunOnLatestCheckpoints(self, sess=None, runner_fn=None, runner_dir=None):
     """Executes 'runner_fn' on the latest checkpoints produced by the Trainer.

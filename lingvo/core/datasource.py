@@ -224,8 +224,16 @@ class CrossBatchMixingDataSource(DataSource):
         inputs, p.weights, seed=p.random_seed)
     # TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to
     # use source_selected from input_batch.
-    shape = py_utils.GetShape(py_utils.Flatten(data_source)[0])
-    self._batch_size = shape[0] if shape != [] else 1  # pylint: disable=g-explicit-bool-comparison
+    tensor = py_utils.Flatten(data_source)[0]
+    if py_utils.IsEagerMode():
+      self._batch_size = tf.cond(
+          tf.rank(tensor) == 0,
+          lambda: 1,
+          lambda: tf.shape(tensor)[0],
+      )
+    else:
+      shape = py_utils.GetShape(tensor)
+      self._batch_size = shape[0] if shape != [] else 1  # pylint: disable=g-explicit-bool-comparison
     return data_source
 
   def GetMeta(self):

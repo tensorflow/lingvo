@@ -761,6 +761,29 @@ py_test(
     ],
 )
 
+py_test(
+    name = "datasource_eager_test",
+    size = "medium",
+    srcs = ["datasource_test.py"],
+    args = [
+        "--enable_eager_execution",
+        "DatasourceTest.testCrossBatchMixingDataSourceSucceedsWithListFilesAndWeights",
+    ],
+    main = "datasource_test.py",
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":base_input_generator",
+        ":cluster_factory",
+        ":datasource",
+        ":generic_input",
+        ":py_utils",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit mock dependency.
+    ],
+)
+
 # Build rule which isolates the large TFDS dependency from most of lingvo.
 # See build_defs.bzl for a list of tasks which include it.
 py_library(
