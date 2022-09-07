@@ -1738,35 +1738,42 @@ class StackingOverTime(base_layer.BaseLayer):
     """
     p = self.params
     if p.left_context == 0 and p.right_context == 0:
-      out = inputs
-    else:
-      inputs_max_len = py_utils.GetShape(inputs, 3)[1]
-      left_to_pad = p.left_context
-      right_to_pad = p.right_context
-      if p.pad_with_left_frame:
-        left_pad = tf.repeat(inputs[:, :1, :], repeats=p.left_context, axis=1)
-        inputs = tf.concat([left_pad, inputs], axis=1)
-        left_to_pad = 0
-      if p.pad_with_right_frame:
-        right_pad = tf.repeat(
-            inputs[:, -1:, :], repeats=p.right_context, axis=1)
-        inputs = tf.concat([inputs, right_pad], axis=1)
-        right_to_pad = 0
-      # Add zero paddings to the left and right of the input sequence.
+      return inputs[:, ::p.stride]
+
+    # Assuming the tensor has shape [b, t, f], striding over the first
+    # dimension creates ~b*t memcpys as opposed to only ~t memcpys when the
+    # tensor is transposed to [t, b, f] and we stride over the first dimension.
+    # [batch, time, feature] -> [time, batch, feature]
+    inputs = tf.transpose(inputs, [1, 0, 2])
+    inputs_max_len = py_utils.GetShape(inputs, 3)[0]
+    left_to_pad = p.left_context
+    right_to_pad = p.right_context
+    if p.pad_with_left_frame and left_to_pad > 0:
+      left_pad = tf.repeat(inputs[:1, :, :], repeats=p.left_context, axis=0)
+      inputs = tf.concat([left_pad, inputs], axis=0)
+      left_to_pad = 0
+    if p.pad_with_right_frame and right_to_pad > 0:
+      right_pad = tf.repeat(inputs[-1:, :, :], repeats=p.right_context, axis=0)
+      inputs = tf.concat([inputs, right_pad], axis=0)
+      right_to_pad = 0
+    # Add zero paddings to the left and right of the input sequence.
+    if left_to_pad > 0 or right_to_pad > 0:
       inputs = tf.pad(
-          inputs, [[0, 0], [left_to_pad, right_to_pad], [0, 0]],
+          inputs, [[left_to_pad, right_to_pad], [0, 0], [0, 0]],
           constant_values=pad_value)
 
-      # Make window_size() copies of the padded sequence with the original
-      # sequence length, where each copy is offset by 1 time step.
-      pieces = []
-      for i in range(self.window_size):
-        pieces.append(inputs[:, i:i + inputs_max_len])
-      # Apply stacking.
-      out = tf.concat(pieces, 2)
+    # Make window_size() copies of the padded sequence with the original
+    # sequence length, where each copy is offset by 1 time step.
+    pieces = []
+    for i in range(self.window_size):
+      pieces.append(inputs[i:i + inputs_max_len])
+    # Apply stacking.
+    out = tf.concat(pieces, 2)
 
     # Apply striding.
-    out = out[:, ::p.stride]
+    out = out[::p.stride]
+    # [time, batch, feature] -> [batch, time, feature]
+    out = tf.transpose(out, [1, 0, 2])
     return out
 
   def FProp(self, inputs, paddings=None):

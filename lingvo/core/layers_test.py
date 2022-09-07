@@ -17,6 +17,7 @@
 import contextlib
 import math
 
+from absl import flags
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import bn_layers
@@ -29,6 +30,9 @@ from lingvo.core import symbolic
 from lingvo.core import test_utils
 from lingvo.core import tshape
 import numpy as np
+
+_BENCHMARK_ON_TPU = flags.DEFINE_boolean('benchmark_on_tpu', False,
+                                         'Whether to run benchmarks on TPU.')
 
 
 def _ResetTfStatus(test_obj, context_stack):
@@ -3143,6 +3147,63 @@ class StackingOverTimeLayerTest(test_utils.TestCase, parameterized.TestCase):
     self._testUnstack(inputs, left_context=2, stride=3)
     self._testUnstack(inputs, stride=4, right_context=3)
     self._testUnstack(inputs, stride=4, left_context=1, right_context=2)
+
+
+class StackingOverTimeLayerBenchmark(tf.test.Benchmark):
+  r"""Run benchmark with the commands below.
+
+  On CPU:
+  bazel test -c opt --dynamic_mode=off :layers_test --test_arg=--benchmarks=all
+
+  On TPU:
+  bazel test -c opt --dynamic_mode=off :layers_test \
+    --test_arg=--benchmarks=all \
+    --test_arg=--benchmark_on_tpu=true
+  """
+
+  def __init__(self):
+    params = layers.StackingOverTime.Params().Set(
+        name='StackingOverTime',
+        left_context=3,
+        right_context=0,
+        stride=3,
+        pad_with_left_frame=True,
+        pad_with_right_frame=True,
+        padding_reduce_option='reduce_min')
+    self._stacker = layers.StackingOverTime(params)
+
+  def runBenchmark(self, num_frames):
+    if _BENCHMARK_ON_TPU.value:
+      flags.FLAGS.tpu_compatible = True
+      flags.FLAGS.xla_device = 'tpu'
+      flags.FLAGS.enable_asserts = False
+      tf.reset_default_graph()
+    frames = tf.random.uniform(shape=[32, num_frames, 80])
+    paddings = tf.zeros([32, num_frames, 1], dtype=tf.float32)
+
+    def Computation():
+      return self._stacker.FProp(frames, paddings)
+
+    with tf.Session(
+        config=tf.config_pb2.ConfigProto(allow_soft_placement=False)) as sess:
+      if _BENCHMARK_ON_TPU.value:
+        stacked_frames, _ = tf.tpu.rewrite(Computation)
+        sess.run(tf.tpu.initialize_system())
+        sess.run(tf.global_variables_initializer())
+      else:
+        stacked_frames, _ = Computation()
+      self.run_op_benchmark(sess, stacked_frames, min_iters=100)
+      if _BENCHMARK_ON_TPU.value:
+        sess.run(tf.tpu.shutdown_system())
+
+  def benchmark100Frames(self):
+    self.runBenchmark(100)
+
+  def benchmark1000Frames(self):
+    self.runBenchmark(1000)
+
+  def benchmark3000Frames(self):
+    self.runBenchmark(3000)
 
 
 class SingleShardEmbeddingLayerTest(test_utils.TestCase):
