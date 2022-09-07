@@ -1869,6 +1869,56 @@ updated_value_vec: [T, B, N, H].</p>
 <dd><p>Returns the initial state given the batch size.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.ChunkwiseSelfAttention.StreamStep">
+<span class="sig-name descname"><span class="pre">StreamStep</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">state0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#ChunkwiseSelfAttention.StreamStep"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.ChunkwiseSelfAttention.StreamStep" title="Permalink to this definition"></a></dt>
+<dd><p>Computes the output given the query and input vectors of the current step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of layer params</p></li>
+<li><p><strong>query_vec</strong> – An input tensor of shape [B, Q, D]</p></li>
+<li><p><strong>query_paddings</strong> – An input 0/1 tensor of shape [B, Q, D]</p></li>
+<li><p><strong>input_vec</strong> – An input tensor of shape [B, T, D]</p></li>
+<li><p><strong>input_paddings</strong> – An input 0/1 tensor of shape [B, T]</p></li>
+<li><p><strong>state0</strong> – A NestedMap whose structure is determined by zero_state()</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output of the querty vector with shape [B, Q, D]
+padding: an output 0/1 tensor of shape [B, Q]
+state1: an updated state</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.core.batch_major_attention.ChunkwiseSelfAttention._StreamStepStateless">
+<span class="sig-name descname"><span class="pre">_StreamStepStateless</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">query_paddings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_vec</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">input_paddings</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#ChunkwiseSelfAttention._StreamStepStateless"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.ChunkwiseSelfAttention._StreamStepStateless" title="Permalink to this definition"></a></dt>
+<dd><p>StreamStep implementation when there is no state.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of layer params</p></li>
+<li><p><strong>query_vec</strong> – An input tensor of shape [B, Q, D]</p></li>
+<li><p><strong>query_paddings</strong> – An input 0/1 tensor of shape [B, Q, D]</p></li>
+<li><p><strong>input_vec</strong> – An input tensor of shape [B, T, D]</p></li>
+<li><p><strong>input_paddings</strong> – An input 0/1 tensor of shape [B, T]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>output tensor in the shape [B, Q ,D]
+padding: an 0/1 tensor of shape [B, Q]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>output</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">

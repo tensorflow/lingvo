@@ -3184,7 +3184,61 @@
       <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Streaming implementation of chunkwise attention with left context&#39;</span>
              <span class="s1">&#39;or right context is not supported yet&#39;</span><span class="p">)</span>
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention.StreamStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention.StreamStep">[docs]</a>  <span class="k">def</span> <span class="nf">StreamStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span>
+                 <span class="n">input_paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the output given the query and input vectors of the current step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap of layer params</span>
+<span class="sd">      query_vec: An input tensor of shape [B, Q, D]</span>
+<span class="sd">      query_paddings: An input 0/1 tensor of shape [B, Q, D]</span>
+<span class="sd">      input_vec: An input tensor of shape [B, T, D]</span>
+<span class="sd">      input_paddings: An input 0/1 tensor of shape [B, T]</span>
+<span class="sd">      state0: A NestedMap whose structure is determined by zero_state()</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output: output of the querty vector with shape [B, Q, D]</span>
+<span class="sd">      padding: an output 0/1 tensor of shape [B, Q]</span>
+<span class="sd">      state1: an updated state</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">output</span><span class="p">,</span> <span class="n">padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_StreamStepStateless</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span>
+                                                  <span class="n">query_paddings</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span>
+                                                  <span class="n">input_paddings</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">padding</span><span class="p">,</span> <span class="n">state0</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">msg</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="sa">f</span><span class="s1">&#39;left_context=</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="si">}</span><span class="s1"> and right_context=</span><span class="si">{</span><span class="n">p</span><span class="o">.</span><span class="n">right_context</span><span class="si">}</span><span class="s1"> &#39;</span>
+          <span class="s1">&#39;requires stateful implementation of StreamStep, which is not &#39;</span>
+          <span class="s1">&#39;implemented yet.&#39;</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ChunkwiseSelfAttention._StreamStepStateless"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttention._StreamStepStateless">[docs]</a>  <span class="k">def</span> <span class="nf">_StreamStepStateless</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">input_vec</span><span class="p">,</span>
+                           <span class="n">input_paddings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;StreamStep implementation when there is no state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A NestedMap of layer params</span>
+<span class="sd">      query_vec: An input tensor of shape [B, Q, D]</span>
+<span class="sd">      query_paddings: An input 0/1 tensor of shape [B, Q, D]</span>
+<span class="sd">      input_vec: An input tensor of shape [B, T, D]</span>
+<span class="sd">      input_paddings: An input 0/1 tensor of shape [B, T]</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      output: output tensor in the shape [B, Q ,D]</span>
+<span class="sd">      padding: an 0/1 tensor of shape [B, Q]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">encoded</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+        <span class="n">query_vec</span><span class="o">=</span><span class="n">query_vec</span><span class="p">,</span>
+        <span class="n">key_vec</span><span class="o">=</span><span class="n">input_vec</span><span class="p">,</span>
+        <span class="n">value_vec</span><span class="o">=</span><span class="n">input_vec</span><span class="p">,</span>
+        <span class="n">paddings</span><span class="o">=</span><span class="n">input_paddings</span><span class="p">)</span>
+    <span class="c1"># encoded is the same shape as query_vec</span>
+    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">query_paddings</span></div></div>
 
 
 <div class="viewcode-block" id="ChunkwiseSelfAttentionXL"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.ChunkwiseSelfAttentionXL">[docs]</a><span class="k">class</span> <span class="nc">ChunkwiseSelfAttentionXL</span><span class="p">(</span><span class="n">ChunkwiseSelfAttention</span><span class="p">):</span>
