@@ -3120,6 +3120,60 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
       raise NotImplementedError(msg)
     return py_utils.NestedMap()
 
+  def StreamStep(self, theta, query_vec, query_paddings, input_vec,
+                 input_paddings, state0):
+    """Computes the output given the query and input vectors of the current step.
+
+    Args:
+      theta: A NestedMap of layer params
+      query_vec: An input tensor of shape [B, Q, D]
+      query_paddings: An input 0/1 tensor of shape [B, Q, D]
+      input_vec: An input tensor of shape [B, T, D]
+      input_paddings: An input 0/1 tensor of shape [B, T]
+      state0: A NestedMap whose structure is determined by zero_state()
+
+    Returns:
+      output: output of the querty vector with shape [B, Q, D]
+      padding: an output 0/1 tensor of shape [B, Q]
+      state1: an updated state
+    """
+    p = self.params
+    if p.left_context == 1 and p.right_context == 0:
+      output, padding = self._StreamStepStateless(theta, query_vec,
+                                                  query_paddings, input_vec,
+                                                  input_paddings)
+      return output, padding, state0
+    else:
+      msg = (
+          f'left_context={p.left_context} and right_context={p.right_context} '
+          'requires stateful implementation of StreamStep, which is not '
+          'implemented yet.')
+      raise NotImplementedError(msg)
+
+  def _StreamStepStateless(self, theta, query_vec, query_paddings, input_vec,
+                           input_paddings):
+    """StreamStep implementation when there is no state.
+
+    Args:
+      theta: A NestedMap of layer params
+      query_vec: An input tensor of shape [B, Q, D]
+      query_paddings: An input 0/1 tensor of shape [B, Q, D]
+      input_vec: An input tensor of shape [B, T, D]
+      input_paddings: An input 0/1 tensor of shape [B, T]
+
+    Returns:
+      output: output tensor in the shape [B, Q ,D]
+      padding: an 0/1 tensor of shape [B, Q]
+    """
+    encoded, _ = self.FProp(
+        self.theta,
+        query_vec=query_vec,
+        key_vec=input_vec,
+        value_vec=input_vec,
+        paddings=input_paddings)
+    # encoded is the same shape as query_vec
+    return encoded, query_paddings
+
 
 class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
   """Chunkwise Self Attention with relative position embedding."""

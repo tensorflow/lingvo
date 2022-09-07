@@ -1896,6 +1896,95 @@ class ChunkwiseSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self._CompareEncoded(expected_out_emb_np, out_emb_np, paddings_np)
 
 
+class ChunkwiseSelfAttentionStreamTest(stream_step_test_base.StreamStepTestBase
+                                      ):
+  """StreamStep test for ChunkwiseSelfAttention."""
+
+  def _GetParams(self, **kwargs):
+    num_heads = kwargs['num_heads']
+    input_dim = kwargs['input_dim']
+    hidden_dim = kwargs['hidden_dim']
+    left_context = kwargs['left_context']
+    right_context = kwargs['right_context']
+    chunk_size = kwargs['chunk_size']
+    p_cls = kwargs.get('p_cls', attention.ChunkwiseSelfAttention)
+    kwargs = {
+        'num_heads': num_heads,
+        'input_dim': input_dim,
+        'hidden_dim': hidden_dim,
+        'left_context': left_context,
+        'right_context': right_context,
+        'chunk_size': chunk_size,
+    }
+    p = p_cls.Params().Set(name='self_attn', **kwargs)
+    return p
+
+  def _FProp(self, layer, inputs, paddings):
+    encoded, _ = layer.FProp(
+        layer.theta,
+        query_vec=inputs,
+        key_vec=inputs,
+        value_vec=inputs,
+        paddings=paddings)
+    # encoded is a shape of [B, T, D]
+    return encoded, paddings
+
+  def _StreamStep(self, layer, step_inputs, step_paddings, state):
+    return layer.StreamStep(
+        layer.theta,
+        query_vec=step_inputs,
+        query_paddings=step_paddings,
+        input_vec=step_inputs,
+        input_paddings=step_paddings,
+        state0=state)
+
+  def _GetFPropOutput(self, fprop_out):
+    return fprop_out[0], fprop_out[1]
+
+  @parameterized.named_parameters(('Stride4', 4), ('Stride8', 8))
+  def testBasic(self, stride):
+    tf.random.set_seed(12345678)
+    if stride < 4:
+      # when the input size is less than chunksize, we need to pad the input
+      # to the chunk size. This requires some implementation change in the
+      # StreamStepTestBase, which we will do in a follow up CL (TODO: yqw)
+      msg = (f'chunk_size = 4  > input_stride {stride}. '
+             'This is not supported yet.')
+      raise NotImplementedError(msg)
+    kwargs = dict(
+        num_heads=8,
+        input_dim=64,
+        hidden_dim=32,
+        left_context=1,
+        right_context=0,
+        chunk_size=4,
+        stride=stride)
+    self._TestStreamStepHelper(**kwargs)
+
+
+class ChunkwiseSelfAttentionXLStreamTest(ChunkwiseSelfAttentionStreamTest):
+
+  def _GetParams(self, **kwargs):
+    num_heads = kwargs['num_heads']
+    input_dim = kwargs['input_dim']
+    hidden_dim = kwargs['hidden_dim']
+    left_context = kwargs['left_context']
+    right_context = kwargs['right_context']
+    chunk_size = kwargs['chunk_size']
+    p_cls = kwargs.get('p_cls', attention.ChunkwiseSelfAttentionXL)
+    kwargs = {
+        'num_heads': num_heads,
+        'input_dim': input_dim,
+        'hidden_dim': hidden_dim,
+        'left_context': left_context,
+        'right_context': right_context,
+        'chunk_size': chunk_size,
+        'rel_pos_emb_dim': input_dim
+    }
+    p = p_cls.Params().Set(name='self_attn', **kwargs)
+    return p
+
+
 class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
   """Tests for RoutingAttention."""
 
