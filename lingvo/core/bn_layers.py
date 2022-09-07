@@ -774,8 +774,8 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     # Note: Prefer storing data in <=4D tensors, as TFLite doesn't support
     # implicit broadcasting for 5D (or larger) tensors on many operators.
-    cached_count_shape = [batch_size, 1]
-    cached_moment_shape = [batch_size, num_groups]
+    cached_count_shape = [batch_size, 1, 1]
+    cached_moment_shape = [batch_size, 1, num_groups]
     cached_sum = tf.zeros(cached_moment_shape, py_utils.FPropDtype(p))
     cached_count = tf.zeros(cached_count_shape, py_utils.FPropDtype(p))
     cached_var = tf.zeros(cached_moment_shape, py_utils.FPropDtype(p))
@@ -892,16 +892,16 @@ class GroupNormLayer(base_layer.BaseLayer):
     Args:
       inputs: [B, T, F, N, G] or [B, T, N, G]
       paddings: [B, T, 1, 1, 1] or [B, T, 1, 1] (same rank as inputs)
-      cached_sum: [B, N]
-      cached_count: [B, 1]
-      cached_var: [B, N]
+      cached_sum: [B, 1, N]
+      cached_count: [B, 1, 1]
+      cached_var: [B, 1, N]
 
     Returns:
       mean: [B, T, 1, N, 1] or [B, T, N, 1] (same rank as inputs)
       variance: same shape as mean.
-      new_cached_sum: same shape as cached_sum.
-      new_cached_count: same shape as cached_count.
-      new_cached_var: same shape as cached_var.
+      cached_sum: same shape as cached_sum.
+      cached_count: same shape as cached_count.
+      cached_var: same shape as cached_var.
     """
     tf.logging.vlog(1, 'inputs: %r', inputs)
     tf.logging.vlog(1, 'paddings: %r', paddings)
@@ -911,9 +911,9 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     input_rank = py_utils.GetRank(inputs)
     paddings = py_utils.HasRank(paddings, input_rank)
-    cached_sum = py_utils.HasRank(cached_sum, 2)
-    cached_count = py_utils.HasRank(cached_count, 2)
-    cached_var = py_utils.HasRank(cached_var, 2)
+    cached_sum = py_utils.HasRank(cached_sum, 3)
+    cached_count = py_utils.HasRank(cached_count, 3)
+    cached_var = py_utils.HasRank(cached_var, 3)
 
     input_shape = py_utils.GetShape(inputs)
     output_shape = input_shape[:]
@@ -936,7 +936,7 @@ class GroupNormLayer(base_layer.BaseLayer):
         reduce_over_dims,
         keepdims=False)
     sum_v = tf.math.cumsum(sum_v, axis=1)
-    sum_v += cached_sum[:, tf.newaxis, :]
+    sum_v += cached_sum
 
     # [B, T, 1]
     count_v = tf.reduce_sum(
@@ -945,7 +945,7 @@ class GroupNormLayer(base_layer.BaseLayer):
         reduce_over_dims,
         keepdims=False)
     count_v = tf.math.cumsum(count_v, axis=1)
-    count_v += cached_count[:, tf.newaxis, :]
+    count_v += cached_count
 
     # [B, T, 1, N, 1] or [B, T, N, 1]
     mean = tf.reshape(sum_v / tf.maximum(count_v, 1.0), output_shape)
@@ -957,14 +957,14 @@ class GroupNormLayer(base_layer.BaseLayer):
         reduce_over_dims,
         keepdims=False)
     sum_vv = tf.math.cumsum(sum_vv, axis=1)
-    sum_vv += cached_var[:, tf.newaxis, :]
+    sum_vv += cached_var
 
-    # [B, N]
-    cached_sum = sum_v[:, -1]
-    # [B, 1]
-    cached_count = count_v[:, -1]
-    # [B, N]
-    cached_var = sum_vv[:, -1]
+    # [B, 1, N]
+    cached_sum = sum_v[:, -1:]
+    # [B, 1, 1]
+    cached_count = count_v[:, -1:]
+    # [B, 1, N]
+    cached_var = sum_vv[:, -1:]
 
     # [B, T, 1, N, 1] or [B, T, N, 1]
     variance = tf.reshape(sum_vv / tf.maximum(count_v, 1.0), output_shape)
