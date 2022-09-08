@@ -2118,6 +2118,11 @@ class SimpleProgramSchedule:
       eval_program_params.task = p.task_dict[task_dataset]
       eval_program_params.task_name = p.task_name
       eval_program_params.num_splits_per_client = p.num_splits_per_client
+      # For oneoff decode, we unset trigger_offset, trigger_interval to ignore.
+      if p.train_executions_per_eval == 0 and issubclass(
+          eval_program_params.cls, DecodeProgram):
+        eval_program_params.trigger_offset = 0
+        eval_program_params.trigger_interval = 1
 
     self.eval_programs = []
     for eval_program in p.eval_programs:
