@@ -81,81 +81,8 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="module-lingvo.core.target_sequence_sampler">
-<span id="lingvo-core-target-sequence-sampler-module"></span><h1>lingvo.core.target_sequence_sampler module<a class="headerlink" href="#module-lingvo.core.target_sequence_sampler" title="Permalink to this heading"></a></h1>
-<p>A library to sample target sequences given a decoder and decoder inputs.</p>
-<p>The sampled sequences can be used for training, e.g., with scheduled sampling,
-OCD, second-pass deliberation.</p>
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.target_sequence_sampler._ComputePaddings">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.target_sequence_sampler.</span></span><span class="sig-name descname"><span class="pre">_ComputePaddings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eos_id</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#_ComputePaddings"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler._ComputePaddings" title="Permalink to this definition"></a></dt>
-<dd></dd></dl>
-
-<dl class="py class">
-<dt class="sig sig-object py" id="lingvo.core.target_sequence_sampler.TargetSequenceSampler">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.core.target_sequence_sampler.</span></span><span class="sig-name descname"><span class="pre">TargetSequenceSampler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler" title="Permalink to this definition"></a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">BaseLayer</span></code></a></p>
-<p>Helper class for sampling target sequences with a decoder from inputs.</p>
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.target_sequence_sampler.TargetSequenceSampler.Params">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">Params</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Params"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Params" title="Permalink to this definition"></a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">
-<span class="sig-name descname"><span class="pre">Sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoder_theta</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">encoder_outputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">random_seed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_state_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pre_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">post_step_callback</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">init_step_ids</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Sample"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample" title="Permalink to this definition"></a></dt>
-<dd><p>Samples target sequences, one target sequence per source sequence.</p>
-<p>(Please see beam_search_helper.py for description of decoder callbacks.)</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>decoder_theta</strong> – A NestedMap object containing weights’ values of the
-decoder layer and its children layers, to be passed to decoder
-callbacks.</p></li>
-<li><p><strong>encoder_outputs</strong> – the outputs of the encoder, to be passed to callbacks.</p></li>
-<li><p><strong>random_seed</strong> – a scalar int32 tensor representing the random seed.</p></li>
-<li><p><strong>init_state_callback</strong> – decoder._InitBeamSearchStateCallback.</p></li>
-<li><p><strong>pre_step_callback</strong> – decoder._PreBeamSearchStepCallback.</p></li>
-<li><p><strong>post_step_callback</strong> – decoder._PostBeamSearchStepCallback.</p></li>
-<li><p><strong>init_step_ids</strong> – [batch], optional init step ids, default to SOS.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A NestedMap containing the following tensors</p>
-<ul class="simple">
-<li><p>’logits’: [batch, max_target_length, vocab_size], representing the
-distribution from which target sequences are sampled.</p></li>
-<li><p>’ids’: [batch, max_target_length] of int32, representing the target
-sequence ids, not including target_sos_id, but maybe ending with
-target_eos_id if end-of-sequence is reached before target_seq_len.</p></li>
-<li><p>’paddings’: [batch, max_target_length] of 0/1, where 1 represents
-a padded timestep.</p></li>
-</ul>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py function">
-<dt class="sig sig-object py" id="lingvo.core.target_sequence_sampler._GetShapes">
-<span class="sig-prename descclassname"><span class="pre">lingvo.core.target_sequence_sampler.</span></span><span class="sig-name descname"><span class="pre">_GetShapes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tensors</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">none_shapes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#_GetShapes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler._GetShapes" title="Permalink to this definition"></a></dt>
-<dd><p>Util for getting nested structure of shapes from structure of tensors.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tensors</strong> – Structure of Tensors to get shapes for.</p></li>
-<li><p><strong>none_shapes</strong> – Returns None shapes if true.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The same structure as tensors but of corresponding <code class="xref py py-obj docutils literal notranslate"><span class="pre">TensorShape</span></code> objects.</p>
-</dd>
-</dl>
-</dd></dl>
-
+  <section id="lingvo-core-target-sequence-sampler-module">
+<h1>lingvo.core.target_sequence_sampler module<a class="headerlink" href="#lingvo-core-target-sequence-sampler-module" title="Permalink to this heading"></a></h1>
 </section>
 
 
