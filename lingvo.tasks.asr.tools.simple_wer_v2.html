@@ -169,9 +169,68 @@ index is the reference and the second index is the hypothesis.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.tools.simple_wer_v2.RemoveTags">
+<span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.tools.simple_wer_v2.</span></span><span class="sig-name descname"><span class="pre">RemoveTags</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">txt</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer_v2.html#RemoveTags"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer_v2.RemoveTags" title="Permalink to this definition"></a></dt>
+<dd><p>Remove angle-bracket enclosed tags, such as &lt;tag&gt;.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.tools.simple_wer_v2.HtmlHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.tools.simple_wer_v2.</span></span><span class="sig-name descname"><span class="pre">HtmlHandler</span></span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer_v2.html#HtmlHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer_v2.HtmlHandler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Template class for HtmlHandler children.</p>
+<p>Each handler needs to implmement the Render method which incrementally
+writes the html for the current word. It has access to various relevant
+variables from kwargs, such as the current hyp and ref word, the current
+hyp and ref positions, and the error type.</p>
+<p>Optionally can implement the Setup method which is run once at the beginning.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.tools.simple_wer_v2.HtmlHandler.Setup">
+<span class="sig-name descname"><span class="pre">Setup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hypothesis</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reference</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer_v2.html#HtmlHandler.Setup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer_v2.HtmlHandler.Setup" title="Permalink to this definition"></a></dt>
+<dd><p>Setup the handler state prior to looping through the transcript.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.tools.simple_wer_v2.HtmlHandler.Render">
+<span class="sig-name descname"><span class="pre">Render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer_v2.html#HtmlHandler.Render"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer_v2.HtmlHandler.Render" title="Permalink to this definition"></a></dt>
+<dd><p>Render the html for each word as we loop through the transcript.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> – dict of arguments needed for the handler to render correctly</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Html string for word</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.tools.simple_wer_v2.HighlightAlignedHtmlHandler">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.tools.simple_wer_v2.</span></span><span class="sig-name descname"><span class="pre">HighlightAlignedHtmlHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">highlight_fn=&lt;function</span> <span class="pre">HighlightAlignedHtml&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer_v2.html#HighlightAlignedHtmlHandler"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer_v2.HighlightAlignedHtmlHandler" title="Permalink to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.tools.simple_wer_v2.HtmlHandler" title="lingvo.tasks.asr.tools.simple_wer_v2.HtmlHandler"><code class="xref py py-class docutils literal notranslate"><span class="pre">HtmlHandler</span></code></a></p>
+<p>Handler for HighlightAlignedHtml.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="lingvo.tasks.asr.tools.simple_wer_v2.HighlightAlignedHtmlHandler.Render">
+<span class="sig-name descname"><span class="pre">Render</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">hyp_word</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ref_word</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">err_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer_v2.html#HighlightAlignedHtmlHandler.Render"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer_v2.HighlightAlignedHtmlHandler.Render" title="Permalink to this definition"></a></dt>
+<dd><p>Render the html for each word as we loop through the transcript.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**kwargs</strong> – dict of arguments needed for the handler to render correctly</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Html string for word</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py class">
 <dt class="sig sig-object py" id="lingvo.tasks.asr.tools.simple_wer_v2.SimpleWER">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.tools.simple_wer_v2.</span></span><span class="sig-name descname"><span class="pre">SimpleWER</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key_phrases=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">html_handler=&lt;function</span> <span class="pre">HighlightAlignedHtml&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_handler=&lt;function</span> <span class="pre">RemoveCommentTxtPreprocess&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer_v2.html#SimpleWER"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer_v2.SimpleWER" title="Permalink to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">lingvo.tasks.asr.tools.simple_wer_v2.</span></span><span class="sig-name descname"><span class="pre">SimpleWER</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key_phrases=None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">html_handler=&lt;lingvo.tasks.asr.tools.simple_wer_v2.HighlightAlignedHtmlHandler</span> <span class="pre">object&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">preprocess_handler=&lt;function</span> <span class="pre">RemoveCommentTxtPreprocess&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/tools/simple_wer_v2.html#SimpleWER"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#lingvo.tasks.asr.tools.simple_wer_v2.SimpleWER" title="Permalink to this definition"></a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Compute word error rates after the alignment.</p>
 <dl class="py attribute">
