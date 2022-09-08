@@ -15,6 +15,8 @@
 """Tests for simple_wer_v2."""
 
 from lingvo.core import test_utils
+
+from lingvo.tasks.asr.tools import custom_html_handlers
 from lingvo.tasks.asr.tools import simple_wer_v2 as simple_wer
 
 
@@ -46,6 +48,45 @@ class SimpleWerTest(test_utils.TestCase):
     self.assertEqual(err_info['sub'], 0)
     self.assertEqual(err_info['ins'], 0)
     self.assertEqual(err_info['nw'], 10)
+
+  def testWerIgnoreTags(self):
+    ref = 'hello world! today is a good day, how are you'
+    hyp = 'hello! <eos> tomorrow is a good day, and <tag> how are you <end>'
+    wer_obj = simple_wer.SimpleWER()
+    wer_obj.AddHypRef(hyp, ref)
+    err_info = wer_obj.wer_info
+    self.assertEqual(err_info['del'], 1)
+    self.assertEqual(err_info['sub'], 1)
+    self.assertEqual(err_info['ins'], 1)
+    self.assertEqual(err_info['nw'], 10)
+
+  def testTagsStillVisible(self):
+    ref = 'hello good day today'
+    hyp = 'hello good <tag> day today <eos>'
+    handler = custom_html_handlers.ChainOfHtmlHandlers(html_handlers=[
+        simple_wer.HighlightAlignedHtmlHandler(),
+        custom_html_handlers.TagHtmlHandler(),
+    ])
+    wer_obj = simple_wer.SimpleWER(html_handler=handler)
+    wer_obj.AddHypRef(hyp, ref)
+    html = wer_obj.aligned_htmls[0]
+    self.assertEqual(html.strip(), 'hello good <tag> day today <eos>')
+
+  def testNewlineHtmlHandler(self):
+    ref = 'hello world today is a good day how are you'
+    hyp = 'hello people of the world today a bad day how'
+    expected = 'hello people of the world <br> today a <br> bad day how <br>'
+    num_words_per_line = 3
+    # pylint: disable=g-long-lambda
+    handler = custom_html_handlers.ChainOfHtmlHandlers(html_handlers=[
+        simple_wer.HighlightAlignedHtmlHandler(lambda h, r, e: h + ' '
+                                               if e != 'del' else ''),
+        custom_html_handlers.NewlineHtmlHandler(num_words_per_line),
+    ])
+    wer_obj = simple_wer.SimpleWER(html_handler=handler)
+    wer_obj.AddHypRef(hyp, ref)
+    html = wer_obj.aligned_htmls[0]
+    self.assertEqual(html.strip(), expected)
 
   def testKeyPhraseCounts(self):
     key_phrases = ['Google', 'Mars']
@@ -82,7 +123,6 @@ class SimpleWerTest(test_utils.TestCase):
     stats = wer_obj.GetKeyPhraseStats()
     f1 = stats[1]
     self.assertAlmostEqual(f1, 0.66666666666666667, delta=0.01)
-
 
 if __name__ == '__main__':
   test_utils.main()

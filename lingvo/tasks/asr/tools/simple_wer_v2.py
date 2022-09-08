@@ -164,6 +164,51 @@ def ComputeEditDistanceMatrix(hyp_words, ref_words):
   return edit_dist_mat
 
 
+def RemoveTags(txt):
+  """Remove angle-bracket enclosed tags, such as <tag>."""
+
+  # Remove tags surrounded by angle brackets:
+  return re.sub(r'\<[\w_.]+\>', '', txt)
+
+
+class HtmlHandler:
+  """Template class for HtmlHandler children.
+
+  Each handler needs to implmement the Render method which incrementally
+  writes the html for the current word. It has access to various relevant
+  variables from kwargs, such as the current hyp and ref word, the current
+  hyp and ref positions, and the error type.
+
+  Optionally can implement the Setup method which is run once at the beginning.
+  """
+
+  def Setup(self, hypothesis, reference):
+    """Setup the handler state prior to looping through the transcript."""
+    pass
+
+  def Render(self, **kwargs):
+    """Render the html for each word as we loop through the transcript.
+
+    Args:
+      **kwargs: dict of arguments needed for the handler to render correctly
+
+    Returns:
+      Html string for word
+    """
+    raise NotImplementedError('HTML rendering function required.')
+
+
+class HighlightAlignedHtmlHandler(HtmlHandler):
+  """Handler for HighlightAlignedHtml."""
+
+  def __init__(self, highlight_fn=HighlightAlignedHtml):
+    self.highlight_fn = highlight_fn
+
+  # pylint: disable=arguments-renamed
+  def Render(self, hyp_word=None, ref_word=None, err_type=None, **kwargs):
+    return self.highlight_fn(hyp_word, ref_word, err_type)
+
+
 class SimpleWER:
   """Compute word error rates after the alignment.
 
@@ -186,14 +231,15 @@ class SimpleWER:
 
   def __init__(self,
                key_phrases=None,
-               html_handler=HighlightAlignedHtml,
+               html_handler=HighlightAlignedHtmlHandler(HighlightAlignedHtml),
                preprocess_handler=RemoveCommentTxtPreprocess):
     """Initialize SimpleWER object.
 
     Args:
       key_phrases:  list of strings as important phrases. If key_phrases is
         None, no key_phrases related metric will be computed.
-      html_handler: function to generate a string with html tags.
+      html_handler: A HtmlHandler with a `Render` method that generates a string
+        with html tags.
       preprocess_handler: function to preprocess text before computing WER.
     """
     self._preprocess_handler = preprocess_handler
@@ -234,7 +280,11 @@ class SimpleWER:
       hypothesis = self._preprocess_handler(hypothesis)
       reference = self._preprocess_handler(reference)
 
+    # Setup html handlers
+    self._html_handler.Setup(hypothesis, reference)
+
     # Compute edit distance.
+    hypothesis = RemoveTags(hypothesis)
     hyp_words = hypothesis.split()
     ref_words = reference.split()
     distmat = ComputeEditDistanceMatrix(hyp_words, ref_words)
@@ -266,15 +316,20 @@ class SimpleWER:
 
       # Generate aligned_html
       if self._html_handler:
+        kwargs = dict(
+            err_type=err_type,
+            pos_hyp=pos_hyp,
+            pos_ref=pos_ref,
+        )
         if pos_hyp == 0 or not hyp_words:
-          tmph = ' '
+          kwargs['hyp_word'] = ' '
         else:
-          tmph = hyp_words[pos_hyp - 1]
+          kwargs['hyp_word'] = hyp_words[pos_hyp - 1]
         if pos_ref == 0 or not ref_words:
-          tmpr = ' '
+          kwargs['ref_word'] = ' '
         else:
-          tmpr = ref_words[pos_ref - 1]
-        aligned_html = self._html_handler(tmph, tmpr, err_type) + aligned_html
+          kwargs['ref_word'] = ref_words[pos_ref - 1]
+        aligned_html = self._html_handler.Render(**kwargs) + aligned_html
 
       # If no error, go to previous ref and hyp.
       if err_type == 'none':
@@ -403,7 +458,7 @@ def main(argv):
 
   wer_obj = SimpleWER(
       key_phrases=keyphrases,
-      html_handler=HighlightAlignedHtml,
+      html_handler=HighlightAlignedHtmlHandler(HighlightAlignedHtml),
       preprocess_handler=RemoveCommentTxtPreprocess)
 
   wer_obj.AddHypRef(hypothesis, reference)

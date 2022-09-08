@@ -36,8 +36,15 @@ py_test(
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":custom_html_handlers",
         ":simple_wer_v2",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],
+)
+
+py_library(
+    name = "custom_html_handlers",
+    srcs = ["custom_html_handlers.py"],
+    deps = [":simple_wer_v2"],
 )
