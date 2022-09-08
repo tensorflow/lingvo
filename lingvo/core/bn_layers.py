@@ -754,6 +754,14 @@ class GroupNormLayer(base_layer.BaseLayer):
     self.CreateVariable('beta', pc)
     self.CreateVariable('gamma', pc)
 
+  def _ApplyGammaBeta(self, theta, outputs):
+    p = self.params
+    # Flatten gamma and beta out to 1D, to avoid an explicit broadcast when
+    # exported to TFLite. Note, The real gamma to use is 1 + gamma.
+    real_gamma = tf.cast(tf.reshape(theta.gamma + 1, [p.dim]), outputs.dtype)
+    real_beta = tf.cast(tf.reshape(theta.beta, [p.dim]), outputs.dtype)
+    return outputs * real_gamma + real_beta
+
   @property
   def group_size(self):
     p = self.params
@@ -877,8 +885,7 @@ class GroupNormLayer(base_layer.BaseLayer):
       outputs = self._Normalize(x, group_mean, group_variance)
       # Merge the last two dims back.
       outputs = tf.reshape(outputs, tf.shape(inputs))
-      # Note, The real gamma to use is 1 + gamma.
-      outputs = outputs * (theta.gamma + 1) + theta.beta
+      outputs = self._ApplyGammaBeta(theta, outputs)
 
       if paddings is None:
         return outputs
@@ -1001,8 +1008,7 @@ class GroupNormLayer(base_layer.BaseLayer):
       outputs = self._Normalize(x, group_mean, group_variance)
       # Merge the last two dims back.
       outputs = tf.reshape(outputs, tf.shape(inputs))
-      # Note, The real gamma to use is 1 + gamma.
-      outputs = outputs * (theta.gamma + 1) + theta.beta
+      outputs = self._ApplyGammaBeta(theta, outputs)
 
       return outputs, paddings, py_utils.NestedMap(
           cached_sum=cached_sum,
