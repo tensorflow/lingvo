@@ -255,7 +255,11 @@ class InputOpV2GetNext : public OpKernel {
                  << statusor.status();
       return;
     }
-    resource = std::move(statusor.ValueOrDie());
+#if TF_GRAPH_DEF_VERSION >= 1137
+    resource = std::move(statusor).value();
+#else
+    resource = std::move(statusor).ValueOrDie();
+#endif
     resource->GetNext(ctx);
   }
 };
