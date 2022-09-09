@@ -24,6 +24,7 @@ from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
+import numpy as np
 
 
 class StochasticResidualLayer(base_layer.BaseLayer):
@@ -928,7 +929,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     assert p.expert_capacity_factor >= 1.0
     assert p.num_experts > 0
     assert p.num_groups > 0
-
+    # Handling the case when device_mesh is a list instead of an np.array.
+    if p.device_mesh is not None:
+      p.device_mesh = np.array(p.device_mesh)
     # First create the gating network.
     wp = p.weight_split_dims_mapping
     stddev = (1. / p.input_dim)**0.5
@@ -1061,6 +1064,11 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
 
       fprop_dtype = py_utils.FPropDtype(p)
 
+      if p.device_mesh is not None and np.prod(p.device_mesh) > 1:
+        use_xla_sharding = True
+      else:
+        use_xla_sharding = False
+
       # Here and below, we assume num devices equals num groups.
       # TODO(yonghui): Expose some of the options below through params.
       # NOTE(yonghui): The following code might break during beam search decode
@@ -1077,7 +1085,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
           local_dispatch=True,
           fprop_dtype=tf.float32,
           gating_func=p.gating_func,
-          use_xla_sharding=False,
+          use_xla_sharding=use_xla_sharding,
           second_expert_policy=p.second_expert_policy,
           second_expert_threshold=0.0,
           # legacy_mtf_behavior=True doesn't normalize gates when one expert
