@@ -724,8 +724,8 @@ class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
                 [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
                 [200000, 2.0],  # angle=pi/2, half-way
                 [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
-                [400000, 1.0],
-                [500000, math.cos(math.pi * 3 / 4) + 2.],  # Does not stay 1.0.
+                [400000, 3.0],  # Restart
+                [500000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
             ])
 
   @parameterized.parameters(False, True)
@@ -741,7 +741,7 @@ class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
       lrs = p.Instantiate()
 
       pts = []
-      for step in [0, 100, 200, 100000, 200000, 300000, 400000, 500000]:
+      for step in [0, 100, 200, 100000, 200000, 300000, 399999, 400000, 500000]:
         with py_utils.GlobalStepContext(step):
           pts.append([step, lrs.Value().eval()])
       if not cyclical:
@@ -754,6 +754,7 @@ class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
                 [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
                 [200000, 2.0],  # angle=pi/2, half-way
                 [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+                [399999, 1.0],
                 [400000, 1.0],
                 [500000, 1.0],  # Stay 1.0.
             ])
@@ -767,8 +768,9 @@ class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
                 [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
                 [200000, 2.0],  # angle=pi/2, half-way
                 [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
-                [400000, 1.0],
-                [500000, math.cos(math.pi * 3 / 4) + 2.],  # Does not stay 1.0.
+                [399999, 1.0],
+                [400000, 3.0],  # Restart
+                [500000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
             ])
 
   def testPiecewiseSchedule(self):

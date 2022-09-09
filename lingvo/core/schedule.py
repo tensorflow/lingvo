@@ -785,8 +785,8 @@ class CosineSchedule(BaseSchedule):
   to cycle back up to its initial value and down again according to the angle.
 
   where:
-    angle = min(pi, pi * current_step / total_steps)  if cyclical == False
-    angle = pi * current_step / total_steps           if cyclical == True
+    angle = pi * min(1, current_step / total_steps)         if cyclical == False
+    angle = pi * (current_step % total_steps) / total_steps if cyclical == True
     decay_gap = initial_value - final_value
     value = final_value + decay_gap * (1 + cosine(angle)) / 2
   """
@@ -806,9 +806,12 @@ class CosineSchedule(BaseSchedule):
     assert p.total_steps > 0
     with tf.name_scope(p.name):
       decay_gap = p.initial_value - p.final_value
-      angle = math.pi * tf.cast(self.GetStep(step), tf.float32) / p.total_steps
-      if not p.cyclical:
-        angle = tf.minimum(math.pi, angle)
+      total_steps = int(p.total_steps)
+      if p.cyclical:
+        relative_step = tf.math.mod(self.GetStep(step), total_steps)
+      else:
+        relative_step = tf.minimum(self.GetStep(step), total_steps)
+      angle = math.pi * tf.cast(relative_step, tf.float32) / p.total_steps
       return p.final_value + 0.5 * decay_gap * (1 + tf.cos(angle))
 
 
