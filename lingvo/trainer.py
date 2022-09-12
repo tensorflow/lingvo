@@ -183,6 +183,12 @@ tf.flags.DEFINE_string(
     'used when creating the Cloud TPU, or a grpc://ip.address.of.tpu:8470 '
     'url. If set, other cluster parameters (such as --cluster_spec) will be '
     'configured automatically with TPUClusterResolver.')
+tf.flags.DEFINE_boolean(
+    'infer_tpu_cluster', False,
+    'If set, infer tpu cluster parameters by querying the tensorflow cluster '
+    'directly instead of reading it from commandline arguments. This is '
+    'helpful, for example, when platforms cannot be pre-determined before '
+    'scheduling.')
 tf.flags.DEFINE_string(
     'gcp_project', None,
     'Project name for the Cloud TPU-enabled project. If not specified, we '
@@ -373,6 +379,43 @@ class RunnerManager:
 
     FLAGS.cluster_spec = ('@'.join('{}={}'.format(job, ','.join(hosts))
                                    for job, hosts in cluster_spec_dict.items()))
+
+    FLAGS.xla_device = 'tpu'
+    FLAGS.enable_asserts = False
+    FLAGS.checkpoint_in_trainer_tpu = True
+
+  def MaybeInferTPUClusterParams(self):
+    """With flags enabled, update cluster params based on probing result.
+
+    If FLAGS.infer_tpu_cluster is enabled, sets TPU cluster params
+    based on query results of TPUClusterResolver.
+    """
+    if not FLAGS.infer_tpu_cluster:
+      return
+
+    if not FLAGS.job:
+      FLAGS.job = 'trainer_client'
+
+    if FLAGS.job not in ('trainer_client', 'executor_tpu'):
+      raise ValueError('Only trainer_client and executor_tpu jobs are '
+                       'supported on TPU.')
+
+    FLAGS.mode = 'sync'
+    cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+        tpu=FLAGS.tf_master)
+    FLAGS.tf_master = cluster_resolver.master()
+    # TPUClusterResolver does not populate cluster_spec for Borg clusters.
+    # Use get_tpu_system_metadata instead.
+    metadata = cluster_resolver.get_tpu_system_metadata()
+
+    FLAGS.worker_num_tpu_hosts = metadata.num_hosts
+    FLAGS.worker_tpus = (metadata.num_hosts * metadata.num_of_cores_per_host)
+    # All tpu hosts should be in the same replica.
+    FLAGS.worker_replicas = 1
+    FLAGS.ps_job = FLAGS.worker_job
+    FLAGS.ps_replicas = metadata.num_hosts
+    if FLAGS.job == 'trainer_client':
+      FLAGS.ps_replicas = FLAGS.worker_replicas
 
     FLAGS.xla_device = 'tpu'
     FLAGS.enable_asserts = False
@@ -836,6 +879,7 @@ class RunnerManager:
     self.MaybeConfigRunLocally()
     self.MaybeConfigRunDistributed()
     self.MaybeConfigCloudTpu()
+    self.MaybeInferTPUClusterParams()
     self.MaybeLaunchTensorFlow()
 
     if FLAGS.job.startswith('evaler_once_'):
