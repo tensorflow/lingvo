@@ -31,8 +31,10 @@ import numpy as np
 # lens: [num_beams * num_hyps_per_beam].
 # scores: [num_beams, num_hyps_per_beam].
 # decoded: [num_beams, num_hyps_per_beam].
+# alignment: [num_beams * num_hyps_per_beam, max_src_length, 2]
 DecoderTopK = collections.namedtuple(
-    'topk', ['hyps', 'ids', 'lens', 'scores', 'decoded'])  # pyformat: disable
+    'topk', ['hyps', 'ids', 'lens', 'scores', 'decoded', 'alignment'],
+    defaults=[{}])  # pyformat: disable
 PostProcessInputs = metrics_calculator.PostProcessInputs
 
 
@@ -63,6 +65,7 @@ def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
   lens = tf.identity(decoder_outs.topk_lens, name='TopKLabelLengths' + tag)
   scores = decoder_outs.topk_scores
   decoded = decoder_outs.topk_decoded
+  alignment = getattr(decoder_outs, 'topk_alignment', {})
 
   if decoder_outs.topk_ids is not None:
     ids = tf.identity(ids, name='TopKLabelIds' + tag)
@@ -78,7 +81,7 @@ def BeamSearchDecodeOutputToDecoderTopK(decoder_outs,
     scores = tf.identity(
         tf.reshape(scores, tf.shape(lens)), name='top_k_scores%s' % tag)
     scores = tf.reshape(scores, tf.shape(hyps))
-  return DecoderTopK(hyps, ids, lens, scores, decoded)
+  return DecoderTopK(hyps, ids, lens, scores, decoded, alignment)
 
 
 class DecoderMetrics(base_layer.BaseLayer):

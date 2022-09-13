@@ -56,15 +56,24 @@ from tensorflow.python.ops import inplace_ops
 #    contains the decoded target strings in each of the hypotheses in the
 #    beam for the samples in the batch. The 'h'-th hyp for sample 'b' can
 #    be found at topk_decoded[b * num_hyps_per_beam + h]
+#  alignment: (optionally) A dict with the following field:
+#    * 'alignment_interval': tensor in shape
+#     [batch_size * num_hyps_per_beam, max_src_len, 2], where its
+#     [b, k, 0] indicates the start frame of k-th token (inc.),
+#     and [b, k, 1] is the start frame of k+1-th token or the last frame + 1.
+#    * 'alignment_indicator': a bool tensor in shape
+#     [batch_size * num_hyps_per_beam, max_src_len]; if [b, t]=True,
+#     It means a token is emitted in that position.
+
 BeamSearchDecodeOutput = collections.namedtuple(
     'BeamSearchDecodeOutput',
     [
         'topk_hyps', 'topk_ids', 'topk_lens', 'topk_scores', 'topk_decoded',
-        'other_states'
+        'other_states', 'topk_alignment'
     ],
 )
-# Make the last attribute default to None.
-BeamSearchDecodeOutput.__new__.__defaults__ = (None,)
+# Make the last 2 attribute default to None and an empty dict
+BeamSearchDecodeOutput.__new__.__defaults__ = (None, {})
 
 
 # Keys in fusion state that can be two dimensional, with the batch element in
@@ -611,7 +620,7 @@ class BeamSearchHelper(BeamSearchSharedParams):
     topk_scores = tf.reshape(topk_scores, tf.shape(topk_hyps))
 
     return BeamSearchDecodeOutput(topk_hyps, topk_ids, topk_lens, topk_scores,
-                                  None, final_other_states)
+                                  None, final_other_states, {})
 
 
 def _GetShapes(tensors, none_shapes=False):
@@ -660,7 +669,8 @@ def MergeBeamSearchOutputs(max_hyps_per_beam, beam_search_outputs):
     ],
                                                tf.shape(output.topk_hyps)[1])
     for k, v in output._asdict().items():
-      if v is None:
+      if v is None or isinstance(v, dict):
+        # we do not support nested structure yet
         continue
       if k == 'done_hyps':
         v = tf.transpose(v)
