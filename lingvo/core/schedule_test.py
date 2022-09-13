@@ -692,41 +692,65 @@ class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
                 [6, 8.0], [7, 8.0], [8, 0.8], [9, 0.8], [10, 0.08], [11, 0.08],
                 [12, 0.008], [13, 0.008], [14, 0.008]])
 
-  @parameterized.parameters(False, True)
-  def testCosineSchedule(self, cyclical):
+  @parameterized.named_parameters(
+      {
+          'testcase_name':
+              'NoCycle',
+          'cyclical':
+              False,
+          'expected_step_value': [
+              [0, 3.0],
+              [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+              [200000, 2.0],  # angle=pi/2, half-way
+              [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+              [400000, 1.0],
+              [500000, 1.0],  # Stay 1.0.
+          ]
+      },
+      {
+          'testcase_name':
+              'CycleByHalf',
+          'cyclical':
+              True,
+          'expected_step_value': [
+              [0, 3.0],
+              [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+              [200000, 2.0],  # angle=pi/2, half-way
+              [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+              [400000, 3.0],  # Restart
+              [500000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+          ]
+      },
+      {
+          'testcase_name':
+              'CycleByFull',
+          'cyclical':
+              True,
+          'half_cycle':
+              False,
+          'expected_step_value': [
+              [0, 3.0],
+              [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
+              [200000, 2.0],  # angle=pi/2, half-way
+              [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
+              [400000, 1.0],  # No Restart
+              [500000, math.cos(math.pi * 5 / 4) + 2.],  # angle=pi/4
+          ]
+      })
+  def testCosineSchedule(self, cyclical, expected_step_value, half_cycle=True):
     p = schedule.CosineSchedule.Params().Set(
         initial_value=3.0,
         final_value=1.0,
         total_steps=400000,
-        cyclical=cyclical)
+        cyclical=cyclical,
+        half_cycle=half_cycle)
     with self.session():
       lrs = p.Instantiate()
       pts = []
       for step in range(0, 600000, 100000):
         with py_utils.GlobalStepContext(step):
           pts.append([step, lrs.Value().eval()])
-      if not cyclical:
-        self.assertAllClose(
-            pts,
-            [
-                [0, 3.0],
-                [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
-                [200000, 2.0],  # angle=pi/2, half-way
-                [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
-                [400000, 1.0],
-                [500000, 1.0],  # Stay 1.0.
-            ])
-      else:
-        self.assertAllClose(
-            pts,
-            [
-                [0, 3.0],
-                [100000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
-                [200000, 2.0],  # angle=pi/2, half-way
-                [300000, math.cos(math.pi * 3 / 4) + 2.],  # angle=pi*3/4
-                [400000, 3.0],  # Restart
-                [500000, math.cos(math.pi / 4) + 2.],  # angle=pi/4
-            ])
+      self.assertAllClose(pts, expected_step_value)
 
   @parameterized.parameters(False, True)
   def testLinearRampupCosineSchedule(self, cyclical):

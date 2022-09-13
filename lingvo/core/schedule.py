@@ -785,10 +785,18 @@ class CosineSchedule(BaseSchedule):
   to cycle back up to its initial value and down again according to the angle.
 
   where:
-    angle = pi * min(1, current_step / total_steps)         if cyclical == False
-    angle = pi * (current_step % total_steps) / total_steps if cyclical == True
+    if cyclical == False
+      angle = pi * min(1, current_step / total_steps)
+
+    if cyclical == True, half_cycle=True
+      angle = pi * (current_step % total_steps) / total_steps
+
+    if cyclical == True, half_cycle=False
+      angle = pi * (current_step / total_steps)
+
     decay_gap = initial_value - final_value
     value = final_value + decay_gap * (1 + cosine(angle)) / 2
+
   """
 
   @classmethod
@@ -797,8 +805,11 @@ class CosineSchedule(BaseSchedule):
     p.Define('initial_value', 1.0, 'Initial decay value.')
     p.Define('final_value', 0., 'Final decay value.')
     p.Define('total_steps', 0, 'Number of steps to reach full decay.')
-    p.Define('cyclical', False, 'If False, at the end of the cycle, stay at the'
-             'final value.')
+    p.Define('cyclical', False, 'If False, at the end of the cycle, stay at '
+             'the final value.')
+    p.Define(
+        'half_cycle', True, 'Only effective if cyclical is True. If set, '
+        'angle reset period is pi. Else, it is 2pi.')
     return p
 
   def Value(self, step=None):
@@ -808,7 +819,10 @@ class CosineSchedule(BaseSchedule):
       decay_gap = p.initial_value - p.final_value
       total_steps = int(p.total_steps)
       if p.cyclical:
-        relative_step = tf.math.mod(self.GetStep(step), total_steps)
+        if p.half_cycle:
+          relative_step = tf.math.mod(self.GetStep(step), total_steps)
+        else:
+          relative_step = self.GetStep(step)
       else:
         relative_step = tf.minimum(self.GetStep(step), total_steps)
       angle = math.pi * tf.cast(relative_step, tf.float32) / p.total_steps
