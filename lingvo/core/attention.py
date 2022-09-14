@@ -1610,9 +1610,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           t = tf.reshape(t, [])
           # TODO(b/227528061): `alias_inplace_update` is deprecated and has
           # non-deterministic results when running on CPU/GPU. Consider
-          # replacing it with e.g. `tf.tensor_scatter_nd_update`.
-          extended_packed_src[key] = inplace_ops.alias_inplace_update(
-              cached_packed_src[key], t, processed)
+          # replacing it with e.g. `tf.tensor_scatter_nd_update`
+          if py_utils.ReplaceAliasInplaceUpdateInAttention():
+            extended_packed_src[key] = tf.tensor_scatter_nd_update(
+                cached_packed_src[key], [[t]], [processed])
+          else:
+            extended_packed_src[key] = inplace_ops.alias_inplace_update(
+                cached_packed_src[key], t, processed)
         else:
           processed = tf.reshape(processed_packed_src[key], [1, batch_size, -1])
           extended_packed_src[key] = tf.concat(
