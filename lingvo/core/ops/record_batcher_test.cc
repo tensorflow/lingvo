@@ -60,7 +60,7 @@ class TestRP : public RecordProcessor {
     sample->clear();
     sample->push_back(std::move(t));
     sample->push_back(std::move(ids));
-    return Status::OK();
+    return Status();
   }
 
   Status Merge(int64_t bucket_size, const std::vector<TensorVec>& samples,
@@ -75,7 +75,7 @@ class TestRP : public RecordProcessor {
     batch->clear();
     batch->push_back(std::move(t));
     batch->push_back(std::move(source_ids));
-    return Status::OK();
+    return Status();
   }
 };
 

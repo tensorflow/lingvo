@@ -125,7 +125,7 @@ Status Vocab::Load(const std::vector<string>& lines, bool load_token_ids) {
   sow_id_ = TokenToId(sow_token());
   eow_id_ = TokenToId(eow_token());
   unk_id_ = TokenToId(unk_token());
-  return Status::OK();
+  return Status();
 }
 
 const char* Vocab::sos_token() const {

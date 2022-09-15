@@ -27,9 +27,7 @@ REGISTER_OP("AssertShapeMatch")
     .Input("x: int32")
     .Input("y: int32")
     .Attr("msg: string = ''")
-    .SetShapeFn([](shape_inference::InferenceContext* c) {
-      return Status::OK();
-    })
+    .SetShapeFn([](shape_inference::InferenceContext* c) { return Status(); })
     .Doc(R"doc(
 Asserts that shape vector x and y matches.
 
@@ -44,9 +42,7 @@ REGISTER_OP("AssertSameDim0")
     .Input("x: types")
     .Attr("msg: string = ''")
     .Attr("types: list(type)")
-    .SetShapeFn([](shape_inference::InferenceContext* c) {
-      return Status::OK();
-    })
+    .SetShapeFn([](shape_inference::InferenceContext* c) { return Status(); })
     .Doc(R"doc(
 Asserts that all input tensors are non-scalar and have the same 0-th dim size.
 
@@ -136,7 +132,7 @@ REGISTER_OP("BeamSearchStep")
       c->set_output(5, c->input(7));
       c->set_output(6, c->input(8));
       c->set_output(7, c->Scalar());
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 See BeamSearchStepV2 below. This op is identical except that it does not support
@@ -193,7 +189,7 @@ REGISTER_OP("BeamSearchStepV2")
       c->set_output(6, c->input(8));
       c->set_output(7, c->input(9));
       c->set_output(8, c->Scalar());
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 Move forward one step in beam search.
@@ -343,7 +339,7 @@ REGISTER_OP("TopKTerminatedHyps")
         k_dim = k;
       }
       c->set_output(0, c->Matrix(batch_size, k_dim));
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 
@@ -385,7 +381,7 @@ REGISTER_OP("UnpackHyp")
       c->set_output(0, c->Matrix(batch_size, k_dim));
       c->set_output(1, c->Vector(batch_size));
       c->set_output(2, c->Vector(batch_size));
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 Unpacks hyps into tensors of ids, seq_len and scores.
@@ -415,7 +411,7 @@ REGISTER_OP("HypsFromBeamSearchOuts")
     .Attr("fix_hyp_atten_vecs: bool = true")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(0));
-      return ::tensorflow::Status::OK();
+      return ::tensorflow::Status();
     })
     .Doc(R"doc(
 
@@ -597,7 +593,7 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
       c->set_output(1, c->Vector(b_times_k));
       c->set_output(2, c->Vector(b_times_k));
       c->set_output(3, c->Matrix(b, k));
-      return ::tensorflow::Status::OK();
+      return ::tensorflow::Status();
     });
 
 REGISTER_OP("CachedCall")
@@ -714,7 +710,7 @@ REGISTER_OP("StrToVocabTokens")
       c->set_output(0, c->Matrix(batch_size, maxlen));
       c->set_output(1, c->Matrix(batch_size, maxlen));
       c->set_output(2, c->Matrix(batch_size, maxlen));
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 Tokenizes string into white space separated tokens according to a vocab file.
@@ -762,7 +758,7 @@ REGISTER_OP("NgramIdToToken")
     .Output("sequences: string")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(1));
-      return Status::OK();
+      return Status();
     })
     .Attr("ngram_vocab_filepath: string")
     .Attr("ngram_separator: string = \"\"")
@@ -795,7 +791,7 @@ REGISTER_OP("BpeWordsToIds")
       ctx->set_output(0, ctx->Matrix(batch_size, maxlen));
       ctx->set_output(1, ctx->Matrix(batch_size, maxlen));
       ctx->set_output(2, ctx->Matrix(batch_size, maxlen));
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 A tokenizer to convert string to BPE ids.
@@ -832,7 +828,7 @@ REGISTER_OP("BpeIdsToWords")
     .SetShapeFn([](shape_inference::InferenceContext* ctx) {
       const auto batch_size = ctx->Dim(ctx->input(0), 0);
       ctx->set_output(0, ctx->Vector(batch_size));
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 A tokenizer to map BPE ids to strings.
@@ -934,7 +930,7 @@ REGISTER_OP("StaticMapStringInt")
     .Attr("unk: int = -1")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(0));
-      return ::tensorflow::Status::OK();
+      return ::tensorflow::Status();
     })
     .Doc(R"doc(
 Maps every element of x according a static mapping.
@@ -954,7 +950,7 @@ REGISTER_OP("StaticMapIntString")
     .Attr("unk: string = ''")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(0));
-      return ::tensorflow::Status::OK();
+      return ::tensorflow::Status();
     })
     .Doc(R"doc(
 Maps every element of x according a static mapping.
@@ -974,7 +970,7 @@ REGISTER_OP("StaticMapIntInt")
     .Attr("unk: int = -1")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(0));
-      return ::tensorflow::Status::OK();
+      return ::tensorflow::Status();
     })
     .Doc(R"doc(
 Maps every element of x according a static mapping.
@@ -995,9 +991,7 @@ REGISTER_OP("ComputePreconditioners")
     .Attr("sync: bool = false")
     .Attr("num_tensors: int >= 1")
     .SetIsStateful()
-    .SetShapeFn([](shape_inference::InferenceContext* c) {
-      return Status::OK();
-    })
+    .SetShapeFn([](shape_inference::InferenceContext* c) { return Status(); })
     .Doc(R"doc(
 Compute preconditioners for Shampoo optimizer.
 
@@ -1029,7 +1023,7 @@ REGISTER_OP("GetPreconditioners")
           c->set_output(shapes.size() + i, c->Scalar());
         }
       }
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 Get preconditioners for Shampoo optimizer.
@@ -1049,7 +1043,7 @@ REGISTER_OP("MlPerfSubwordIdToString")
     .Output("sequences: string")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       c->set_output(0, c->input(1));
-      return Status::OK();
+      return Status();
     })
     .Attr("vocab_filepath: string")
     .Doc(R"doc(
@@ -1091,7 +1085,7 @@ REGISTER_OP("PackSequences")
       c->set_output(3, c->Matrix(batch_dim, packed_tgt_seq_len));
       c->set_output(4, c->Matrix(batch_dim, packed_tgt_seq_len));
       c->set_output(5, c->Matrix(batch_dim, packed_tgt_seq_len));
-      return Status::OK();
+      return Status();
     })
     .Attr("seed: int = 0")
     .Doc(R"doc(
@@ -1202,7 +1196,7 @@ REGISTER_OP("PackSingleSequence")
       TF_RETURN_IF_ERROR(c->GetAttr("max_packed_length", &max_packed_length));
       c->set_output(0, c->Matrix(batch_dim, max_packed_length));
       c->set_output(1, c->Matrix(batch_dim, max_packed_length));
-      return Status::OK();
+      return Status();
     })
     .Doc(R"doc(
 Produces a packing pattern with the provided `input_lengths`.
@@ -1270,7 +1264,7 @@ REGISTER_OP("ApplyPacking")
             c->ReplaceDim(output_shape, 1, output_length, &output_shape));
         c->set_output(0, output_shape);
       }
-      return Status::OK();
+      return Status();
     })
     .Attr("T: type")
     .Doc(R"doc(
@@ -1332,7 +1326,7 @@ REGISTER_OP("Mass")
       c->set_output(1, c->input(0));
       c->set_output(2, c->input(0));
       c->set_output(3, c->input(0));
-      return ::tensorflow::Status::OK();
+      return ::tensorflow::Status();
     })
     .Doc(R"doc(
 Applies masking to implement MASS.

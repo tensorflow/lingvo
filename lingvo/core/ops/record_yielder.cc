@@ -70,14 +70,14 @@ Status MaybeExpandShardedFilePattern(StringPiece file_pattern,
     if (c == '/') {
       // This is not a valid sharded file pattern, do not expand it.
       *expanded = string(file_pattern);
-      return Status::OK();
+      return Status();
     }
     if (c == '@') {
       if (file_pattern[i + 1] == '*') {
         *expanded = strings::StrCat(file_pattern.substr(0, i),
                                     "-\?\?\?\?\?-of-\?\?\?\?\?",
                                     file_pattern.substr(i + 2));
-        return Status::OK();
+        return Status();
       } else {
         uint64 num_shards = 0;
         StringPiece suf = file_pattern.substr(i + 1);
@@ -92,14 +92,14 @@ Status MaybeExpandShardedFilePattern(StringPiece file_pattern,
               "-\?\?\?\?\?-of-%05d", static_cast<int>(num_shards));
           *expanded =
               strings::StrCat(file_pattern.substr(0, i), shard_pattern, suf);
-          return Status::OK();
+          return Status();
         }
       }
       break;
     }
   }
   *expanded = string(file_pattern);
-  return Status::OK();
+  return Status();
 }
 
 // ParallelFilePatterns look like this
@@ -144,7 +144,7 @@ Status MatchParallelFilePattern(const string& parallel_file_pattern,
                     std::make_move_iterator(parallel_filenames.begin()),
                     std::make_move_iterator(parallel_filenames.end()));
 
-  return Status::OK();
+  return Status();
 }
 
 // Input to CkptFilePattern should look like <path_to_ckpt_file>/ckpt
@@ -167,7 +167,7 @@ Status GetFilePatternsFromCkptFile(const string& fileset_file,
     TF_RETURN_IF_ERROR(MatchParallelFilePattern(
       io::JoinPath(prefix, file_pattern), filenames));
   }
-  return Status::OK();
+  return Status();
 }
 
 }  // end namespace
@@ -258,7 +258,7 @@ Status RecordIterator::ParsePattern(
       filenames->push_back(file_pattern);
     }
   }
-  return Status::OK();
+  return Status();
 }
 
 RandomAccessFile* OpenOrDie(const string& filename) {
@@ -360,7 +360,7 @@ bool register_indirect_text_iterator =
         [](const string& pattern, const RecordIterator::ParserOptions& options,
            std::vector<string>* outs) {
           TF_RETURN_IF_ERROR(GetFilePatternsFromCkptFile(pattern, outs));
-          return Status::OK();
+          return Status();
         });
 
 bool register_tf_record_iterator =
@@ -379,7 +379,7 @@ bool register_iota_iterator = RecordIterator::RegisterWithPatternParser(
        std::vector<string>* outs) {
       // The pattern is just a stringified number.
       *outs = {pattern};
-      return Status::OK();
+      return Status();
     });
 
 }  // namespace
@@ -605,7 +605,7 @@ bool BasicRecordYielder::Add(std::vector<Rope>* values) {
 void BasicRecordYielder::ShardLoop(Shard* shard) {
   std::vector<Rope> values;
   for (const string& filename : shard->filenames) {
-    if (ShouldFinish(Status::OK())) break;
+    if (ShouldFinish(Status())) break;
     VLOG(1) << "Shard " << shard->index << " " << filename;
     std::unique_ptr<RecordIterator> iter(
         RecordIterator::New(file_type_, filename));

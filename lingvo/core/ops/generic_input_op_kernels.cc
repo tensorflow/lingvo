@@ -81,7 +81,7 @@ class ProcessorFn {
     // Using `new` to access a non-public constructor.
     *out_function = absl::WrapUnique(
         new ProcessorFn{cloned_flib, std::move(fld), std::move(pflr), handle});
-    return Status::OK();
+    return Status();
   }
 
   // Executes the user-defined function.
@@ -198,7 +198,7 @@ class GenericInputProcessor : public RecordProcessor {
           strings::StrCat("Batch has negative bucket key: ", *bucket_key));
     }
     sample->pop_back();
-    return Status::OK();
+    return Status();
   }
 
   Status Merge(int64_t bucket_size, const std::vector<TensorVec>& samples,
@@ -309,7 +309,7 @@ class GenericInputProcessor : public RecordProcessor {
       }
     }
     // If there is just one sample, 'batch' already has the copy.
-    if (num_samples == 1) return Status::OK();
+    if (num_samples == 1) return Status();
 
     Sharder::Do(
         num_samples /* total */, 1000 /* cost_per_unit */,
@@ -340,7 +340,7 @@ class GenericInputProcessor : public RecordProcessor {
           }
         },
         merger_runner_, 1 + num_merger_threads_);
-    return Status::OK();
+    return Status();
   }
 
  private:

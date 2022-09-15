@@ -117,7 +117,7 @@ RecordBatcher::~RecordBatcher() {
 
 Status RecordBatcher::EnsureInitialized(OpKernelContext* ctx) {
   if (is_initialized_) {
-    return Status::OK();
+    return Status();
   }
   TF_RETURN_IF_ERROR(processor_->Initialize(ctx));
   for (int i = 0; i < opts_.num_threads; i++) {
@@ -129,7 +129,7 @@ Status RecordBatcher::EnsureInitialized(OpKernelContext* ctx) {
   }
   is_initialized_ = true;
   LOG(INFO) << "batcher initialized";
-  return Status::OK();
+  return Status();
 }
 
 Status RecordBatcher::GetNext(OpKernelContext* ctx, int64_t* bucket,
@@ -152,7 +152,7 @@ Status RecordBatcher::GetNext(OpKernelContext* ctx, int64_t* bucket,
   using std::swap;
   swap(*(batch), curr_);
   curr_.clear();
-  return Status::OK();
+  return Status();
 }
 
 void RecordBatcher::IncrementHistogram(int64_t bucket) {

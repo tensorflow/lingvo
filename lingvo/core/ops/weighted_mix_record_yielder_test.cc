@@ -194,10 +194,10 @@ TEST(RecordYielderTest, RecordYielderRetryLoop) {
   // Each of them yields max of 5 records and then saturates.
   EXPECT_CALL(yielder1, Yield(testing::_))
       .Times(5)
-      .WillRepeatedly(testing::Return(Status::OK()));
+      .WillRepeatedly(testing::Return(Status()));
   EXPECT_CALL(yielder2, Yield(testing::_))
       .Times(5)
-      .WillRepeatedly(testing::Return(Status::OK()));
+      .WillRepeatedly(testing::Return(Status()));
   EXPECT_CALL(yielder2, Yield(testing::_))
       .Times(3)
       .WillRepeatedly(testing::Return(Status(error::DEADLINE_EXCEEDED, "")))

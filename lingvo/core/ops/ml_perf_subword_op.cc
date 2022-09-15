@@ -50,7 +50,7 @@ Status MlPerfSubword::LoadLines(const std::vector<string>& lines) {
     auto subtoken = string(line.substr(1, len - 2));
     id_to_token_.push_back(subtoken);
   }
-  return Status::OK();
+  return Status();
 }
 
 // This is a direct port of the tokenizer decode method in the MLPerf

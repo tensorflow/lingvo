@@ -160,7 +160,7 @@ Status ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
                                      merged_topk_buffer_size_factor));
   // Each mutex is used to protect corresponding merged_topk_vec.
   std::vector<mutex> mu_vec(num_beams);
-  tensorflow::Status status = Status::OK();
+  tensorflow::Status status = Status();
   mutex mu_status;
   // The thread sharding is along the hyps_size.
   Shard(
@@ -342,7 +342,7 @@ Status ComputeTopK(int step, const std::vector<Hyp>& hyps, const Tensor& scores,
     }
   }
   VLOG(1) << "Topk done";
-  return Status::OK();
+  return Status();
 }
 
 // Symbols:

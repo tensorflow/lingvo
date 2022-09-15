@@ -486,7 +486,7 @@ bool register_fake_iterator = RecordIterator::RegisterWithPatternParser(
     [](const string& file_pattern, const RecordIterator::ParserOptions& options,
        std::vector<std::string>* shards) {
       shards->push_back(file_pattern);
-      return Status::OK();
+      return Status();
     });
 
 }  // namespace

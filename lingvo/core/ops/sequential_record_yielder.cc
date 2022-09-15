@@ -67,7 +67,7 @@ void SequentialRecordYielder::Close() {
 Status SequentialRecordYielder::Yield(Record* record) {
   string key;
   if (record_iterator_->Next(&key, &record->value)) {
-    return Status::OK();
+    return Status();
   }
 
   // No more records from current iterator, advance to next iterator.
