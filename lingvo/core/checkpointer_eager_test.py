@@ -241,5 +241,4 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
 
 
 if __name__ == '__main__':
-  py_utils.SetEagerMode(True)
-  tf.test.main()
+  test_utils.main()

@@ -1304,6 +1304,32 @@ def SanitizeScopeKey(key):
   return key.replace('[', '_').replace(']', '')
 
 
+_USED_SCOPE_NAMES = None
+
+
+def EnableUniqueLearnerScopeNames():
+  global _USED_SCOPE_NAMES
+  # key: original scope name
+  # value: the next available index suffix to use
+  _USED_SCOPE_NAMES = dict()
+
+
+def MaybeGetUniqueLearnerScopeName(name):
+  """Get a unique key to construct a variable scope."""
+  if _USED_SCOPE_NAMES is None:
+    return name
+
+  idx = _USED_SCOPE_NAMES.get(name, 0)
+  if idx == 0:
+    # Backward consistency when possible
+    res = name
+  else:
+    res = name + ('_%d' % idx)
+
+  _USED_SCOPE_NAMES[name] = idx + 1
+  return res
+
+
 # Maintain a session for unit tests (initialized in test_utils.py).
 _SESSION_SCOPE = ThreadLocalStack()
 
@@ -6660,7 +6686,15 @@ def MergeDictsWithValueCheck(dict1, dict2):
     # The values must be the same object
     if dict1[key] is not dict2[key]:
       raise RuntimeError(f'The same key {key} corresponds to different values '
-                         f'in the dictionaries: {dict1[key]} vs {dict2[key]}')
+                         f'in the dictionaries: {dict1[key]} vs {dict2[key]}. '
+                         'If the duplicated variables come from multiple '
+                         'learners with shared names and similar optimizers, '
+                         'and you are running TF2 mode, please change the '
+                         'learner names so they are not the same. You can try '
+                         'py_utils.EnableUniqueLearnerScopeNames() to '
+                         'automatically deduplicate the learner names. '
+                         'Note: this will result into changes in the variable '
+                         'names.')
   return dict1 | dict2
 
 

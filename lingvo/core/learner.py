@@ -131,6 +131,12 @@ class Learner(base_layer.BaseLayer):
     else:
       assert p.gradient_combiner is None
 
+  def _dedup_self_var_scope(self):
+    # This method only serves as a flag.
+    # We cannot set it in the constructor, because the method that uses the
+    # flag, `_SelfVariableScope`, is called before the constructor of the class.
+    pass
+
   def _child_variable_scope_override(self):
     if not self.params.learner_use_variable_scope:
       return {

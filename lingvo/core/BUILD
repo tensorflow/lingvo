@@ -2833,6 +2833,7 @@ py_test(
 py_strict_test(
     name = "checkpointer_eager_test",
     srcs = ["checkpointer_eager_test.py"],
+    args = ["--enable_eager_execution"],
     deps = [
         ":base_input_generator",
         ":base_model",

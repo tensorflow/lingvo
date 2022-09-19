@@ -866,7 +866,16 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     if not hasattr(self, '_self_variable_scope'):
       params = params or self.params
       self._parent_variable_scope = tf.get_variable_scope()
-      with tf.variable_scope(py_utils.SanitizeScopeKey(params.name)) as scope:
+      scope_name = py_utils.SanitizeScopeKey(params.name)
+      # Deduplicate the variable name scope so multi-task training jobs do not
+      # run into name conflicts for non-slot variables in the learners.
+      # For example if there are two learners with name "loss" and Adam
+      # optimizer, their `beta1_power` will be deduped as "loss/beta1_power"
+      # and "loss_1/beta1_power".
+      if tf.executing_eagerly_outside_functions() and hasattr(
+          self, '_dedup_self_var_scope'):
+        scope_name = py_utils.MaybeGetUniqueLearnerScopeName(scope_name)
+      with tf.variable_scope(scope_name) as scope:
         self._self_variable_scope = scope
     with contextlib.ExitStack() as stack:
       stack.enter_context(
