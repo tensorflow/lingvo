@@ -685,6 +685,23 @@ def IsEagerMode():
   return _IS_EAGER_MODE
 
 
+# Enable this flag if you want to run `ProcessFPropResults` in Eager mode
+# training. Use it with caution, because many models' implementations of
+# `ProcessFPropResults` implicitly assume that the method will get called in TF1
+# For example, if the `sess` argument is used in `ProcessFPropResults`, the
+# implementation very likely needs refactoring to run in TF2.
+_RUN_PROCESS_FPROP_IN_EAGER = False
+
+
+def RunProcessFPropResultsInEager():
+  return _RUN_PROCESS_FPROP_IN_EAGER
+
+
+def SetProcessFPropResultsInEager(process_fprop_results=True):
+  global _RUN_PROCESS_FPROP_IN_EAGER
+  _RUN_PROCESS_FPROP_IN_EAGER = process_fprop_results
+
+
 # TODO(b/227528061): `alias_inplace_update` is deprecated and has
 # non-deterministic results when running on CPU/GPU. We have observed incorrect
 # results when running the op in TF2 on CPU.

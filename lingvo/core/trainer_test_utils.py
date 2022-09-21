@@ -147,8 +147,8 @@ class IdentityRegressionTask(base_model.BaseTask):
 class ModelTrackingFPropResults(base_model.SingleTaskModel):
   """Simple regression model."""
 
-  def __init__(self, params):
-    super().__init__(params)
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
     self.global_steps = []
     self.metrics = []
     self.result_per_example_tensors = []

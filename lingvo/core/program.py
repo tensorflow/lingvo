@@ -741,7 +741,10 @@ class TrainProgram(BaseProgram):
 
       if py_utils.IsEagerMode():
         task_global_step = self._task.global_step.numpy()
-        # TODO(laigd): ProcessFPropResults doesn't work yet.
+        # TODO(laigd): Not all `ProcessFPropResults` work in Eager.
+        if py_utils.RunProcessFPropResultsInEager():
+          summaries = self._task.ProcessFPropResults(None, task_global_step,
+                                                     eval_metrics, outfeeds)
       else:
         task_global_step = sess.run(self._task.global_step)
         summaries = self._task.ProcessFPropResults(sess, task_global_step,
@@ -2400,14 +2403,15 @@ def _ClearSpecifiedProgram(program_list, program_cls_to_clear):
 
 
 def UpdateProgramSchedule(ps_params,
-                          dataset_list,
-                          train_executions_per_eval,
-                          train_steps_per_loop,
-                          eval_steps_per_loop,
-                          decode_steps_per_loop,
+                          dataset_list=None,
+                          train_executions_per_eval=None,
+                          train_steps_per_loop=None,
+                          eval_steps_per_loop=None,
+                          decode_steps_per_loop=None,
                           multi_inputs_decoder=None,
                           decode_summary_emails=None,
-                          oneoff_checkpoint_to_load=None):
+                          oneoff_checkpoint_to_load=None,
+                          train_summary_interval_steps=None):
   """Update ProgramSchedule params with the given new configs.
 
   Currently this override only support EvalProgram, DecodeProgram and
@@ -2432,6 +2436,8 @@ def UpdateProgramSchedule(ps_params,
     decode_summary_emails: List of emails to send Decode summary to.
     oneoff_checkpoint_to_load: Optional[str], if not None, it will override
       checkpoint_to_load.
+    train_summary_interval_steps: Optional[int], if not None, it will override
+      train program's summary_interval_steps.
 
   Returns:
     ps_params after overriden.
@@ -2519,6 +2525,9 @@ def UpdateProgramSchedule(ps_params,
 
   if decode_summary_emails:
     ps_params.emails = decode_summary_emails
+
+  if train_summary_interval_steps is not None:
+    ps_params.train_program.summary_interval_steps = train_summary_interval_steps
 
   return ps_params
 
