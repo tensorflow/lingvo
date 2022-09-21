@@ -47,6 +47,13 @@ from tensorflow.python.tpu.ops import tpu_ops
 
 FLAGS = flags.FLAGS
 
+tf.flags.DEFINE_bool(
+    'checkpoint_in_trainer_cpu', False,
+    'Whether to enable checkpointing in Trainer, allowing for '
+    'operation without a separate Controller task.'
+    'This flag also disables checkpointing from the Controller, '
+    'but still allows it to write summaries.')
+
 
 # useful for debugging.
 def StartShell(local_ns=None):
@@ -72,7 +79,7 @@ class Controller(base_runner.BaseRunner):
     self._control_dir = os.path.join(self._logdir, 'control')
     tf.io.gfile.makedirs(self._control_dir)
     self._checkpoint_in_controller = True
-    if FLAGS.checkpoint_in_trainer_tpu:
+    if FLAGS.checkpoint_in_trainer_tpu or FLAGS.checkpoint_in_trainer_cpu:
       self._checkpoint_in_controller = False
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
@@ -212,6 +219,10 @@ class Trainer(base_runner.BaseRunner):
         self._params = self._model.params
         self._model.ConstructFPropBPropGraph()
       self._CreateTF2SummaryOps()
+      if FLAGS.checkpoint_in_trainer_cpu:
+        self._checkpointer = checkpointer.Checkpointer(self._train_dir,
+                                                       self._model)
+
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
@@ -267,7 +278,12 @@ class Trainer(base_runner.BaseRunner):
       self._InitializeTF2SummaryWriter(sess)
       for task in self._model.tasks:
         task.input.Initialize(sess)
-      global_step = self._WaitUntilInit(sess, self._start_up_delay_steps)
+
+      if FLAGS.checkpoint_in_trainer_cpu:
+        self._checkpointer.Restore(sess, force_reinitialize=True)
+        global_step = sess.run(py_utils.GetGlobalStep())
+      else:
+        global_step = self._WaitUntilInit(sess, self._start_up_delay_steps)
 
       status_interval_steps = 100
       next_status_step = 1
@@ -338,6 +354,9 @@ class Trainer(base_runner.BaseRunner):
           tf.logging.info(msg)
         self._model.ProcessFPropResults(sess, global_step, eval_metrics,
                                         per_example_tensors)
+        if (FLAGS.checkpoint_in_trainer_cpu and
+            self._checkpointer.ShouldSave(global_step)):
+          self._checkpointer.Save(sess, global_step, sync=True)
 
 
 class TrainerTpu(base_runner.BaseRunner):

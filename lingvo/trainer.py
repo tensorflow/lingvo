@@ -177,6 +177,7 @@ tf.flags.DEFINE_bool(
     'This flag also disables checkpointing from the Controller, '
     'but still allows it to write summaries.')
 
+
 tf.flags.DEFINE_string(
     'tpu', None,
     'The Cloud TPU on GCP to use for training. This should be either the name '

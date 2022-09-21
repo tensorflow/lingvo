@@ -319,6 +319,7 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
     self.assertTrue(self._HasFile(inference_files, 'b_inference.pbtxt'))
     self.assertTrue(self._HasFile(inference_files, 'b_inference_tpu.pbtxt'))
 
+  @flagsaver.flagsaver
   def testRunLocally(self):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'run_locally_test' + str(random.random()))
@@ -326,6 +327,28 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
     FLAGS.run_locally = 'cpu'
     FLAGS.mode = 'sync'
     FLAGS.model = 'image.mnist.LeNet5'
+    FLAGS.model_params_override = (
+        'train.max_steps: 2; input.num_samples: 2; input.ckpt: %s' %
+        FakeMnistData(self.get_temp_dir(), train_size=2, test_size=2))
+    trainer.main(None)
+
+    train_files = tf.io.gfile.glob(logdir + '/train/*')
+    self.assertTrue(self._HasFile(train_files, 'ckpt'))
+    self.assertTrue(self._HasFile(train_files, 'tfevents'))
+    control_files = tf.io.gfile.glob(logdir + '/control/*')
+    self.assertTrue(self._HasFile(control_files, 'params.txt'))
+    self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
+    self.assertTrue(self._HasFile(control_files, 'tfevents'))
+
+  @flagsaver.flagsaver
+  def testRunLocallyCheckpointInTrainerCpu(self):
+    logdir = os.path.join(tf.test.get_temp_dir(),
+                          'run_locally_test' + str(random.random()))
+    FLAGS.logdir = logdir
+    FLAGS.run_locally = 'cpu'
+    FLAGS.mode = 'sync'
+    FLAGS.model = 'image.mnist.LeNet5'
+    FLAGS.checkpoint_in_trainer_cpu = True
     FLAGS.model_params_override = (
         'train.max_steps: 2; input.num_samples: 2; input.ckpt: %s' %
         FakeMnistData(self.get_temp_dir(), train_size=2, test_size=2))
