@@ -547,8 +547,8 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
         'zero_state() only supports 1d strided convolution.')
 
     context = tf.zeros(
-        shape=[batch_size] + [
-            p.dilation_rate[0] * (p.filter_shape[0] - 1) -
+        shape=[
+            batch_size, p.dilation_rate[0] * (p.filter_shape[0] - 1) -
             (p.filter_stride[0] - 1), p.filter_shape[1], p.filter_shape[2]
         ],
         dtype=py_utils.FPropDtype(p))
