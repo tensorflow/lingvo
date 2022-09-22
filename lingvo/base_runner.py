@@ -61,7 +61,6 @@ class BaseRunner:
     self._model_task_name = model_task_name
     self._logdir = logdir
     self._train_dir = os.path.join(self._logdir, 'train')
-    tf.io.gfile.makedirs(self._train_dir)
 
     self._tf_master = tf_master
     self._trial = trial
@@ -70,6 +69,9 @@ class BaseRunner:
     # (e.g., global_step) by the trial id so that we do not share states across
     # trials.
     self._container_id = self._trial.Name()
+    # Maybe check params after trial param over-write and private classes set.
+    self._MaybeCheckParamsDuringInitAfterTrialOverride()
+    tf.io.gfile.makedirs(self._train_dir)
 
     # Set in subclasses.
     self._job_name = ''
@@ -697,3 +699,14 @@ class BaseRunner:
     if global_enqueue_steps % self._input_stats_summary_interval_steps == 0:
       self._summary_writer.add_summary(summary_str, global_enqueue_steps)
       self._summary_writer.flush()
+
+  def _MaybeCheckParamsDuringInitAfterTrialOverride(self):
+    """This function can be over-written to do additional checks during init.
+
+    This function defaults to No Op. Children class can over-write this to
+    do additional checks on params after trial modification.
+
+    Note this function calls into __init__ after trial modification, and after
+    private members are set, before self._train_dir is created.
+    """
+    pass
