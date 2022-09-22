@@ -239,8 +239,8 @@ class DecoderMetrics(base_layer.BaseLayer):
                                                   decoder_outs))
     # Remove string outputs
     if self.params.only_output_tpu_tensors:
-      del ret_dict['transcripts']
-      del ret_dict['topk_decoded']
+      ret_dict.pop('transcripts', None)
+      ret_dict.pop('topk_decoded', None)
     return ret_dict
 
   def CreateMetrics(self):
