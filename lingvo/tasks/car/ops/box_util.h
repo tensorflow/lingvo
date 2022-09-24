@@ -25,7 +25,18 @@ namespace tensorflow {
 namespace lingvo {
 namespace box {
 
-struct Vertex;
+// A vertex with (x, y) coordinate.
+//
+// This is an internal implementation detail of RotatedBox2D.
+struct Vertex {
+  // Creates an empty Vertex.
+  Vertex() = default;
+
+  Vertex(const double x, const double y) : x(x), y(y) {}
+
+  double x = 0;
+  double y = 0;
+};
 
 // A rotated 2D bounding box represented as (cx, cy, w, h, r). cx, cy are the
 // box center coordinates; w, h are the box width and height; heading is the
@@ -122,19 +133,6 @@ struct Upright3DBox {
 
 // Converts a [N, 7] tensor to a vector of N Upright3DBox objects.
 std::vector<Upright3DBox> ParseBoxesFromTensor(const Tensor& boxes_tensor);
-
-// A vertex with (x, y) coordinate.
-//
-// This is an internal implementation detail of RotatedBox2D.
-struct Vertex {
-  double x = 0;
-  double y = 0;
-
-  // Creates an empty Vertex.
-  Vertex() = default;
-
-  Vertex(const double x, const double y) : x(x), y(y) {}
-};
 
 }  // namespace box
 }  // namespace lingvo
