@@ -174,4 +174,4 @@ def run_eval_loop_over_test_splits(
         # Metrics have already been unreplicated above.
         unreplicate_metrics=False)
     metrics_output.append(metrics)
-  return metrics_output
+  return metrics_output  # pytype: disable=bad-return-type  # py310-upgrade
