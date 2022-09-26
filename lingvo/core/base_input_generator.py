@@ -1257,7 +1257,8 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
 
   def __init__(self, params):
     if params.use_per_host_infeed and params.file_random_seed != 0:
-      raise ValueError('file_random_seed needs to be 0 when '
+      raise ValueError('file_random_seed needs to be 0 '
+                       f'(instead of {params.file_random_seed}) when '
                        'use_per_host_infeed == True.')
 
     super().__init__(params)
