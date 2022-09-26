@@ -177,7 +177,7 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
     checkpointer.EagerCheckpointerV1(eager_v1_logdir, mdl).Save(gsteps=0)
     checkpointer.EagerCheckpointerV2(eager_v2_logdir, mdl).Save(gsteps=0)
     eager_v1_keys = _GetCheckpointKeys(
-        os.path.join(eager_v1_logdir, 'ckpt_V1', 'ckpt-00000000'))
+        os.path.join(eager_v1_logdir, 'ckpt-00000000'))
     eager_v2_keys = _GetCheckpointKeys(
         os.path.join(eager_v2_logdir, 'ckpt_V2', 'ckpt-0'))
     # Expecting two more variables in V2 checkpoints:

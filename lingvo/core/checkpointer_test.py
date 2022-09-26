@@ -254,10 +254,7 @@ class CheckpointerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testSortCheckpointPaths(self):
     ckpts_no_pad = ['/ckpt_V2/ckpt-100', '/ckpt_V2/ckpt-20', '/ckpt_V2/ckpt-3']
-    ckpts_pad = [
-        '/ckpt_V1/ckpt-00000100', '/ckpt_V1/ckpt-00000020',
-        '/ckpt_V1/ckpt-00000003'
-    ]
+    ckpts_pad = ['/ckpt-00000100', '/ckpt-00000020', '/ckpt-00000003']
     ckpts_no_pad_sorted = checkpointer.SortCheckpointPaths(ckpts_no_pad)
     self.assertIn('3', ckpts_no_pad_sorted[0])
     self.assertIn('100', ckpts_no_pad_sorted[2])

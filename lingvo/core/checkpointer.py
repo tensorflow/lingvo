@@ -541,8 +541,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     super().__init__(train_dir, models, train_params, save_only,
                      check_loading_status)
     tf.logging.info('Starting eager checkpointer v1')
-    # Distinct from EagerCheckpointerV2
-    self._train_dir = os.path.join(self._train_dir, 'ckpt_V1')
+    self._train_dir = self._train_dir
     if not tf.io.gfile.exists(self._train_dir):
       tf.io.gfile.makedirs(self._train_dir)
 
