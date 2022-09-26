@@ -95,6 +95,12 @@ class BatchUtilsTest(tf.test.TestCase, parameterized.TestCase):
           batch_utils.scale_split_to_infeed(1024, use_per_host_infeed),
           1024 * num_splits // num_infeeds)
 
+  @parameterized.product(tpus=[64, 128])
+  def testScaleGlobalToWorkerTPU(self, tpus):
+    with cluster_factory.ForTestingWorker(tpus=tpus) as cluster:
+      self.assertEqual(cluster.total_worker_devices, tpus)
+      self.assertEqual(batch_utils.scale_global_to_worker(1024), 1024 // tpus)
+
 
 if __name__ == '__main__':
   tf.test.main()

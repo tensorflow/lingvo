@@ -79,3 +79,22 @@ def scale_split_to_infeed(split_batch_size, use_per_host_infeed):
     return global_batch_size // cluster.num_tpu_hosts
   else:
     return global_batch_size
+
+
+def scale_global_to_worker(global_batch_size):
+  """Obtains per-worker batch size given a global batch size.
+
+  Args:
+    global_batch_size: int: Global batch size.
+
+  Returns:
+    int: per-worker batch size.
+  """
+  cluster = cluster_factory.Cluster.Top()
+  if not cluster:
+    raise ValueError('Called scale_global_to_worker without a current cluster.')
+  q, r = divmod(global_batch_size, cluster.total_worker_devices)
+  if r:
+    raise ValueError(f'global_batch_size {global_batch_size} did not divide'
+                     f' evenly by {cluster.total_worker_devices} workers.')
+  return q
