@@ -43,6 +43,25 @@ class Step(base_layer.BaseLayer):
   This can be seen as an RNNCell extended with optional external inputs.
   """
 
+  adaptive_task_ids = None
+  adaptive_task_dim = 0
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('adaptive_task_ids', None,
+             'Name of task IDs to adaptively control joint network.')
+    p.Define('adaptive_task_dim', 0,
+             'Dimension of task IDs to adaptively control joint network.')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = params
+    # set the adaptive controllers
+    self.adaptive_task_ids = p.adaptive_task_ids
+    self.adaptive_task_dim = p.adaptive_task_dim
+
   def PrepareExternalInputs(self, theta, external_inputs):
     """Returns the prepared external inputs, e.g., packed_src for attention."""
     if not external_inputs:
