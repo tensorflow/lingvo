@@ -260,28 +260,30 @@ class LConvLayer(base_layer.BaseLayer):
 
     Args:
       theta: A NestedMap of layer params.
-      inputs: [b, t, 1, d].
+      inputs: [b, t, d].
       paddings: [b, t].
 
     Returns:
       A Tensor of shape [b, t, d].
     """
     if isinstance(self.norm, bn_layers.GroupNormLayer):
-      assert self.norm.params.input_rank == 4
+      gn_input_rank = self.norm.params.input_rank
+      if gn_input_rank == 4:
+        tf.logging.info(
+            'Using GroupNormLayer with input_rank=4, causing extra reshapes. '
+            'Set norm.params.input_rank=3.')
+        inputs = tf.expand_dims(inputs, 2)
       inputs, _ = self.norm.FProp(theta.norm, inputs, paddings)
-      # [b, t, d]
-      inputs = tf.squeeze(inputs, 2)
+      if gn_input_rank == 4:
+        inputs = tf.squeeze(inputs, 2)
+    elif isinstance(self.norm, bn_layers.BatchNormLayer):
+      inputs = self.norm.FProp(theta.norm, inputs, paddings)
+    elif isinstance(self.norm, layers.LayerNorm):
+      inputs = self.norm.FProp(theta.norm, inputs)
     else:
-      # [b, t, 1, d] -> [b, t, d]
-      inputs = tf.squeeze(inputs, 2)
-      if isinstance(self.norm, bn_layers.BatchNormLayer):
-        inputs = self.norm.FProp(theta.norm, inputs, paddings)
-      elif isinstance(self.norm, layers.LayerNorm):
-        inputs = self.norm.FProp(theta.norm, inputs)
-      else:
-        raise NotImplementedError(
-            'Only bn_layers.{BatchNormLayer,GroupNormLayer}, layers.LayerNorm '
-            'are supported.')
+      raise NotImplementedError(
+          'Only bn_layers.{BatchNormLayer,GroupNormLayer}, layers.LayerNorm '
+          'are supported.')
     return self._CastToFPropDtype(inputs)
 
   def FProp(self, theta, inputs, paddings):
@@ -335,6 +337,8 @@ class LConvLayer(base_layer.BaseLayer):
 
       inputs = gshard_utils.MeshSplit(inputs, p.device_mesh,
                                       adapted_blf_dims_mapping)
+      # [b, t, 1, d] --> [b, t, d]
+      inputs = tf.squeeze(inputs, 2)
       inputs = self._Normalize(theta, inputs, paddings)
       inputs = gshard_utils.MeshSplit(inputs, p.device_mesh,
                                       p.activation_split_dims_mapping.blf)
@@ -363,24 +367,37 @@ class LConvLayer(base_layer.BaseLayer):
         return py_utils.NestedMap()
 
   def _NormalizeStep(self, theta, inputs, paddings, state0, state1):
-    if hasattr(self.norm, 'StreamStep'):
-      # TODO(jamesqin): support 3d inputs.
-      # At present it's guaranteed GroupNorm.
-      assert (isinstance(self.norm, bn_layers.GroupNormLayer) and
-              self.norm.params.input_rank == 4)
+    """Applies normalization in a streaming fashion.
+
+    Args:
+      theta: A NestedMap of layer params.
+      inputs: [b, t, d].
+      paddings: [b, t].
+      state0: A NestedMap of tensors of the same struct as returned by
+        zero_state().
+      state1: A NestedMap of tensors of the same struct as state0. On output
+        state1.norm_state might be updated with the new state.
+
+    Returns:
+      A Tensor of shape [b, t, d].
+    """
+    if isinstance(self.norm, bn_layers.GroupNormLayer):
+      gn_input_rank = self.norm.params.input_rank
+      if gn_input_rank == 4:
+        tf.logging.info(
+            'Using GroupNormLayer with input_rank=4, causing extra reshapes. '
+            'Set norm.params.input_rank=3.')
+        inputs = tf.expand_dims(inputs, 2)
       inputs, paddings, norm_state1 = self.norm.StreamStep(
           theta.norm, inputs, paddings, state0.norm_state)
-      # [b, t, d]
-      inputs = tf.squeeze(inputs, 2)
+      if gn_input_rank == 4:
+        inputs = tf.squeeze(inputs, 2)
       state1.norm_state = norm_state1
+    elif isinstance(self.norm, layers.LayerNorm):
+      inputs = self.norm.FProp(theta.norm, inputs)
     else:
-      # [b, t, 1, d] -> [b, t, d]
-      inputs = tf.squeeze(inputs, 2)
-      if isinstance(self.norm, layers.LayerNorm):
-        inputs = self.norm.FProp(theta.norm, inputs)
-      else:
-        raise NotImplementedError(
-            'Only bn_layers.GroupNormLayer, layers.LayerNorm are supported.')
+      raise NotImplementedError(
+          'Only bn_layers.GroupNormLayer, layers.LayerNorm are supported.')
     # [b, t, d]
     return inputs, paddings
 
@@ -395,7 +412,7 @@ class LConvLayer(base_layer.BaseLayer):
         zero_state().
 
     Returns:
-      outputs: A NestedMap of tensors consisting:
+      output: the same shape as inputs, with normalized values.
       padding: the same as input paddings.
       state1: A NestedMap of tensors of the same struct as state0.
     """
@@ -424,6 +441,8 @@ class LConvLayer(base_layer.BaseLayer):
       inputs, paddings, conv_state1 = self.depthwise_conv1d.StreamStep(
           theta.depthwise_conv1d, inputs, paddings, state0.conv_state)
       state1.conv_state = conv_state1
+      # [b, t, 1, d] -> [b, t, d]
+      inputs = tf.squeeze(inputs, 2)
       # [b, t, d]
       inputs, paddings = self._NormalizeStep(theta, inputs, paddings, state0,
                                              state1)
