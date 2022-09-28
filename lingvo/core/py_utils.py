@@ -1791,8 +1791,8 @@ def MaybeReuseFromVariableStore(next_creator, **kwargs):
           'Expected %s but created variable %s. Did you mean to set reuse=True '
           'or reuse=tf.AUTO_REUSE in VarScope, or did not create a '
           'VariableStore for variable reuse?' % (f'{var_name}/var:0', var.name))
-  tf.logging.vlog(0, 'Creating var %s shape=%s on device %s', var.name,
-                  var.shape, var.device)
+  tf.logging.vlog(0, 'Creating var %s dtype=%s shape=%s on device %s', var.name,
+                  var.dtype, var.shape, var.device)
   for col in p.collections:
     tf.add_to_collection(col, var)
   if store is not None:
