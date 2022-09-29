@@ -8,7 +8,6 @@ licenses(["notice"])
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -25,9 +24,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
-    python_version = "PY3",
     shard_count = 3,
-    srcs_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -40,7 +37,6 @@ py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -56,9 +52,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
-    python_version = "PY3",
     shard_count = 4,
-    srcs_version = "PY3",
     deps = [
         ":input_generator",
         ":model",

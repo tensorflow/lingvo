@@ -12,7 +12,6 @@ py_library(
         "wmtm16_en_de.py",
         "xendec/wmt14_en_de.py",
     ],
-    srcs_version = "PY3",
     tags = ["keep_dep"],
     deps = [
         "//lingvo:model_registry",

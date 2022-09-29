@@ -9,8 +9,6 @@ licenses(["notice"])
 py_binary(
     name = "prepare_coco",
     srcs = ["prepare_coco.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.

@@ -15,7 +15,6 @@ pytype_library(
         "lm_cloud.py",
         "params.py",
     ],
-    srcs_version = "PY3",
     tags = ["keep_dep"],
     deps = [
         # Implicit jax dependency.

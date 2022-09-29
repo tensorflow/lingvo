@@ -7,8 +7,6 @@ licenses(["notice"])
 py_binary(
     name = "kitti_exporter",
     srcs = ["kitti_exporter.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":kitti_data",
         # Implicit network file system dependency.
@@ -26,8 +24,6 @@ py_binary(
     srcs = [
         "create_kitti_crop_dataset.py",
     ],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
@@ -47,7 +43,6 @@ py_binary(
 py_library(
     name = "kitti_data",
     srcs = ["kitti_data.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -60,8 +55,6 @@ py_test(
     data = [
         "//lingvo/tasks/car/testdata:kitti_raw",
     ],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":kitti_data",
         "//lingvo:compat",
@@ -75,7 +68,6 @@ py_test(
 py_library(
     name = "export_kitti_detection_lib",
     srcs = ["export_kitti_detection.py"],
-    srcs_version = "PY3",
     deps = [
         ":kitti_data",
         # Implicit absl.flags dependency.
@@ -89,8 +81,6 @@ py_library(
 py_binary(
     name = "export_kitti_detection",
     srcs = ["export_kitti_detection.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [":export_kitti_detection_lib"],
 )
 
@@ -98,8 +88,6 @@ py_binary(
     name = "compare_params",
     srcs = ["compare_params_main.py"],
     main = "compare_params_main.py",
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         # Implicit absl.flags dependency.
         "//lingvo:compat",

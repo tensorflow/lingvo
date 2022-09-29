@@ -7,7 +7,6 @@ licenses(["notice"])
 py_library(
     name = "kitti",
     srcs = ["kitti.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo:model_registry",
@@ -27,7 +26,6 @@ py_library(
 py_library(
     name = "waymo",
     srcs = ["waymo.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
@@ -48,7 +46,6 @@ py_library(
 py_library(
     name = "waymo_deepfusion",
     srcs = ["waymo_deepfusion.py"],
-    srcs_version = "PY3",
     deps = [
         ":waymo",
         "//lingvo:model_registry",
@@ -72,7 +69,6 @@ py_library(
 py_library(
     name = "params",
     srcs = ["params.py"],
-    srcs_version = "PY3",
     tags = ["keep_dep"],
     deps = [
         ":kitti",

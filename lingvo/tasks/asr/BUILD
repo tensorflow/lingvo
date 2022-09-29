@@ -9,7 +9,6 @@ licenses(["notice"])
 py_library(
     name = "frontend",
     srcs = ["frontend.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -23,8 +22,6 @@ py_test(
     data = [
         "//lingvo/tools/testdata:audio_data",
     ],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":frontend",
         # Additional FFT kernels dependency.
@@ -39,7 +36,6 @@ py_test(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -51,8 +47,6 @@ py_library(
 py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -64,7 +58,6 @@ py_test(
 py_library(
     name = "encoder",
     srcs = ["encoder.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -82,8 +75,6 @@ py_library(
 py_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":encoder",
         "//lingvo:compat",
@@ -96,7 +87,6 @@ py_test(
 pytype_strict_library(
     name = "eos_normalization",
     srcs = ["eos_normalization.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -107,8 +97,6 @@ pytype_strict_library(
 py_test(
     name = "eos_normalization_test",
     srcs = ["eos_normalization_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":eos_normalization",
         # Implicit absl.testing.parameterized dependency.
@@ -121,7 +109,6 @@ py_test(
 py_library(
     name = "fusion",
     srcs = ["fusion.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -134,7 +121,6 @@ py_library(
 py_library(
     name = "decoder_utils",
     srcs = ["decoder_utils.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -147,8 +133,6 @@ py_library(
 py_test(
     name = "decoder_utils_test",
     srcs = ["decoder_utils_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":decoder_utils",
@@ -162,7 +146,6 @@ py_test(
 py_library(
     name = "contextualizer_base",
     srcs = ["contextualizer_base.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo/core:base_layer",
     ],
@@ -171,7 +154,6 @@ py_library(
 py_library(
     name = "decoder",
     srcs = ["decoder.py"],
-    srcs_version = "PY3",
     deps = [
         ":contextualizer_base",
         ":decoder_utils",
@@ -195,9 +177,7 @@ py_test(
     name = "decoder_test",
     size = "large",
     srcs = ["decoder_test.py"],
-    python_version = "PY3",
     shard_count = 10,
-    srcs_version = "PY3",
     deps = [
         ":decoder",
         # Implicit python proto dependency.
@@ -215,7 +195,6 @@ py_test(
 py_library(
     name = "model_test_input_generator",
     srcs = ["model_test_input_generator.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -226,7 +205,6 @@ py_library(
 pytype_strict_library(
     name = "decoder_metrics",
     srcs = ["decoder_metrics.py"],
-    srcs_version = "PY3",
     deps = [
         ":decoder_utils",
         ":eos_normalization",
@@ -243,7 +221,6 @@ pytype_strict_library(
 py_library(
     name = "model",
     srcs = ["model.py"],
-    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":decoder_metrics",
@@ -262,9 +239,7 @@ py_test(
     name = "model_test",
     srcs = ["model_test.py"],
     data = ["//lingvo/tools/testdata:audio_data"],
-    python_version = "PY3",
     shard_count = 15,
-    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":input_generator",
@@ -290,13 +265,11 @@ filegroup(
 pytype_strict_library(
     name = "levenshtein_distance",
     srcs = ["levenshtein_distance.py"],
-    srcs_version = "PY3",
 )
 
 pytype_strict_library(
     name = "metrics_calculator",
     srcs = ["metrics_calculator.py"],
-    srcs_version = "PY3",
     deps = [
         ":decoder_utils",
         "//lingvo:compat",

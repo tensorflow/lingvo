@@ -46,7 +46,6 @@ gen_op_pylib(
 py_library(
     name = "ops",
     srcs = ["__init__.py"],
-    srcs_version = "PY3",
     deps = [
         ":py_car_ops",  # buildcleaner: keep
         "//lingvo:compat",
@@ -77,8 +76,6 @@ custom_kernel_library(
 py_test(
     name = "sampling_ops_test",
     srcs = ["sampling_ops_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":ops",
         # Implicit absl.testing.parameterized dependency.
@@ -125,8 +122,6 @@ custom_kernel_library(
 py_test(
     name = "average_precision_3d_op_test",
     srcs = ["average_precision_3d_op_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
@@ -138,8 +133,6 @@ py_test(
 py_test(
     name = "point_grid_op_test",
     srcs = ["point_grid_op_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
@@ -162,8 +155,6 @@ custom_kernel_library(
 py_test(
     name = "nms_3d_op_test",
     srcs = ["nms_3d_op_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",

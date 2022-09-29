@@ -13,7 +13,6 @@ py_library(
         "params.py",
         "synthetic.py",
     ],
-    srcs_version = "PY3",
     tags = ["keep_dep"],
     deps = [
         "//lingvo/jax:base_model_params",

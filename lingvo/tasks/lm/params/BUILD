@@ -12,7 +12,6 @@ py_library(
         "synthetic_packed_input.py",
         "wiki_bert.py",
     ],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo:model_registry",

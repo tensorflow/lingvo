@@ -13,7 +13,6 @@ licenses(["notice"])
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY3",
     deps = [
         ":tokenizer",
         "//lingvo:compat",
@@ -32,8 +31,6 @@ py_test(
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
     ],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -45,7 +42,6 @@ py_test(
 py_library(
     name = "layers",
     srcs = ["layers.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -62,7 +58,6 @@ py_library(
 lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
-    python_version = "PY3",
     shard_count = 20,
     tags = ["noasan"],
     deps = [
@@ -77,7 +72,6 @@ lingvo_cuda_py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
-    srcs_version = "PY3",
     deps = [
         ":layers",
         "//lingvo:compat",
@@ -95,8 +89,6 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/lm/testdata:small_word_vocab",
     ],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":input_generator",
         ":model",
@@ -110,7 +102,6 @@ py_test(
 py_library(
     name = "tokenizer",
     srcs = ["tokenizer.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",

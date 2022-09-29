@@ -13,7 +13,6 @@ licenses(["notice"])
 py_library(
     name = "layers",
     srcs = ["layers.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -25,9 +24,7 @@ py_library(
 py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
-    python_version = "PY3",
     shard_count = 2,
-    srcs_version = "PY3",
     deps = [":layers_test_lib"],
 )
 
@@ -35,7 +32,6 @@ py_library(
     name = "layers_test_lib",
     testonly = 1,
     srcs = ["layers_test.py"],
-    srcs_version = "PY3",
     deps = [
         ":layers",
         "//lingvo:compat",
@@ -49,7 +45,6 @@ py_library(
 py_library(
     name = "encoder",
     srcs = ["encoder.py"],
-    srcs_version = "PY3",
     deps = [
         ":layers",
         "//lingvo:compat",
@@ -66,9 +61,7 @@ py_library(
 py_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
-    python_version = "PY3",
     shard_count = 12,
-    srcs_version = "PY3",
     deps = [
         ":encoder",
         "//lingvo:compat",
@@ -82,7 +75,6 @@ py_test(
 py_library(
     name = "decoder",
     srcs = ["decoder.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:attention",
@@ -103,9 +95,7 @@ py_library(
 py_test(
     name = "decoder_test",
     srcs = ["decoder_test.py"],
-    python_version = "PY3",
     shard_count = 20,
-    srcs_version = "PY3",
     deps = [":decoder_test_lib"],
 )
 
@@ -113,7 +103,6 @@ py_library(
     name = "decoder_test_lib",
     testonly = 1,
     srcs = ["decoder_test.py"],
-    srcs_version = "PY3",
     deps = [
         ":decoder",
         # Implicit absl.testing.parameterized dependency.
@@ -132,7 +121,6 @@ py_library(
 py_library(
     name = "data_augmenter",
     srcs = ["data_augmenter.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -145,8 +133,6 @@ py_library(
 py_test(
     name = "data_augmenter_test",
     srcs = ["data_augmenter_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":data_augmenter",
         "//lingvo:compat",
@@ -160,7 +146,6 @@ py_test(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY3",
     deps = [
         ":text_input_py_pb2",
         "//lingvo:compat",
@@ -185,8 +170,6 @@ py_test(
         "//lingvo/tasks/mt/testdata:mlperf_tfexample",
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":input_generator",
         # Implicit absl.testing.parameterized dependency.
@@ -204,7 +187,6 @@ py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
-    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":encoder",
@@ -220,9 +202,7 @@ py_test(
     name = "model_test",
     size = "large",
     srcs = ["model_test.py"],
-    python_version = "PY3",
     shard_count = 20,
-    srcs_version = "PY3",
     deps = [":model_test_lib"],
 )
 
@@ -234,7 +214,6 @@ py_library(
         "//lingvo/tasks/mt/testdata:doublebatch_tfexample",
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
-    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":encoder",
@@ -263,7 +242,6 @@ filegroup(
 py_library(
     name = "base_config",
     srcs = ["base_config.py"],
-    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":encoder",

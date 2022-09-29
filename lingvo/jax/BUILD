@@ -13,8 +13,6 @@ licenses(["notice"])
 pytype_strict_binary(
     name = "main",
     srcs = ["main.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":eval",
         ":model_imports",
@@ -37,7 +35,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "base_input",
     srcs = ["base_input.py"],
-    srcs_version = "PY3",
     deps = [
         ":py_utils",
         ":pytypes",
@@ -51,7 +48,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "base_layer",
     srcs = ["base_layer.py"],
-    srcs_version = "PY3",
     deps = [
         ":py_utils",
         ":pytypes",
@@ -67,7 +63,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "base_metrics",
     srcs = ["base_metrics.py"],
-    srcs_version = "PY3",
     deps = [
         ":py_utils",
         ":pytypes",
@@ -84,7 +79,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "base_model_params",
     srcs = ["base_model_params.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_input",
         ":py_utils",
@@ -94,7 +88,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "base_task",
     srcs = ["base_task.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":base_model",
@@ -110,7 +103,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "checkpoints",
     srcs = ["checkpoints.py"],
-    srcs_version = "PY3",
     deps = [
         ":asserts",
         ":checkpoint_py_pb2",
@@ -142,7 +134,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "eval",
     srcs = ["eval.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_input",
         ":base_layer",
@@ -169,7 +160,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "gshard_utils",
     srcs = ["gshard_utils.py"],
-    srcs_version = "PY3",
     deps = [
         ":pytypes",
         # Implicit absl.logging dependency.
@@ -181,7 +171,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "io_utils",
     srcs = ["io_utils.py"],
-    srcs_version = "PY3",
 )
 
 pytype_strict_library(
@@ -203,7 +192,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "metric_utils",
     srcs = ["metric_utils.py"],
-    srcs_version = "PY3",
     deps = [
         ":py_utils",
         ":pytypes",
@@ -214,7 +202,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "base_model",
     srcs = ["base_model.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_input",
         ":base_layer",
@@ -230,8 +217,6 @@ pytype_strict_library(
 py_strict_test(
     name = "base_model_test",
     srcs = ["base_model_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":base_model",
@@ -246,14 +231,12 @@ py_strict_test(
 pytype_strict_library(
     name = "model_imports_no_params",
     srcs = ["model_imports.py"],
-    srcs_version = "PY3",
     deps = ["//lingvo:model_imports_no_params"],
 )
 
 pytype_strict_library(
     name = "model_imports",
     srcs = ["model_imports.py"],
-    srcs_version = "PY3",
     deps = [
         "//lingvo:model_imports_no_params",
         "//lingvo/jax/tasks:all_params",
@@ -263,7 +246,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "model_registry",
     srcs = ["model_registry.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_model_params",
         # Implicit absl.logging dependency.
@@ -284,7 +266,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "model_utils",
     srcs = ["model_utils.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_input",
         ":base_model",
@@ -305,7 +286,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "optimizers",
     srcs = ["optimizers.py"],
-    srcs_version = "PY3",
     deps = [
         ":asserts",
         ":base_layer",
@@ -322,7 +302,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "optimizer_prefix_vectorization",
     srcs = ["optimizer_prefix_vectorization.py"],
-    srcs_version = "PY3",
     deps = [
         ":optimizers",
         ":py_utils",
@@ -335,7 +314,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
-    srcs_version = "PY3",
     deps = [
         # Implicit absl.logging dependency.
         # Implicit flax dependency.
@@ -350,7 +328,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "pytypes",
     srcs = ["pytypes.py"],
-    srcs_version = "PY3",
     deps = [
         ":py_utils",
         # Implicit jax dependency.
@@ -361,7 +338,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "schedules",
     srcs = ["schedules.py"],
-    srcs_version = "PY3",
     deps = [
         ":py_utils",
         ":pytypes",
@@ -373,7 +349,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "summary_utils",
     srcs = ["summary_utils.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -390,7 +365,6 @@ pytype_strict_library(
     name = "test_utils",
     testonly = True,
     srcs = ["test_utils.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -405,7 +379,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "train",
     srcs = ["train.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_input",
         ":base_model_params",
@@ -427,7 +400,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "train_states",
     srcs = ["train_states.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_layer",
         # Implicit flax's core dependency.
@@ -439,7 +411,6 @@ pytype_strict_library(
 pytype_strict_library(
     name = "trainer_lib",
     srcs = ["trainer_lib.py"],
-    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":base_model",
@@ -468,8 +439,6 @@ py_strict_test(
 py_strict_test(
     name = "base_input_test",
     srcs = ["base_input_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":base_input",
         ":py_utils",
@@ -487,8 +456,6 @@ py_strict_test(
 py_strict_test(
     name = "base_metrics_test",
     srcs = ["base_metrics_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":base_metrics",
         ":py_utils",
@@ -535,8 +502,6 @@ py_strict_test(
 py_strict_test(
     name = "model_imports_test",
     srcs = ["model_imports_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":model_imports",
         # Implicit absl.testing.absltest dependency.
@@ -546,8 +511,6 @@ py_strict_test(
 py_strict_test(
     name = "model_registry_test",
     srcs = ["model_registry_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":base_model_params",
         ":model_registry",
@@ -560,8 +523,6 @@ py_strict_test(
 py_strict_test(
     name = "py_utils_test",
     srcs = ["py_utils_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -578,8 +539,6 @@ py_strict_test(
 py_strict_test(
     name = "schedules_test",
     srcs = ["schedules_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":schedules",
         ":test_utils",

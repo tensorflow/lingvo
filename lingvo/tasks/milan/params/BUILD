@@ -14,7 +14,6 @@ pytype_strict_library(
         "dual_encoder_recipe.py",
         "params.py",
     ],
-    srcs_version = "PY3",
     tags = ["keep_dep"],
     deps = [
         ":generic_datasets",
@@ -45,7 +44,6 @@ pytype_strict_library(
     srcs = [
         "generic_datasets.py",
     ],
-    srcs_version = "PY3",
     deps = [
         # Implicit attr dependency.
         "//lingvo:compat",
@@ -61,8 +59,6 @@ pytype_strict_library(
 py_strict_test(
     name = "generic_datasets_test",
     srcs = ["generic_datasets_test.py"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":generic_datasets",
         "//lingvo:compat",

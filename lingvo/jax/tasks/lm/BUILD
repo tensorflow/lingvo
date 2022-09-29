@@ -12,7 +12,6 @@ licenses(["notice"])
 pytype_strict_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY3",
     deps = [
         # Implicit absl.logging dependency.
         "//lingvo/core:base_input_generator",
@@ -53,8 +52,6 @@ py_strict_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     data = [":testdata"],
-    python_version = "PY3",
-    srcs_version = "PY3",
     deps = [
         ":input_generator",
         # Implicit absl.testing.absltest dependency.
