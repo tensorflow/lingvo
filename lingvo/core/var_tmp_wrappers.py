@@ -22,7 +22,12 @@ limited scopes.
 from lingvo import compat as tf
 
 # pylint: disable=g-direct-tensorflow-import
-from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
+# pylint: disable=g-import-not-at-top
+try:
+  from tensorflow.python.compiler.xla.experimental import xla_sharding
+except ImportError:
+  # OSS backward compatibility, can be removed when TF is updated.
+  from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
 # pylint: enable=g-direct-tensorflow-import
 
 
