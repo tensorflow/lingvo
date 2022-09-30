@@ -30,7 +30,7 @@ try:
   from tensorflow.python.compiler.xla.experimental import xla_sharding
 except ImportError:
   # OSS backward compatibility, can be removed when TF is updated.
-  from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
+  from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding  # pytype: disable=import-error
 # pylint: enable=g-direct-tensorflow-import
 
 ThreadLocalStack = thread_local_utils.ThreadLocalStack
