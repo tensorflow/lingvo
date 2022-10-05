@@ -62,7 +62,7 @@ class RecordProcessor {
   // Initializes the RecordProcessor. This should be invoked only once before
   // calling 'Process', since some processors expect some initialization with an
   // OpKernelContext before running.
-  virtual Status Initialize(OpKernelContext* ctx) { return Status::OK(); }
+  virtual Status Initialize(OpKernelContext* ctx) { return Status(); }
 };
 
 // RecordBatcher takes a RecordYielder, batches the record yielded and
