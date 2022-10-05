@@ -191,8 +191,8 @@ class DecoderMetrics(base_layer.BaseLayer):
     if not py_utils.use_tpu():
       if 'sample_ids' in input_batch:
         ret_dict['utt_id'] = input_batch.sample_ids
-      if 'language.raw' in input_batch:
-        ret_dict['language'] = input_batch.language.raw
+      if 'language' in input_batch:
+        ret_dict['language'] = input_batch.language
       if 'testset_name' in input_batch:
         ret_dict['testset_name'] = input_batch.input_batch
       transcript_field = self.params.pass_through_transcript_field
