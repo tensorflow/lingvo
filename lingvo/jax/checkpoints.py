@@ -16,6 +16,7 @@
 
 from concurrent import futures
 import datetime
+import functools
 import os
 import re
 from typing import Optional
@@ -24,6 +25,7 @@ from absl import logging
 from flax import jax_utils
 from flax.training import checkpoints
 import jax
+from jax import sharding
 from jax.experimental import maps
 from jax.experimental import multihost_utils
 from jax.experimental.gda_serialization import serialization as gda_serialization
@@ -440,6 +442,11 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
                checkpoint_step_dir)
 
 
+@functools.lru_cache()
+def _cached_mesh_pspec_sharding(mesh, pspec):
+  return sharding.MeshPspecSharding(mesh, pspec)
+
+
 def _restore_checkpoint_gda(
     train_state: Optional[train_states.TrainState],
     checkpoint_dir: str,
@@ -500,11 +507,11 @@ def _restore_checkpoint_gda(
   ]
   tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
 
+  shardings = [
+      _cached_mesh_pspec_sharding(global_mesh, s) for s in partition_spec_leaves
+  ]
   train_state_gda = gda_serialization.run_deserialization(
-      [global_mesh] * len(tspecs),
-      partition_spec_leaves,
-      tspecs,
-      global_shapes=global_shapes)
+      shardings, tspecs, global_shapes=global_shapes)
 
   restored_train_state = jax.tree_util.tree_unflatten(treedef, train_state_gda)
   # Barrier across all processes to ensure all restore finish.
