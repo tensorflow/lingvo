@@ -807,7 +807,7 @@ def SessionConfig(soft_placement=True,
 
 
 def AssertIsCompatible(a, b):
-  assert a.IsCompatible(b), ('%s vs %s' % (a, b))
+  assert a.IsCompatible(b), '%s vs %s' % (a, b)
 
 
 def SetShapes(dst_nmap: NestedMap, src_nmap: NestedMap) -> None:
@@ -1602,7 +1602,7 @@ def VariableShapePrefixContext(shape_prefix):
   Yields:
     None.
   """
-  assert shape_prefix > 0, ('%s' % shape_prefix)
+  assert shape_prefix > 0, '%s' % shape_prefix
   _VARIABLE_SHAPE_PREFIXES.stack.append(shape_prefix)
   try:
     yield
@@ -1920,7 +1920,6 @@ def _CreateVariableStateful(name,
   with tf.variable_scope(name) as scope:
     var_name = GetVariableName(scope.name)
 
-  global_seed = None
   if tf.executing_eagerly() and _EAGER_RNG_ADAPTATION:
     # Equivalent to graph mode `tf.get_default_graph().seed`
     # Refer to `tf.get_seed` implementation
@@ -3576,7 +3575,7 @@ def CombineMetrics(loss_metric_weight_pairs):
   result = {}
   for k in all_keys:
     count = 0
-    for loss_metrics, weight in loss_metric_weight_pairs:
+    for loss_metrics, _ in loss_metric_weight_pairs:
       if k in loss_metrics:
         count += 1
     if count > 1 and count != len(loss_metric_weight_pairs):
@@ -3694,7 +3693,7 @@ _STEP_SEED_INCREMENT = ThreadLocalStack()
 @contextlib.contextmanager
 def StepSeedIncrementContext(step):
   """Adds an element to _STEP_SEED_INCREMENT."""
-  assert step > 0, ('%s' % step)
+  assert step > 0, '%s' % step
   _STEP_SEED_INCREMENT.stack.append(step)
   try:
     yield
@@ -3815,7 +3814,7 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
 
     if keep_prob == 1:
       return x
-  with tf.name_scope(name, 'dropout', [x]) as name:
+  with tf.name_scope(name, 'dropout', [x]):
     if use_tpu():
       seeds = tf.cast(seeds, tf.int32)
     keep_prob = tf.convert_to_tensor(
@@ -3851,7 +3850,7 @@ def DeterministicVN(params, noise_shape, mean=0.0, std=1.0, name=None):
     A Tensor with the shape noise_shape and type fprop_dtype.
   """
 
-  with tf.name_scope(name, 'gaussian_noise') as name:
+  with tf.name_scope(name, 'gaussian_noise'):
     seeds = GenerateStepSeedPair(params, params.vn.seed)
     random_tensor = mean + (
         std * tf.random.stateless_normal(noise_shape, seed=seeds))
@@ -4587,7 +4586,6 @@ def ExpandAndPadOrTrimTo(x, target_shape, pad_val=0):
   """
   if x is None:
     return None
-  target_rank = None
   if isinstance(target_shape, tf.Tensor):
     target_rank = GetShape(target_shape)[0]
   else:
@@ -5269,7 +5267,7 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim, use_einsum=True):
 @contextlib.contextmanager
 def RemoveAssertContext(remove=True):
   """Hacks to replace certain unwanted tensorflow ops."""
-  # TODO(zhifengc/huangyp): Consider implementing assert_equal
+  # TODO(zhifengc) TODO(huangyp): Consider implementing assert_equal
   # op replacement for lingvo. As assert_equal doesn't support String on GPUs.
   # Hack to replace tf.assert_equal
   # TODO(b/136040013): Remove this after migration to tf.function.
@@ -5830,8 +5828,6 @@ class DefinedFunction(object):
     """
     self._fwd_sig = fwd_sig
 
-    wrapped_fwd_sig = fwd_sig
-    fwd_fn = fwd
     bak_fn = bak
 
     graph_random_seed = None
