@@ -170,7 +170,7 @@ class IdentityLayer(base_layer.BaseLayer):
     return py_utils.NestedMap(flops=0, out_shapes=(inputs,))
 
 
-# TODO(yonghui/jonathanasdf): Remove the forwarded links.
+# TODO(yonghui, jonathanasdf): Remove the forwarded links.
 _ComputeConvOutputShape = conv_layers_with_time_padding.ComputeConvOutputShape
 _ComputeConvOutputPadding = (
     conv_layers_with_time_padding.ComputeConvOutputPadding)
@@ -939,7 +939,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     act_multiplier = activations.DimMultiplier(p.activation)
     self._internal_output_dim = p.output_dim * act_multiplier
     if act_multiplier > 1:
-      assert not p.affine_last, ('Affine last does not support GLU variants.')
+      assert not p.affine_last, 'Affine last does not support GLU variants.'
       assert not p.use_blocked_matmul, (
           'Blocked matmul does not support GLU variants.')
       assert not p.use_block_diagonal_matmul, (
@@ -995,10 +995,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       w = tf.slice(w, [0, 0, 0], [p.input_dim, w_om, block_dim])
     return w
 
-  def _GetBlockDiagonalInitScale(self, num_blocks, dense_shape, dtype=None):
+  def _GetBlockDiagonalInitScale(self, num_blocks, dense_shape):
     m, n = dense_shape
-    if not dtype:
-      dtype = tf.float32
     scale = math.sqrt(6.0 / (m // num_blocks + n // num_blocks))
     return scale
 
@@ -1017,8 +1015,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           shape=(p.bd_num_blocks, p.input_dim // p.bd_num_blocks,
                  p.output_dim // p.bd_num_blocks),
           init=py_utils.WeightInit.Xavier(
-              scale=self._GetBlockDiagonalInitScale(
-                  p.bd_num_blocks, (p.input_dim, p.output_dim), dtype=p.dtype)),
+              scale=self._GetBlockDiagonalInitScale(p.bd_num_blocks, (
+                  p.input_dim, p.output_dim))),
           dtype=p.dtype,
           device_mesh=p.device_mesh,
           tensor_split_dims_mapping=p.weight_split_dims_mapping,
@@ -1585,7 +1583,6 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     self.CreateChildren('fc', params_fc_layers)
     self.CreateChildren('dropout', params_dropout_layers)
 
-    memory_params = None
     if p.memory_augmentation:
       assert p.memory is not None
       memory_params = p.memory.Copy()
@@ -3907,10 +3904,6 @@ class EinsumSoftmax(base_layer.BaseLayer):
     assert logits is not None
     per_example_argmax = py_utils.ArgMax(logits)
 
-    # For compatibility with other softmax implementations.
-    if (class_weights is not None and
-        py_utils.GetRank(class_weights) == py_utils.GetRank(logits)):
-      class_weights = tf.squeeze(class_weights, -1)
     if (class_ids is not None and
         py_utils.GetRank(class_ids) == py_utils.GetRank(logits)):
       class_ids = tf.squeeze(class_ids, -1)
@@ -4641,7 +4634,7 @@ class LayerNorm(base_layer.BaseLayer):
         flops=inputs.num_elements() * 10, out_shapes=(inputs,))
 
 
-# TODO(shibow/wangtao) remove this after b/174094694 is done.
+# TODO(shibow, wangtao) remove this after b/174094694 is done.
 class ReshapedLayerNorm(LayerNorm):
   """Customized LayerNorm with model dim D reshaped as Md."""
 
@@ -5273,7 +5266,7 @@ class WeightedSumLayer(base_layer.BaseLayer):
     if not p.name:
       raise ValueError('Layer must have a specified name!')
 
-    assert p.num_sources > 0, ('Must specify num_sources > 0.')
+    assert p.num_sources > 0, 'Must specify num_sources > 0.'
 
     if p.weighted_merger_dropout_prob > 0.0:
       dropout_tpl = DropoutLayer.Params()
@@ -6076,11 +6069,10 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
   def FPropMeta(cls, p, inputs, paddings=None):
     py_utils.CheckShapes((inputs,))
     assert inputs[-1] == p.input_dim
-    flops = 0
     in_dim = inputs[-1]
     other_dims = inputs.num_elements() / in_dim
     flops = 5 * other_dims * in_dim * p.hidden_layer_dim
-    flops = 5 * other_dims * p.num_outputs * p.hidden_layer_dim
+    flops += 5 * other_dims * p.num_outputs * p.hidden_layer_dim
     out_shape = tshape.Shape(inputs[:-1] + [symbolic.ToStatic(p.num_outputs)])
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
@@ -6319,24 +6311,21 @@ class LSHMemoryRankKOneHotTaskLayer(base_layer.BaseLayer):
     bucket_one_hot = tf.one_hot(bucket_ids, num_buckets, axis=-1)
     summed_one_hot = tf.math.reduce_mean(bucket_one_hot, axis=-3)
 
+    outputs = 0.0
     if p.rank > 0:
       u_mat = tf.einsum('...n,nir->...ir',
                         tf.cast(summed_one_hot, theta.lsh_u_emb.dtype),
                         theta.lsh_u_emb)
+      outputs = tf.einsum('...si,...kir->...skr', inputs, u_mat)
+      outputs = activations.GetFn(p.memory_act)(outputs)
       v_mat = tf.einsum('...n,nro->...ro',
                         tf.cast(summed_one_hot, theta.lsh_v_emb.dtype),
                         theta.lsh_v_emb)
+      outputs = tf.einsum('...skr,...kro->...so', outputs, v_mat)
     if p.add_bias:
       bias = tf.einsum('...n,nd->...d',
                        tf.cast(summed_one_hot, theta.lsh_b_emb.dtype),
                        theta.lsh_b_emb)
-
-    outputs = 0.0
-    if p.rank > 0:
-      outputs = tf.einsum('...si,...kir->...skr', inputs, u_mat)
-      outputs = activations.GetFn(p.memory_act)(outputs)
-      outputs = tf.einsum('...skr,...kro->...so', outputs, v_mat)
-    if p.add_bias:
       outputs += tf.expand_dims(tf.math.reduce_sum(bias, axis=-2), axis=-2)
     return outputs
 
@@ -6544,7 +6533,7 @@ class PerFrameStatisticalPoolingLayer(base_layer.BaseLayer):
     index = tf.constant(0)
     time2 = time * time
     seq_mask = tf.TensorArray(dtype=tf.float32, size=time2)
-    index, seq_mask = tf.while_loop(
+    _, seq_mask = tf.while_loop(
         lambda idx, mask: idx < time2,
         ComputeSequenceMaskElement,
         loop_vars=[index, seq_mask])
