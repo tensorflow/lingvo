@@ -2271,7 +2271,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     concat_input_to_add = tf.concat([state0.skip_conn_input, input_to_add],
                                     axis=1)
     final_output = output + concat_input_to_add[:, :seqlen]
-    state1.skip_conn_input = concat_input_to_add[:, seqlen:]
+    state1.skip_conn_input = tf.slice(concat_input_to_add, [0, seqlen, 0],
+                                      tf.shape(state0.skip_conn_input))
     return final_output, state1
 
   def _StreamStepDimensions(self, inputs):
@@ -2664,12 +2665,14 @@ class LocalSelfAttention(MultiHeadedAttention):
       output = self.post.FProp(theta.post, output)
 
       state1 = py_utils.NestedMap(
-          key=key[:, k:, :, :],
-          value=value[:, k:, :, :],
-          masks=state_masks[:, k:])
+          key=tf.slice(key, [0, k, 0, 0], tf.shape(state0.key)),
+          value=tf.slice(value, [0, k, 0, 0], tf.shape(state0.value)),
+          masks=tf.slice(state_masks, [0, k], tf.shape(state0.masks)))
       if p.right_context > 0:
-        state1.query = concat_query[:, q:]
-        state1.out_masks = concat_out_masks[:, q:]
+        state1.query = tf.slice(concat_query, [0, q, 0, 0],
+                                tf.shape(state0.query))
+        state1.out_masks = tf.slice(concat_out_masks, [0, q],
+                                    tf.shape(state0.out_masks))
       return output, out_paddings, state1
 
   @classmethod

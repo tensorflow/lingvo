@@ -596,7 +596,8 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
           padding='VALID')
       if p.bias:
         outputs = tf.nn.bias_add(outputs, theta.b)
-      new_context = concat_inputs[:, q:]
+      new_context = tf.slice(concat_inputs, [0, q, 0, 0],
+                             tf.shape(state0.context))
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
 
@@ -773,7 +774,8 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
           padding='VALID')
       if p.bias:
         outputs = tf.nn.bias_add(outputs, theta.b)
-      new_context = concat_inputs[:, q:]
+      new_context = tf.slice(concat_inputs, [0, q, 0, 0],
+                             tf.shape(state0.context))
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
 
