@@ -2638,7 +2638,6 @@ def TokenShufflingOnlogitsV2(logits,
           expert_capacity_dim, capacity_factor, group_size_dim, experts_dim,
           tf.get_default_graph().get_name_scope())
     tpu_summary.scalar('expert_capacity', expert_capacity_dim)
-
   # GEC
   _, token_indices = tf.math.top_k(
       token_scores, k=expert_capacity_dim, sorted=False)
