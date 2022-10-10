@@ -68,48 +68,19 @@ RUN mkdir /bazel && \
     cd / && \
     rm -f /bazel/bazel-$BAZEL_VERSION-installer-linux-x86_64.sh
 
-# TODO(austinwaters): Remove graph-compression-google-research once
-# model-pruning-google-research properly declares it as a dependency.
-ARG pip_dependencies=' \
-      apache-beam[gcp]>=2.8 \
-      attrs \
-      contextlib2 \
-      dataclasses \
-      google-api-python-client \
-      graph-compression-google-research \
-      h5py \
-      ipykernel \
-      jupyter \
-      jupyter_http_over_ws \
-      matplotlib \
-      mock \
-      model-pruning-google-research \
-      numpy \
-      oauth2client \
-      pandas \
-      Pillow \
-      pyyaml \
-      recommonmark \
-      scikit-learn \
-      scipy \
-      sentencepiece \
-      sphinx \
-      sphinx_rtd_theme \
-      sympy'
-
-RUN python3 -m pip --no-cache-dir install $pip_dependencies
-RUN python3 -m ipykernel.kernelspec
+COPY docker /docker
 
 # The latest tensorflow requires CUDA 10 compatible nvidia drivers (410.xx).
 # If you are unable to update your drivers, an alternative is to compile
 # tensorflow from source instead of installing from pip.
-# Ensure we install the correct version by uninstalling first.
-RUN python3 -m pip uninstall -y tensorflow tensorflow-gpu tf-nightly tf-nightly-gpu
-RUN python3 -m pip --no-cache-dir install tensorflow tensorflow-datasets \
-  tensorflow-hub tensorflow-text tensorflow-probability
-RUN python3 -m pip --no-cache-dir install --no-deps waymo-open-dataset-tf-2-6-0
-
+# TODO(austinwaters): Remove graph-compression-google-research once
+RUN --mount=type=cache,target=/root/.cache \
+  python3 -m pip install -r /docker/dev.requirements.txt
+RUN python3 -m ipykernel.kernelspec
 RUN jupyter serverextension enable --py jupyter_http_over_ws
+
+COPY docker/devel.bashrc /root/devel.bashrc
+RUN echo 'source /root/devel.bashrc' >> /root/.bashrc
 
 # TensorBoard
 EXPOSE 6006
