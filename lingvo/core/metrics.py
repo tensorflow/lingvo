@@ -728,3 +728,62 @@ class SamplingMetric(ConfigurableMetric):
   def _CreateSummary(self, name):
     """Returns a tf.Summary for this metric."""
     raise NotImplementedError()
+
+
+class GroupPairAUCMetric(AUCMetric):
+  """Compute the AUC score for all pairs extracted from each group of items.
+
+  For each group of items, the metric extracts all pairs with different
+  target values. For each pair (i, j), the metric computes the binary
+  classification AUC where the `label = 1 if target[i] > target[j] else 0` and
+  `prob = sigmoid(logits[i] - logits[j])`.
+
+  To prevent generating pairs across groups, an additional arg `group_ids` is
+  required, which is a list of ints that specifies the group_id of each item.
+
+  In addition, in order to achieve streaming computation, items from the same
+  group need to form continuous chunks,
+  e.g. group_ids = [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2].
+
+  In the case of [0, 0, 1, 1, 1, 0, 0, 2, 2, 2, 2], the second chunk of 0s will
+  be treated as a separate 3rd group rather than part of the 1st group.
+  """
+
+  def UpdateRaw(self, group_ids, target, logits, weight=None):
+    """Updates the metrics.
+
+    Args:
+      group_ids: An array to specify the group identity.
+      target: An array to specify the groundtruth float values.
+      logits: An array to specify the raw prediction logits.
+      weight: An array to specify the sample weight for the auc computation.
+    """
+
+    assert self._samples <= 0
+
+    sigmoid = lambda x: 1.0 / (1.0 + np.exp(-x))
+
+    def _ProcessChunk(s, e):
+      for i in range(s, e):
+        for j in range(i + 1, e):
+          if target[i] != target[j]:
+            pair_label = 1 if target[i] > target[j] else 0
+            pair_prob = sigmoid(logits[i] - logits[j])
+            self._label.append(pair_label)
+            self._prob.append(pair_prob)
+            if weight:
+              self._weight.append(min(1.0, weight[i] + weight[j]))
+            else:
+              self._weight.append(1.0)
+
+    s, e = 0, 1
+    while e <= len(target):
+      # Find the end of a chunk
+      if e == len(target) or group_ids[e] != group_ids[s]:
+        # Process the current chunk [s:e]
+        _ProcessChunk(s, e)
+
+        # Start a new chunk by setting `s` to `e`
+        s = e
+      # Increment `e` by 1.
+      e += 1

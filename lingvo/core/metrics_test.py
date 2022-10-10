@@ -246,6 +246,32 @@ class MetricsTest(test_utils.TestCase):
     # Verify average AUC value.
     self.assertAllClose(0.722222222, m.value)
 
+  def testGroupPairAUCMetric(self):
+    if not metrics.HAS_SKLEARN:
+      self.skipTest('sklearn is not installed.')
+    pair_m = metrics.AUCMetric()
+    group_m = metrics.GroupPairAUCMetric()
+    group_ids = [0, 0, 0, 1, 1, 1, 2, 2]
+    target = np.random.rand(8).tolist()
+    logits = np.random.rand(8).tolist()
+    weight = [1.0] * 8
+    group_m.UpdateRaw(
+        group_ids=group_ids, target=target, logits=logits, weight=weight)
+
+    sigmoid = lambda x: 1.0 / (1.0 + np.exp(-x))
+    left, right = 0, 0
+    while right < len(group_ids):
+      while right < len(group_ids) and group_ids[right] == group_ids[left]:
+        right += 1
+      for i in range(left, right):
+        for j in range(i + 1, right):
+          if group_ids[i] == group_ids[j] and target[i] != target[j]:
+            pair_m.Update(
+                label=[1 if target[i] > target[j] else 0],
+                prob=[sigmoid(logits[i] - logits[j])],
+                weight=[min(1.0, weight[i] + weight[j])])
+      left = right
+    self.assertEqual(pair_m.value, group_m.value)
 
 if __name__ == '__main__':
   test_utils.main()
