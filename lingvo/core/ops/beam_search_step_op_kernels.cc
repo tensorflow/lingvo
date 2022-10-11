@@ -1115,6 +1115,7 @@ class TopKTerminatedHypsOp : public OpKernel {
 REGISTER_KERNEL_BUILDER(Name("TopKTerminatedHyps").Device(DEVICE_CPU),
                         TopKTerminatedHypsOp);
 
+template <typename T>
 class UnpackHypOp : public OpKernel {
  public:
   explicit UnpackHypOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
@@ -1155,7 +1156,7 @@ class UnpackHypOp : public OpKernel {
         ctx, ctx->allocate_output(2, TensorShape({batch_size}), &out_scores));
     auto t_out_ids = out_ids->matrix<int32>();
     auto t_out_seq_lens = out_seq_lens->vec<int32>();
-    auto t_out_scores = out_scores->vec<float>();
+    auto t_out_scores = out_scores->vec<T>();
     t_out_ids.setZero();
     t_out_seq_lens.setZero();
     t_out_scores.setZero();
@@ -1167,7 +1168,7 @@ class UnpackHypOp : public OpKernel {
           t_out_ids(i, j) = hyp.ids(j);
         }
         t_out_seq_lens(i) = std::min(hyp.ids_size(), max_seq_length);
-        t_out_scores(i) = hyp.normalized_score();
+        t_out_scores(i) = static_cast<T>(hyp.normalized_score());
       }
     }
   }
@@ -1176,7 +1177,12 @@ class UnpackHypOp : public OpKernel {
   int32 max_seq_length_ = 0;
 };
 
-REGISTER_KERNEL_BUILDER(Name("UnpackHyp").Device(DEVICE_CPU), UnpackHypOp);
+REGISTER_KERNEL_BUILDER(
+    Name("UnpackHyp").Device(DEVICE_CPU).TypeConstraint<float>("T"),
+    UnpackHypOp<float>);
+REGISTER_KERNEL_BUILDER(
+    Name("UnpackHyp").Device(DEVICE_CPU).TypeConstraint<bfloat16>("T"),
+    UnpackHypOp<bfloat16>);
 
 template <typename T>
 class HypsFromBeamSearchOuts : public OpKernel {

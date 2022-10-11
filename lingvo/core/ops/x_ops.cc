@@ -368,7 +368,8 @@ REGISTER_OP("UnpackHyp")
     .Input("in_hyps: string")
     .Output("out_ids: int32")
     .Output("out_seq_lens: int32")
-    .Output("out_scores: float32")
+    .Output("out_scores: T")
+    .Attr("T: {float, bfloat16} = DT_FLOAT")
     .Attr("max_seq_length: int = 0")
     .SetShapeFn([](shape_inference::InferenceContext* c) {
       auto batch_size = c->NumElements(c->input(0));
