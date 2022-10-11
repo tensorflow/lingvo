@@ -22,7 +22,9 @@
 [ -z "$PS1" ] && return
 
 # Set up attractive prompt
-export PS1="\[\e[31m\]lingvo-dev\[\e[m\] \[\e[33m\]\w\[\e[m\] > "
+export _TF_VERSION=$(pip3 show tensorflow | grep Version | cut -f 2 -d' ')
+export _PY_VERSION=$(python --version | cut -f 2 -d' ')
+export PS1="\[\e[31m\]lingvo-dev (TF ${_TF_VERSION}; PY ${_PY_VERSION})\[\e[m\] \[\e[33m\]\w\[\e[m\] > "
 export TERM=xterm-256color
 alias grep="grep --color=auto"
 alias ls="ls --color=auto"
