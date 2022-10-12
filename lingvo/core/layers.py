@@ -1147,9 +1147,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p = self.params
     with tf.name_scope(p.name):
       inputs, paddings = self._CastToFPropDtype((inputs, paddings))
-      if paddings is None:
-        shape = tf.convert_to_tensor(py_utils.GetShape(inputs)[:-1], tf.int32)
-        paddings = tf.zeros(tf.concat([shape, [1]], axis=0), dtype=inputs.dtype)
       w, b = self._GetWeights(theta, inputs, paddings)
       if pruning_utils.ApplyCompression(p):
         if p.pruning_hparams_dict[
@@ -1191,8 +1188,13 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
             if not p.is_inference:
               out = py_utils.CheckNumerics(out)
             out = activations.GetFn(p.activation)(out)
-      paddings = self.QRAct(paddings, quant_utils.QDistribution.PADDING)
-      return py_utils.ApplyPadding(paddings, out)
+      if paddings is not None:
+        paddings = self.QRAct(paddings, quant_utils.QDistribution.PADDING)
+        out = py_utils.ApplyPadding(paddings, out)
+      else:
+        # TODO(lrdx): It makes no sense to keep this, but tests fail without it.
+        out = tf.ensure_shape(out, out.shape)
+      return out
 
   def FPropFullSequence(self, theta, inputs, paddings):
     return self.FProp(theta, inputs, paddings)
