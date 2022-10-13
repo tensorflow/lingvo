@@ -6883,6 +6883,13 @@ class Builder(builder.Base):
              'Template for the Funnel Pooling layer.')
     p.Define('survival_prob', 1.0,
              'Survival probability for the residual branch.')
+    p.Define('moe_activation', 'RELU', 'MoE activation function.')
+    p.Define('num_experts', 0, 'Total number of experts.')
+    p.Define('num_groups', 1, 'Num of groups for dispatching.')
+    p.Define(
+        'min_group_size', None,
+        'If not None, num_groups will be adjusted so that there will be at '
+        'least min_group_size tokens in each group.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -7027,6 +7034,37 @@ class Builder(builder.Base):
     return self.GatedFeedforward(
         name, is_causal, ff_hidden_dim,
         activation_fn=lambda x: tf.nn.gelu(x, approximate=True))
+
+  def MoE(self, name, is_causal=False, ff_hidden_dim=None):
+    del is_causal
+    p = self.params
+    assert not self.params.packed_input
+    if ff_hidden_dim is None:
+      ff_hidden_dim = p.ff_hidden_dim
+    moe_p = layers_with_attention.TransformerShardedMoeLayer.Params()
+    moe_p.name = name
+    moe_p.input_dim = p.model_dim
+    moe_p.output_dim = p.model_dim
+    moe_p.hidden_dim = ff_hidden_dim
+    moe_p.activation = p.moe_activation
+    moe_p.residual_weight = p.ff_residual_weight
+    moe_p.residual_dropout_prob = p.residual_dropout_prob
+    moe_p.relu_dropout_prob = p.relu_dropout_prob
+    moe_p.num_groups = p.num_groups
+    moe_p.min_group_size = p.min_group_size
+    moe_p.num_experts = p.num_experts
+    moe_p.expert_capacity_factor = 1.0
+    if p.deterministic_dropout:
+      moe_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
+    sub_list = [
+        ('i.vec, i.paddings->o.vec', moe_p),
+        ('i.paddings->o.paddings', self._Id('id')),
+    ]
+    return self._Graph(
+        name,
+        ['i'],  # input NestedMap with {vec, paddings, segment_mask}
+        ['o'],  # output NestedMap with {vec, paddings, segment_mask}
+        *sub_list)
 
   def GatedFeedforward(self, name, is_causal=False, ff_hidden_dim=None,
                        activation_fn=tf.nn.relu, use_paddings=True):
@@ -7463,7 +7501,8 @@ class Builder(builder.Base):
   def FunnelEncoderLayer(self, name, stride=1, first_n=None,
                          ff_hidden_dim=None, num_heads=None,
                          ff_gated_fn=None,
-                         num_ffns=1):
+                         num_ffns=1,
+                         use_moe=False):
     """(inputs, paddings) -> (encoded, paddings).
 
     Args:
@@ -7485,6 +7524,7 @@ class Builder(builder.Base):
         standard feedforward layer. Current supported options: None, 'silu',
         'gelu', and callable.
       num_ffns: number of ffn layers.
+      use_moe: The first of the ffn layer use moe.
 
     Returns:
       A transformer encoder layer params that supports optional stride.
@@ -7508,16 +7548,20 @@ class Builder(builder.Base):
     else:
       raise ValueError('Unsupported ff_gated_fn {}.'.format(ff_gated_fn))
 
+    if use_moe:
+      moe_p = self.MoE('moe', ff_hidden_dim=ff_hidden_dim)
+
     s_layers = [self._FunnelAttention('self_atten', stride=stride,
                                       first_n=first_n, num_heads=num_heads),
-                ff_layer]
+                moe_p if use_moe else ff_layer]
     if num_ffns > 1:
       for ffn_id in range(1, num_ffns):
         s_layers.append(ff_layer.Copy().Set(name='ff%d' % ffn_id))
     return self._Seq(name, self._Seq('block', *s_layers))
 
   def TransformerEncoderLayer(self, name, stride=1, first_n=None,
-                              ff_hidden_dim=None, num_heads=None):
+                              ff_hidden_dim=None, num_heads=None,
+                              use_moe=False):
     """(inputs, paddings) -> (encoded, paddings).
 
     Args:
@@ -7535,6 +7579,7 @@ class Builder(builder.Base):
         this will override p.ff_hidden_dim.
       num_heads: The number of heads for the multi-head attention module. If
         specified, this will override p.num_heads.
+      use_moe: whether to use moe feedforward layer or not.
 
     Returns:
       A transformer encoder layer params that supports optional stride.
@@ -7544,11 +7589,15 @@ class Builder(builder.Base):
       ff_hidden_dim = p.ff_hidden_dim
     if num_heads is None:
       num_heads = p.num_heads
+    if use_moe:
+      ffw_p = self.MoE('moe', ff_hidden_dim=ff_hidden_dim)
+    else:
+      ffw_p = self.Feedforward('ff', ff_hidden_dim=ff_hidden_dim)
     return self._Seq(name, self._Seq(
         'block',
         self._StridedAttention('self_atten', stride=stride,
                                first_n=first_n, num_heads=num_heads),
-        self.Feedforward('ff', ff_hidden_dim=ff_hidden_dim)))
+        ffw_p))
 
   def Stack(self, name, blocks, output_all_layer_hiddens=False):
     """Returns a stack of sequential layers."""

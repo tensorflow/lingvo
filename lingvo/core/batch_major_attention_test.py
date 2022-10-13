@@ -4861,15 +4861,19 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       np.random.seed(12345)
       heads = [1, 2, 4]
       ff_dims = [16, 32, 16]
+      moe_layers = [False, True, False]
       atten_builder = attention.Builder.Params().Set(
-          model_dim=16, num_heads=heads, ff_hidden_dim=ff_dims).Instantiate()
+          model_dim=16, num_experts=2, num_heads=heads,
+          ff_hidden_dim=ff_dims).Instantiate()
       layers = []
-      for layer_i, (head, ff_dim) in enumerate(zip(heads, ff_dims)):
+      for layer_i, (head, ff_dim,
+                    use_moe) in enumerate(zip(heads, ff_dims, moe_layers)):
         layers.append(
             atten_builder.TransformerEncoderLayer(
                 name='atten_{}'.format(layer_i),
                 ff_hidden_dim=ff_dim,
                 num_heads=head,
+                use_moe=use_moe,
                 stride=1 if layer_i < 2 else 0))
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
@@ -4877,12 +4881,18 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       input_embs = tf.constant(
           np.random.random(size=[bs, sl, d]), dtype=np.float)
       paddings = tf.zeros([bs, sl])
-      l_out = l.FPropDefaultTheta(
-          py_utils.NestedMap(vec=input_embs, paddings=paddings))
-      out = tf.reduce_sum(l_out.vec)
-      tf.global_variables_initializer().run()
-      actual_out = sess.run(out)
-      self.assertAllClose(actual_out, 17.40516)
+      with py_utils.AuxLossContext() as aux_loss_ctx:
+        l_out = l.FPropDefaultTheta(
+            py_utils.NestedMap(vec=input_embs, paddings=paddings))
+        out = tf.reduce_sum(l_out.vec)
+        tf.global_variables_initializer().run()
+        actual_out = sess.run(out)
+        self.assertAllClose(actual_out, 23.712322)
+        if aux_loss_ctx.aux_losses:
+          aux_loss = tf.add_n(aux_loss_ctx.aux_losses)
+        else:
+          aux_loss = tf.constant(0.0, dtype=py_utils.FPropDtype(p))
+      self.assertAllClose(aux_loss, 1.199173)
 
   def testSerialization(self):
     heads = [1, 2, 4]
