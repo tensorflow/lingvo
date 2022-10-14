@@ -97,7 +97,7 @@ def maybe_unreplicate_gda(data):
   Returns: A Pytree of DeviceArray or the original input.
   """
   return jax.tree_map(
-      lambda x: x.local_data(0)  # pylint: disable=g-long-lambda
+      lambda x: x.addressable_data(0)  # pylint: disable=g-long-lambda
       if isinstance(x, gda_lib.GlobalDeviceArray) else x,
       data)
 
