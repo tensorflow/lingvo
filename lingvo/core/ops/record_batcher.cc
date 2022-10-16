@@ -60,7 +60,9 @@ limitations under the License.
 #include "lingvo/core/ops/record_batcher.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <utility>
+#include <vector>
 
 #include "absl/synchronization/mutex.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -72,9 +74,142 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
+BucketAdjuster::BucketAdjuster(const int64_t max_bucket_key,
+                               const int64_t num_buckets)
+    : max_bucket_key_(max_bucket_key),
+      num_buckets_(num_buckets),
+      length_histogram_(max_bucket_key + 1, 0) {}
+
+void BucketAdjuster::IncrementHistogram(const int64_t bucket) {
+  absl::MutexLock lock(&mu_);
+  if (bucket > max_bucket_key_) return;
+  length_histogram_[bucket]++;
+}
+
+void BucketAdjuster::AdjustBuckets(std::vector<int64_t>& bucket_upper_bound) {
+  // The length histogram is too big to compute with quickly.
+  // We distill it down to a histogram with bins of equal cost (equal area).
+  absl::MutexLock lock(&mu_);
+  int64_t ideal_cost = 0;
+  for (int i = 0; i < length_histogram_.size(); i++) {
+    ideal_cost += length_histogram_[i] * i;
+  }
+  if (ideal_cost == 0) {
+    return;
+  }
+
+  // The histogram is pairs of (upper_length_bound, items_in_bucket).
+  std::vector<std::pair<int64_t, int64_t>> compact_histogram;
+  int64_t cost_so_far = 0;
+  int64_t count_in_bucket = 0;
+  int bucket_index = 0;
+  const int kCompactBuckets = 500;
+  for (int i = 0; i < length_histogram_.size(); i++) {
+    cost_so_far += length_histogram_[i] * i;
+    count_in_bucket += length_histogram_[i];
+    int64_t cost_target = ideal_cost * ((bucket_index + 1.0) / kCompactBuckets);
+    if (cost_so_far >= cost_target &&
+        compact_histogram.size() != kCompactBuckets) {
+      compact_histogram.push_back(std::make_pair(i, count_in_bucket));
+      count_in_bucket = 0;
+      bucket_index++;
+    }
+  }
+  // Make sure that the last bucket ends at the user-specified upper bound.
+  compact_histogram.push_back(std::make_pair(max_bucket_key_, count_in_bucket));
+
+  // Clear the fine-grained histogram to prepare for the next cycle.
+  length_histogram_.assign(max_bucket_key_ + 1, 0);
+
+  const int num_lengths = compact_histogram.size();
+
+  // Now we shrink the compact histogram even further using dynamic programming.
+  // c[i, j, k]: the cumulative cost for the first i histogram groups, if the
+  // next bucketing point is at index j (j > i), and there are k more bucketing
+  // points available to use for the remaining elements.
+  Tensor cost(DT_INT64, TensorShape({num_lengths, num_lengths, num_buckets_}));
+  auto c = cost.tensor<int64_t, 3>();
+
+  // s(i, j) is the total cost of computing the items in histogram bucket i
+  // when padding them out to the size of bucket j.
+  auto s = [&compact_histogram](int i, int j) {
+    const int64_t bucket_j_width = compact_histogram[j].first;
+    const int64_t bucket_i_count = compact_histogram[i].second;
+    return bucket_i_count * bucket_j_width;
+  };
+
+  for (int i = 0; i < num_lengths; i++) {
+    for (int j = i + 1; j < num_lengths; j++) {
+      // If there are no buckets left and j is the next bucket, the
+      // cost is \sum_i<j s(i,j).
+      c(i, j, 0) = s(i, j);
+      if (i > 0) {
+        c(i, j, 0) += c(i - 1, j, 0);
+      }
+      // When we have some buckets to use, we can choose to insert bucket
+      // boundaries to reduce computation.
+      for (int k = 1; k < num_buckets_; k++) {
+        if (i > 0) {
+          // When we choose to put a bucket boundary here at position i, we
+          // can compute these new items with minimal padding [s(i, i)].
+          int64_t cost_choose = c(i - 1, i, k - 1) + s(i, i);
+          // If we don't put a bucket boundary here, we have to wait until
+          // position j, which means extra padding. [s(i, j)].
+          int64_t cost_not_choose = c(i - 1, j, k) + s(i, j);
+          c(i, j, k) = std::min(cost_choose, cost_not_choose);
+        } else {
+          c(i, j, k) = s(i, j);
+        }
+      }
+    }
+  }
+
+  std::vector<int> buckets;
+  buckets.push_back(num_lengths - 1);
+  const int64_t best_cost =
+      c(num_lengths - 2, num_lengths - 1, num_buckets_ - 1);
+  int64_t remaining_cost = best_cost;
+  for (int i = num_lengths - 2; i > 0; i--) {
+    int buckets_left = num_buckets_ - buckets.size();
+    if (buckets_left <= 0) break;
+    int prev_bucket = buckets.back();
+    int64_t cost_choose = c(i - 1, i, buckets_left - 1) + s(i, i);
+    int64_t cost_not_choose =
+        c(i - 1, prev_bucket, buckets_left) + s(i, prev_bucket);
+    if (remaining_cost == cost_choose) {
+      buckets.push_back(i);
+      remaining_cost -= s(i, i);
+    } else if (remaining_cost == cost_not_choose) {
+      remaining_cost -= s(i, prev_bucket);
+    } else {
+      // This didn't make sense; keep the buckets as they are.
+      LOG(WARNING) << "AdjustBuckets: backtrace failed.";
+      return;
+    }
+  }
+
+  std::reverse(buckets.begin(), buckets.end());
+
+  // We keep the same maximum value that the user entered, but all other
+  // boundaries are updated.
+  std::vector<string> bucket_strings;
+  for (int i = 0; i < buckets.size() - 1; i++) {
+    bucket_upper_bound[i] = compact_histogram[buckets[i]].first;
+    bucket_strings.push_back(strings::StrCat(bucket_upper_bound[i]));
+  }
+  bucket_strings.push_back(strings::StrCat(bucket_upper_bound.back()));
+
+  // Compute the amount of padding waste from choosing this bucket assignment.
+  LOG(INFO) << "Buckets: [" << str_util::Join(bucket_strings, ", ") << "] "
+            << "Waste: "
+            << (best_cost - static_cast<float>(ideal_cost)) / best_cost;
+}
+
 RecordBatcher::RecordBatcher(const Options& opts, RecordYielder* yielder,
                              RecordProcessor* processor)
     : opts_(opts),
+      bucket_adjuster_(opts.bucket_upper_bound.back(),
+                       opts.bucket_upper_bound.size()),
       yielder_(yielder),
       processor_(processor),
       processor_thread_(new thread::ThreadPool(
@@ -90,7 +225,6 @@ RecordBatcher::RecordBatcher(const Options& opts, RecordYielder* yielder,
       bucket_upper_bound_(opts_.bucket_upper_bound) {
   CHECK_EQ(opts_.bucket_upper_bound.size(), opts_.bucket_batch_limit.size());
   buckets_.resize(opts_.bucket_upper_bound.size());
-  length_histogram_.resize(opts_.bucket_upper_bound.back() + 1, 0);
   start_time_ = std::time(nullptr);
   {
     absl::MutexLock l(&mu_);
@@ -156,128 +290,11 @@ Status RecordBatcher::GetNext(OpKernelContext* ctx, int64_t* bucket,
 }
 
 void RecordBatcher::IncrementHistogram(int64_t bucket) {
-  if (bucket > bucket_upper_bound_.back()) return;
-  length_histogram_[bucket]++;
+  bucket_adjuster_.IncrementHistogram(bucket);
 }
 
 void RecordBatcher::AdjustBuckets() {
-  // The length histogram is too big to compute with quickly.
-  // We distill it down to a histogram with bins of equal cost (equal area).
-  int64_t ideal_cost = 0;
-  for (int i = 0; i < length_histogram_.size(); i++) {
-    ideal_cost += length_histogram_[i] * i;
-  }
-  if (ideal_cost == 0) {
-    return;
-  }
-
-  // The histogram is pairs of (upper_length_bound, items_in_bucket).
-  std::vector<std::pair<int64_t, int64_t>> compact_histogram;
-  int64_t cost_so_far = 0;
-  int64_t count_in_bucket = 0;
-  int bucket_index = 0;
-  const int kCompactBuckets = 500;
-  for (int i = 0; i < length_histogram_.size(); i++) {
-    cost_so_far += length_histogram_[i] * i;
-    count_in_bucket += length_histogram_[i];
-    int64_t cost_target = ideal_cost * ((bucket_index + 1.0) / kCompactBuckets);
-    if (cost_so_far >= cost_target &&
-        compact_histogram.size() != kCompactBuckets) {
-      compact_histogram.push_back(std::make_pair(i, count_in_bucket));
-      count_in_bucket = 0;
-      bucket_index++;
-    }
-  }
-  // Make sure that the last bucket ends at the user-specified upper bound.
-  compact_histogram.push_back(
-      std::make_pair(bucket_upper_bound_.back(), count_in_bucket));
-
-  // Clear the fine-grained histogram to prepare for the next cycle.
-  length_histogram_.assign(opts_.bucket_upper_bound.back() + 1, 0);
-
-  const int num_lengths = compact_histogram.size();
-  const int num_buckets = bucket_upper_bound_.size();
-
-  // Now we shrink the compact histogram even further using dynamic programming.
-  // c[i, j, k]: the cumulative cost for the first i histogram groups, if the
-  // next bucketing point is at index j (j > i), and there are k more bucketing
-  // points available to use for the remaining elements.
-  Tensor cost(DT_INT64, TensorShape({num_lengths, num_lengths, num_buckets}));
-  auto c = cost.tensor<int64_t, 3>();
-
-  // s(i, j) is the total cost of computing the items in histogram bucket i
-  // when padding them out to the size of bucket j.
-  auto s = [&compact_histogram](int i, int j) {
-    const int64_t bucket_j_width = compact_histogram[j].first;
-    const int64_t bucket_i_count = compact_histogram[i].second;
-    return bucket_i_count * bucket_j_width;
-  };
-
-  for (int i = 0; i < num_lengths; i++) {
-    for (int j = i + 1; j < num_lengths; j++) {
-      // If there are no buckets left and j is the next bucket, the
-      // cost is \sum_i<j s(i,j).
-      c(i, j, 0) = s(i, j);
-      if (i > 0) {
-        c(i, j, 0) += c(i - 1, j, 0);
-      }
-      // When we have some buckets to use, we can choose to insert bucket
-      // boundaries to reduce computation.
-      for (int k = 1; k < num_buckets; k++) {
-        if (i > 0) {
-          // When we choose to put a bucket boundary here at position i, we
-          // can compute these new items with minimal padding [s(i, i)].
-          int64_t cost_choose = c(i - 1, i, k - 1) + s(i, i);
-          // If we don't put a bucket boundary here, we have to wait until
-          // position j, which means extra padding. [s(i, j)].
-          int64_t cost_not_choose = c(i - 1, j, k) + s(i, j);
-          c(i, j, k) = std::min(cost_choose, cost_not_choose);
-        } else {
-          c(i, j, k) = s(i, j);
-        }
-      }
-    }
-  }
-
-  std::vector<int> buckets;
-  buckets.push_back(num_lengths - 1);
-  const int64_t best_cost =
-      c(num_lengths - 2, num_lengths - 1, num_buckets - 1);
-  int64_t remaining_cost = best_cost;
-  for (int i = num_lengths - 2; i > 0; i--) {
-    int buckets_left = num_buckets - buckets.size();
-    if (buckets_left <= 0) break;
-    int prev_bucket = buckets.back();
-    int64_t cost_choose = c(i - 1, i, buckets_left - 1) + s(i, i);
-    int64_t cost_not_choose =
-        c(i - 1, prev_bucket, buckets_left) + s(i, prev_bucket);
-    if (remaining_cost == cost_choose) {
-      buckets.push_back(i);
-      remaining_cost -= s(i, i);
-    } else if (remaining_cost == cost_not_choose) {
-      remaining_cost -= s(i, prev_bucket);
-    } else {
-      // This didn't make sense; keep the buckets as they are.
-      LOG(WARNING) << "AdjustBuckets: backtrace failed.";
-      return;
-    }
-  }
-
-  std::reverse(buckets.begin(), buckets.end());
-
-  // We keep the same maximum value that the user entered, but all other
-  // boundaries are updated.
-  std::vector<string> bucket_strings;
-  for (int i = 0; i < buckets.size() - 1; i++) {
-    bucket_upper_bound_[i] = compact_histogram[buckets[i]].first;
-    bucket_strings.push_back(strings::StrCat(bucket_upper_bound_[i]));
-  }
-  bucket_strings.push_back(strings::StrCat(bucket_upper_bound_.back()));
-
-  // Compute the amount of padding waste from choosing this bucket assignment.
-  LOG(INFO) << "Buckets: [" << str_util::Join(bucket_strings, ", ") << "] "
-            << "Waste: "
-            << (best_cost - static_cast<float>(ideal_cost)) / best_cost;
+  bucket_adjuster_.AdjustBuckets(bucket_upper_bound_);
 }
 
 void RecordBatcher::FlushAllBuckets() {

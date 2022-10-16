@@ -17,6 +17,7 @@ limitations under the License.
 #define LINGVO_CORE_OPS_RECORD_BATCHER_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 #include "absl/synchronization/mutex.h"
@@ -63,6 +64,24 @@ class RecordProcessor {
   // calling 'Process', since some processors expect some initialization with an
   // OpKernelContext before running.
   virtual Status Initialize(OpKernelContext* ctx) { return Status(); }
+};
+
+// TODO(cjzheng) Consider move this to separate library and add tests
+// BucketAdjuster changes bucket upperbounds based on measured histogram data
+// to minimize the padding cost.
+class BucketAdjuster {
+ public:
+  BucketAdjuster(int64_t max_bucket_key, int64_t num_buckets);
+  virtual ~BucketAdjuster() {}
+  void IncrementHistogram(int64_t bucket) ABSL_LOCKS_EXCLUDED(mu_);
+  void AdjustBuckets(std::vector<int64_t>& bucket_upper_bound)
+      ABSL_LOCKS_EXCLUDED(mu_);
+
+ private:
+  const int64_t max_bucket_key_;
+  const int64_t num_buckets_;
+  absl::Mutex mu_;
+  std::vector<int64_t> length_histogram_ ABSL_GUARDED_BY(mu_);
 };
 
 // RecordBatcher takes a RecordYielder, batches the record yielded and
@@ -127,6 +146,7 @@ class RecordBatcher {
 
   // Owned.
   Options opts_;
+  BucketAdjuster bucket_adjuster_;
   RecordYielder* yielder_ = nullptr;
   RecordProcessor* processor_ = nullptr;
   thread::ThreadPool* processor_thread_ = nullptr;
@@ -159,7 +179,6 @@ class RecordBatcher {
   std::time_t last_log_update_time_ ABSL_GUARDED_BY(mu_);
   int64_t next_status_update_duration_seconds_ ABSL_GUARDED_BY(mu_) = 60;
 
-  std::vector<int64_t> length_histogram_;
   std::vector<int64_t> bucket_upper_bound_;
 
   // Conditions.
