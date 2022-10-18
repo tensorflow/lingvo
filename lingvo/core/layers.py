@@ -1278,7 +1278,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                              inputs,
                              with_activation=True,
                              quant=False,
-                             bn=False,
                              mix_kernel=None):
     """Applies matmul/bias/activation in one step.
 
@@ -1293,7 +1292,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       inputs: FProp inputs.
       with_activation: Whether to also compute the activation function.
       quant: Whether to apply quantization.
-      bn: Apply batchnorm.
       mix_kernel: (optional) mix_kernel for block diagonal matmul.
 
     Returns:
