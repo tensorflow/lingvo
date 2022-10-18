@@ -417,6 +417,7 @@ def GetRank(tensor):
   Returns:
     Either an int or a Tensor for the rank of the input tensor.
   """
+  tensor = tf.convert_to_tensor(tensor)
   if tensor.shape.ndims is not None:
     return tensor.shape.ndims  # int
   else:
@@ -5238,8 +5239,9 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim, use_einsum=True):
   inputs = with_dependencies([assert_equal(GetShape(inputs)[-1], input_dim)],
                              inputs)
   weight = with_dependencies([
+      assert_equal(GetRank(weight), 2),
       assert_equal(GetShape(weight)[0], input_dim),
-      assert_equal(GetShape(weight)[-1], output_dim)
+      assert_equal(GetShape(weight)[1], output_dim)
   ], weight)
 
   if inputs.shape.rank == 2:
