@@ -334,6 +334,39 @@ class SpectrumAugmenterTest(test_utils.TestCase, parameterized.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testSpectrumAugmenterWithBlockMask(self):
+    with self.session(use_gpu=False, graph=tf.Graph()):
+      tf.random.set_seed(1234)
+      inputs = tf.ones([3, 5, 10, 1], dtype=tf.float32)
+      paddings = tf.zeros([3, 5])
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.freq_mask_max_bins = 0
+      p.time_mask_max_frames = 0
+      p.block_mask_prob = 0.8
+      p.block_mask_size = dict(t=2, f=3)
+      p.random_seed = 34567
+      specaug_layer = p.Instantiate()
+      expected_output = [[[1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
+                          [1., 1., 1., 1., 1., 1., 1., 1., 1., 1.],
+                          [1., 1., 1., 0., 0., 0., 1., 1., 1., 0.],
+                          [1., 1., 1., 0., 0., 0., 1., 1., 1., 0.],
+                          [0., 0., 0., 1., 1., 1., 1., 1., 1., 1.]],
+                         [[1., 1., 1., 1., 1., 1., 0., 0., 0., 0.],
+                          [1., 1., 1., 1., 1., 1., 0., 0., 0., 0.],
+                          [0., 0., 0., 0., 0., 0., 1., 1., 1., 0.],
+                          [0., 0., 0., 0., 0., 0., 1., 1., 1., 0.],
+                          [0., 0., 0., 0., 0., 0., 1., 1., 1., 1.]],
+                         [[0., 0., 0., 1., 1., 1., 0., 0., 0., 0.],
+                          [0., 0., 0., 1., 1., 1., 0., 0., 0., 0.],
+                          [1., 1., 1., 1., 1., 1., 0., 0., 0., 0.],
+                          [1., 1., 1., 1., 1., 1., 0., 0., 0., 0.],
+                          [1., 1., 1., 0., 0., 0., 0., 0., 0., 0.]]]
+      h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
+      actual_layer_output = self.evaluate(tf.squeeze(h, -1))
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
   def testSpectrumAugmenterWarpMatrixConstructor(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (4, 10))

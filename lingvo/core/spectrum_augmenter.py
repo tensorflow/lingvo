@@ -26,6 +26,8 @@ _SPECAUGMENT_ARGS = (
     'time_mask_count',
     'time_mask_max_ratio',
     'time_masks_per_frame',
+    'block_mask_prob',
+    'block_mask_size',
     'freq_warp_max_bins',
     'time_warp_bound',
     'time_warp_max_frames',
@@ -110,6 +112,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         'Ratio of number of time masks to be applied against the number '
         'of frames. If > 0, multiplicity of the time mask is determined by '
         'min(time_masks_per_frame * utterance_length, time_mask_count).')
+    p.Define('block_mask_prob', 0.0, 'Mask probability for block mask.')
+    p.Define('block_mask_size', dict(t=32, f=32), 'Block size for block mask.')
     p.Define('freq_warp_max_bins', 0,
              'Maximum number of frequency bins for shifting in freq warping.')
     p.Define(
@@ -698,6 +702,86 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     return outputs
 
+  def _BlockMask(self,
+                 inputs,
+                 global_seed,
+                 dtype=tf.float32,
+                 domain_id_index=0):
+    """Applies block masking with given degree to inputs.
+
+    Args:
+      inputs: Batch of input features of shape (batch_size, time_length,
+        num_freq, channels).
+      global_seed: an integer seed tensor for stateless random ops.
+      dtype: Data type.
+      domain_id_index: domain id index.
+
+    Returns:
+      Inputs with random frequency masking applied.
+    """
+    p = self.params
+
+    # Mask parameters.
+    block_mask_prob = p.block_mask_prob[domain_id_index]
+    block_mask_size = p.block_mask_size[domain_id_index]
+
+    # If masking length or count is zero, do nothing.
+    if block_mask_prob == 0.0:
+      return inputs
+
+    # Prepare random function.
+    random_uniform = _random_uniform_op(p.use_input_dependent_random_seed)
+    global_seed = global_seed or p.random_seed
+    if global_seed:
+      seed_1 = global_seed
+      seed_2 = global_seed + 1
+    else:
+      seed_1 = seed_2 = None
+
+    # Usually channel=1.
+    batch_size, t_len_orig, f_len_orig, channel = py_utils.GetShape(inputs)
+    logmel = tf.reshape(inputs, [batch_size, t_len_orig, -1])
+    f_len_orig *= channel
+
+    # Determine batch_mask_prob ~ uniform(0, block_mask_prob).
+    batch_mask_prob = random_uniform(
+        shape=[batch_size],
+        minval=0.0,
+        maxval=block_mask_prob,
+        dtype=dtype,
+        seed=seed_1)
+
+    # Pad logmel for block-wise operations. XLA requires compile-time fixed pad.
+    t_block, f_block = block_mask_size['t'], block_mask_size['f']
+    t_pad = (t_block - t_len_orig % t_block) % t_block
+    f_pad = (f_block - f_len_orig % f_block) % f_block
+    logmel = tf.pad(logmel, [[0, 0], [0, t_pad], [0, f_pad]])
+
+    # Prepare logmel for masking.
+    _, t_len, f_len = py_utils.GetShape(logmel)
+    num_t_blk, num_f_blk = t_len // t_block, f_len // f_block
+    block_major_logmel = tf.reshape(
+        logmel, [batch_size, num_t_blk, t_block, num_f_blk, f_block])
+
+    # Generate a mask.
+    mask = random_uniform(
+        shape=[batch_size, num_t_blk, 1, num_f_blk, 1],
+        minval=0.0,
+        maxval=1.0,
+        dtype=dtype,
+        seed=seed_2)
+    mask = tf.greater(
+        mask, batch_mask_prob[:, tf.newaxis, tf.newaxis, tf.newaxis,
+                              tf.newaxis])
+    mask = tf.stop_gradient(tf.cast(mask, dtype=logmel.dtype))
+
+    # Apply the mask to logmel.
+    masked_logmel = mask * block_major_logmel
+    masked_logmel = tf.reshape(masked_logmel, [batch_size, t_len, f_len])
+    masked_logmel = masked_logmel[:, :t_len_orig, :f_len_orig]
+    outputs = tf.reshape(masked_logmel, py_utils.GetShape(inputs))
+    return outputs
+
   def _FrequencyWarp(self,
                      inputs,
                      global_seed,
@@ -920,6 +1004,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         dtype=dtype,
         domain_id_index=domain_id_index)
     inputs = self._FrequencyMask(
+        inputs,
+        global_seed=global_seed,
+        dtype=dtype,
+        domain_id_index=domain_id_index)
+    inputs = self._BlockMask(
         inputs,
         global_seed=global_seed,
         dtype=dtype,
