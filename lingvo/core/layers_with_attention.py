@@ -870,6 +870,8 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         'min_group_size', None,
         'If not None, num_groups will be adjusted so that there will be at '
         'least min_group_size tokens in each group.')
+    p.Define('expert_capacity_dim', 0,
+             'number of examples per group per expert.')
     p.Define(
         'expert_capacity_factor', 1.5,
         'Expert capacity factor. This should be set to a value greater'
@@ -926,7 +928,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     assert p.input_dim
     assert p.hidden_dim
     assert p.output_dim
-    assert p.expert_capacity_factor >= 1.0
+    assert p.expert_capacity_dim or p.expert_capacity_factor >= 1.0
     assert p.num_experts > 0
     assert p.num_groups > 0
     # Handling the case when device_mesh is a list instead of an np.array.
@@ -1027,11 +1029,14 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     p = self.params
     ap = p.activation_split_dims_mapping
 
-    assert inputs.shape.is_fully_defined()
+    required_fully_defined_input = inputs.shape.is_fully_defined() or (
+        p.min_group_size is not None)
+
     orig_shape = inputs.shape.as_list()
     assert len(orig_shape) == 3 or len(orig_shape) == 4
     if len(orig_shape) == 4:
       inputs = tf.reshape(inputs, orig_shape[:2] + [-1])
+    token_shape = inputs.shape.as_list()[:-1]
 
     with tf.name_scope(p.name):
       inputs = self._CastToFPropDtype(inputs)
@@ -1040,19 +1045,22 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       else:
         inputs_normalized = inputs
       inputs_normalized = py_utils.HasRank(inputs_normalized, 3)
-      assert inputs_normalized.shape.is_fully_defined()
-      bs, s_len, m_dim = py_utils.GetShape(inputs_normalized)
-      paddings = py_utils.HasShape(paddings, [bs, s_len])
       num_groups = p.num_groups
-      assert num_groups
-      if (p.min_group_size is not None and
-          bs * s_len / num_groups < p.min_group_size):
-        num_groups = (bs * s_len + p.min_group_size - 1) // p.min_group_size
-        tf.logging.info('num_groups adjusted to %s.' % num_groups)
-      assert (bs * s_len) % num_groups == 0
-      g_len = (bs * s_len) // num_groups
+      g_len = -1
+      if required_fully_defined_input:
+        assert inputs_normalized.shape.is_fully_defined()
+        bs, s_len, m_dim = py_utils.GetShape(inputs_normalized)
+        paddings = py_utils.HasShape(paddings, [bs, s_len])
+        assert num_groups
+        assert m_dim == p.input_dim
+        if (p.min_group_size is not None and
+            bs * s_len / num_groups < p.min_group_size):
+          num_groups = (bs * s_len + p.min_group_size - 1) // p.min_group_size
+          tf.logging.info('num_groups adjusted to %s.' % num_groups)
+        assert (bs * s_len) % num_groups == 0
+        g_len = (bs * s_len) // num_groups
       reshaped_inputs = tf.reshape(inputs_normalized,
-                                   [num_groups, g_len, m_dim])
+                                   [num_groups, g_len, p.input_dim])
       reshaped_paddings = tf.reshape(paddings, [num_groups, g_len])
 
       def _split(t_in, sharding):
@@ -1075,13 +1083,18 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       # due to much smaller group size.
       # TODO(yonghui): Avoid explicitly casting everything to fp32 once
       # Top2GatingOnLogits is stable in low-precision mode.
+      if p.expert_capacity_dim is not None and p.expert_capacity_dim > 0:
+        expert_capacity_factor = 0
+      else:
+        # x 2.0 because we choose top-2 experts per example.
+        expert_capacity_factor = 2.0 * p.expert_capacity_factor
       gating_output = gshard_layers.ComputeGating(
           w=theta.gate,
           inputs=reshaped_inputs,
           paddings=tf.cast(reshaped_paddings, tf.float32),
           num_devices=p.num_groups,
           experts_dim=p.num_experts,
-          expert_capacity_dim=0,  # automatically decided.
+          expert_capacity_dim=p.expert_capacity_dim,
           local_dispatch=True,
           fprop_dtype=tf.float32,
           gating_func=p.gating_func,
@@ -1092,8 +1105,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
           # is being dropped. This is more appropriate for routing decisions
           # like 'random'.
           legacy_mtf_behavior=True,
-          # x 2.0 because we choose top-2 experts per example.
-          capacity_factor=2.0 * p.expert_capacity_factor)
+          capacity_factor=expert_capacity_factor)
       aux_loss, combine_tensor, dispatch_tensor = (
           gating_output.aux_loss, gating_output.combine_tensor,
           gating_output.dispatch_tensor)
@@ -1142,7 +1154,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
           tf.einsum('gecm,gsec->gsm', transposed_expert_output, combine_tensor),
           ap.gsm)
 
-      combined_output = tf.reshape(combined_output, [bs, s_len, p.output_dim])
+      if required_fully_defined_input:
+        combined_output = tf.reshape(combined_output,
+                                     token_shape + [p.output_dim])
       # Apply padding.
       combined_output *= tf.cast(1.0 - tf.expand_dims(paddings, -1),
                                  fprop_dtype)

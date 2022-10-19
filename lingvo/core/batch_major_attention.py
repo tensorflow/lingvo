@@ -6887,7 +6887,7 @@ class Builder(builder.Base):
     p.Define('num_experts', 0, 'Total number of experts.')
     p.Define('num_groups', 1, 'Num of groups for dispatching.')
     p.Define(
-        'min_group_size', None,
+        'expert_capacity_dim', 0,
         'If not None, num_groups will be adjusted so that there will be at '
         'least min_group_size tokens in each group.')
     # SPMD partition related params.
@@ -7051,7 +7051,8 @@ class Builder(builder.Base):
     moe_p.residual_dropout_prob = p.residual_dropout_prob
     moe_p.relu_dropout_prob = p.relu_dropout_prob
     moe_p.num_groups = p.num_groups
-    moe_p.min_group_size = p.min_group_size
+    moe_p.expert_capacity_dim = p.expert_capacity_dim
+    moe_p.min_group_size = None
     moe_p.num_experts = p.num_experts
     moe_p.expert_capacity_factor = 1.0
     if p.deterministic_dropout:
