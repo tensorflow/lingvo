@@ -301,11 +301,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """Get the current bprop type of the input generator batch."""
     return self._bprop_onehot
 
-  def GetBatchSize(self, input_batch):
+  def GetPerBatchSize(self, input_batch):
     """Returns the number of examples in input_batch.
 
     This is useful when the batch size needs to be calculated dynamically as
-    input_batch changes.
+    input_batch changes. It has a higher priority than `GlobalBatchSize`.
 
     The implementation should not depend on any other implicit/side input
     tensors, as this method will be used inside a tf.function and value changes

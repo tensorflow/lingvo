@@ -641,15 +641,15 @@ class BaseTask(base_layer.BaseLayer):
         # In tpu mode, attempt to calculate the batch size dynamically.
         # Here, `input_batch` is the result after splitting the client-side
         # batch. We multiply the result by `num_splits_per_client`, so that
-        # the final result is the client-size batch size.
-        per_batch_size = self.input_generator.GetBatchSize(input_batch)
+        # the final result is the client-side batch size.
+        per_batch_size = self.input_generator.GetPerBatchSize(input_batch)
 
       if per_batch_size is not None:
         metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
             per_batch_size * self.cluster.num_splits_per_client),
                                            tf.constant(1.0))
       else:
-        # By default `GetBatchSize` returns None. In that case, fall back to
+        # By default `GetPerBatchSize` returns None. In that case, fall back to
         # using `GlobalBatchSize`.
         metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
             self.input_generator.GlobalBatchSize()), tf.constant(1.0))
