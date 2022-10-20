@@ -136,7 +136,7 @@ class LConvLayer(base_layer.BaseLayer):
     wp = params.weight_split_dims_mapping
     wp.df = [0, 1]
     wp.hwim = [-1, -1, 1, -1]
-    # TODO(shibow/rpang): understand the effects of fd sharding, especially why
+    # TODO(shibow, rpang): understand the effects of fd sharding, especially why
     # [-1, -1] performs better when bld is [0, -1, -1].
     wp.fd = [1, 0]
     ap = params.activation_split_dims_mapping
@@ -269,7 +269,7 @@ class LConvLayer(base_layer.BaseLayer):
     if isinstance(self.norm, bn_layers.GroupNormLayer):
       gn_input_rank = self.norm.params.input_rank
       if gn_input_rank == 4:
-        tf.logging.info(
+        tf.logging.warning(
             'Using GroupNormLayer with input_rank=4, causing extra reshapes. '
             'Set norm.params.input_rank=3.')
         inputs = tf.expand_dims(inputs, 2)
@@ -384,7 +384,7 @@ class LConvLayer(base_layer.BaseLayer):
     if isinstance(self.norm, bn_layers.GroupNormLayer):
       gn_input_rank = self.norm.params.input_rank
       if gn_input_rank == 4:
-        tf.logging.info(
+        tf.logging.warning(
             'Using GroupNormLayer with input_rank=4, causing extra reshapes. '
             'Set norm.params.input_rank=3.')
         inputs = tf.expand_dims(inputs, 2)
@@ -957,7 +957,6 @@ class ConformerLayer(base_layer.BaseLayer):
       features, paddings = in_nmap.features, in_nmap.paddings
       aux_loss = in_nmap.Get('aux_loss')
       features, paddings = self._CastToFPropDtype((features, paddings))
-      out_nmap = py_utils.NestedMap()
       if self.has_fflayer_start:
         features, paddings, aux_loss = self._MoeOrFFLayer(
             theta, 'fflayer_start', features, paddings, aux_loss)
