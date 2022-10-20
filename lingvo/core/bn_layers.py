@@ -857,7 +857,8 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     input_shape = py_utils.GetShape(inputs)
     with tf.name_scope(p.name):
-      x = tf.reshape(inputs, input_shape[:-1] + [num_groups, self.group_size])
+      expanded_inputs = tf.reshape(
+          inputs, input_shape[:-1] + [num_groups, self.group_size])
       expanded_rank = p.input_rank + 1
       all_dims = list(range(expanded_rank))
       if paddings is None or not p.cumulative:
@@ -870,19 +871,19 @@ class GroupNormLayer(base_layer.BaseLayer):
       if paddings is None and not p.cumulative:
         # Fast path on tpu without reshape.
         group_mean, group_variance = tf.nn.moments(
-            x, axes=reduce_over_dims, keepdims=True)
+            expanded_inputs, axes=reduce_over_dims, keepdims=True)
       else:
         expanded_paddings = tf.reshape(
             paddings, input_shape[:2] + [1] * (expanded_rank - 2))
         group_mean, group_variance = ComputeMoments(
-            x,
+            expanded_inputs,
             expanded_paddings,
             reduce_over_dims,
             cumulative_axis=1,
             enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
             keepdims=True)
 
-      outputs = self._Normalize(x, group_mean, group_variance)
+      outputs = self._Normalize(expanded_inputs, group_mean, group_variance)
       # Merge the last two dims back.
       outputs = tf.reshape(outputs, tf.shape(inputs))
       outputs = self._ApplyGammaBeta(theta, outputs)
@@ -997,15 +998,16 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     input_shape = py_utils.GetShape(inputs)
     with tf.name_scope(f'{p.name}/StreamStep'):
-      x = tf.reshape(inputs, input_shape[:-1] + [num_groups, group_size])
+      expanded_inputs = tf.reshape(inputs,
+                                   input_shape[:-1] + [num_groups, group_size])
       expanded_rank = p.input_rank + 1
       expanded_paddings = tf.reshape(
           paddings, input_shape[:2] + [1] * (expanded_rank - 2))
       (group_mean, group_variance, cached_sum, cached_count,
-       cached_var) = self._StreamMoments(x, expanded_paddings,
+       cached_var) = self._StreamMoments(expanded_inputs, expanded_paddings,
                                          state0.cached_sum, state0.cached_count,
                                          state0.cached_var)
-      outputs = self._Normalize(x, group_mean, group_variance)
+      outputs = self._Normalize(expanded_inputs, group_mean, group_variance)
       # Merge the last two dims back.
       outputs = tf.reshape(outputs, tf.shape(inputs))
       outputs = self._ApplyGammaBeta(theta, outputs)
