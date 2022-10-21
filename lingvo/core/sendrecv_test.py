@@ -14,7 +14,6 @@
 # ==============================================================================
 """Tests for sendrecv."""
 
-from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import sendrecv
@@ -34,7 +33,7 @@ def _Target():
   return ""
 
 
-class SendrecvTest(test_utils.TestCase, parameterized.TestCase):
+class SendrecvTest(test_utils.TestCase):
 
   def testBasic(self):
     devices = _ListDevices(_Target())
@@ -58,8 +57,6 @@ class SendrecvTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertAllClose(to_send, val)
 
-  @parameterized.named_parameters(
-      ("_function",) if py_utils._UseTfFunction() else ("_defun",))
   def testInsideFunction(self):
     devices = _ListDevices(_Target())
     sender, recver = devices[0], devices[-1]

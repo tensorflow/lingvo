@@ -1359,7 +1359,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
   def testRemoveAssertContext(self):
 
-    @WrapFunction(tf.float32, noinline=True)
+    @WrapFunction(tf.float32)
     def Op(x):
       with py_utils.RemoveAssertContext(remove=True):
         x = py_utils.with_dependencies(
@@ -3144,22 +3144,19 @@ class RematerializeFnTest(test_utils.TestCase):
       self.assertAllEqual(v2, v4)
 
 
-def WrapFunction(*dtypes, noinline=False):
-  """Wrap a python function as a Defun or tf.function."""
-  if py_utils._UseTfFunction():
+def WrapFunction(*dtypes):
+  """Wrap a python function as a tf.function."""
 
-    def Decorated(fn):
+  def Decorated(fn):
 
-      @tf.function(
-          input_signature=[tf.TensorSpec(shape=None, dtype=t) for t in dtypes])
-      def Fn(*args):
-        return fn(*args)
+    @tf.function(
+        input_signature=[tf.TensorSpec(shape=None, dtype=t) for t in dtypes])
+    def Fn(*args):
+      return fn(*args)
 
-      return Fn.get_concrete_function()
+    return Fn.get_concrete_function()
 
-    return Decorated
-  else:
-    return tf.Defun(*dtypes, noinline=noinline)
+  return Decorated
 
 
 class StatefulRandomOpsInDefunTest(test_utils.TestCase, parameterized.TestCase):
@@ -3528,10 +3525,9 @@ class FromGlobalTest(test_utils.TestCase):
 
 
 def FunctionTestParameters(test_fn):
-  suffix = '_function' if py_utils._UseTfFunction() else '_defun'
   decorator = parameterized.named_parameters(
-      (suffix, False),
-      (suffix + '_bakasfunction', True),
+      ('_baknotwrapped', False),
+      ('_bakasfunction', True),
   )
   return decorator(test_fn)
 
@@ -3766,15 +3762,13 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
     self.assertLen(StatefulCall.stateful_ops, 1)
 
   def testFuncType(self):
-    defun_type = type(tf.Defun()(lambda: 1))
     function_type = type(tf.function(lambda: 1).get_concrete_function())
 
     @py_utils.Function(fwd_sig=tf.TensorSpec(None, tf.float32))
     def Fwd(xs):
       return xs * 2
 
-    self.assertIsInstance(
-        Fwd.func, function_type if py_utils._UseTfFunction() else defun_type)
+    self.assertIsInstance(Fwd.func, function_type)
 
   def testEmptyInputWithGlobalStepContext(self):
     """Test that global step is pass as input iff it's in the signature."""
