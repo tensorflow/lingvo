@@ -5598,8 +5598,7 @@ class Function(object):
                fwd_sig=None,
                bak=None,
                bak_as_function=False,
-               device=None,
-               use_tf_function=None):
+               device=None):
     """Constructor.
 
     Below we assume `fwd` is the input to `__call__` that is used to build the
@@ -5617,9 +5616,7 @@ class Function(object):
       bak_as_function: Whether to create a TF graph function for `bak`.
       device: The device on which to run `fwd` and `bak`. Defaults to the
         current device.
-      use_tf_function: Deprecated.
     """
-    del use_tf_function
     self._fwd_sig = fwd_sig
     self._bak = bak
     self._bak_as_function = bak_as_function

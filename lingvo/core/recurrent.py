@@ -690,8 +690,7 @@ def _ReflectOnCellFn(cell_fn,
 
   @py_utils.Function(
       # Remove shape information since it may be incompatible with cell_fn.
-      fwd_sig=py_utils.TensorSpecs(fwd_sig, keep_shape=False),
-      use_tf_function=True)
+      fwd_sig=py_utils.TensorSpecs(fwd_sig, keep_shape=False))
   def Fwd(args):
     theta, state0, inputs = args
     py_utils.SetShapes(theta, fwd_sig[0])
