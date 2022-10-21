@@ -1176,8 +1176,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         if self._is_bn_folded or not p.batch_norm:
           # Everything folded together. This is the only variant that supports
           # quantization.
-          out = self._ApplyProjectionKernel(
-              w, b, inputs, quant=True, **proj_kwargs)
+          out = self._ApplyProjectionKernel(w, b, inputs, **proj_kwargs)
+          out = self.QAct(self._output_qact_name, out)
         else:
           # Projection kernel(no activation fn) -> BN -> Activation fn.
           out = self._ApplyProjectionKernel(
@@ -1277,7 +1277,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                              b,
                              inputs,
                              with_activation=True,
-                             quant=False,
                              mix_kernel=None):
     """Applies matmul/bias/activation in one step.
 
@@ -1291,7 +1290,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       b: Bias vector (or None).
       inputs: FProp inputs.
       with_activation: Whether to also compute the activation function.
-      quant: Whether to apply quantization.
       mix_kernel: (optional) mix_kernel for block diagonal matmul.
 
     Returns:
@@ -1343,18 +1341,14 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       out += b  # NOTE: Bias on matmul is never quantized.
     out = gshard_utils.MeshSplit(out, p.device_mesh,
                                  p.activation_split_dims_mapping)
-    return self._ApplyActivationFunction(out, with_activation, quant)
+    return self._ApplyActivationFunction(out, with_activation)
 
-  def _ApplyActivationFunction(self,
-                               out,
-                               with_activation=True,
-                               quant=False):
+  def _ApplyActivationFunction(self, out, with_activation=True):
     """Applies the activation function in one step.
 
     Args:
       out: The result of applying the weight matrix (and bias) to the inputs.
       with_activation: Whether to also compute the activation function.
-      quant: Whether to apply quantization.
 
     Returns:
       Output tensor reshaped.
@@ -1367,8 +1361,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       if not p.is_inference:
         out = py_utils.CheckNumerics(out)
       out = activations.GetFn(p.activation)(out)
-    if quant:
-      out = self.QAct(self._output_qact_name, out)
     return out
 
   @classmethod
