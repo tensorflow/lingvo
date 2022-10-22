@@ -797,19 +797,19 @@ class GroupNormLayer(base_layer.BaseLayer):
     group_variance = py_utils.CheckNumerics(
         group_variance, f'variance of {p.name} failed numeric check.')
 
-    input_shape = py_utils.GetShape(grouped_inputs)
-    moment_shape = list(input_shape)
+    grouped_input_shape = py_utils.GetShape(grouped_inputs)
+    group_moment_shape = list(grouped_input_shape)
     if p.input_rank == 4:
-      moment_shape[2] = 1
-      moment_shape[-1] = 1
+      group_moment_shape[2] = 1
+      group_moment_shape[-1] = 1
     else:
-      moment_shape[-1] = 1
+      group_moment_shape[-1] = 1
     if not p.cumulative:
       # If not cumulative, the seqlen dimension is also reduced.
-      moment_shape[1] = 1
+      group_moment_shape[1] = 1
 
-    group_mean = py_utils.HasShape(group_mean, moment_shape)
-    group_variance = py_utils.HasShape(group_variance, moment_shape)
+    group_mean = py_utils.HasShape(group_mean, group_moment_shape)
+    group_variance = py_utils.HasShape(group_variance, group_moment_shape)
     group_variance = py_utils.with_dependencies([
         py_utils.assert_greater_equal(group_variance,
                                       tf.cast(0, group_variance.dtype))
