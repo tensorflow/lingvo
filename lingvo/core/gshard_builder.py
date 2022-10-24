@@ -3638,6 +3638,8 @@ class UniTransformer(base_model.BaseTask):
              'feedforward net.')
     p.Define('softmax_logit_cap', 0.0, 'Softmax logit cap.')
     p.Define('is_quantize', False, 'Whether or not the model is quantized.')
+    p.Define('use_log_softmax_normalization', True,
+             'Whether to use log softmax normalization after computing logits')
     return p
 
   def __init__(self, params):
@@ -4150,7 +4152,8 @@ class UniTransformer(base_model.BaseTask):
     #   logits = py_utils.clip_by_value(logits, -p.logits_abs_max,
     #                                   p.logits_abs_max)
 
-    logits = tf.nn.log_softmax(logits)
+    if p.use_log_softmax_normalization:
+      logits = tf.nn.log_softmax(logits)
     logits = self.logits_split.FProp(theta.logits_split, logits)
 
     dec_state = gshard_layers.StateLayer.UpdateState(self.dec, theta.dec,

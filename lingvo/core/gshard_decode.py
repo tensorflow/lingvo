@@ -58,7 +58,8 @@ def preload_zero(n=None, batch_size=None, max_len=None, key_size=2):
 def get_zero_batch(batch_size=None,
                    max_len=None,
                    key_size=2,
-                   return_tgt_mask=False):
+                   return_tgt_mask=False,
+                   return_scorer_alpha=False):
   """Returns zero batch.
 
   Args:
@@ -66,6 +67,8 @@ def get_zero_batch(batch_size=None,
     max_len: max length.
     key_size: key size.
     return_tgt_mask: if to return tgt_mask.
+    return_scorer_alpha: if to return scorer_alpha used to set scaling factor
+      for controlled decoding.
   Returns: a tuple of tensors
     key: int32 tensor [batch_size, key_size]
     tgt_id: int32 tensor [batch_size, max_len]
@@ -74,6 +77,7 @@ def get_zero_batch(batch_size=None,
     tgt_labels: int32 tensor [batch_size, max_len]
     tgt_sample_temperature: float32 tensor [batch_size]
     tgt_mask: optional float32 tensor [batch_size, max_len, max_len]
+    tgt_scorer_alpha: float32 tensor [batch_size]
   """
   batch = preload_zero(
       n=1, batch_size=batch_size, max_len=max_len, key_size=key_size)
@@ -81,6 +85,10 @@ def get_zero_batch(batch_size=None,
   if return_tgt_mask:
     tgt_mask = np.zeros([batch_size, max_len, max_len], np.float32)
     batch = (*batch, tgt_mask)
+  if return_scorer_alpha:
+    assert not return_tgt_mask
+    scorer_alpha = np.zeros([batch_size], np.float32)
+    batch = (*batch, scorer_alpha)
   return batch
 
 
@@ -351,13 +359,15 @@ class GShardDecode:
                      batch_size,
                      key_size=2,
                      return_tgt_mask=False,
+                     return_scorer_alpha=False,
                      use_partitioned_infeed_queue=False):
     """Config the infeed ops and args."""
     zero_batch = get_zero_batch(
         batch_size=batch_size,
         max_len=self._prefix_max_len,
         key_size=key_size,
-        return_tgt_mask=return_tgt_mask)
+        return_tgt_mask=return_tgt_mask,
+        return_scorer_alpha=return_scorer_alpha)
 
     host_device = device_assignment.host_device(replica=0, job=self._tpu)
     host_id = int(host_device.split('/task:')[1].split('/device:')[0])
