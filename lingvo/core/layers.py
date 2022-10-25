@@ -1318,8 +1318,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
               py_utils.ToStaticShape([self._internal_output_dim])
           ],
                     axis=0))
-    elif self.apply_compression and p.use_einsum:
-      # TODO(lrdx): why does this branch need p.use_einsum?
+    elif self.apply_compression:
       inputs, w = self.ToAqtInputs('w', act=inputs, weight=w, w_feature_axis=-1)
       out = pruning_utils.PruningOp.GetProjectLastDim(inputs, w, p.input_dim,
                                                       self._internal_output_dim,
