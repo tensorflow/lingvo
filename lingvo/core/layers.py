@@ -1169,19 +1169,17 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           if not p.is_inference:
             out = py_utils.CheckNumerics(out)
           out = activations.GetFn(p.activation)(out)
-        out = self._ApplyProjectionKernel(
-            w, b, out, with_activation=False, **proj_kwargs)
+        out = self._ApplyProjectionKernel(w, b, out, **proj_kwargs)
       else:
         # Normal ordered projection.
         if self._is_bn_folded or not p.batch_norm:
-          # Everything folded together. This is the only variant that supports
-          # quantization.
+          # This is the only variant that supports quantization.
           out = self._ApplyProjectionKernel(w, b, inputs, **proj_kwargs)
+          out = self._ApplyActivationFunction(out)
           out = self.QAct(self._output_qact_name, out)
         else:
-          # Projection kernel(no activation fn) -> BN -> Activation fn.
-          out = self._ApplyProjectionKernel(
-              w, b, inputs, with_activation=False, **proj_kwargs)
+          # Projection kernel -> BN -> Activation fn.
+          out = self._ApplyProjectionKernel(w, b, inputs, **proj_kwargs)
           if p.batch_norm:
             out = self.bn.FProp(theta.bn, out, paddings)
           if p.activation != 'NONE':
@@ -1260,8 +1258,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       proj_kwargs = {
           'mix_kernel': theta.mix_kernel
       } if p.use_block_diagonal_matmul and p.use_bd_mix else {}
-      raw_output = self._ApplyProjectionKernel(
-          w, b, inputs, with_activation=False, **proj_kwargs)
+      raw_output = self._ApplyProjectionKernel(w, b, inputs, **proj_kwargs)
       mean, variance, beta, gamma = self.bn.ComputeAndUpdateMoments(
           theta.bn, raw_output, paddings)
 
@@ -1276,24 +1273,17 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                              w,
                              b,
                              inputs,
-                             with_activation=True,
                              mix_kernel=None):
-    """Applies matmul/bias/activation in one step.
-
-    Note that it is important that these three ops be computed in this way as
-    downstream inference engines (esp. for quantized inference) can recognize
-    and fuse them. For floating point, this is an optimization, but for
-    quantization, it is required.
+    """Applies projection.
 
     Args:
       w: Weight matrix.
       b: Bias vector (or None).
       inputs: FProp inputs.
-      with_activation: Whether to also compute the activation function.
       mix_kernel: (optional) mix_kernel for block diagonal matmul.
 
     Returns:
-      Output tensor reshaped.
+      Output tensor with projection applied.
     """
     p = self.params
 
@@ -1338,22 +1328,20 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
-    out = gshard_utils.MeshSplit(out, p.device_mesh,
-                                 p.activation_split_dims_mapping)
-    return self._ApplyActivationFunction(out, with_activation)
+    return gshard_utils.MeshSplit(out, p.device_mesh,
+                                  p.activation_split_dims_mapping)
 
-  def _ApplyActivationFunction(self, out, with_activation=True):
+  def _ApplyActivationFunction(self, out):
     """Applies the activation function in one step.
 
     Args:
       out: The result of applying the weight matrix (and bias) to the inputs.
-      with_activation: Whether to also compute the activation function.
 
     Returns:
-      Output tensor reshaped.
+      Output tensor with activation applied.
     """
     p = self.params
-    if with_activation and p.activation != 'NONE':
+    if p.activation != 'NONE':
       if self._pre_activation_qt_name:
         # Track quantization for unfused activation function.
         out = self.QAct(self._pre_activation_qt_name, out)
