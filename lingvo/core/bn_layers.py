@@ -717,8 +717,8 @@ class GroupNormLayer(base_layer.BaseLayer):
         'enable_cross_replica_sum_on_tpu', False,
         'If true, computes global mean and variance across all replicas.'
         'Only effective for tpu.')
-    p.Define('input_rank', 4, 'Rank of input. Only 3(BTD) and 4(NHWC) are '
-             'supported.')
+    p.Define('input_rank', 4,
+             'DEPRECATED, only retrained for backwards-compatibility.')
     p.Define('epsilon', 0.001, 'Epsilon.')
     return p
 
@@ -797,9 +797,10 @@ class GroupNormLayer(base_layer.BaseLayer):
     group_variance = py_utils.CheckNumerics(
         group_variance, f'variance of {p.name} failed numeric check.')
 
+    grouped_inputs_rank = py_utils.GetRank(grouped_inputs)
     grouped_input_shape = py_utils.GetShape(grouped_inputs)
     group_moment_shape = list(grouped_input_shape)
-    if p.input_rank == 4:
+    if grouped_inputs_rank == 5:
       group_moment_shape[2] = 1
       group_moment_shape[-1] = 1
     else:
@@ -852,14 +853,15 @@ class GroupNormLayer(base_layer.BaseLayer):
         return inputs, paddings
 
     p = self.params
-    inputs = py_utils.HasRank(inputs, p.input_rank)
+    input_rank = py_utils.GetRank(inputs)
+    assert input_rank == 3 or input_rank == 4
     num_groups = self.num_groups
 
     input_shape = py_utils.GetShape(inputs)
     with tf.name_scope(p.name):
       expanded_inputs = tf.reshape(
           inputs, input_shape[:-1] + [num_groups, self.group_size])
-      expanded_rank = p.input_rank + 1
+      expanded_rank = input_rank + 1
       all_dims = list(range(expanded_rank))
       if paddings is None or not p.cumulative:
         # Skips batch and num_groups.
@@ -989,7 +991,8 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     p = self.params
     assert p.cumulative
-    inputs = py_utils.HasRank(inputs, p.input_rank)
+    input_rank = py_utils.GetRank(inputs)
+    assert input_rank == 3 or input_rank == 4
 
     group_size = self.group_size
     num_groups = self.num_groups
@@ -1000,7 +1003,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     with tf.name_scope(f'{p.name}/StreamStep'):
       expanded_inputs = tf.reshape(inputs,
                                    input_shape[:-1] + [num_groups, group_size])
-      expanded_rank = p.input_rank + 1
+      expanded_rank = input_rank + 1
       expanded_paddings = tf.reshape(
           paddings, input_shape[:2] + [1] * (expanded_rank - 2))
       (group_mean, group_variance, cached_sum, cached_count,

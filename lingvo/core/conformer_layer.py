@@ -267,15 +267,7 @@ class LConvLayer(base_layer.BaseLayer):
       A Tensor of shape [b, t, d].
     """
     if isinstance(self.norm, bn_layers.GroupNormLayer):
-      gn_input_rank = self.norm.params.input_rank
-      if gn_input_rank == 4:
-        tf.logging.warning(
-            'Using GroupNormLayer with input_rank=4, causing extra reshapes. '
-            'Set norm.params.input_rank=3.')
-        inputs = tf.expand_dims(inputs, 2)
       inputs, _ = self.norm.FProp(theta.norm, inputs, paddings)
-      if gn_input_rank == 4:
-        inputs = tf.squeeze(inputs, 2)
     elif isinstance(self.norm, bn_layers.BatchNormLayer):
       inputs = self.norm.FProp(theta.norm, inputs, paddings)
     elif isinstance(self.norm, layers.LayerNorm):
@@ -382,16 +374,8 @@ class LConvLayer(base_layer.BaseLayer):
       A Tensor of shape [b, t, d].
     """
     if isinstance(self.norm, bn_layers.GroupNormLayer):
-      gn_input_rank = self.norm.params.input_rank
-      if gn_input_rank == 4:
-        tf.logging.warning(
-            'Using GroupNormLayer with input_rank=4, causing extra reshapes. '
-            'Set norm.params.input_rank=3.')
-        inputs = tf.expand_dims(inputs, 2)
       inputs, paddings, norm_state1 = self.norm.StreamStep(
           theta.norm, inputs, paddings, state0.norm_state)
-      if gn_input_rank == 4:
-        inputs = tf.squeeze(inputs, 2)
       state1.norm_state = norm_state1
     elif isinstance(self.norm, layers.LayerNorm):
       inputs = self.norm.FProp(theta.norm, inputs)
