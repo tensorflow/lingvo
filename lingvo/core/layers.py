@@ -1165,10 +1165,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         out = inputs
         if p.batch_norm:
           out = self.bn.FProp(theta.bn, out, paddings)
-        if p.activation != 'NONE':
-          if not p.is_inference:
-            out = py_utils.CheckNumerics(out)
-          out = activations.GetFn(p.activation)(out)
+        out = self._ApplyActivationFunction(out)
         out = self._ApplyProjectionKernel(w, b, out, **proj_kwargs)
       else:
         # Normal ordered projection.
@@ -1182,10 +1179,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           out = self._ApplyProjectionKernel(w, b, inputs, **proj_kwargs)
           if p.batch_norm:
             out = self.bn.FProp(theta.bn, out, paddings)
-          if p.activation != 'NONE':
-            if not p.is_inference:
-              out = py_utils.CheckNumerics(out)
-            out = activations.GetFn(p.activation)(out)
+          out = self._ApplyActivationFunction(out)
       if paddings is not None:
         paddings = self.QRAct(paddings, quant_utils.QDistribution.PADDING)
         out = py_utils.ApplyPadding(paddings, out)
