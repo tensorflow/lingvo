@@ -1169,17 +1169,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         out = self._ApplyProjectionKernel(w, b, out, **proj_kwargs)
       else:
         # Normal ordered projection.
-        if self._is_bn_folded or not p.batch_norm:
-          # This is the only variant that supports quantization.
-          out = self._ApplyProjectionKernel(w, b, inputs, **proj_kwargs)
-          out = self._ApplyActivationFunction(out)
-          out = self.QAct(self._output_qact_name, out)
-        else:
-          # Projection kernel -> BN -> Activation fn.
-          out = self._ApplyProjectionKernel(w, b, inputs, **proj_kwargs)
-          if p.batch_norm:
-            out = self.bn.FProp(theta.bn, out, paddings)
-          out = self._ApplyActivationFunction(out)
+        out = self._ApplyProjectionKernel(w, b, inputs, **proj_kwargs)
+        if p.batch_norm and not self._is_bn_folded:
+          out = self.bn.FProp(theta.bn, out, paddings)
+        out = self._ApplyActivationFunction(out)
+        out = self.QAct(self._output_qact_name, out)
       if paddings is not None:
         paddings = self.QRAct(paddings, quant_utils.QDistribution.PADDING)
         out = py_utils.ApplyPadding(paddings, out)
