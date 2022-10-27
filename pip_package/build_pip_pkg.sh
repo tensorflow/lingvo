@@ -20,14 +20,8 @@ PLATFORM="$(uname -s | tr 'A-Z' 'a-z')"
 
 PIP_FILE_PREFIX="pip_package/"
 
-export PYTHON_VERSION="${PYTHON_VERSION:-3}"
 export PYTHON_MINOR_VERSION="${PYTHON_MINOR_VERSION}"
-
-if [[ -z "${PYTHON_MINOR_VERSION}" ]]; then
-  PYTHON="python${PYTHON_VERSION}"
-else
-  PYTHON="python${PYTHON_VERSION}.${PYTHON_MINOR_VERSION}"
-fi
+PYTHON="python3${PYTHON_MINOR_VERSION:+.$PYTHON_MINOR_VERSION}"
 
 function main() {
   DEST=${1}

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2022 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,23 +14,22 @@
 # limitations under the License.
 # ==============================================================================
 
-# This script uses custom-op docker, downloads code, builds and tests and then
-# builds a pip package.
-
-# See README.md for instructions to use this script.
+# This script is invoked once per Python version to produce lingvo pip wheel.
+# The chain of scripts is:
+#    runner.sh (main)
+#      -> invoke_build_per_interpreter.sh
+#      -> this script
+#      -> build_pip_pkg.sh
+#
+# Extra arguments get passed through to the bazel commands.
+#
+# See README.md for more usage instructions.
 
 set -e -x
 
 # Override the following env variables if necessary.
-export PYTHON_VERSION="${PYTHON_VERSION:-3}"
-export PYTHON_MINOR_VERSION="${PYTHON_MINOR_VERSION}"
-export PIP_MANYLINUX2010="${PIP_MANYLINUX2010:-1}"
-
-if [[ -z "${PYTHON_MINOR_VERSION}" ]]; then
-  PYTHON="python${PYTHON_VERSION}"
-else
-  PYTHON="python${PYTHON_VERSION}.${PYTHON_MINOR_VERSION}"
-fi
+export PYTHON_MINOR_VERSION="${PYTHON_MINOR_VERSION?python minor version required}"
+PYTHON="python3.${PYTHON_MINOR_VERSION}"
 update-alternatives --install /usr/bin/python3 python3 "/usr/bin/$PYTHON" 1
 
 function write_to_bazelrc() {
@@ -41,15 +40,19 @@ function write_action_env_to_bazelrc() {
   write_to_bazelrc "build --action_env $1=\"$2\""
 }
 
-# Remove .bazelrc if it already exist
+# Remove .bazelrc if it already exists
 [ -e .bazelrc ] && rm .bazelrc
 
 write_to_bazelrc "build -c opt"
-write_to_bazelrc 'build --cxxopt="-std=c++14"'
-write_to_bazelrc 'build --cxxopt="-D_GLIBCXX_USE_CXX11_ABI=1"'
+write_to_bazelrc 'build --copt=-mavx --host_copt=-mavx'
 write_to_bazelrc 'build --auto_output_filter=subpackages'
 write_to_bazelrc 'build --copt="-Wall" --copt="-Wno-sign-compare"'
 write_to_bazelrc 'build --linkopt="-lrt -lm"'
+write_to_bazelrc 'build --experimental_repo_remote_exec'
+write_to_bazelrc 'test --test_summary=short'
+
+write_action_env_to_bazelrc PYTHON_BIN_PATH "/usr/bin/${PYTHON}"
+write_action_env_to_bazelrc PYTHON_LIB_PATH "/usr/lib/${PYTHON}"
 
 TF_NEED_CUDA=0
 echo 'Using installed tensorflow'
@@ -69,12 +72,6 @@ fi
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" ${SHARED_LIBRARY_DIR}
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
 write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_CUDA}
-write_to_bazelrc "build:manylinux2010 --crosstool_top=//third_party/toolchains/preconfig/ubuntu16.04/gcc7_manylinux2010-nvcc-cuda10.0:toolchain"
-
-if [[ "$PIP_MANYLINUX2010" == "1" ]]; then
-  write_to_bazelrc "build --config=manylinux2010"
-  write_to_bazelrc "test --config=manylinux2010"
-fi
 
 # Exclude lingvo Jax from the pip package.
 # TODO(b/203463351): Add lingvo jax into a pip package.
@@ -83,16 +80,23 @@ rm -rf lingvo/jax/
 # It is expected that you have git cloned this repo at the branch you want,
 # ideally in our docker.
 
-bazel clean
-bazel build ...
-# Just test the core for the purposes of the pip package.
-bazel test lingvo/core/...
+echo 'Using .bazelrc:\n'
+batcat .bazelrc -l sh
 
-DST_DIR="/tmp/lingvo_pip_pkg_build"
-./pip_package/build_pip_pkg.sh "$DST_DIR" ${PYTHON_VERSION}
-# Comment the following line if you run this outside of the container.
-if [[ "${PIP_MANYLINUX2010}" == "1" ]]; then
-  find "$DST_DIR" -name "*cp${PYTHON_VERSION}${PYTHON_MINOR_VERSION}*.whl" | xargs -n1 ./third_party/auditwheel.sh repair --plat manylinux2010_x86_64 -w "$DST_DIR"
+bazel clean
+# Add -s for verbose logging of all bazel subcommands
+bazel build $@ ...
+# Just test the core for the purposes of the pip package.
+if ! [[ $SKIP_TESTS ]]; then
+  bazel test $@ lingvo/core/...
 fi
+
+DST_DIR="/tmp/lingvo/dist"
+./pip_package/build_pip_pkg.sh "${DST_DIR}" "3"
+
+# Note: constraining our release to plat==manylinux2014_x86_64 to match TF.
+# This corresponds to our use of the devtoolset-9 toolchain.
+find "$DST_DIR" -name "*cp3${PYTHON_MINOR_VERSION}*.whl" |\
+  xargs -n1 ./third_party/auditwheel.sh repair --plat manylinux2014_x86_64 -w "$DST_DIR"
 
 rm .bazelrc

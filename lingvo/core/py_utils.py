@@ -32,7 +32,7 @@ import re
 import threading
 import traceback
 import typing
-from typing import Any, Callable, Optional, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -818,12 +818,12 @@ def SetShapes(dst_nmap: NestedMap, src_nmap: NestedMap) -> None:
     dst.set_shape(src.shape)
 
 
-def Dtypes(nmap_list) -> list[tf.dtypes.DType]:
+def Dtypes(nmap_list) -> List[tf.dtypes.DType]:
   """Returns all tensors' data types in a list."""
   return [v.dtype for v in Flatten(nmap_list)]
 
 
-def Flatten(x) -> list[Any]:
+def Flatten(x) -> List[Any]:
   """Flattens 'x' by extracting tensors from nested structures to a list."""
   return tf.nest.flatten(x)
 
@@ -4648,9 +4648,9 @@ def StackTensorsRecursively(values):
   return ret
 
 
-def MixByWeight(inputs: list[Callable[..., tf.Tensor]],
+def MixByWeight(inputs: List[Callable[..., tf.Tensor]],
                 weights: tf.Tensor,
-                seed: Optional[int] = None) -> tuple[tf.Tensor, tf.Tensor]:
+                seed: Optional[int] = None) -> Tuple[tf.Tensor, tf.Tensor]:
   """Returns a weighted random choice and bprop type from the give inputs.
 
   Args:

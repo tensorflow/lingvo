@@ -1,4 +1,4 @@
-# Copyright 2018 The TensorFlow Authors. All Rights Reserved.
+# Copyright 2022 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,9 +19,8 @@ from setuptools import find_namespace_packages
 from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
-import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
-__version__ = '0.11.0'
+__version__ = '0.12.1'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -31,7 +30,6 @@ if '--project_name' in sys.argv:
 
 REQUIRED_PACKAGES = [
     'attrs',
-    'dataclasses',
     'ipykernel',
     'jupyter',
     'jupyter_http_over_ws',
@@ -44,7 +42,8 @@ REQUIRED_PACKAGES = [
     'sklearn',
     'sympy',
     'tensorflow-datasets',
-    'tensorflow~=' + tf.__version__,
+    'tensorflow>=2.9',
+    'tensorflow-text>=2.9',
     'tensorflow-hub',
 ]
 
@@ -79,7 +78,7 @@ setup(
         include=find_namespace_packages(
             include=['lingvo*'], exclude=['*.params*'])),
     include_package_data=True,
-    python_requires='>=3.7,<3.10',
+    python_requires='>=3.8,<3.11',
     install_requires=REQUIRED_PACKAGES,
     zip_safe=False,
     cmdclass={
@@ -93,9 +92,10 @@ setup(
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
+        'Programming Language :: Python :: 3 :: Only',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',

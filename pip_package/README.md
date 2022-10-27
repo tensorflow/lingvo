@@ -2,53 +2,40 @@
 
 Update the version number in setup.py and commit it.
 
-Build the docker image for building the pip package
+Build the docker image for building the pip package:
 
-```
-docker build --tag tensorflow:lingvo_pip - < lingvo/pip_package/build.Dockerfile
-```
-
-Now, we assume that the repo is stored at /tmp/lingvo for the rest of these
-instructions (either through git clone or copy_to_local).
-
-Enter the docker image, mapping /tmp/lingvo to /tmp/lingvo:
-
-```
-docker run --rm -it -v /tmp/lingvo:/tmp/lingvo tensorflow:lingvo_pip bash
+```sh
+./pip_package/runner.sh
 ```
 
-From the /tmp/lingvo directory, run
-
-```
-rm -rf /tmp/lingvo_pip_package_build
-PYTHON_MINOR_VERSION=7 pip_package/build.sh
-PYTHON_MINOR_VERSION=8 pip_package/build.sh
-PYTHON_MINOR_VERSION=9 pip_package/build.sh
+Then from within the image's environment, build the wheels:
+```sh
+./pip_package/invoke_build_per_interpreter.sh
 ```
 
 If everything goes well, this will produce a set of wheels in
-/tmp/lingvo_pip_package_build.
+/tmp/lingvo/dist.
 
-```
-cd /tmp/lingvo_pip_pkg_build
+```sh
+cd /tmp/lingvo/dist
 ```
 
 To upload to the test pypi server:
 
-```
-python3 -m twine upload --repository-url https://test.pypi.org/legacy/ *manylinux2010*.whl
+```sh
+python3.9 -m twine upload --repository-url https://test.pypi.org/legacy/ *manylinux2014*.whl
 ```
 
 To verify that it works as intended:
 
-```
+```sh
 python3 -m pip install -i https://test.pypi.org/simple/ --no-deps lingvo
 ```
 
 You can test that the install worked for the common case by running a model
 locally like:
 
-```
+```sh
 mkdir -p /tmp/lingvo_test/image/params
 cp -r /tmp/lingvo/lingvo/tasks/image/params/mnist.py /tmp/lingvo_test/image/params
 cd /tmp/lingvo_test
@@ -61,14 +48,14 @@ mnist dataset (see lingvo's base README.md).
 If this works successfully, you can then upload to the production server as
 follows.
 
-```
-cd /tmp/lingvo_pip_pkg_build
-python3 -m twine upload *manylinux2010*.whl
+```sh
+cd /tmp/lingvo/dist
+python3 -m twine upload *manylinux2014*.whl
 ```
 
 And verify with:
 
-```
+```sh
 python3 -m pip install lingvo
 ```
 

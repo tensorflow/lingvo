@@ -1,58 +1,76 @@
-FROM tensorflow/tensorflow:nightly-custom-op-ubuntu16
+# Constructs the environment within which we will build the lingvo pip wheels.
+#
+# From /tmp/lingvo,
+# ❯ docker build --tag tensorflow:lingvo_wheelhouse --progress plain \
+#     -f pip_package/build.Dockerfile .
+# ❯ docker run --rm -it -v /tmp/lingvo:/tmp/lingvo -w /tmp/lingvo \
+#      tensorflow:lingvo_wheelhouse bash
+#   ❯ ./pip_package/invoke_build_per_interpreter.sh
 
-ENV GITHUB_BRANCH="master"
-ENV PYTHON_VERSION="3"
-ENV PYTHON_MINOR_VERSION="9"
-ENV PIP_MANYLINUX2010="1"
 
-# There are some problems with the python3 installation from custom-op-ubuntu16.
-# Remove it and install new ones.
-RUN apt-get remove --purge -y python3.5 python3.6
-# Delete buggy preinstalled python3.7 interpreter (`import bz2` fails).
-RUN rm -R -f /usr/local/lib/python3.7* /usr/local/bin/python3.7*
-RUN rm -f /etc/apt/sources.list.d/jonathonf-ubuntu-python-3_6-xenial.list
-RUN apt-key del F06FC659
+ARG base_image="tensorflow/build:2.10-python3.9"
+FROM $base_image
+LABEL maintainer="Lingvo team <lingvo-bot@google.com>"
 
-# Deadsnakes PPA no longer supports 16.04
-# https://github.com/deadsnakes/issues/issues/195
-# We build the supported python versions here
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install supplementary Python interpreters
 RUN mkdir /tmp/python
-RUN apt-get update
-RUN apt-get install -y apt-utils
-RUN apt-get install -y build-essential checkinstall libreadline-gplv2-dev libncursesw5-dev libsqlite3-dev tk-dev libgdbm-dev libc6-dev libbz2-dev libssl-dev zlib1g-dev openssl libffi-dev
+RUN --mount=type=cache,target=/var/cache/apt \
+  apt update && \
+  apt install -yqq \
+    apt-utils \
+    bat \
+    build-essential \
+    checkinstall \
+    libbz2-dev \
+    libc6-dev \
+    libffi-dev \
+    libgdbm-dev \
+    libncursesw5-dev \
+    libreadline-gplv2-dev \
+    libsqlite3-dev \
+    libssl-dev \
+    neovim \
+    openssl \
+    tk-dev \
+    zlib1g-dev
 
-RUN for v in 3.7.13 3.8.13 3.9.11; do \
+
+# 3.9 is the built-in interpreter version in this image.
+RUN for v in 3.8.15 3.10.0; do \
     wget "https://www.python.org/ftp/python/$v/Python-${v}.tar.xz" && \
-    tar xvf "Python-${v}.tar.xz" -C /tmp/python && \
-    cd "/tmp/python/Python-${v}" && \
-    ./configure && \
-    make -j8 altinstall && \
-    ln -s "/usr/local/bin/python${v%.*}" "/usr/bin/python${v%.*}"; \
+    rm -rf "/tmp/python${v}" && mkdir -p "/tmp/python${v}" && \
+    tar xvf "Python-${v}.tar.xz" -C "/tmp/python${v}" && \
+    cd "/tmp/python${v}/Python-${v}" && \
+    ./configure 2>&1 >/dev/null && \
+    make -j8 altinstall 2>&1 >/dev/null && \
+    ln -sf "/usr/local/bin/python${v%.*}" "/usr/bin/python${v%.*}"; \
   done
 
-RUN curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+# For each python interpreter, install pip dependencies needed for lingvo
+# TF version is fixed at 2.9.
+RUN --mount=type=cache,target=/root/.cache \
+  for p in 3.8 3.9 3.10; do \
+    python${p} -m pip install -U pip && \
+    python${p} -m pip install -U \
+      attrs \
+      auditwheel \
+      graph-compression-google-research \
+      grpcio \
+      matplotlib \
+      mock \
+      model-pruning-google-research \
+      numpy \
+      scipy \
+      sentencepiece \
+      setuptools \
+      sympy \
+      twine \
+      tensorflow==2.9.2 tensorflow-text==2.9.0 tensorflow-datasets; \
+  done
 
-# Download and install bazel.
-RUN wget https://github.com/bazelbuild/bazel/releases/download/4.0.0/bazel-4.0.0-installer-linux-x86_64.sh > /dev/null
-RUN bash bazel-4.0.0-installer-linux-x86_64.sh
-
-RUN for python in python3.7 python3.8 python3.9; do \
-      $python get-pip.py && \
-      $python -m pip install --upgrade pip setuptools auditwheel && \
-      $python -m pip install --upgrade \
-        attrs \
-        dataclasses \
-        graph-compression-google-research \
-        grpcio \
-        matplotlib \
-        mock \
-        model-pruning-google-research \
-        numpy \
-        sentencepiece \
-        scipy \
-        sympy \
-        twine && \
-      $python -m pip install tensorflow tensorflow-datasets tensorflow-text; \
-    done
+COPY pip_package/devel.bashrc /root/devel.bashrc
+RUN echo 'source /root/devel.bashrc' >> /root/.bashrc
 
 WORKDIR "/tmp/lingvo"

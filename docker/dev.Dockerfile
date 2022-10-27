@@ -13,7 +13,7 @@
 #
 # bazel test -c opt --test_output=streamed //lingvo:trainer_test //lingvo:models_test
 
-ARG cpu_base_image="tensorflow/build:2.11-python3.9"
+ARG cpu_base_image="tensorflow/build:2.9-python3.9"
 ARG base_image=$cpu_base_image
 FROM $base_image
 
@@ -21,7 +21,7 @@ LABEL maintainer="Lingvo team <lingvo-bot@google.com>"
 
 # Re-declare args because the args declared before FROM can't be used in any
 # instruction after a FROM.
-ARG cpu_base_image="tensorflow/build:2.11-python3.9"
+ARG cpu_base_image="tensorflow/build:2.9-python3.9"
 ARG base_image=$cpu_base_image
 
 COPY docker /docker

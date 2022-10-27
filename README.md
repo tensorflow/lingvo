@@ -37,6 +37,7 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 PyPI Version | Commit
 ------------ | ----------------------------------------
+0.12.0       | --
 0.11.0       | 6fae10077756f54beacd5c454959f20b33fd65e2
 0.10.0       | 075fd1d88fa6f92681f58a2383264337d0e737ee
 0.9.1        | c1124c5aa7af13d2dd2b6d43293c8ca6d022b008
@@ -63,6 +64,13 @@ guarantees regarding backwards compatibility.**
 #### HEAD
 
 Nothing here.
+
+#### 0.12.0
+
+*   **General**
+    *   Tensorflow 2.9 is now required.
+    *   Python 3.7 support has been removed.
+    *   Compatible with (up to) Tensorflow 2.10 and Python 3.10
 
 #### 0.11.0
 

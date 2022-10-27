@@ -19,6 +19,8 @@ OUTDIR=/tmp/lingvo_apidoc
 
 # Run this from inside docker.
 bazel build -c opt \
+    --experimental_repo_remote_exec \
+    --crosstool_top=@sigbuild-r2.9-python3.8_config_cuda//crosstool:toolchain \
     //lingvo/core/ops:x_ops.so \
     //lingvo/tasks/car/ops:car_ops.so \
     //lingvo/core:inference_graph_pb2.py \
