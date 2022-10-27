@@ -1310,7 +1310,11 @@ class SingleTaskModel(SingleTaskBase):
     p.Define(
         'task', None,
         '`InstantiableParams` object for a `BaseTask` or its derivatives.')
+    cls.CopyTaskParams(task_params, p)
+    return p
 
+  @classmethod
+  def CopyTaskParams(cls, task_params, p):
     assert task_params is not None
     # Copy over model parameters from the task parameters.
     p.task = task_params
@@ -1334,8 +1338,6 @@ class SingleTaskModel(SingleTaskBase):
     tp.checkpoint_finite_check = p.task.train.checkpoint_finite_check
     tp.ema_decay = p.task.train.ema_decay
     tp.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
-
-    return p
 
   def __init__(self, params, **kwargs):
     assert issubclass(params.cls, SingleTaskModel)

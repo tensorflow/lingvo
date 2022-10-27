@@ -269,7 +269,7 @@ class _ModelRegistryHelper:
         # Overwrite task params with dataset specific ones.
         if isinstance(model_params_obj,
                       base_model_params.SingleTaskModelParams):
-          cfg.task = dataset_task_params
+          cfg.cls.CopyTaskParams(dataset_task_params, cfg)
         elif isinstance(model_params_obj,
                         base_model_params.MultiTaskModelParams):
           cfg.task_params = dataset_task_params
