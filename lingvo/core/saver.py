@@ -24,19 +24,41 @@ import time
 from lingvo import compat as tf
 from lingvo.core import py_utils
 import numpy as np
+from pkg_resources import parse_version
 from google.protobuf import text_format
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.eager import monitoring
 from tensorflow.python.lib.io import file_io
 from tensorflow.python.ops import gen_io_ops
 from tensorflow.python.ops import io_ops
+from tensorflow.python.saved_model.pywrap_saved_model import metrics
 from tensorflow.python.training.checkpoint_state_pb2 import CheckpointState
 # pylint: enable=g-direct-tensorflow-import
+
+# Captures the timestamp of the first Saver object instantiation or end of a
+# save operation. Can be accessed by multiple Saver instances.
+_END_TIME_OF_LAST_WRITE = None
+_END_TIME_OF_LAST_WRITE_LOCK = threading.Lock()
+
+# API label for cell names used in TF1 async checkpoint metrics.
+_ASYNC_CHECKPOINT_V1 = "async_checkpoint_v1"
 
 _async_checkpoint_op_time_seconds = monitoring.Sampler(
     "/lingvo_lib/core/saver/async_checkpoint_op_secs",
     monitoring.ExponentialBuckets(0.5, 1.3, 40),
     "Distribution of the duration in seconds for async checkpoint ops.")
+
+# The TF version (or newer) required for the metrics recording.
+# TODO(lingvo-dev): Remove this and the related code once the TF build
+#                      version is bumped to 2.11.0 or later.
+_TF_METRIC_VERSION = "2.11.0"
+_SHOULD_RECORD_METRIC = parse_version(
+    tf.compat.v1.__version__) >= parse_version(_TF_METRIC_VERSION)
+
+
+def _GetDurationMicroseconds(start_time_seconds, end_time_seconds):
+  """Returns the duration between start and end time in microseconds."""
+  return max(int((end_time_seconds - start_time_seconds) * 1000000), 0)
 
 
 class SanityCheck:
@@ -134,6 +156,14 @@ class Saver:
     self._BuildRestore()
     tf.logging.info("Saver: %s %s %s", self._logdir, self._keep_latest_n,
                     self._keep_every_n_hours)
+    self._InitTrainingTimeSavedMetric()
+
+  def _InitTrainingTimeSavedMetric(self):
+    """Initialize the first timestamp for _END_TIME_OF_LAST_WRITE."""
+    global _END_TIME_OF_LAST_WRITE
+    with _END_TIME_OF_LAST_WRITE_LOCK:
+      if _END_TIME_OF_LAST_WRITE is None:
+        _END_TIME_OF_LAST_WRITE = time.time()
 
   def _AddShardedSaveOps(self, variables, checkpoint_prefix, var_key_fn):
     """Adds per-device save ops to save `variables` to `checkpoint_prefix`."""
@@ -332,6 +362,7 @@ class Saver:
 
     def _Async(global_step, prefix):
       checkpoint_start_time = time.perf_counter()
+      start_time = time.time()
       try:
         # Use the provided prefix in case self._save_global_step is changed.
         _ = sess.run(
@@ -339,8 +370,22 @@ class Saver:
         self._FinalizeSave(global_step, prefix)
       except Exception as e:  # pylint: disable=broad-except
         self._async_exception = e
+      end_time = time.time()
       _async_checkpoint_op_time_seconds.get_cell().add(time.perf_counter() -
                                                        checkpoint_start_time)
+
+      if _SHOULD_RECORD_METRIC:
+        metrics.AddAsyncCheckpointWriteDuration(
+            api_label=_ASYNC_CHECKPOINT_V1,
+            microseconds=_GetDurationMicroseconds(start_time, end_time))
+
+        # Measure the elapsed time since the last checkpoint.
+        # Due to the nature of async checkpoint, here it actually captures the
+        # duration between the start_time of the previous checkpoint and the
+        # start time of this checkpoint. As a result, the duration of the final
+        # async checkpoint is excluded, which is fine since it does not take
+        # much time.
+        self._RecordTrainingTimeSavedMetric(start_time)
 
     self._async_save_thread = threading.Thread(
         target=_Async, args=(global_step, prefix))
@@ -353,7 +398,10 @@ class Saver:
         fetches=[self._save_op, self._save_global_step, self._save_prefix],
         feed_dict={self._logdir_ph: self._logdir})
     prefix = tf.compat.as_text(prefix)
-    return self._FinalizeSave(global_step, prefix)
+    global_step, prefix = self._FinalizeSave(global_step, prefix)
+    self._RecordTrainingTimeSavedMetric(time.time())
+
+    return global_step, prefix
 
   def _FinalizeSave(self, global_step, prefix):
     """Runs sanity check and updates status."""
@@ -371,6 +419,20 @@ class Saver:
     tf.logging.info("Saved %d %s", global_step, prefix)
     return global_step, prefix
 
+  def _RecordTrainingTimeSavedMetric(self, end_time):
+    """Record the training_time_saved metric.
+
+    Args:
+      end_time: The end time of the training time saved.
+    """
+    global _END_TIME_OF_LAST_WRITE
+    with _END_TIME_OF_LAST_WRITE_LOCK:
+      metrics.AddTrainingTimeSaved(
+          api_label=_ASYNC_CHECKPOINT_V1,
+          microseconds=_GetDurationMicroseconds(_END_TIME_OF_LAST_WRITE,
+                                                end_time))
+      _END_TIME_OF_LAST_WRITE = end_time
+
   def Save(self, sess):
     """Generate a new checkpoint.
 
@@ -383,9 +445,15 @@ class Saver:
     Returns:
       Returns the global step and file prefix.
     """
-    if self._async_save:
-      return self._SaveAsync(sess)
-    return self._SaveSync(sess)
+    blocking_time_start = time.time()
+    global_step, file_prefix = self._SaveAsync(
+        sess) if self._async_save else self._SaveSync(sess)
+    blocking_time_end = time.time()
+    metrics.AddCheckpointWriteDuration(
+        api_label=_ASYNC_CHECKPOINT_V1,
+        microseconds=_GetDurationMicroseconds(blocking_time_start,
+                                              blocking_time_end))
+    return global_step, file_prefix
 
   def _UpdateState(self, prefix):
     """Updates the checkpoint state with the new checkpoint prefix."""
