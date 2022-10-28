@@ -3604,7 +3604,7 @@ class RoutingAttention(MultiHeadedAttention):
 
     very_large_dists = tf.ones_like(k_dists) * tf.constant(
         0.1 * k_dists.dtype.max, dtype=k_dists.dtype)
-    paddings_tiled = tf.tile(key_paddings[:, :, None, None],
+    paddings_tiled = tf.tile(key_paddings[:, :, tf.newaxis, tf.newaxis],
                              [1, 1, p.num_heads, p.num_clusters])
     k_dists = tf.where(paddings_tiled > 0.0, very_large_dists, k_dists)
 
@@ -3681,8 +3681,9 @@ class RoutingAttention(MultiHeadedAttention):
       batch_size, q_length, num_heads = py_utils.GetShape(query, 3)
       query_positions = tf.range(q_length) + query_relative_position_shift
       # [B, T, N, W] where the T dimension is range(T)
-      query_positions = tf.tile(query_positions[None, :, None, None],
-                                [batch_size, 1, num_heads, p.attention_window])
+      query_positions = tf.tile(
+          query_positions[tf.newaxis, :, tf.newaxis, tf.newaxis],
+          [batch_size, 1, num_heads, p.attention_window])
       masked_indices = -tf.ones_like(sparsity_indices)
       # Replace key positions in the future with -1 to indicate masking.
       #
@@ -3761,10 +3762,10 @@ class RoutingAttention(MultiHeadedAttention):
       B, _, N, _ = py_utils.GetShape(v, 4)
       _, _, K, W = py_utils.GetShape(indx, 4)
       # pylint: enable=invalid-name
-      batch_idx = tf.range(B)[:, None, None, None, None]
+      batch_idx = tf.range(B)[:, tf.newaxis, tf.newaxis, tf.newaxis, tf.newaxis]
       batch_idx = tf.tile(batch_idx, [1, N, K, W, 1])
-      seq_idx = indx[:, :, :, :, None]
-      head_idx = tf.range(N)[None, :, None, None, None]
+      seq_idx = indx[:, :, :, :, tf.newaxis]
+      head_idx = tf.range(N)[tf.newaxis, :, tf.newaxis, tf.newaxis, tf.newaxis]
       head_idx = tf.tile(head_idx, [B, 1, K, W, 1])
       gather_idx = tf.concat([batch_idx, seq_idx, head_idx], 4)
       return tf.gather_nd(v, gather_idx)
@@ -3779,7 +3780,8 @@ class RoutingAttention(MultiHeadedAttention):
     # of shape [B, N, K, W, 1]
     c_key_paddings = gather(
         # [B, T, N, 1]
-        tf.tile(key_paddings[:, :, None, None], [1, 1, num_heads, 1]),
+        tf.tile(key_paddings[:, :, tf.newaxis, tf.newaxis],
+                [1, 1, num_heads, 1]),
         closest_k)
     # of shape [B, N, K, V, W]
     is_key_padded = tf.tile(
@@ -3787,9 +3789,9 @@ class RoutingAttention(MultiHeadedAttention):
         [1, 1, 1, q_cluster_size, 1]) > 0.5
     if p.causal_masking:
       # both position matrices of shape [B, N, K, V, W]
-      c_query_positions = tf.tile(closest_q[:, :, :, :, None],
+      c_query_positions = tf.tile(closest_q[:, :, :, :, tf.newaxis],
                                   [1, 1, 1, 1, p.attention_window])
-      c_key_positions = tf.tile(closest_k[:, :, :, None, :],
+      c_key_positions = tf.tile(closest_k[:, :, :, tf.newaxis, :],
                                 [1, 1, 1, q_cluster_size, 1])
       # We pad the logit for future key positions relative to each query
       is_key_padded = tf.math.logical_or(
@@ -3821,12 +3823,14 @@ class RoutingAttention(MultiHeadedAttention):
       # pylint: enable=invalid-name
       # [B, N, K, V, 1]
       batch_idx = tf.tile(
-          tf.range(B)[:, None, None, None, None], [1, N, K, V, 1])
+          tf.range(B)[:, tf.newaxis, tf.newaxis, tf.newaxis, tf.newaxis],
+          [1, N, K, V, 1])
       # [B, N, K, V, 1]
-      seq_idx = indx[:, :, :, :, None]
+      seq_idx = indx[:, :, :, :, tf.newaxis]
       # [B, N, K, V, 1]
       head_idx = tf.tile(
-          tf.range(N)[None, :, None, None, None], [B, 1, K, V, 1])
+          tf.range(N)[tf.newaxis, :, tf.newaxis, tf.newaxis, tf.newaxis],
+          [B, 1, K, V, 1])
       scatter_idx = tf.concat([batch_idx, seq_idx, head_idx], 4)
       scattered = tf.scatter_nd(
           scatter_idx, tf.concat([v, tf.ones_like(v[:, :, :, :, :1])], -1),
@@ -3835,7 +3839,7 @@ class RoutingAttention(MultiHeadedAttention):
       scattered, den = tf.split(scattered, [v.shape.as_list()[-1], 1], -1)
       # den = tf.squeeze(den, -1)
       out = scattered / tf.maximum(tf.constant(1.0, dtype=den.dtype),
-                                   den)  # [:, :, :, None])
+                                   den)  # [:, :, :, tf.newaxis])
       return out
 
     def scatter_atten_prob(c_atten_probs, closest_k, closest_q, k_length,
@@ -3858,12 +3862,16 @@ class RoutingAttention(MultiHeadedAttention):
       # pylint: enable=invalid-name
       # [B, N, K, V, W, 1]
       batch_idx = tf.tile(
-          tf.range(B)[:, None, None, None, None, None], [1, N, K, V, W, 1])
+          tf.range(B)[:, tf.newaxis, tf.newaxis, tf.newaxis, tf.newaxis,
+                      tf.newaxis], [1, N, K, V, W, 1])
       # [B, N, K, V, W, 1]
-      k_idx = tf.tile(closest_k[:, :, :, None, :, None], [1, 1, 1, V, 1, 1])
-      q_idx = tf.tile(closest_q[:, :, :, :, None, None], [1, 1, 1, 1, W, 1])
+      k_idx = tf.tile(closest_k[:, :, :, tf.newaxis, :, tf.newaxis],
+                      [1, 1, 1, V, 1, 1])
+      q_idx = tf.tile(closest_q[:, :, :, :, tf.newaxis, tf.newaxis],
+                      [1, 1, 1, 1, W, 1])
       head_idx = tf.tile(
-          tf.range(N)[None, :, None, None, None, None], [B, 1, K, V, W, 1])
+          tf.range(N)[tf.newaxis, :, tf.newaxis, tf.newaxis, tf.newaxis,
+                      tf.newaxis], [B, 1, K, V, W, 1])
       scatter_idx = tf.concat([batch_idx, q_idx, head_idx, k_idx], 5)
       scattered_prob = tf.scatter_nd(scatter_idx, c_atten_probs,
                                      [B, q_length, N, k_length])
@@ -3876,7 +3884,7 @@ class RoutingAttention(MultiHeadedAttention):
       times = tf.scatter_nd(
           times_idx, tf.cast(tf.ones_like(closest_q), scattered_prob.dtype),
           [B, q_length, N])
-      times = tf.maximum(tf.cast(1.0, times.dtype), times[:, :, :, None])
+      times = tf.maximum(tf.cast(1.0, times.dtype), times[:, :, :, tf.newaxis])
       out = scattered_prob / times
       return out
 
