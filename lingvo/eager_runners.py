@@ -248,6 +248,11 @@ class Evaler(base_runner.BaseRunner):
       if self._task.input.params.resettable:
         tf.logging.info('Resetting input_generator.')
         self._task.input_generator.Reset()
+        # In eager mode, after resetting the input generator, we need to
+        # re-trace the tf.function to ensure it uses the new iterator.
+        self._eval_fn = self._GetEvalFunc().get_concrete_function()
+        self._eval_fn_with_summary = self._GetEvalFunc(
+            write_summary=True).get_concrete_function()
 
       metrics_dict = None
       num_samples_metric = None
@@ -402,6 +407,11 @@ class Decoder(base_runner.BaseRunner):
       if self._task.input.params.resettable:
         tf.logging.info('Resetting input_generator.')
         self._task.input_generator.Reset()
+        # In eager mode, after resetting the input generator, we need to
+        # re-trace the tf.function to ensure it uses the new iterator.
+        self._decode_fn = self._GetDecodeFunc().get_concrete_function()
+        self._decode_fn_with_summary = self._GetDecodeFunc(
+            write_summary=True).get_concrete_function()
 
       dec_metrics = self._task.CreateDecoderMetrics()
       if not dec_metrics:
