@@ -371,7 +371,7 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
       return ret
 
 
-# TODO(shibow/wangtao) remove this after b/174094694 is done.
+# TODO(shibow, wangtao) remove this after b/174094694 is done.
 class ReshapedMultiHeadedProjectionLayer(MultiHeadedProjectionLayer):
   """MultiHeadedProjectionLayer with model dim D reshaped as Md."""
 
@@ -1195,7 +1195,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     return py_utils.NestedMap(flops=flops, out_shapes=(args[0], (b, n, t, s)))
 
 
-# TODO(shibow/wangtao) remove this after b/174094694 is done.
+# TODO(shibow, wangtao) remove this after b/174094694 is done.
 class ReshapedMultiHeadedAttention(MultiHeadedAttention):
   """MultiHeadedAttention with model dim D reshaped as Md."""
 
@@ -3915,7 +3915,7 @@ class MultiSourceAttention(base_layer.BaseLayer):
     p = self.params
     assert p.primary_source_key in [
         x for x, _ in p.source_atten_tpls
-    ], ('Source attention must have the primary source key.')
+    ], 'Source attention must have the primary source key.'
     for source_key, atten_p in p.source_atten_tpls:
       if isinstance(atten_p, list):
         child_p_list = []
@@ -4742,7 +4742,7 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
 
     with tf.name_scope('atten'):
       assert not isinstance(self.atten,
-                            list), ('Listed attention are not supported.')
+                            list), 'Listed attention are not supported.'
       ctx_vec, atten_probs = self.atten.FProp(
           theta.atten,
           pooled_query_vec,  # query

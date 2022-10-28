@@ -662,9 +662,6 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       # Verify ExtendStep() via compare N ExtendStep() with one FProp() call on
       # a seq with length N.
-      per_step_padding = 1 - tf.linalg.band_part(
-          tf.ones((seqlen, seqlen)), -1, 0)
-      per_step_padding = tf.stack([per_step_padding] * batch)
       dims_per_head = hidden_dim // num_heads
 
       def _ResetCachedStates():
@@ -1005,9 +1002,6 @@ class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
 
       # Verify ExtendStep() via compare N ExtendStep() with one FProp() call on
       # a seq with length N.
-      per_step_padding = 1 - tf.linalg.band_part(
-          tf.ones((seqlen, seqlen)), -1, 0)
-      per_step_padding = tf.stack([per_step_padding] * batch)
       dims_per_head = hidden_dim // num_heads
 
       def _ResetCachedStates():
@@ -1338,7 +1332,7 @@ class MultiHeadedAttentionRPETest(test_utils.TestCase, parameterized.TestCase):
     atten_dim = 4
     radius = 3
     input_dim = num_heads * atten_dim
-    (input_vecs, _, _, per_step_padding, _, _, _, _) = _AttentionInputs(
+    (input_vecs, _, _, _, _, _, _, _) = _AttentionInputs(
         input_dim=input_dim, is_causal=True)
     p = attention.MultiHeadedAttentionRPE.Params().Set(
         name='self_atten',
