@@ -6544,7 +6544,7 @@ def MergeDictsWithValueCheck(dict1, dict2):
                          'automatically deduplicate the learner names. '
                          'Note: this will result into changes in the variable '
                          'names.')
-  return dict1 | dict2
+  return {**dict1, **dict2}
 
 
 def MergeDuplicateIds(ids, paddings, extra_tensors=None):

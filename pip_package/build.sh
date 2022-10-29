@@ -86,8 +86,8 @@ batcat .bazelrc -l sh
 bazel clean
 # Add -s for verbose logging of all bazel subcommands
 bazel build $@ ...
-# Just test the core for the purposes of the pip package.
 if ! [[ $SKIP_TESTS ]]; then
+  # Just test the core for the purposes of the pip package.
   bazel test $@ lingvo/core/...
 fi
 

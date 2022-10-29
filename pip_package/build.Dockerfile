@@ -67,7 +67,7 @@ RUN --mount=type=cache,target=/root/.cache \
       setuptools \
       sympy \
       twine \
-      tensorflow==2.9.2 tensorflow-text==2.9.0 tensorflow-datasets; \
+      tensorflow~=2.9.2 tensorflow-text~=2.9.0 tensorflow-datasets; \
   done
 
 COPY pip_package/devel.bashrc /root/devel.bashrc

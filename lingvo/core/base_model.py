@@ -18,7 +18,7 @@ import collections
 import contextlib
 import dataclasses
 import re
-from typing import Union
+from typing import Dict, Union
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -883,7 +883,7 @@ class BaseTask(base_layer.BaseLayer):
 
   def InferenceEager(
       self
-  ) -> dict[str, Union[tf.types.experimental.ConcreteFunction,
+  ) -> Dict[str, Union[tf.types.experimental.ConcreteFunction,
                        tf.types.experimental.GenericFunction]]:
     """Constructs the inference function graphs for running on TPUs in TF2.
 

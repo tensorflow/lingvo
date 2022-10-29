@@ -20,7 +20,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__version__ = '0.12.1'
+__version__ = '0.12.3'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -42,8 +42,8 @@ REQUIRED_PACKAGES = [
     'sklearn',
     'sympy',
     'tensorflow-datasets',
-    'tensorflow>=2.9',
-    'tensorflow-text>=2.9',
+    'tensorflow~=2.9.2',
+    'tensorflow-text~=2.9.0',
     'tensorflow-hub',
 ]
 
