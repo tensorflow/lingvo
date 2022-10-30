@@ -1153,7 +1153,11 @@ class BaseModel(base_layer.BaseLayer):
       else:
         self._ema = py_utils.CreateEMAForModel(self.params, self.global_step)
     else:
-      assert not executor_ema
+      # Evaler/Decoder may disable EMA while ExecutorTpu uses EMA. executor_ema
+      # depends on the trainer task params, but Evaler/Decoder may have
+      # different task params (e.g. ema_decay=0). See model_registry.py
+      if not self.do_eval:
+        assert not executor_ema
       self._ema = None
     self._ema_variables_dict = {}
 
