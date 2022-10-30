@@ -424,11 +424,16 @@ def GetRank(tensor):
     return tf.rank(tensor)  # Tensor
 
 
-def GetShape(tensor, ndims=None):
+def GetShape(
+    tensor: Any,  # anything that can be converted to a tf.Tensor
+    ndims: Optional[int] = None
+) -> Union[List[Union[int, tf.Tensor]], tf.Tensor]:
   """Returns tensor's shape as a list which can be unpacked, unlike tf.shape.
 
-  Tries to return static shape if it's available. Note that this means
-  some of the outputs will be ints while the rest will be Tensors.
+  If the tensor is unranked, and ndims is None, returns the shape as a Tensor.
+  Otherwise, returns a list of values. Each element in the list is an int (when
+  the corresponding dimension is static), or a scalar tf.Tensor (when the
+  corresponding dimension is dynamic).
 
   Args:
     tensor: The input tensor.
