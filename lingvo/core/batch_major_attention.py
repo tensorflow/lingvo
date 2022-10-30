@@ -79,8 +79,10 @@ def CausalPadding(slen, dtype=tf.float32):
   return 1 - tf.linalg.band_part(tf.ones([slen, slen], dtype=dtype), -1, 0)
 
 
-def CrossAttentionPaddingWithTimestamp(timestamp, source_paddings, left_context,
-                                       right_context):
+def CrossAttentionPaddingWithTimestamp(timestamp: tf.Tensor,
+                                       source_paddings: tf.Tensor,
+                                       left_context: int,
+                                       right_context: int) -> tf.Tensor:
   """Create per_step_padding for cross-attention with timestamp.
 
   In this cross-attention, the target (query) sequence provides an extra
@@ -647,13 +649,15 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     logits = self.FromAqtActActMatmul(logits)
     return self._CapLogits(logits)
 
-  def AttenProbs(self,
-                 theta,
-                 query,
-                 key,
-                 paddings,
-                 segment_mask,
-                 per_step_padding=None):
+  def AttenProbs(
+      self,
+      theta: py_utils.NestedMap,
+      query: tf.Tensor,
+      key: tf.Tensor,
+      paddings: tf.Tensor,
+      segment_mask: Optional[tf.Tensor],
+      per_step_padding: Optional[tf.Tensor] = None
+  ) -> Tuple[tf.Tensor, tf.Tensor]:
     """Compute attention probability.
 
     Note: We can currently pass a mask through both `segment_mask` and
@@ -1430,7 +1434,9 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
 
     return logits
 
-  def _AttenLogitsOneStep(self, theta, query, key, time_step):
+  def _AttenLogitsOneStep(self, theta: py_utils.NestedMap, query: tf.Tensor,
+                          key: tf.Tensor,
+                          time_step: Union[int, tf.Tensor]) -> tf.Tensor:
     """Attention logits for one single target (query) step.
 
     Args:
@@ -1569,7 +1575,8 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
       ]
     return res
 
-  def _RelativePositionValueEmb(self, theta, key):
+  def _RelativePositionValueEmb(self, theta: py_utils.NestedMap,
+                                key: tf.Tensor) -> tf.Tensor:
     """Gets relative positional value embedding.
 
     Args:
@@ -3227,7 +3234,8 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
     self.CreateVariable('u', u_pc)
     self.CreateVariable('v', v_pc)
 
-  def _AttenLogits(self, theta, query, key):
+  def _AttenLogits(self, theta: py_utils.NestedMap, query: tf.Tensor,
+                   key: tf.Tensor) -> tf.Tensor:
     """Given the q,k,v, calculate the attention logits with relative pos.
 
     Args:
@@ -3479,14 +3487,14 @@ class RoutingAttention(MultiHeadedAttention):
     return states
 
   def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 paddings,
-                 time_step,
-                 segment_mask=None,
-                 per_step_padding=None,
-                 use_short_seq_opt=False):
+                 theta: py_utils.NestedMap,
+                 query_vec: tf.Tensor,
+                 cached_states: py_utils.NestedMap,
+                 paddings: Optional[tf.Tensor],
+                 time_step: int,
+                 segment_mask: None = None,
+                 per_step_padding: None = None,
+                 use_short_seq_opt: bool = False):
     """Computes the value vector given the query of the current step.
 
     This function is used by autoregressive decoding. Used for self-attention
@@ -3622,16 +3630,17 @@ class RoutingAttention(MultiHeadedAttention):
         query_relative_position_shift=time_step)
     return encoded
 
-  def _DotAttenSlowPath(self,
-                        theta,
-                        query,
-                        key,
-                        value,
-                        q_dists,
-                        k_dists,
-                        query_paddings,
-                        key_paddings,
-                        query_relative_position_shift=0):
+  def _DotAttenSlowPath(
+      self,
+      theta: py_utils.NestedMap,
+      query: tf.Tensor,
+      key: tf.Tensor,
+      value: tf.Tensor,
+      q_dists: tf.Tensor,
+      k_dists: tf.Tensor,
+      query_paddings: Optional[tf.Tensor],
+      key_paddings: Optional[tf.Tensor],
+      query_relative_position_shift: int = 0) -> Tuple[tf.Tensor, tf.Tensor]:
     """Computes the attention via the slow path.
 
     This implementation selects, on a per query basis, p.attention_window
