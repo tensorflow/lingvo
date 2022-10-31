@@ -118,7 +118,7 @@ def CrossAttentionPaddingWithTimestamp(timestamp: tf.Tensor,
     cross-attention between target[i] and source[i].
   """
 
-  b, t = py_utils.GetShape(timestamp)
+  b, _ = py_utils.GetShape(timestamp)
   _, s = py_utils.GetShape(source_paddings)
 
   # Verify that timestamp contains valid indices for source.
@@ -128,16 +128,18 @@ def CrossAttentionPaddingWithTimestamp(timestamp: tf.Tensor,
       py_utils.assert_equal(tf.reduce_all(tf.math.less(timestamp, s)), True)
   ], timestamp)
 
-  # indices and timestamp_comp are of shape [b, t, s].
-  source_indices = tf.tile(tf.reshape(tf.range(s), [1, 1, s]), [b, t, 1])
-  timestamp_comp = tf.tile(tf.expand_dims(timestamp, -1), [1, 1, s])
+  # [1, 1, s]
+  source_indices = tf.reshape(tf.range(s), [1, 1, s])
+  # [b, t, 1]
+  timestamp_comp = tf.expand_dims(timestamp, -1)
   # Check if each index is within the range [central-L+1, central+R).
+  # [b, t, s]
   index_mask = tf.logical_and(
       tf.greater(source_indices, timestamp_comp - left_context),
       tf.less_equal(source_indices, timestamp_comp + right_context))
-
-  length_mask = tf.tile(
-      tf.reshape(tf.cast(1 - source_paddings, tf.bool), [b, 1, s]), [1, t, 1])
+  # [b, 1, s]
+  length_mask = tf.reshape(tf.cast(1 - source_paddings, tf.bool), [b, 1, s])
+  # [b, t, s]
   final_mask = tf.logical_and(index_mask, length_mask)
   return 1 - tf.cast(final_mask, tf.float32)
 
@@ -708,13 +710,12 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       paddings = py_utils.HasShape(paddings, [b, s])
       if paddings.dtype != tf.bool:
         paddings = paddings > tf.zeros([], paddings.dtype)
-      paddings = tf.tile(tf.reshape(paddings, [b, 1, 1, s]), [1, n, t, 1])
+      paddings = tf.reshape(paddings, [b, 1, 1, s])
       if per_step_padding is not None:
         if per_step_padding.dtype != tf.bool:
           per_step_padding = per_step_padding > tf.zeros([],
                                                          per_step_padding.dtype)
-        per_step_padding = tf.tile(
-            tf.expand_dims(per_step_padding, 1), [1, n, 1, 1])
+        per_step_padding = tf.expand_dims(per_step_padding, 1)
         paddings = tf.logical_or(paddings, per_step_padding)
 
       padded_logits = py_utils.ApplyPadding(paddings, logits,
@@ -1453,7 +1454,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     """
     p = self.params
     synced_time_step = (time_step.shape.ndims == 0)
-    s, b, _, _ = py_utils.GetShape(key, 4)
+    s, _, _, _ = py_utils.GetShape(key, 4)
 
     # Transformer_XL relative attention.
     if time_step is None:
@@ -1465,9 +1466,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
       position = tf.expand_dims(time_step - tf.range(s), 0)
     else:
       # [b, s]
-      position = (
-          tf.expand_dims(time_step, -1) -
-          tf.tile(tf.expand_dims(tf.range(s), 0), [b, 1]))
+      position = tf.expand_dims(time_step, -1) - tf.expand_dims(tf.range(s), 0)
     # [1 or b, s, emb_dim]
     sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, position)
     # [1 or b, s, n, h]
@@ -1592,9 +1591,10 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     emb_theta = theta.value_emb
 
     seqlen = py_utils.GetShape(key)[1]
-    src_time_indices = tf.tile(tf.expand_dims(tf.range(seqlen), 0), [seqlen, 1])
-    tgt_time_indices = tf.tile(
-        tf.expand_dims(tf.range(seqlen), -1), [1, seqlen])
+    # [1, seqlen]
+    src_time_indices = tf.expand_dims(tf.range(seqlen), 0)
+    # [seqlen, 1]
+    tgt_time_indices = tf.expand_dims(tf.range(seqlen), -1)
 
     # [tgt_time=T, src_time=T, num_heads x hidden_dim]
     pos_emb = emb_layer.FProp(emb_theta, src_time_indices - tgt_time_indices)
@@ -1887,7 +1887,6 @@ class LocalSelfAttention(MultiHeadedAttention):
     # -> [B, U, W, N, H]
     query_blocks = attention_util.ConvertToBlocks(
         query, block_size=(p.block_size // p.query_stride))
-    _, _, w, _, _ = py_utils.GetShape(query_blocks)
 
     # -> [B, U, C]
     mask = 1. - paddings
@@ -1898,9 +1897,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         right_context=p.right_context,
         padding_val=0)
 
-    # -> [B, N, U, W, C]
-    mask = tf.tile(
-        tf.reshape(mask_block_context, [b, 1, u, 1, c]), [1, n, 1, w, 1])
+    # -> [B, 1, U, 1, C]
+    mask = tf.reshape(mask_block_context, [b, 1, u, 1, c])
 
     # Make local causal mask.
     # -> [U, W, C]
@@ -1911,6 +1909,7 @@ class LocalSelfAttention(MultiHeadedAttention):
         right_context=p.right_context,
         query_stride=p.query_stride,
         dtype=mask.dtype)
+    # -> [B, 1, U, W, C]
     mask = mask * local_causal_mask
     paddings = 1. - mask
 
@@ -2495,7 +2494,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     """query_vec length is staticly known."""
     p = self.params
     dims = self._StreamStepDimensions(query_vec)
-    h, s, b, q = dims.h, dims.s, dims.b, dims.q
+    h, s, q = dims.h, dims.s, dims.q
     assert q is not None
     query_vec = py_utils.with_dependencies(
         [py_utils.assert_less_equal(q, p.inference_step_max_length)], query_vec)
@@ -3007,10 +3006,9 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
     w = p.chunk_size
     query_blocks = attention_util.ConvertToBlocks(query, block_size=w)
 
-    # mask: [B, U, C] --> [B, N, U, W, C]
+    # mask: [B, U, C] --> [B, 1, U, 1, C]
     mask_block = 1.0 - paddings_block
-    mask_block = tf.tile(
-        tf.reshape(mask_block, [b, 1, u, 1, c]), [1, n, 1, w, 1])
+    mask_block = tf.reshape(mask_block, [b, 1, u, 1, c])
 
     paddings_block = 1.0 - mask_block
 
@@ -3279,7 +3277,7 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
     #  L+W-2, ...  W-1,.., 0,     ... -R       # for query's position W-1
     # ]
     p = self.params
-    b, u, w, n, h = py_utils.GetShape(query)
+    _, _, w, n, h = py_utils.GetShape(query)
     _, _, c, _, _ = py_utils.GetShape(key)
 
     l = p.left_context
@@ -3287,18 +3285,10 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
     assert c == w + l + r - 1, f'unexpected c {c}'
 
     # 1. create a cxc matrix, whose i,j-th element is (i-j)
-    #   - kindx is a matrix like
-    #        [0, 1, ... , c-1]
-    #        [0, 1, ...,  c-1]
-    #        [...............]
-    #        [0, 1, ...,  c-1]
-    #   - qindx is a matrix like
-    #        [0, ...,    0]
-    #        [1, ...,    1]
-    #        [........... ]
-    #        [c-1,..., c-1]
-    qindx = tf.tile(tf.expand_dims(tf.range(0, c), axis=1), (1, c))
-    kindx = tf.transpose(qindx, (1, 0))
+    #   - kindx is a row vector
+    #   - qindx is a column vector
+    qindx = tf.expand_dims(tf.range(0, c), axis=1)
+    kindx = tf.range(0, c)
     relative_dist = qindx - kindx
     # 2. slice the cxc matrix to (w,c)
     relative_dist = relative_dist[l - 1:l - 1 + w, :]
@@ -3318,7 +3308,6 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
     else:
       term_d = tf.einsum('NH,WCNH->NWC', theta.u, pos_emb)
       term_bd = tf.reshape(term_d, (1, n, 1, w, c))
-      term_bd = tf.tile(term_bd, (b, 1, u, 1, 1))
 
     term_ac = tf.einsum('BUWNH,BUCNH->BNUWC', query + theta.u, key)
     return term_ac + term_bd
@@ -3568,8 +3557,7 @@ class RoutingAttention(MultiHeadedAttention):
       paddings = tf.zeros([b, t], dtype=query_vec.dtype)
     # Apply causal padding. Shape [B, T]
     paddings = tf.where(
-        tf.greater(
-            tf.tile(tf.range(t)[None, :], [b, 1]), tf.fill([b, t], time_step)),
+        tf.greater(tf.range(t)[None, :], tf.fill([b, t], time_step)),
         tf.ones_like(paddings), paddings)
     query_paddings = tf.zeros([b, 1], dtype=paddings.dtype)
 
@@ -3687,12 +3675,11 @@ class RoutingAttention(MultiHeadedAttention):
     sparsity_indices = tf.einsum('BTNK, BNKW -> BTNW', nearest_one_hot,
                                  closest_indices)
     if p.causal_masking:
-      batch_size, q_length, num_heads = py_utils.GetShape(query, 3)
+      _, q_length = py_utils.GetShape(query, 2)
       query_positions = tf.range(q_length) + query_relative_position_shift
+      # [1, T, 1, 1] where the T dimension is range(T)
+      query_positions = query_positions[tf.newaxis, :, tf.newaxis, tf.newaxis]
       # [B, T, N, W] where the T dimension is range(T)
-      query_positions = tf.tile(
-          query_positions[tf.newaxis, :, tf.newaxis, tf.newaxis],
-          [batch_size, 1, num_heads, p.attention_window])
       masked_indices = -tf.ones_like(sparsity_indices)
       # Replace key positions in the future with -1 to indicate masking.
       #
@@ -3792,16 +3779,13 @@ class RoutingAttention(MultiHeadedAttention):
         tf.tile(key_paddings[:, :, tf.newaxis, tf.newaxis],
                 [1, 1, num_heads, 1]),
         closest_k)
-    # of shape [B, N, K, V, W]
-    is_key_padded = tf.tile(
-        tf.transpose(c_key_paddings, [0, 1, 2, 4, 3]),
-        [1, 1, 1, q_cluster_size, 1]) > 0.5
+    # of shape [B, N, K, 1, W]
+    is_key_padded = tf.transpose(c_key_paddings, [0, 1, 2, 4, 3]) > 0.5
     if p.causal_masking:
-      # both position matrices of shape [B, N, K, V, W]
-      c_query_positions = tf.tile(closest_q[:, :, :, :, tf.newaxis],
-                                  [1, 1, 1, 1, p.attention_window])
-      c_key_positions = tf.tile(closest_k[:, :, :, tf.newaxis, :],
-                                [1, 1, 1, q_cluster_size, 1])
+      # of shape [B, N, K, V, 1]
+      c_query_positions = closest_q[:, :, :, :, tf.newaxis]
+      # of shape [B, N, K, 1, W]
+      c_key_positions = closest_k[:, :, :, tf.newaxis, :]
       # We pad the logit for future key positions relative to each query
       is_key_padded = tf.math.logical_or(
           is_key_padded, tf.math.greater(c_key_positions, c_query_positions))
@@ -4465,7 +4449,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       # [b, t]
       per_step_padding = tf.where(
           tf.less(
-              tf.tile(tf.expand_dims(tf.range(t), 0), [b, 1]),
+              tf.expand_dims(tf.range(t), 0),
               tf.expand_dims(batch_time_step + 1, -1)), zero_padding,
           tf.ones_like(zero_padding, dtype=query_vec.dtype))
       # [b, 1, t]
