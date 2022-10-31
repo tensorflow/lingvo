@@ -3006,11 +3006,8 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
     w = p.chunk_size
     query_blocks = attention_util.ConvertToBlocks(query, block_size=w)
 
-    # mask: [B, U, C] --> [B, 1, U, 1, C]
-    mask_block = 1.0 - paddings_block
-    mask_block = tf.reshape(mask_block, [b, 1, u, 1, c])
-
-    paddings_block = 1.0 - mask_block
+    # paddings: [B, U, C] --> [B, 1, U, 1, C]
+    paddings_block = tf.reshape(paddings_block, [b, 1, u, 1, c])
 
     # einsum('BUWNH,BUCNH->BNUWC)
     with tf.name_scope('atten_logits'):
