@@ -980,6 +980,7 @@ py_library(
     srcs = ["conv_layers_with_time_padding.py"],
     deps = [
         ":activations",
+        ":attention_util",
         ":base_layer",
         ":bn_layers",
         ":py_utils",
@@ -1042,9 +1043,15 @@ lingvo_cuda_py_test(
     name = "conv_layers_with_time_padding_test",
     srcs = ["conv_layers_with_time_padding_test.py"],
     deps = [
-        ":layers_test_lib",
+        ":conv_layers_with_time_padding",
+        ":py_utils",
         ":stream_step_test_base",
+        ":test_utils",
+        ":tshape",
         # Implicit absl.testing.flagsaver dependency.
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -1655,8 +1662,8 @@ py_library(
     srcs = ["attention_util.py"],
     deps = [
         ":base_layer",
-        ":layers",
         ":py_utils",
+        ":quant_utils",
         ":summary_utils",
         "//lingvo:compat",
     ],

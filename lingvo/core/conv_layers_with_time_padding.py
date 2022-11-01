@@ -21,6 +21,7 @@ import copy
 
 import lingvo.compat as tf
 from lingvo.core import activations
+from lingvo.core import attention_util
 from lingvo.core import base_layer
 from lingvo.core import bn_layers
 from lingvo.core import py_utils
@@ -777,6 +778,63 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
       new_context = tf.slice(concat_inputs, [0, q, 0, 0],
                              tf.shape(state0.context))
       return outputs, paddings, py_utils.NestedMap(context=new_context)
+
+
+class ChunkwiseDepthwiseConv2DLayer(DepthwiseConv2DLayer):
+  """DepthwiseConv2DLayer operates in a chunkwise fashion."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('chunk_size', None,
+             'chunk size for DepthwiseConv2DLayer to operate on')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    if params.chunk_size is None:
+      raise ValueError('chunk_size has not been set yet')
+    if params.chunk_size % self.filter_stride[0] != 0:
+      msg = (f'chunk_size {params.chunk_size} cannot be divided by '
+             f'{self.filter_stride[0]}, which can cause unexpected error')
+      raise ValueError(msg)
+
+  def FProp(self, theta, inputs, paddings):
+    """Apply depthwise conv."""
+    #
+    # Args:
+    #  theta: a `NestedMap' object
+    #  inputs: a [batch, time, frequency, channel] tensor
+    #  paddings: a [batch, time]-shaped tensor
+    #
+    # Returns:
+    #  ouputs, out_padding
+
+    # original shape
+    inputs = py_utils.HasRank(inputs, 4)
+    (batch_size, max_len, fea_dim, num_channels) = py_utils.GetShape(inputs, 4)
+    (_, out_max_len, out_fea_dim, out_num_channels) = self.OutShape(
+        [batch_size, max_len, fea_dim, num_channels])
+    # chunked_inputs' shape [B, U, W, D, C]
+    # U: num_chunks, W: chunk_size, D: feat_dim, C: num_channels
+    chunked_inputs = attention_util.ConvertToBlocks(
+        inputs, block_size=self.params.chunk_size)
+    # chunked_paddings' shape [B, U, W]
+    chunked_paddings = attention_util.ConvertToBlocks(
+        paddings, block_size=self.params.chunk_size)
+    num_chunks = py_utils.GetShape(chunked_inputs)[1]
+    chunked_inputs = tf.reshape(
+        chunked_inputs, [batch_size * num_chunks, -1, fea_dim, num_channels])
+    chunked_paddings = tf.reshape(chunked_paddings,
+                                  [batch_size * num_chunks, -1])
+    chunked_out, chunked_padding = super().FProp(self.theta, chunked_inputs,
+                                                 chunked_paddings)
+    chunked_out = tf.reshape(chunked_out,
+                             [batch_size, -1, out_fea_dim, out_num_channels])
+    chunked_padding = tf.reshape(chunked_padding, [batch_size, -1])
+    out = chunked_out[:, :out_max_len, :, :]
+    padding = chunked_padding[:, :out_max_len]
+    return out, padding
 
 
 class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):

@@ -496,6 +496,31 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-1.455162, 6.813269], [v1, v2])
 
+  def testChunkwiseDepthwiseConv2DLayerFProp(self):
+    with self.session(use_gpu=True) as sess:
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+
+      params = conv_layers.ChunkwiseDepthwiseConv2DLayer.Params()
+      params.weight_norm = True
+      params.filter_stride = [2, 2]
+      params.name = 'conv'
+      params.filter_shape = [3, 3, 3, 2]
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.chunk_size = 8
+      conv_layer = params.Instantiate()
+      max_len = 12
+      in_padding = tf.zeros([2, max_len], dtype=tf.float32)
+      in_shape = [2, max_len, 4, 3]
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, in_shape), dtype=tf.float32)
+      out, out_padding = conv_layer.FPropDefaultTheta(inputs, in_padding)
+      tf.global_variables_initializer().run()
+      out_np, out_padding_np = sess.run([out, out_padding])
+      expected_out_shape = conv_layer.OutShape(in_shape)
+      self.assertAllEqual(out_np.shape, expected_out_shape)
+      self.assertAllEqual(out_padding_np.shape, expected_out_shape[:2])
+
   def testCausalDepthwiseConv2DLayer(self):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
