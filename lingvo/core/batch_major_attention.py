@@ -70,7 +70,7 @@ def CausalSegmentMask(segment_ids, dtype):
   causal_mask = 1 - tf.linalg.band_part(
       tf.ones([slen, slen], dtype=dtype), -1, 0)
   causal_mask = tf.expand_dims(causal_mask, 0)
-  combined_mask = tf.cast(tf.greater(causal_mask + segment_mask, 0.5), dtype)
+  combined_mask = tf.cast(causal_mask + segment_mask > 0.5, dtype)
   min_value = GetDtypeMin(dtype)
   return tf.expand_dims(combined_mask * min_value, 1)
 
@@ -123,9 +123,8 @@ def CrossAttentionPaddingWithTimestamp(timestamp: tf.Tensor,
 
   # Verify that timestamp contains valid indices for source.
   timestamp = py_utils.with_dependencies([
-      py_utils.assert_equal(
-          tf.reduce_all(tf.math.greater_equal(timestamp, 0)), True),
-      py_utils.assert_equal(tf.reduce_all(tf.math.less(timestamp, s)), True)
+      py_utils.assert_equal(tf.reduce_all(timestamp >= 0), True),
+      py_utils.assert_equal(tf.reduce_all(timestamp < s), True)
   ], timestamp)
 
   # [1, 1, s]
@@ -134,9 +133,8 @@ def CrossAttentionPaddingWithTimestamp(timestamp: tf.Tensor,
   timestamp_comp = tf.expand_dims(timestamp, -1)
   # Check if each index is within the range [central-L+1, central+R).
   # [b, t, s]
-  index_mask = tf.logical_and(
-      tf.greater(source_indices, timestamp_comp - left_context),
-      tf.less_equal(source_indices, timestamp_comp + right_context))
+  index_mask = tf.logical_and(source_indices > timestamp_comp - left_context,
+                              source_indices <= timestamp_comp + right_context)
   # [b, 1, s]
   length_mask = tf.reshape(tf.cast(1 - source_paddings, tf.bool), [b, 1, s])
   # [b, t, s]
@@ -3554,7 +3552,7 @@ class RoutingAttention(MultiHeadedAttention):
       paddings = tf.zeros([b, t], dtype=query_vec.dtype)
     # Apply causal padding. Shape [B, T]
     paddings = tf.where(
-        tf.greater(tf.range(t)[None, :], tf.fill([b, t], time_step)),
+        tf.range(t)[tf.newaxis, :] > tf.fill([b, t], time_step),
         tf.ones_like(paddings), paddings)
     query_paddings = tf.zeros([b, 1], dtype=paddings.dtype)
 
@@ -3685,9 +3683,8 @@ class RoutingAttention(MultiHeadedAttention):
       # p.attention_window on padded keys when in theory we could have attended
       # to further away keys that are not in the future (in order to achieve
       # that we need to pick top_k from 'k_dists' differently for each query).
-      sparsity_indices = tf.where(
-          tf.math.greater(sparsity_indices, query_positions), masked_indices,
-          sparsity_indices)
+      sparsity_indices = tf.where(sparsity_indices > query_positions,
+                                  masked_indices, sparsity_indices)
 
     return attention_util.ComputeSparseAttention(query, key, value,
                                                  sparsity_indices, key_paddings)
@@ -3784,8 +3781,8 @@ class RoutingAttention(MultiHeadedAttention):
       # of shape [B, N, K, 1, W]
       c_key_positions = closest_k[:, :, :, tf.newaxis, :]
       # We pad the logit for future key positions relative to each query
-      is_key_padded = tf.math.logical_or(
-          is_key_padded, tf.math.greater(c_key_positions, c_query_positions))
+      is_key_padded = tf.math.logical_or(is_key_padded,
+                                         c_key_positions > c_query_positions)
 
     logits = tf.einsum('BNKVD,BNKWD->BNKVW', c_query, c_key)
     logits *= tf.math.rsqrt(tf.cast(dim_per_head, py_utils.FPropDtype(p)))
@@ -4445,9 +4442,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       zero_padding = tf.zeros([b, t], dtype=query_vec.dtype)
       # [b, t]
       per_step_padding = tf.where(
-          tf.less(
-              tf.expand_dims(tf.range(t), 0),
-              tf.expand_dims(batch_time_step + 1, -1)), zero_padding,
+          tf.expand_dims(tf.range(t), 0) < tf.expand_dims(
+              batch_time_step + 1, -1), zero_padding,
           tf.ones_like(zero_padding, dtype=query_vec.dtype))
       # [b, 1, t]
       per_step_padding = tf.expand_dims(per_step_padding, 1)
@@ -4455,9 +4451,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     if segment_mask is not None:
       segment_mask = py_utils.HasShape(segment_mask, [b, 1, t])
-      segment_padding = tf.where(
-          tf.less(segment_mask, 0.0), tf.ones_like(segment_mask),
-          tf.zeros_like(segment_mask))
+      segment_padding = tf.where(segment_mask < 0.0, tf.ones_like(segment_mask),
+                                 tf.zeros_like(segment_mask))
       # Adjust per_step_padding to also take into account segment_padding.
       per_step_padding = tf.minimum(per_step_padding + segment_padding, 1.0)
 
