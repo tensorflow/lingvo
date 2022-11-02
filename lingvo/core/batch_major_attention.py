@@ -3551,9 +3551,10 @@ class RoutingAttention(MultiHeadedAttention):
     if paddings is None:
       paddings = tf.zeros([b, t], dtype=query_vec.dtype)
     # Apply causal padding. Shape [B, T]
-    paddings = tf.where(
-        tf.range(t)[tf.newaxis, :] > tf.fill([b, t], time_step),
-        tf.ones_like(paddings), paddings)
+    paddings = tf.where_v2(
+        tf.range(t)[tf.newaxis, :] > time_step, tf.ones([],
+                                                        dtype=paddings.dtype),
+        paddings)
     query_paddings = tf.zeros([b, 1], dtype=paddings.dtype)
 
     encoded = self._DotAttenOneStep(
@@ -3587,17 +3588,14 @@ class RoutingAttention(MultiHeadedAttention):
     Returns:
       encoded: [B, 1, N, H].
     """
-    p = self.params
     # [B, 1, N, K]
     q_dists, _ = self.clustering.FProp(theta.clustering, query)
     # [B, T, N, K]
     k_dists = tf.transpose(states.key_dists, [1, 0, 2, 3])
 
-    very_large_dists = tf.ones_like(k_dists) * tf.constant(
-        0.1 * k_dists.dtype.max, dtype=k_dists.dtype)
-    paddings_tiled = tf.tile(key_paddings[:, :, tf.newaxis, tf.newaxis],
-                             [1, 1, p.num_heads, p.num_clusters])
-    k_dists = tf.where(paddings_tiled > 0.0, very_large_dists, k_dists)
+    very_large_dist = tf.constant(0.1 * k_dists.dtype.max, dtype=k_dists.dtype)
+    key_paddings_expanded = key_paddings[:, :, tf.newaxis, tf.newaxis]
+    k_dists = tf.where_v2(key_paddings_expanded > 0.0, very_large_dist, k_dists)
 
     key = tf.transpose(states.key, [1, 0, 2, 3])
     value = tf.transpose(states.value, [1, 0, 2, 3])
@@ -4439,20 +4437,20 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     if per_step_padding is None:
       # Generates mask, with shape [b, 1, t].
-      zero_padding = tf.zeros([b, t], dtype=query_vec.dtype)
       # [b, t]
-      per_step_padding = tf.where(
+      per_step_padding = tf.where_v2(
           tf.expand_dims(tf.range(t), 0) < tf.expand_dims(
-              batch_time_step + 1, -1), zero_padding,
-          tf.ones_like(zero_padding, dtype=query_vec.dtype))
+              batch_time_step + 1, -1), tf.zeros([], dtype=query_vec.dtype),
+          tf.ones([], dtype=query_vec.dtype))
       # [b, 1, t]
       per_step_padding = tf.expand_dims(per_step_padding, 1)
     per_step_padding = py_utils.HasShape(per_step_padding, [b, 1, t])
 
     if segment_mask is not None:
       segment_mask = py_utils.HasShape(segment_mask, [b, 1, t])
-      segment_padding = tf.where(segment_mask < 0.0, tf.ones_like(segment_mask),
-                                 tf.zeros_like(segment_mask))
+      segment_padding = tf.where_v2(segment_mask < 0.0,
+                                    tf.ones([], dtype=segment_mask.dtype),
+                                    tf.zeros([], dtype=segment_mask.dtype))
       # Adjust per_step_padding to also take into account segment_padding.
       per_step_padding = tf.minimum(per_step_padding + segment_padding, 1.0)
 
