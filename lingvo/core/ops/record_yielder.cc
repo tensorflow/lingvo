@@ -82,7 +82,7 @@ Status MaybeExpandShardedFilePattern(StringPiece file_pattern,
         uint64 num_shards = 0;
         StringPiece suf = file_pattern.substr(i + 1);
         if (str_util::ConsumeLeadingDigits(&suf, &num_shards)) {
-          if (num_shards <= 0 || num_shards >= 99999) {
+          if (num_shards <= 0 || num_shards > 99999) {
             return errors::InvalidArgument(
                 strings::StrCat("The number of shards should be non-zero and "
                                 "not exceed 5 digits: ",
