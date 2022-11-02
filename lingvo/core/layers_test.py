@@ -6569,6 +6569,70 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(actual[0][0], actual[2][0], rtol=1e-05, atol=1e-05)
       self.assertAllClose(expected_sum, actual_sum, rtol=1e-05, atol=1e-05)
 
+  def testEinsumLayerPerFrameBasic(self):
+    """Using per-frame setup to produce the same results as per-utt test above.
+
+    Creates a task id that is the same value repeated for all frames and
+    expects the same output as gotten above.
+    """
+
+    fprop_dtype, expected_sum = (None, 3.675607)
+
+    with self.session(use_gpu=True):
+      # Same seed and inputs as testEinsumLayer.
+      np.random.seed(1234567)
+      inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0]], [[0.0, 0.7, -1.0, 2.0]],
+                            [[0.5, 0.3, -0.2, 0.0]], [[0.5, 0.3, -0.2, 0.0]]],
+                           dtype=tf.float32)
+      # Per-frame task ids, but with same meaning as testEinsumLayer.
+      tasks = tf.constant([[1], [0], [1], [0]], dtype=tf.int32)
+      # Same params except with per_fram_task_ids.
+      p = layers.MultitaskAdapterEinsumLayer.Params().Set(
+          name='multi_adapter',
+          input_dim=4,
+          bottleneck_dim=2,
+          num_tasks=3,
+          fprop_dtype=fprop_dtype,
+          random_seed=505837249,
+          per_frame_task_ids=True)
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, tasks)
+      self.evaluate(tf.global_variables_initializer())
+      actual, actual_sum = self.evaluate((output, tf.reduce_sum(output)))
+      tf.logging.info('testSingleStepFProp actual=%r' % actual)
+      self.assertEqual(actual.shape, (4, 1, 4))
+      self.assertAllClose(actual[0][0], actual[2][0], rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_sum, actual_sum, rtol=1e-05, atol=1e-05)
+
+  def testEinsumLayerPerFrame(self):
+    """Using per-frame setup to produce different results."""
+    with self.session(use_gpu=True):
+      np.random.seed(1234567)
+      # Input is 3x2x4 (batch x time x input_dim)
+      inputs = tf.constant([[[0.5, 0.3, -0.2, 0.0], [0.0, 0.7, -1.0, 2.0]],
+                            [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]],
+                            [[0.5, 0.3, -0.2, 0.0], [0.5, 0.3, -0.2, 0.0]]],
+                           dtype=tf.float32)
+      # Per-frame task ids, but with same meaning as testEinsumLayer.
+      tasks = tf.constant([[0, 0], [0, 0], [1, 2]], dtype=tf.int32)
+      # Same params except with per_fram_task_ids.
+      p = layers.MultitaskAdapterEinsumLayer.Params().Set(
+          name='multi_adapter',
+          input_dim=4,
+          bottleneck_dim=2,
+          num_tasks=3,
+          fprop_dtype=None,
+          random_seed=505837249,
+          per_frame_task_ids=True)
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, tasks)
+      self.evaluate(tf.global_variables_initializer())
+      actual, actual_sum = self.evaluate((output, tf.reduce_sum(output)))
+      tf.logging.info('testSingleStepFProp actual=%r' % actual)
+      self.assertEqual(actual.shape, (3, 2, 4))
+      self.assertAllClose(actual[0][0], actual[1][0], rtol=1e-05, atol=1e-05)
+      self.assertAllClose(4.51449, actual_sum, rtol=1e-05, atol=1e-05)
+
 
 class CCTGatingNetworkTest(test_utils.TestCase):
 

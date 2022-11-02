@@ -5728,6 +5728,7 @@ class MultitaskAdapterBaseLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('num_tasks', 0, 'Number of tasks.')
+    p.Define('per_frame_task_ids', False, '')
     p.Define('input_dim', 0, 'Dimension of the input to the adapter.')
     p.Define('bottleneck_dim', 0, 'Dimension of the bottleneck.')
     p.Define('layer_norm_tpl', LayerNorm.Params(), 'Layer norm default params.')
@@ -5754,6 +5755,7 @@ class MultitaskAdapterLayer(MultitaskAdapterBaseLayer):
     assert p.name
     # Data format is either 'TBC' (time-major) or 'BTC' (batch-major).
     assert p.data_format in ('TBC', 'BTC')
+    assert not p.per_frame_task_ids, 'Not implemented for this class.'
     base_emb_params = EmbeddingLayer.Params().Set(
         vocab_size=p.num_tasks, max_num_shards=1)
     down_proj_w_params = base_emb_params.Copy()
@@ -5887,6 +5889,7 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
   def Params(cls):
     p = super().Params()
     p.data_format = 'BTC'
+
     return p
 
   def __init__(self, params):
@@ -5944,11 +5947,20 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     """
     p = self.params
     inputs = self._CastToFPropDtype(inputs)
-    assert tasks.shape.ndims == 1
+
+    if not p.per_frame_task_ids:
+      if tasks.shape.ndims > 1:
+        tasks = tf.squeeze(tasks, axis=[1])
+      assert tasks.shape.ndims == 1, tasks.shape
+      # [batch, num_tasks].
+      tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
+    else:
+      assert tasks.shape.ndims == 2, tasks.shape
+      # [batch, time, num_tasks].
+      tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
+
     if p.clip_task_ids:
       tasks = tf.clip_by_value(tasks, 0, p.num_tasks - 1)
-    # [batch, num_tasks].
-    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
 
     # Einsum axis names:
     # b - batch
@@ -5957,33 +5969,55 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     # i - input_dim
     # n - bottleneck_dim
 
-    # [batch, input_dim, bottleneck_dim].
+    if not p.per_frame_task_ids:
+      t = ''
+      # [:, None, :]
+      # Need to broadcast to the time dimension before addition.
+      b_broadcaster = (slice(None), None, slice(None))
+    else:
+      t = 't'
+      # [:, :, :]
+      # Will have a time dimension already; no need to broadcast.
+      b_broadcaster = (slice(None), slice(None), slice(None))
+
+    # TODO(sepand): All down and up variables can be created using gather ops
+    # instead of einsum with one_hot. That *may* be faster.
+    # [batch, {time,} input_dim, bottleneck_dim].
     with tf.name_scope('down_w_einsum'):
-      down_w = tf.einsum('bk,kin->bin', tasks_onehot, theta.down_w)
+      # Can be replaced w/ a single gather if needed
+      down_w = tf.einsum(f'b{t}k,kin->b{t}in', tasks_onehot, theta.down_w)
 
-    # [batch, 1, bottleneck_dim].
+    # [batch, {time,} 1, bottleneck_dim].
     with tf.name_scope('down_b_einsum'):
-      down_b = tf.einsum('bk,kn->bn', tasks_onehot, theta.down_b)[:, None, :]
+      # Can be replaced w/ a single gather if needed
+      down_b = tf.einsum(f'b{t}k,kn->b{t}n', tasks_onehot,
+                         theta.down_b)[b_broadcaster]
 
-    # [batch, bottleneck_dim, input_dim].
+    # [batch, {time,} bottleneck_dim, input_dim].
+    # Can be replaced w/ a single gather if needed
     with tf.name_scope('up_w_einsum'):
-      up_w = tf.einsum('bk,kni->bni', tasks_onehot, theta.up_w)
+      up_w = tf.einsum(f'b{t}k,kni->b{t}ni', tasks_onehot, theta.up_w)
 
-    # [batch, 1, input_dim].
+    # [batch, {time,} 1, input_dim].
+    # Can be replaced w/ a single gather if needed
     with tf.name_scope('up_b_einsum'):
-      up_b = tf.einsum('bk,ki->bi', tasks_onehot, theta.up_b)[:, None, :]
+      up_b = tf.einsum(f'b{t}k,ki->b{t}i', tasks_onehot,
+                       theta.up_b)[b_broadcaster]
 
     # Layer norm -> down-projection -> non-linearity -> up-projection
     with tf.name_scope('layer_norm_feed'):
       norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
     # [batch, time, bottleneck_dim].
-    down_projected = tf.einsum('bti,bin->btn', norm_inputs, down_w) + down_b
+    print('===================================', norm_inputs, theta.down_w)
+    # import pdb; pdb.set_trace()
+    down_projected = tf.einsum(f'bti,b{t}in->btn', norm_inputs, down_w) + down_b
     # ReLU.
     down_projected = tf.nn.relu(down_projected)
     # [batch, time, input_dim].
-    up_projected = tf.einsum('btn,bni->bti', down_projected, up_w) + up_b
+    up_projected = tf.einsum(f'btn,b{t}ni->bti', down_projected, up_w) + up_b
     # Residual.
-    return inputs + up_projected
+    res = inputs + up_projected
+    return res
 
 
 class CCTGatingNetwork(quant_utils.QuantizableLayer):
