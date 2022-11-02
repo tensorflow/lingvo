@@ -333,6 +333,10 @@ class BeamSearchHelper(BeamSearchSharedParams):
         'there will be no pruning before all possible path mergings are '
         'performed (if merge_paths=True). To be memory efficient (i.e., to '
         'maintain less hyps during pruning), a reasonable value is 2.')
+    p.Define(
+        'reorder_tarzan_states', False,
+        'A flag to turn on the special state reordering logic for Tarzan LM '
+        'model.')
     p.name = 'beam_search'
     return p
 
@@ -450,6 +454,10 @@ class BeamSearchHelper(BeamSearchSharedParams):
                      out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs,
                      out_beam_done)
     random_seed_regex = re.compile(r'rnn_states\[\d+\].r$')
+    tarzan_constant_regex = re.compile(
+        r'fusion_states.lm_states.*dec_self_attention.*')
+    # Special handling of Tarzan tgt_mask.
+    tarzan_mask_regex = re.compile(r'fusion_states.lm_states.tgt_mask$')
 
     def ReOrderHyps(key, x_in):
       """Reorders x_in based on prev hyp ids."""
@@ -457,17 +465,40 @@ class BeamSearchHelper(BeamSearchSharedParams):
         # For keys like rnn_states[0].r, it is a shape [2] random seeds tensor
         # used for deterministic behavior and should not be reordered.
         return py_utils.HasShape(x_in, [2])
+      if p.reorder_tarzan_states and tarzan_constant_regex.match(key):
+        # A group of tarzan LM states which need to be kept constant.
+        tf.logging.info('Not reorder: %s', key)
+        return x_in
       correct_old_hyp_ids = (
           old_hyp_ids_in_cache_order if p.batch_major_compute else old_hyp_ids)
       if (isinstance(x_in, tf.Tensor) and x_in.shape.ndims):
-        if x_in.shape.ndims > 2 and not p.batch_major_state:
-          # Use corrected indices only here for batch major compute as key/value
-          # caches are the states being affected.
-          x_out = tf.gather(x_in, correct_old_hyp_ids, axis=1)
-        elif key in POSSIBLY_TIME_MAJOR_STATE_KEYS:
-          x_out = tf.gather(x_in, old_hyp_ids, axis=-1)
+        if p.reorder_tarzan_states and tarzan_mask_regex.match(key):
+          # Special handling of flat_beam_search tgt_mask.
+          assert p.batch_major_state, 'Tarzan LM states should be batch major.'
+          tgt_mask = x_in
+          num_beams = tf.shape(best_scores)[0]
+          # prev_hyp: [beam, num_hyps_per_beam] --> [num_hyps_per_beam, beam]
+          prev_hyp = tf.transpose(
+              tf.reshape(old_hyp_ids, [num_hyps_per_beam, num_beams]))
+          # tgt_mask: [beam, num_hyps_per_beam, num_hyps_per_beam*time]
+          # j=k=num_hyps_per_beam
+          tgt_mask = tf.einsum('bkt,bjk->bjt', tgt_mask,
+                               tf.one_hot(prev_hyp, num_hyps_per_beam))
+          # Extend to the next step
+          buf_size = py_utils.GetShape(tgt_mask)[-1]
+          t = cur_step + 1
+          tgt_mask += tf.one_hot(
+              tf.range(num_hyps_per_beam) + t * num_hyps_per_beam, buf_size)
+          x_out = tgt_mask
         else:
-          x_out = tf.gather(x_in, correct_old_hyp_ids)
+          if x_in.shape.ndims > 2 and not p.batch_major_state:
+            # Use corrected indices only here for batch major compute as
+            # key/value caches are the states being affected.
+            x_out = tf.gather(x_in, correct_old_hyp_ids, axis=1)
+          elif key in POSSIBLY_TIME_MAJOR_STATE_KEYS:
+            x_out = tf.gather(x_in, old_hyp_ids, axis=-1)
+          else:
+            x_out = tf.gather(x_in, correct_old_hyp_ids)
         x_out.set_shape(x_in.get_shape())
         return x_out
       else:

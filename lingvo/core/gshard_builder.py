@@ -3804,14 +3804,20 @@ class UniTransformer(base_model.BaseTask):
     num_decoder_layers = p.num_transformer_layers * 2 // sub_layer_type_len
     return decoder_sub_layers, num_decoder_layers
 
-  def _ComputeDecoderInput(self, theta, input_batch):
-    p = self.params
+  def _ComputeInputBatch(self, input_batch):
     if 'tgt' not in input_batch:
       input_batch.tgt = py_utils.NestedMap()
       input_batch.tgt.ids = input_batch.ids
+      input_batch.tgt.paddings = input_batch.paddings
       input_batch.tgt.labels = input_batch.labels
       input_batch.tgt.segment_ids = input_batch.segment_ids
       input_batch.tgt.segment_pos = input_batch.segment_pos
+    return input_batch
+
+  def _ComputeDecoderInput(self, theta, input_batch):
+    p = self.params
+    input_batch = self._ComputeInputBatch(input_batch)
+
     if p.moe and p.builder.gating_func == 'hashing':
       expert_id = tf.math.floormod(input_batch.tgt.ids, p.builder.e_dim)
     if p.has_embedding_layer:
@@ -3821,8 +3827,8 @@ class UniTransformer(base_model.BaseTask):
           y += self.dec_pos_emb.FPropWithPosition(theta.dec_pos_emb,
                                                   input_batch.tgt.segment_pos)
         else:
-          y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
-                                      input_batch.tgt.segment_pos)
+          y += self.dec_pos_emb.FProp(
+              theta.dec_pos_emb, tf.cast(input_batch.tgt.segment_pos, tf.int32))
     else:
       y = tf.cast(input_batch.tgt.ids, py_utils.FPropDtype(self.params))
 
