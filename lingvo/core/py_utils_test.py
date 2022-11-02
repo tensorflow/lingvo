@@ -1507,6 +1507,15 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(l1, [])
     self.assertEqual(l2, [])
 
+  @test_utils.SkipIfNonEager
+  def testGlobalStepTF2OnGPU(self):
+    global_step_normal = py_utils.GetOrCreateGlobalStepVar()
+    with flagsaver.flagsaver(xla_device='gpu'):
+      global_step_gpu_tf2 = py_utils.GetOrCreateGlobalStepVar()
+
+    self.assertIsNot(global_step_normal, global_step_gpu_tf2)
+    self.assertEqual(global_step_normal.name, global_step_gpu_tf2.name)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 

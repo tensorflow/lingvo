@@ -2574,9 +2574,38 @@ def _MaybeWarnAboutPotentiallyIncorrectEvaluations():
       _WARNED_STACKS.add(tuple(trace))
 
 
+def _IsTF2OnGPU():
+  return (tf.executing_eagerly_outside_functions() and
+          FLAGS.xla_device == 'gpu')
+
+
+_GLOBAL_STEP_GPU_TF2 = None
+
+
+def _GetOrCreateGlobalStepTF2():
+  # pylint: disable=g-doc-args,g-doc-return-or-yield
+  """Create or reuse the global step variable explicitly.
+
+  This avoids using `get_or_create_global_step` because it pins the global step
+  to cpu directly. It is intended for on-GPU inference jobs. Note we did not
+  verify if this works for on-GPU training (assuming there is no need for
+  on-GPU training).
+  """
+  # pylint: enable=g-doc-args,g-doc-return-or-yield
+  with tf.variable_scope(GetGlobalVariableScope(), use_resource=True):
+    global _GLOBAL_STEP_GPU_TF2
+    if _GLOBAL_STEP_GPU_TF2 is None:
+      _GLOBAL_STEP_GPU_TF2 = tf.Variable(0, name='global_step', dtype=tf.int64)
+    res = _GLOBAL_STEP_GPU_TF2
+    return res
+
+
 def GetGlobalStep():
   """Return the global_step."""
   _MaybeWarnAboutPotentiallyIncorrectEvaluations()
+  if _IsTF2OnGPU():
+    return _GetOrCreateGlobalStepTF2()
+
   if _GLOBAL_STEP_STACK.stack:
     return _GLOBAL_STEP_STACK.stack[-1]
   return tf.train.get_global_step()
@@ -2590,6 +2619,9 @@ def GetOrCreateGlobalStepVar():
   Returns:
     The global_step variable, or a new created one if it does not exist.
   """
+  if _IsTF2OnGPU():
+    return _GetOrCreateGlobalStepTF2()
+
   with tf.variable_scope(GetGlobalVariableScope(), use_resource=True):
     if _FromGlobal('pin_vars_to_cpu'):
       with tf.device('/cpu:0'):
