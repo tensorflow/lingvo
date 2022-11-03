@@ -820,6 +820,25 @@ class BaseTask(base_layer.BaseLayer):
       # EMA not enabled.
       return
 
+    all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
+    # For ExecutorTpu: `ema.apply()` below creates stateful variable update
+    # operations, and due to the use of tf.function in the tpu training loop,
+    # these update ops will be added as (implicit) control dependencies to
+    # the step function of eval/decode program. To avoid updating EMA variables,
+    # we run `ema.apply()` only in two cases: 1) in train program, or
+    # 2) in the first eval or decode program when there is no train program.
+    # It'll still apply the update in every eval/decode step even though
+    # the update is not materialized into checkpoint, but experiment shows it
+    # doesn't affect eval/decode metrics.
+    if self.do_eval:
+      need_ema_apply = any([ema.average(var) is None for var in all_vars])
+      if need_ema_apply:
+        assert all([ema.average(var) is None for var in all_vars
+                   ]), ('We never update EMA partially.')
+      else:
+        # Trainer already created EMA variables.
+        return
+
     # Make sure this is called at most once in a graph. In eager mode, the outer
     # tf.function will be traced multiple times in different function graphs.
     graph = id(tf.get_default_graph())
@@ -831,7 +850,6 @@ class BaseTask(base_layer.BaseLayer):
     self._graphs_applied_ema.add(graph)
 
     tf.logging.info('ApplyExponentialMovingAverage on %s', self)
-    all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
     with contextlib.ExitStack() as context_stack:
       if py_utils.IsEagerMode():
         context_stack.enter_context(self._EMAVariableScope())
