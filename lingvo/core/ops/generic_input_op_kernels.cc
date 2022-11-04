@@ -246,6 +246,7 @@ class GenericInputProcessor : public RecordProcessor {
               CASE(float);
               CASE(int32);
               CASE(int64_t);
+              CASE(uint8);
 #undef CASE
               default:
                 LOG(FATAL) << "Unexpected " << DataTypeString(dtype);
