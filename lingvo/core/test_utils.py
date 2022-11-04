@@ -21,7 +21,7 @@ import os
 import re
 import sys
 import typing
-from typing import Callable, Optional
+from typing import Callable, Optional, List
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -95,7 +95,7 @@ class TapeIfEager:
       for t in tensors:
         tape.watch(t)
 
-  def gradient(self, ys, xs) -> list[tf.Tensor]:  # pylint: disable=invalid-name
+  def gradient(self, ys, xs) -> List[tf.Tensor]:  # pylint: disable=invalid-name
     """Returns len(xs) tensors of numeric gradients taken wrt the ys."""
     if tape := self._tape:
       return tape.gradient(target=ys, sources=xs)
