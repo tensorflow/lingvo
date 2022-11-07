@@ -14,6 +14,10 @@
 # ==============================================================================
 #!/bin/bash
 
+# Grab patchelf >= 16; takes care of the following error which popped up:
+#  'auditwheel repair requires patchelf >= 0.14'
+pip install patchelf
+
 PYTHON_MINOR_VERSION=10 pip_package/build.sh \
 	--crosstool_top=@sigbuild-r2.9-python3.10_config_cuda//crosstool:toolchain
 

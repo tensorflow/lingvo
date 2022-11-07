@@ -37,7 +37,7 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 PyPI Version | Commit
 ------------ | ----------------------------------------
-0.12.3       | a2c437e25f0a18dcc64f1fe2fa5ff59df84a73d0
+0.12.4       | --
 0.11.0       | 6fae10077756f54beacd5c454959f20b33fd65e2
 0.10.0       | 075fd1d88fa6f92681f58a2383264337d0e737ee
 0.9.1        | c1124c5aa7af13d2dd2b6d43293c8ca6d022b008
