@@ -303,7 +303,10 @@ class Evaler(base_runner.BaseRunner):
             'total_samples', num_samples_metric.total_value, step=global_step)
         for key, metric in sorted(metrics_dict.items()):
           msg += ' %s:%.8g' % (key, metric.value)
-          tf.compat.v2.summary.scalar(key, metric.value, step=global_step)
+          summary_proto = metric.Summary(key)
+          if summary_proto is not None:
+            tf.compat.v2.summary.experimental.write_raw_pb(
+                tf.constant(summary_proto.SerializeToString()), global_step)
         self._summary_writer.flush()
       self._SetStatusMessage(msg)
 
@@ -502,7 +505,10 @@ class Decoder(base_runner.BaseRunner):
             'total_samples', num_samples_metric.total_value, step=global_step)
         for key, metric in sorted(dec_metrics.items()):
           msg += ' %s:%.8g' % (key, metric.value)
-          tf.compat.v2.summary.scalar(key, metric.value, step=global_step)
+          summary_proto = metric.Summary(key)
+          if summary_proto is not None:
+            tf.compat.v2.summary.experimental.write_raw_pb(
+                tf.constant(summary_proto.SerializeToString()), global_step)
         self._summary_writer.flush()
       self._SetStatusMessage(msg)
 
