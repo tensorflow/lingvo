@@ -89,12 +89,14 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
       p.qdomain.default.narrow_to_asym_bit_depth = False
       l = self._testLayerHelper(
           'testLayerWithPassiveAsymQDomain', p, expected=expected)
-      init_minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
+      init_minmax_vars = {
+          k: v.eval() for k, v in l.qdomain_default._qvars.items()
+      }
       print('Initial Minmax vars:', init_minmax_vars)
       # Record.
       with py_utils.GlobalStepContext(16):
         self.evaluate([l.PostTrainingStepUpdate()])
-      minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
+      minmax_vars = {k: v.eval() for k, v in l.qdomain_default._qvars.items()}
       print('Minmax vars:', minmax_vars)
 
       # Make sure that the vars have moved from their defaults.
@@ -199,11 +201,13 @@ class QuantizableLayerTest(quant_test_lib.QuantUtilsBaseTest):
       p.qdomain.default.freeze = True
       p.qdomain.default.narrow_to_asym_bit_depth = False
       l = self._testLayerHelper('testLayerWithFrozenQDomain', p, expected=None)
-      init_minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
+      init_minmax_vars = {
+          k: v.eval() for k, v in l.qdomain_default._qvars.items()
+      }
       # Record.
       with py_utils.GlobalStepContext(16):
         self.evaluate([l.PostTrainingStepUpdate()])
-      minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
+      minmax_vars = {k: v.eval() for k, v in l.qdomain_default._qvars.items()}
 
       # Make sure that the vars have not moved from their defaults, because the
       # qdomain is frozen.

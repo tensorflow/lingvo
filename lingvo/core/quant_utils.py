@@ -1630,7 +1630,7 @@ class PassiveAsymQDomain(FakeQDomain):
 
   def __init__(self, params):
     super().__init__(params)
-    self._qvars = py_utils.NestedMap()  # var_name -> tf.Variable
+    self._qvars = {}  # var_name -> tf.Variable
 
   def _CreateLayerVariables(self):
     # Save a scope for lazily created variables.
