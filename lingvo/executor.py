@@ -38,10 +38,10 @@ from tensorflow.python.distribute import tpu_strategy
 from tensorflow.python.tpu import device_assignment as device_assignment_lib
 # pylint: enable=g-direct-tensorflow-import
 
-tf.flags.DEFINE_bool(
+_DISABLE_META_OPTIMIZER = tf.flags.DEFINE_bool(
     'disable_meta_optimizer_in_executor', False,
     'Disabling the grappler meta_optimizer improves start-up time.')
-tf.flags.DEFINE_bool(
+_USE_TPU_MIRRORED_VARS = tf.flags.DEFINE_bool(
     'use_tpu_mirrored_vars', False,
     'If set, use TPUStrategy / TPU mirrored variables to eliminate weight transfers. '
     'The trade-off here is that the Graph is larger. Disabling the meta optimizer '
@@ -246,11 +246,9 @@ class ExecutorTpu(base_runner.BaseRunner):
           # with the correct embedding_config. Since it cannot be called twice
           # in the same graph with different embedding_config, we use a
           # dummy_graph here.
-          dummy_graph = tf.Graph()
-          with dummy_graph.as_default():
+          with tf.Graph().as_default() as dummy_graph:
             tpu_initialize_system_op = tf.tpu.initialize_system(
                 embedding_config=None, job=job)
-
           with self._GetSession(graph=dummy_graph) as sess:
             topology = sess.run(tpu_initialize_system_op)
 
@@ -261,17 +259,14 @@ class ExecutorTpu(base_runner.BaseRunner):
           computation_shape = train_cfg.train.tpu_computation_shape
           assert num_devices_per_split == np.prod(computation_shape)
 
-        if train_cfg.train.tpu_device_order_mode is None:
-          self.device_assignment = device_assignment_lib.device_assignment(
-              topology,
-              computation_shape=computation_shape,
-              num_replicas=data_parallelism)
-        else:
-          self.device_assignment = device_assignment_lib.device_assignment(
-              topology,
-              computation_shape=computation_shape,
-              num_replicas=data_parallelism,
-              device_order_mode=train_cfg.train.tpu_device_order_mode)
+        kwarg = {}
+        if train_cfg.train.tpu_device_order_mode is not None:
+          kwarg['device_order_mode'] = train_cfg.train.tpu_device_order_mode
+        self.device_assignment = device_assignment_lib.device_assignment(
+            topology,
+            computation_shape=computation_shape,
+            num_replicas=data_parallelism,
+            **kwarg)
         py_utils.SetTpuDeviceAssignment(self.device_assignment, job)
         tf.logging.info('device_assignment.core_assignment: %s',
                         str(self.device_assignment.core_assignment))
@@ -337,20 +332,19 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     # When running in a vizier trainer, the executor reports infeasiable runs
     # in case of errors. The programs report metrics and normal completions.
-    for program in self._programs:
-      if program._should_report_metrics:
-        self._should_report_metrics = True
+    self._should_report_metrics |= any(
+        p._should_report_metrics for p in self._programs)
 
     with self._cluster, tf.container(
         self._container_id), contextlib.ExitStack() as stack:
       if not py_utils.IsEagerMode():
         stack.enter_context(self._graph.as_default())
 
-        if FLAGS.use_tpu_mirrored_vars:
+        if _USE_TPU_MIRRORED_VARS.value:
           resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
               FLAGS.tf_master, job_name=FLAGS.worker_job[len('/job:'):])
-          self._tpu_strategy = tf.distribute.experimental.TPUStrategy(
-              resolver, device_assignment=self.device_assignment)
+          self._tpu_strategy = tf.distribute.TPUStrategy(
+              resolver, experimental_device_assignment=self.device_assignment)
           stack.enter_context(self._tpu_strategy.scope())
           stack.enter_context(
               tpu_strategy._TPUReplicaContext(self._tpu_strategy))
@@ -462,7 +456,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         sess = None
       else:
         sess = self._GetSession(
-            disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor)
+            disable_meta_optimizer=_DISABLE_META_OPTIMIZER.value)
         stack.enter_context(sess)
         sess.reset(self._tf_master)
         config_proto = (
