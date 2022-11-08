@@ -1071,6 +1071,7 @@ py_library(
         ":tshape",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
+        # Implicit mock dependency.
         # Implicit numpy dependency.
     ],
 )

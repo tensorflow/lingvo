@@ -29,6 +29,7 @@ from lingvo.core import quant_utils
 from lingvo.core import symbolic
 from lingvo.core import test_utils
 from lingvo.core import tshape
+import mock
 import numpy as np
 
 _BENCHMARK_ON_TPU = flags.DEFINE_boolean('benchmark_on_tpu', False,
@@ -141,6 +142,33 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(0.0, self.evaluate(sig1), atol=1e-5)
       self.assertAllClose(expected_sig2, self.evaluate(sig2))
+
+  def testBatchNormLayerFPropEvalEma(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.BatchNormLayer.Params()
+      params.name = 'bn'
+      params.dim = 3
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+
+      # To use EMA variables as theta. See BaseLayer._InternalGetTheta.
+      with cluster_factory.ForTestingWorker(
+          job='executor_tpu', do_eval=True), mock.patch(
+              'lingvo.core.py_utils.use_tpu', return_value=True):
+        bn_layer = layers.BatchNormLayer(params)
+        bn_layer._ema = tf.train.ExponentialMovingAverage(decay=0.5)
+        bn_layer._ema.apply(bn_layer.vars.Flatten())
+        in_padding1 = tf.zeros([2, 8, 1], dtype=tf.float32)
+        bn_in1 = tf.constant(
+            np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
+        bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
+
+      sig1 = tf.reduce_sum(bn_out)
+      sig2 = tf.reduce_sum(bn_out * bn_out)
+      self.evaluate(tf.global_variables_initializer())
+      self.assertAllClose(2.659357, self.evaluate(sig1), atol=1e-5)
+      self.assertAllClose(15.464208, self.evaluate(sig2))
 
   def testBatchNormLayerFPropUseGlobalStatsForTraining(self):
     with self.session(use_gpu=True):

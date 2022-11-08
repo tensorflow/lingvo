@@ -258,7 +258,7 @@ class BatchNormLayer(base_layer.BaseLayer):
       if not p.gamma_zero_init and not p.gamma_one_init:
         # Note, The real gamma to use is 1 + gamma.
         gamma = 1.0 + gamma
-    return self.vars.moving_mean, self.vars.moving_variance, beta, gamma
+    return theta.moving_mean, theta.moving_variance, beta, gamma
 
   def ComputeAndUpdateMoments(self, theta, inputs, paddings=None, **kwargs):
     """Computes moments and updates state.
@@ -283,10 +283,7 @@ class BatchNormLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       if self.do_eval or p.freeze_bn_stats:
         # The mean and variance used for normalization.
-        norm_mean, norm_variance = (self.vars.moving_mean,
-                                    self.vars.moving_variance)
-        norm_mean, norm_variance = self._CastToFPropDtype(
-            (norm_mean, norm_variance))
+        norm_mean, norm_variance = theta.moving_mean, theta.moving_variance
       else:
         rank = tf.rank(paddings)
         reduce_over_dims = tf.range(0, rank - 1)
