@@ -1451,7 +1451,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
       A Tensor of shape [S, B, N]
     """
     p = self.params
-    synced_time_step = (time_step.shape.ndims == 0)
+    synced_time_step = (time_step.shape.ndims == 0)  # pytype: disable=attribute-error
     s, _, _, _ = py_utils.GetShape(key, 4)
 
     # Transformer_XL relative attention.
@@ -6156,7 +6156,7 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
       params.input_dim = p.input_dim
       self.CreateChild('layer_norm', params)
 
-  def FProp(self, theta, source_vecs, source_paddings, target_vecs,
+  def FProp(self, theta, source_vecs, source_paddings, target_vecs,  # pytype: disable=signature-mismatch
             target_paddings, encoder_self_atten_segment_mask,
             decoder_self_atten_segment_mask, decoder_cross_atten_segment_mask):
     p = self.params
@@ -6235,7 +6235,7 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
         layers.DeterministicDropoutLayer.Params())
     return params
 
-  def ExtendStep(self,
+  def ExtendStep(self,  # pytype: disable=signature-mismatch
                  theta,
                  query_vec,
                  aux_vec,
@@ -7797,7 +7797,7 @@ class SketchMemTransformerBuilder(Builder):
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
 
-  def Feedforward(self,
+  def Feedforward(self,  # pytype: disable=signature-mismatch
                   name,
                   is_causal=False,
                   ff_hidden_dim=None,
@@ -7876,7 +7876,7 @@ class SketchMemTransformerBuilder(Builder):
         ff_hidden_dim,
         activation_fn=lambda x: tf.nn.gelu(x, approximate=True))
 
-  def GatedFeedforward(self,
+  def GatedFeedforward(self,  # pytype: disable=signature-mismatch
                        name,
                        is_causal=False,
                        ff_hidden_dim=None,
@@ -7956,7 +7956,7 @@ class LmBuilder(Builder):
                       dtype=self.params.dtype))],
         mesh_split=mesh_split)
 
-  def _Linear(self, name, input_dim, output_dim, mesh_split, qdomain=None):
+  def _Linear(self, name, input_dim, output_dim, mesh_split, qdomain=None):  # pytype: disable=signature-mismatch
     if qdomain is not None:
       raise NotImplementedError(
           'Quantization support is not implemented for LmBuilder._Linear.')
@@ -7990,7 +7990,7 @@ class LmBuilder(Builder):
                                        fn=lambda inputs, b: inputs + b)),
     )
 
-  def Feedforward(self, name):
+  def Feedforward(self, name):  # pytype: disable=signature-mismatch
     p = self.params
 
     ff_list = [
