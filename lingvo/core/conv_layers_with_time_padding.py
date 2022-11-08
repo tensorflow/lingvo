@@ -722,15 +722,20 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
 
     Returns:
       state0: A NestedMap of tensors including:
-        - context: A Tensor of shape [b, filter_shape[0]-1, 1, c].
+        - context: A Tensor of shape [b, d * (filter_shape[0]-1), 1, c].
+          where d is the temporal dilation rate.
     """
     p = self.params
     assert p.filter_shape[1] == 1, (
         'zero_state() only supports 1d causal convolution.')
+    assert p.dilation_rate[1] == 1, (
+        'zero_state() only supports 1d dilation convolution.')
 
     context = tf.zeros(
-        shape=[batch_size] +
-        [p.filter_shape[0] - 1, p.filter_shape[1], p.filter_shape[2]],
+        shape=[
+            batch_size, p.dilation_rate[0] * (p.filter_shape[0] - 1),
+            p.filter_shape[1], p.filter_shape[2]
+        ],
         dtype=py_utils.FPropDtype(p))
     return py_utils.NestedMap(context=context)
 
@@ -755,7 +760,8 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     assert p.filter_shape[1] == 1, (
         'StreamStep only supports 1d causal convolution.')
     assert p.filter_stride[0] == 1, ('StreamStep doesn\'t support striding')
-    assert p.dilation_rate == (1, 1), ('StreamStep doesn\'t support dilation')
+    assert p.dilation_rate[1] == 1, (
+        'StreamStep doesn\'t support dilation in second dimension')
 
     with tf.name_scope(p.name):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
@@ -770,7 +776,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
           concat_inputs,
           self._GetWeight(theta),
           strides=(1, 1, 1, 1),
-          dilations=(1, 1),
+          dilations=p.dilation_rate,
           data_format='NHWC',
           padding='VALID')
       if p.bias:

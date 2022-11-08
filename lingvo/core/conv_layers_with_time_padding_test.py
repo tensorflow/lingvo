@@ -672,10 +672,12 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
     channel_multiplier = kwargs['channel_multiplier']
     kernel = kwargs['kernel']
     bias = kwargs['bias']
+    dilation = kwargs['dilation']
     p = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
         name='conv',
         filter_stride=[1, 1],
         filter_shape=[kernel, 1, channel, channel_multiplier],
+        dilation_rate=[dilation, 1],
         params_init=py_utils.WeightInit.Gaussian(0.1),
         bias=bias,
         bias_init=py_utils.WeightInit.Gaussian(0.1))
@@ -694,12 +696,24 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
       ('Basic',),
       ('BasicS2', False, 2),
       ('BasicBias', False, 1, True),
+      ('BasicDilation2', False, 1, True, 2),
+      ('BasicDilation4', False, 1, True, 4),
+      ('BasicS4Dilation2', False, 4, True, 2),
       ('SkipNorm', True),
       ('SkipNormS4', True, 4),
   )
-  def testCommon(self, testonly_skip_norm_layers=False, stride=1, bias=False):
+  def testCommon(self,
+                 testonly_skip_norm_layers=False,
+                 stride=1,
+                 bias=False,
+                 dilation=1):
     kwargs = dict(
-        input_dim=3, kernel=5, stride=stride, channel_multiplier=1, bias=bias)
+        input_dim=3,
+        kernel=5,
+        stride=stride,
+        channel_multiplier=1,
+        bias=bias,
+        dilation=dilation)
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
       self._TestStreamStepHelper(**kwargs)
@@ -709,12 +723,14 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
       ('S2', 2),
       ('S4', 4),
       ('SkipNormS4', 4, True),
+      ('BasicDilation2', 1, False, 2),
+      ('S2Dilation2', 2, False, 2),
   )
-  def testLeadingPaddings(self, stride=1, skip_norm=False):
+  def testLeadingPaddings(self, stride=1, skip_norm=False, dilation=1):
     with flagsaver.flagsaver(testonly_skip_norm_layers=skip_norm):
-      self._TestLeadingPaddingsHelper(stride)
+      self._TestLeadingPaddingsHelper(stride, dilation)
 
-  def _TestLeadingPaddingsHelper(self, stride=1):
+  def _TestLeadingPaddingsHelper(self, stride=1, dilation=1):
     """Tests leading paddings case, useful for local atten with right ctx."""
     batch, max_seqlen, channel = 2, 16, 2
     kernel, channel_multiplier = 3, 2
@@ -723,6 +739,7 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
         name='conv',
         filter_stride=[1, 1],
         filter_shape=[kernel, 1, channel, channel_multiplier],
+        dilation_rate=[dilation, 1],
         params_init=py_utils.WeightInit.Gaussian(0.1))
 
     l = p.Instantiate()
