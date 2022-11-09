@@ -133,7 +133,7 @@ class EmaTest(test_utils.TestCase):
       layer = task.encoder
       # Both vars and theta are same, and have EMA value.
       beta = layer.vars.beta
-      mean = layer.theta.moving_mean
+      mean = layer.vars.moving_mean
       theta_beta = layer.theta.beta
       theta_mean = layer.theta.moving_mean
 
