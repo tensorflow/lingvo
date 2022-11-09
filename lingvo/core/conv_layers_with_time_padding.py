@@ -833,7 +833,7 @@ class ChunkwiseDepthwiseConv2DLayer(DepthwiseConv2DLayer):
         chunked_inputs, [batch_size * num_chunks, -1, fea_dim, num_channels])
     chunked_paddings = tf.reshape(chunked_paddings,
                                   [batch_size * num_chunks, -1])
-    chunked_out, chunked_padding = super().FProp(self.theta, chunked_inputs,
+    chunked_out, chunked_padding = super().FProp(theta, chunked_inputs,
                                                  chunked_paddings)
     chunked_out = tf.reshape(chunked_out,
                              [batch_size, -1, out_fea_dim, out_num_channels])
