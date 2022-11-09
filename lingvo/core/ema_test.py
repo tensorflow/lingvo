@@ -20,9 +20,11 @@ from lingvo.core import base_decoder
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import checkpointer
+from lingvo.core import cluster_factory
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
+import mock
 import numpy as np
 
 
@@ -117,25 +119,58 @@ class EmaTest(test_utils.TestCase):
                               model.ema.average(mean)
                           ]))
 
-    # Restore from ckpt in eval mode.
+      # In train, var and theta are same (except for VN).
+      theta_beta = layer.theta.beta
+      theta_mean = layer.theta.moving_mean
+      self.assertAllClose([beta_1, mean_1],
+                          self.evaluate([theta_beta, theta_mean]))
+
+    # Restore from ckpt in eval mode, which loads EMA value to variables.
     with self.session(graph=tf.Graph()) as sess, self.SetEval(True):
       model = p.Instantiate()
       self.assertIsNotNone(model.ema)
       task = model._task
-      # task._train_op = tf.no_op()
-      # task.ApplyExponentialMovingAverage(model.ema)
       layer = task.encoder
-      # for var in layer.vars.Flatten():
-      #   self.assertIsNotNone(model.ema.average(var), msg=var.name)
+      # Both vars and theta are same, and have EMA value.
       beta = layer.vars.beta
-      mean = layer.vars.moving_mean
+      mean = layer.theta.moving_mean
+      theta_beta = layer.theta.beta
+      theta_mean = layer.theta.moving_mean
 
       saver = checkpointer.Checkpointer(train_dir, model)
       saver.RestoreIfNeeded(sess)
 
       # Both beta and mean should use the EMA value.
-      self.assertAllClose([beta_1_ema, mean_1_ema], self.evaluate([beta, mean]))
+      self.assertAllClose([beta_1_ema, beta_1_ema, mean_1_ema, mean_1_ema],
+                          self.evaluate([beta, theta_beta, mean, theta_mean]))
 
+    # Restore from ckpt in ExecutorTpu eval mode.
+    # To use EMA variables as theta. See BaseLayer._InternalGetTheta.
+    with self.session(
+        graph=tf.Graph()) as sess, cluster_factory.ForTestingWorker(
+            job='executor_tpu', do_eval=True), mock.patch(
+                'lingvo.core.py_utils.use_tpu', return_value=True):
+      executor_ema = py_utils.CreateEMAForModel(
+          p, py_utils.GetOrCreateGlobalStepVar())
+      model = p.Instantiate(executor_ema=executor_ema)
+      self.assertIsNotNone(model.ema)
+      task = model._task
+      task._train_op = tf.no_op()
+      task.ApplyExponentialMovingAverage(model.ema)
+      layer = task.encoder
+      for var in layer.vars.Flatten():
+        self.assertIsNotNone(model.ema.average(var), msg=var.name)
+      beta = layer.vars.beta
+      mean = layer.vars.moving_mean
+      # layer.theta is EMA variable.
+      beta_ema = layer.theta.beta
+      mean_ema = layer.theta.moving_mean
+
+      saver = checkpointer.Checkpointer(train_dir, model)
+      saver.RestoreIfNeeded(sess)
+
+      self.assertAllClose([beta_1, beta_1_ema, mean_1, mean_1_ema],
+                          self.evaluate([beta, beta_ema, mean, mean_ema]))
 
 if __name__ == '__main__':
   test_utils.main()

@@ -474,6 +474,12 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     return self.cluster.do_eval
 
   @property
+  def use_ema_for_theta(self) -> bool:
+    # When ExecutorTpu specifies the EMA (e.g. when running eval/decode program
+    # with EMA enabled), use the EMA version of the variables if applicable.
+    return self.cluster.is_executor_tpu and self.do_eval and self.ema
+
+  @property
   def parent(self) -> Optional[BaseLayerT]:
     """None if self is the root layer, otherwise the parent layer of self."""
     return self._parent
@@ -648,9 +654,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     private_theta = self._private_theta
 
-    # When ExecutorTpu specifies the EMA (e.g. when running eval/decode program
-    # with EMA enabled), use the EMA version of the variables if applicable.
-    if self.cluster.is_executor_tpu and self.do_eval and self.ema:
+    if self.use_ema_for_theta:
       vars_loaded_as_ema = self.params.is_inference or (self.do_eval and
                                                         not py_utils.use_tpu())
       assert not vars_loaded_as_ema, (

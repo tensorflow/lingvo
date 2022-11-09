@@ -2387,10 +2387,12 @@ py_test(
         ":base_input_generator",
         ":base_model",
         ":checkpointer_lib",
+        ":cluster_factory",
         ":layers",
         ":py_utils",
         ":test_utils",
         "//lingvo:compat",
+        # Implicit mock dependency.
     ],
 )
 

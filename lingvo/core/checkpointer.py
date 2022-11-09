@@ -206,7 +206,8 @@ class Checkpointer:
     variables_to_restore = {}
     if not self._save_only and do_eval:
       for model in self._models:
-        if model.ema:
+        # ExecutorTpu evaler/decoder has both variables and EMA variables.
+        if model.ema and not model.use_ema_for_theta:
           tf.logging.info('Using EMA for evaluation.')
           variables_to_restore.update(
               model.ema.variables_to_restore(model.variables_for_ema))
