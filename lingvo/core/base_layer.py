@@ -1105,6 +1105,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
   def _VerifyVarsAndTheta(self) -> None:
     """Verify that vars and theta have the same nested structure."""
+    # Let only root node check it. Otherwise, this is quadratically expensive.
+    if self.parent is not None:
+      return
 
     def MatchKeys(x, y):
       assert len(x) <= len(y)
@@ -1114,8 +1117,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
           assert isinstance(y[k], py_utils.NestedMap), '%s is not a map' % y[k]
           MatchKeys(x[k], y[k])
 
-    # NOTE: this check can be quadratically expensive. Maybe only
-    # enable this in unittests.
     MatchKeys(self.vars, self.theta)
 
     # Make sure whatever not in self.vars are in self._extra_theta

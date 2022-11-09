@@ -253,12 +253,12 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
 
       actual = self.evaluate(py_utils.NestedMap(sum=sum_outputs, **final))
 
-      sum_expected = [[-0.396654, 0.69955], [-0.400491, 0.475449],
-                      [-0.390183, 0.612227]]
-      m_expected = [[-0.198327, 0.349775], [-0.200246, 0.237725],
-                    [-0.195092, 0.306113]]
-      c_expected = [[-0.54442, 0.62336], [-0.346681, 0.595387],
-                    [-0.350726, 0.691779]]
+      sum_expected = [[-0.366546, 0.788136], [-0.372402, 0.54518],
+                      [-0.367016, 0.674535]]
+      m_expected = [[-0.18327278, 0.39406797], [-0.18620083, 0.27259],
+                    [-0.18350805, 0.33726758]]
+      c_expected = [[-0.46244526, 0.8282993], [-0.30769998, 0.7895613],
+                    [-0.31077483, 0.8967643]]
       self.assertAllClose(sum_expected, actual.sum)
       self.assertAllClose(m_expected, actual.m)
       self.assertAllClose(c_expected, actual.c)
@@ -427,9 +427,9 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       print('final_m', np.array_repr(actual.m))
       print('final_c', np.array_repr(actual.c))
 
-      sum_expected = [3.84135, 2.37388, 0.045646]
-      m_expected = [0.618991, 0.647515, 0.450933]
-      c_expected = [2.374451, 1.865975, 1.714276]
+      sum_expected = [2.999277, 2.291916, -0.528728]
+      m_expected = [0.52095217, 0.59586865, 0.27472413]
+      c_expected = [2.4646373, 2.2752855, 1.9296129]
       self.assertAllClose(sum_expected, actual.sum)
       self.assertAllClose(m_expected, actual.m)
       self.assertAllClose(c_expected, actual.c)
