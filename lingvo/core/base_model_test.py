@@ -477,24 +477,25 @@ class MultiTaskSubModelTest(test_utils.TestCase):
       beta1_var = 'loss/beta1_power:0'
       beta2_var = 'loss/beta2_power:0'
 
-    self.assertEqual([
-        'base_mdl/a/var:0',
-        'base_mdl/b/var:0',
-        adam_var,
-        adam1_var,
-        beta1_var,
-        beta2_var,
-        'base_mdl/x/beta/var:0',
-        'base_mdl/x/gamma/var:0',
-        'base_mdl/x/moving_mean/var:0',
-        'base_mdl/x/moving_variance/var:0',
-        'base_mdl/y/w/var:0',
-        'base_mdl/y/b/var:0',
-        'base_mdl/y/beta/var:0',
-        'base_mdl/y/gamma/var:0',
-        'base_mdl/y/moving_mean/var:0',
-        'base_mdl/y/moving_variance/var:0',
-    ], [x.name for x in mt_model.GetVariablesDict().values()])
+    self.assertEqual(
+        {
+            'base_mdl/a/var:0',
+            'base_mdl/b/var:0',
+            adam_var,
+            adam1_var,
+            beta1_var,
+            beta2_var,
+            'base_mdl/x/beta/var:0',
+            'base_mdl/x/gamma/var:0',
+            'base_mdl/x/moving_mean/var:0',
+            'base_mdl/x/moving_variance/var:0',
+            'base_mdl/y/w/var:0',
+            'base_mdl/y/b/var:0',
+            'base_mdl/y/beta/var:0',
+            'base_mdl/y/gamma/var:0',
+            'base_mdl/y/moving_mean/var:0',
+            'base_mdl/y/moving_variance/var:0',
+        }, {x.name for x in mt_model.GetVariablesDict().values()})
 
 
 class MultiTaskModelTest(test_utils.TestCase):

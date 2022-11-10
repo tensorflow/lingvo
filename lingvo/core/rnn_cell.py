@@ -332,9 +332,18 @@ class LSTMCellSimple(RNNCell):
         init=p.params_init,
         dtype=p.dtype)
 
+    if not p.no_wm_if_compress:
+      self.CreateVariable('wm', wm_pc)
+
     if not p.apply_pruning and p.pruning_hparams_dict:
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
                                            wm_pc, p.dtype, p.name)
+      last_alpha_update_step = pruning_utils.PruningOp.GetLastAlphaUpdateStep()
+      if last_alpha_update_step is not None:
+        # For checkpoint tracking in TF2
+        self._other_vars_to_track_tf2[
+            'last_alpha_update_step'] = last_alpha_update_step
+
       self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
     if p.apply_pruning:
       mask_pc = py_utils.WeightParams(wm_pc.shape,
@@ -354,9 +363,6 @@ class LSTMCellSimple(RNNCell):
         self.CreateVariable('gradient', grad_pc, trainable=False)
         self.CreateVariable('old_weight', grad_pc, trainable=False)
         self.CreateVariable('old_old_weight', grad_pc, trainable=False)
-
-    if not p.no_wm_if_compress:
-      self.CreateVariable('wm', wm_pc)
 
     if p.num_hidden_nodes:
       w_proj = py_utils.WeightParams(
@@ -1096,9 +1102,18 @@ class LayerNormalizedLSTMCell(RNNCell):
         init=p.params_init,
         dtype=p.dtype)
 
+    if not p.no_wm_if_compress:
+      self.CreateVariable('wm', wm_pc)
+
     if not p.apply_pruning and p.pruning_hparams_dict:
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
                                            wm_pc, p.dtype, p.name)
+      last_alpha_update_step = pruning_utils.PruningOp.GetLastAlphaUpdateStep()
+      if last_alpha_update_step is not None:
+        # For checkpoint tracking in TF2
+        self._other_vars_to_track_tf2[
+            'last_alpha_update_step'] = last_alpha_update_step
+
       self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
     if p.apply_pruning:
       mask_pc = py_utils.WeightParams(wm_pc.shape,
@@ -1110,8 +1125,6 @@ class LayerNormalizedLSTMCell(RNNCell):
       self.CreateVariable('mask', mask_pc, trainable=False)
       self.CreateVariable('threshold', threshold_pc, trainable=False)
 
-    if not p.no_wm_if_compress:
-      self.CreateVariable('wm', wm_pc)
     # This bias variable actually packs the initial lstm bias variables as
     # well as various layer norm scale and bias variables. We pack multiple
     # variables into one so that we can still unroll this lstm using the FRNN

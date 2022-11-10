@@ -1081,6 +1081,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self,
                                            weights_var_name, w_pc, p.dtype,
                                            p.name)
+      last_alpha_update_step = pruning_utils.PruningOp.GetLastAlphaUpdateStep()
+      if last_alpha_update_step is not None:
+        # For checkpoint tracking in TF2
+        self._other_vars_to_track_tf2[
+            'last_alpha_update_step'] = last_alpha_update_step
+
       self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
 
     if p.use_block_diagonal_matmul and p.use_bd_mix:
@@ -2531,6 +2537,12 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     if pruning_utils.ApplyCompression(p):
       pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self, 'wm',
                                            pc, p.dtype, p.name)
+      last_alpha_update_step = pruning_utils.PruningOp.GetLastAlphaUpdateStep()
+      if last_alpha_update_step is not None:
+        # For checkpoint tracking in TF2
+        self._other_vars_to_track_tf2[
+            'last_alpha_update_step'] = last_alpha_update_step
+
       self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
 
   def AddGlobalVN(self, theta):
@@ -3338,6 +3350,12 @@ class SimpleFullSoftmax(SoftmaxLayer):
           pruning_utils.PruningOp.ApplyPruning(p.pruning_hparams_dict, self,
                                                weights_var_name, pc, p.dtype,
                                                p.name)
+          last_alpha_update = pruning_utils.PruningOp.GetLastAlphaUpdateStep()
+          if last_alpha_update is not None:
+            # For checkpoint tracking in TF2
+            self._other_vars_to_track_tf2[
+                f'last_alpha_update_step_{i}'] = last_alpha_update
+
           self.compression_ops.append(
               pruning_utils.PruningOp.GetLastCompressionOp())
 

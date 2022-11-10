@@ -111,6 +111,32 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
 
+  def testLastAlphaUpdateStepVarTracked(self):
+    self.skipTest('Disable OSS test only')
+    # Most of the params are arbitrarily chosen
+    params = rnn_cell.LSTMCellSimple.Params().Set(
+        name='lstm',
+        params_init=py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED),
+        bias_init=py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED),
+        num_input_nodes=2,
+        num_output_nodes=2,
+        couple_input_forget_gates=True,
+        enable_lstm_bias=True)
+    params.vn.global_vn = False
+    params.vn.per_step_vn = False
+
+    comp_hparams_dict = {
+        'name': 'mixed_block_compression',
+        'prune_option': 'compression',
+        'compression_option': 1,  # LOWRANK_MATRIX_COMPRESSION
+        'compression_factor': 2,
+        'num_bases': 1,
+    }
+    params.pruning_hparams_dict = comp_hparams_dict
+
+    lstm = rnn_cell.LSTMCellSimple(params)
+    self.assertIn('last_alpha_update_step', lstm._other_vars_to_track_tf2)
+
   # pyformat: disable
   @parameterized.named_parameters(
       ('_NoInlineNoCIFGNoLSTMBias', False, False, False,

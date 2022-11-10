@@ -337,6 +337,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     res = {}
     for var in py_utils.Flatten(self._private_vars.values()):
       res[var.name] = var
+    for var in py_utils.Flatten(self._other_vars_to_track_tf2.values()):
+      res[var.name] = var
     return res
 
   def __init__(self, params: BaseLayerParamsT) -> None:
@@ -370,6 +372,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._private_vars_transform_restore_stack = []
     # Theta derived from this layer's vars.
     self._private_theta = {}
+    # Track variables other than weights as an adhoc way for TF2 checkpointing.
+    self._other_vars_to_track_tf2 = {}
     # Child layers created by this layer through CreateChild/CreateChildren.
     self._private_children = {}
     # Child layers created by this layer. A well-formed layer should
