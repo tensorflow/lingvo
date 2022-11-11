@@ -5965,6 +5965,8 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     """
     p = self.params
     inputs = self._CastToFPropDtype(inputs)
+    # Cast tasks tensor to tf.int32 as described in docstring.
+    tasks = tf.cast(tasks, dtype=tf.int32)
 
     if not p.per_frame_task_ids:
       if tasks.shape.ndims > 1:
