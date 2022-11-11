@@ -116,7 +116,7 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
     eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
     mdl = cfg.Instantiate()
 
-    @tf.function
+    @tf.function(autograph=False)
     def _Update():
       with py_utils.GradientTape(persistent=True):
         mdl.ConstructFPropBPropGraph()
@@ -207,7 +207,7 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
     eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
     mdl = cfg.Instantiate()
 
-    @tf.function
+    @tf.function(autograph=False)
     def _Update():
       with py_utils.GradientTape(persistent=True):
         mdl.ConstructFPropBPropGraph()

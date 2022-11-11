@@ -5730,6 +5730,9 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
   def testDeterministicDropoutLayer(self):
 
     with self.session(graph=tf.Graph()):
+      # Explicitly reset step seed as `self.session(graph=tf.Graph())` does not
+      # reset the default graph id in Eager mode.
+      py_utils.ResetStepSeed()
       tf.random.set_seed(12345)
       params = layers.DeterministicDropoutLayer.Params().Set(
           name='drop', keep_prob=0.7)
@@ -5758,6 +5761,9 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
     with contextlib.ExitStack() as context_stack:
       g = _ResetTfStatus(self, context_stack)
     with self.session(graph=g):
+      # Explicitly reset step seed as `self.session(graph=tf.Graph())` does not
+      # reset the default graph id in Eager mode.
+      py_utils.ResetStepSeed()
       tf.random.set_seed(12345)
       params = layers.DeterministicDropoutLayer.Params().Set(
           name='drop', keep_prob=0.7)

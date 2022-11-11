@@ -151,7 +151,7 @@ class OptimizerTest(test_utils.TestCase):
     # Get `snapshots` of the variables
     vars2 = [v.read_value() for v in proj_layer.vars.Flatten()]
 
-    @tf.function
+    @tf.function(autograph=False)
     def _Apply2(proj_layer, opt):
       inputs1 = np_input1
       output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
