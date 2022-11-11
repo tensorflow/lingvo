@@ -6028,8 +6028,6 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     with tf.name_scope('layer_norm_feed'):
       norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
     # [batch, time, bottleneck_dim].
-    print('===================================', norm_inputs, theta.down_w)
-    # import pdb; pdb.set_trace()
     down_projected = tf.einsum(f'bti,b{t}in->btn', norm_inputs, down_w) + down_b
     # ReLU.
     down_projected = tf.nn.relu(down_projected)
