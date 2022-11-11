@@ -893,23 +893,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
             tf.name_scope(self._self_variable_scope.original_name_scope))
       yield stack
 
-  @contextlib.contextmanager
-  def _EMAVariableScope(self):
-    """Internal. Used to ensure that the EMA variable names are reused."""
-    if not hasattr(self, '_ema_variable_scope'):
-      # Use empty name here so no prefix is added to the EMA variable names.
-      # This ensures compatibility between Graph and Eager checkpoint names.
-      # https://www.tensorflow.org/api_docs/python/tf/compat/v1/variable_scope
-      with tf.variable_scope('') as scope:
-        self._ema_variable_scope = scope
-    with contextlib.ExitStack() as stack:
-      # Entering a variable scope so that the EMA variables can reuse the names
-      # in separate trainer runs. This turned out to be useful in the case of
-      # model fine tuning, when the same model is run multiple times in the same
-      # Eager context.
-      stack.enter_context(tf.variable_scope(self._ema_variable_scope))
-      yield stack
-
   def _child_variable_scope_override(self):
     """Override the variable scope for individual children.
 
