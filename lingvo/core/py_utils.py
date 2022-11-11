@@ -1471,8 +1471,7 @@ def GetVariableName(name):
         ('Renaming variables is not supported in eager mode. '
          'Please look into migrating away from variable renaming.'), 1)
     for regexp, name_format in renames:
-      match = re.match(regexp, name)
-      if match:
+      if match := re.match(regexp, name):
         if matched:
           tf.logging.warning('Multiple matches for: %s', name)
         matched = True
@@ -2702,9 +2701,8 @@ def _GetVarsToLoad(all_vars,
   for model_var in all_vars:
     loaded = False
     for regexp, name_format in variable_loading_rules:
-      match = re.match(regexp, model_var.name)
       # Skip if var doesn't match the loading rules, or if it should be ignored.
-      if not match:
+      if not (match := re.match(regexp, model_var.name)):
         if not suppress_logging:
           tf.logging.debug('Loading rules do not match %s.', model_var.name)
         continue
@@ -5142,9 +5140,7 @@ def RecordFormatFromFilePattern(file_pattern):
       - record_format: String record format, e.g., "tfrecord", etc.
       - file_pattern: The file pattern without any prefixes.
   """
-  result = re.match(_RECORD_FORMAT_RE, file_pattern)
-
-  if result is None:
+  if (result := re.match(_RECORD_FORMAT_RE, file_pattern)) is None:
     # TODO(vrv): Fix all callers so that file_pattern must contain
     # the record format prefix.
     return 'sstable', file_pattern

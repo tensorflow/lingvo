@@ -545,8 +545,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       # If child_name is being indexed as a list then we separate the name and
       # the index.
       index = None
-      match = re.match(r'(.*)\[([-]?[0-9]+)\]$', child_name)
-      if match:
+      if match := re.match(r'(.*)\[([-]?[0-9]+)\]$', child_name):
         child_name, index = match.group(1), int(match.group(2))
 
       # Validate that child_name is a child of the current parent layer.

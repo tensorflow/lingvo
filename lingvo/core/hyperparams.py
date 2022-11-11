@@ -72,8 +72,7 @@ def _UnquoteString(quoted):
 
 def _EndsWithTerminalQuote(s, quote_char):
   """Returns whether a string ends with a valid terminal quote."""
-  endm = re.search(r'(\\*)%s$' % quote_char, s)
-  if not endm:
+  if not (endm := re.search(r'(\\*)%s$' % quote_char, s)):
     return False
   backslashes = endm.group(1)
   if len(backslashes) % 2 == 0:
@@ -362,8 +361,7 @@ class Params:
     for i, part in enumerate(parts[:-1]):
       # Get the value (nested Params object) associated with name 'part'.
       try:
-        is_list = re.match(r'^(.+)\[(.+)\]$', part)
-        if is_list:
+        if is_list := re.match(r'^(.+)\[(.+)\]$', part):
           part = is_list.group(1)
           list_index = int(is_list.group(2))
         # pylint: disable=protected-access
