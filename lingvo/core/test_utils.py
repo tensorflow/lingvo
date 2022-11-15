@@ -26,6 +26,7 @@ from typing import Callable, Optional, List
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
+from lingvo.core import pytypes
 import numpy as np
 
 from tensorboard.backend.event_processing import event_file_inspector
@@ -103,17 +104,40 @@ class TapeIfEager:
       return tf.gradients(ys=ys, xs=xs)
 
 
+Placeholder = typing.TypeVar('Placeholder', bound=tf.Tensor)
+RetT = typing.TypeVar('RetT')
+
+
+class OverloadedForEager(typing.Protocol, typing.Generic[RetT]):
+
+  def __call__(self, *args: pytypes.Nested[tf.Tensor]) -> RetT:
+    """Needed b/c *args typing support was only added in Py3.11."""
+    ...
+
+
+class OverloadedForGraph(typing.Protocol, typing.Generic[RetT]):
+
+  def __call__(self, *args: pytypes.Nested[Placeholder]) -> RetT:
+    """Needed b/c *args typing support was only added in Py3.11."""
+    ...
+
+
 @typing.overload
 def DefineAndTrace(
-    *tensor_specs_or_placeholders: tf.TensorSpec
-) -> Callable[Callable, Callable]:  # pylint: disable=g-bare-generic
+    *tensor_specs_or_placeholders: pytypes.Nested[tf.TensorSpec]
+) -> Callable[[OverloadedForEager[RetT]],
+              tf.types.experimental.ConcreteFunction]:
+  """Eager case."""
   ...
 
 
 # TODO(jlipschultz): Consider changing the behavior of the graph-mode version of
 # DefineAndTrace to also return a Callable[Callable, Callable] for simplicity.
 @typing.overload
-def DefineAndTrace(*tensor_specs_or_placeholders: tf.Tensor) -> Callable:  # pylint: disable=g-bare-generic
+def DefineAndTrace(
+    *tensor_specs_or_placeholders: pytypes.Nested[Placeholder]
+) -> Callable[[OverloadedForGraph[RetT]], RetT]:
+  """Graph-mode case."""
   ...
 
 

@@ -173,7 +173,7 @@ def lingvo_proto_py(name, src, deps = []):
         srcs = [basename + "_pb2.py"],
     )
 
-# Placeholder to use until bazel supports pytype_library.
+# Placeholders to use until bazel supports pytype_{,strict_}{library,test,binary}.
 def pytype_library(name, **kwargs):
     native.py_library(name = name, **kwargs)
 
@@ -183,13 +183,15 @@ def pytype_strict_library(name, **kwargs):
 def pytype_strict_binary(name, **kwargs):
     native.py_binary(name = name, **kwargs)
 
+def py_strict_test(name, **kwargs):
+    native.py_test(name = name, **kwargs)
+
+def pytype_strict_test(name, **kwargs):
+    native.py_test(name = name, **kwargs)
+
 def lingvo_portable_pytype_library(name, deps = [], nonportable_deps = [], **kwargs):
     pytype_library(
         name = name,
         deps = deps + nonportable_deps,
         **kwargs
     )
-
-# Placeholder to use until bazel supports py_strict_test.
-def py_strict_test(name, **kwargs):
-    native.py_test(name = name, **kwargs)

@@ -7,7 +7,7 @@ load(
     "lingvo_proto_py",
     "lingvo_py_binary",
 )
-load("//lingvo:lingvo.bzl", "pytype_library")
+load("//lingvo:lingvo.bzl", "pytype_library", "pytype_strict_library", "pytype_strict_test")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -1414,20 +1414,28 @@ py_library(
     ],
 )
 
-py_test(
+pytype_strict_test(
     name = "py_utils_test",
     size = "medium",
     srcs = ["py_utils_test.py"],
     args = ["--noenable_eager_execution"],
-    deps = [":py_utils_test_lib"],
+    deps = [
+        ":py_utils_test_lib",
+        # Implicit tensorflow functional_ops dependency.
+        # Implicit tensorflow init_ops dependency.
+    ],
 )
 
-py_test(
+pytype_strict_test(
     name = "py_utils_eager_test",
     srcs = ["py_utils_test.py"],
     args = ["--enable_eager_execution"],
     main = "py_utils_test.py",
-    deps = [":py_utils_test_lib"],
+    deps = [
+        ":py_utils_test_lib",
+        # Implicit tensorflow functional_ops dependency.
+        # Implicit tensorflow init_ops dependency.
+    ],
 )
 
 pytype_library(
@@ -1788,19 +1796,20 @@ py_library(
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "test_utils",
     srcs = ["test_utils.py"],
     deps = [
         ":cluster_factory",
         ":py_utils",
+        ":pytypes",
         "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit tensorboard/backend/event_processing:event_file_inspector dependency.
     ],
 )
 
-py_test(
+pytype_strict_test(
     name = "test_utils_eager_test",
     srcs = ["test_utils_eager_test.py"],
     args = ["--enable_eager_execution"],
@@ -1810,11 +1819,12 @@ py_test(
     ],
 )
 
-py_test(
+pytype_strict_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.py"],
     args = ["--noenable_eager_execution"],
     deps = [
+        ":py_utils",
         ":test_utils",
         "//lingvo:compat",
     ],
@@ -2597,6 +2607,17 @@ py_strict_test(
         ":differentiable_assignment",
         # Implicit absl.flags dependency.
         "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
+pytype_strict_library(
+    name = "pytypes",
+    srcs = ["pytypes.py"],
+    deps = [
+        ":hyperparams",
+        ":nested_map",
+        ":py_utils",
         # Implicit numpy dependency.
     ],
 )
