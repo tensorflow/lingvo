@@ -56,8 +56,6 @@ class EmaTest(test_utils.TestCase):
     model = p.Instantiate()
     self.assertIsNotNone(model.ema)
     task = model._task
-    task._train_op = tf.no_op()
-    task.ApplyExponentialMovingAverage(model.ema)
 
     layer = task.encoder
     self.assertLen(layer.vars, 4)
@@ -77,7 +75,7 @@ class EmaTest(test_utils.TestCase):
       self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
       self.evaluate(tf.assign(beta, beta_1))
       self.evaluate(tf.assign(mean, mean_1))
-      self.evaluate(task._post_train_ops)
+      self.evaluate(task.ApplyExponentialMovingAverage())
 
       self.assertAllClose([beta_1, beta_1_ema, mean_1, mean_1_ema],
                           self.evaluate([
@@ -101,8 +99,6 @@ class EmaTest(test_utils.TestCase):
       model = p.Instantiate()
       self.assertIsNotNone(model.ema)
       task = model._task
-      task._train_op = tf.no_op()
-      task.ApplyExponentialMovingAverage(model.ema)
       layer = task.encoder
       for var in layer.vars.Flatten():
         self.assertIsNotNone(model.ema.average(var), msg=var.name)
@@ -155,8 +151,6 @@ class EmaTest(test_utils.TestCase):
       model = p.Instantiate(executor_ema=executor_ema)
       self.assertIsNotNone(model.ema)
       task = model._task
-      task._train_op = tf.no_op()
-      task.ApplyExponentialMovingAverage(model.ema)
       layer = task.encoder
       for var in layer.vars.Flatten():
         self.assertIsNotNone(model.ema.average(var), msg=var.name)

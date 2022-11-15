@@ -798,8 +798,7 @@ class EvalProgram(BaseProgram):
       Summed eval metrics.
     """
     with tf.name_scope('tpu_eval'):
-      # Applies EMA if applicable to support running only eval/decode programs.
-      self._model.ConstructFPropGraph(apply_ema=True)
+      self._model.ConstructFPropGraph()
       per_step_eval_metrics = self._eval_metrics.SetMetrics(
           self._task.eval_metrics, args)
       summed_metrics = []
@@ -1044,7 +1043,6 @@ class DecodeProgram(BaseProgram):
     super().__init__(params, **kwargs)
     self._program_name = 'DecodeProgram'
     self._decode_out_dict_lst = []
-    self._ema_applied = False
     self._dataset_summaries = {}
     # TODO(xingwu): fully deprecate decode_until_out_of_range
     if self.params.decode_until_out_of_range:
@@ -1152,11 +1150,8 @@ class DecodeProgram(BaseProgram):
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
-      # Applies EMA if applicable to support running only eval/decode programs.
       _, decode_dict = self._model.ConstructDecodeGraph(
-          apply_ema=(not self._ema_applied),
           input_batch=inp_instance.TpuDequeueBatch())
-      self._ema_applied = True
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return self.decode_nm.Flatten()
 
@@ -1636,8 +1631,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
 
     def _DecodeStep():
       """Decode call to be compiled for TPU."""
-      # Applies EMA if applicable to support running only eval/decode programs.
-      _, decode_dict = self._model.ConstructDecodeGraph(apply_ema=True)
+      _, decode_dict = self._model.ConstructDecodeGraph()
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return [self._OutfeedEnqueue(decode_dict)]
 
@@ -1911,9 +1905,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
       with cluster_factory.SetEval(True):
-        # Applies EMA if applicable to support running only eval/decode
-        # programs.
-        _, decode_dict = self._decode_model.ConstructDecodeGraph(apply_ema=True)
+        _, decode_dict = self._decode_model.ConstructDecodeGraph()
       self.decode_nm = py_utils.NestedMap(decode_dict)
       return self.decode_nm.Flatten()
 

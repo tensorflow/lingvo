@@ -16,6 +16,7 @@
 
 import collections
 import dataclasses
+import functools
 import re
 from typing import Dict, Union
 
@@ -748,12 +749,21 @@ class BaseTask(base_layer.BaseLayer):
     var_update_ops = [
         tf.group(*tf.nest.flatten(train_ops), name='var_update_ops')
     ]
-    # Post training step update.
+    # Post training step update. It may update non-trainable vars, which have
+    # EMA variables.
     with tf.control_dependencies(var_update_ops):
       post_step_op = self.PostTrainingStepUpdate()
 
-    train_ops = {}
+    # EMA update after all EMA reference variables are updated.
     with tf.control_dependencies([post_step_op]):
+      ema_update_op = self.ApplyExponentialMovingAverage()
+
+    # Post EMA update, which depends on the updated EMA vars. e.g. quant_vars
+    with tf.control_dependencies([ema_update_op]):
+      post_ema_op = self.PostEmaUpdate()
+
+    train_ops = {}
+    with tf.control_dependencies([post_ema_op]):
       # Get the op to update the weight masks and thresholds
       mask_update_op = self._GetMaskUpdateOp()
       train_ops['mask_updates'] = mask_update_op
@@ -813,30 +823,28 @@ class BaseTask(base_layer.BaseLayer):
           self._per_input_gradient_mask[var.name] += (
               tf.one_hot(i, len(bprop_variable_filters), dtype=tf.float32))
 
-  def ApplyExponentialMovingAverage(self, ema):
-    """Wraps `self.train_op` with an op updating exponential moving average."""
+  def CreateExponentialMovingAverage(self, ema):
+    """Create exponential moving average variables."""
     if not ema:
       # EMA not enabled.
       return
 
-    all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
-    # For ExecutorTpu: `ema.apply()` below creates stateful variable update
-    # operations, and due to the use of tf.function in the tpu training loop,
-    # these update ops will be added as (implicit) control dependencies to
-    # the step function of eval/decode program. To avoid updating EMA variables,
-    # we run `ema.apply()` only in two cases: 1) in train program, or
-    # 2) in the first eval or decode program when there is no train program.
-    # It'll still apply the update in every eval/decode step even though
-    # the update is not materialized into checkpoint, but experiment shows it
-    # doesn't affect eval/decode metrics.
-    if self.do_eval:
-      need_ema_apply = any([ema.average(var) is None for var in all_vars])
-      if need_ema_apply:
-        assert all([ema.average(var) is None for var in all_vars
-                   ]), ('We never update EMA partially.')
-      else:
-        # Trainer already created EMA variables.
-        return
+    tf.logging.info('CreateExponentialMovingAverage on %s', self)
+    # Use empty name here so no prefix is added to the EMA variable names.
+    # Pin EMA varialbes to CPU if needed.
+    # The scope: GetLingvoVariableCreator(MaybePinVarsToCpu(_ApplyEMA(...)))
+    scoped_apply_ema = self._ApplyEMA
+    for scoped_creator in (py_utils.MaybePinVarsToCpu,
+                           py_utils.GetLingvoVariableCreator('', '')):
+      scoped_apply_ema = functools.partial(scoped_creator, scoped_apply_ema)
+    scoped_apply_ema(ema=ema)
+
+  def ApplyExponentialMovingAverage(self):
+    """Wraps `self.train_op` with an op updating exponential moving average."""
+    ema = self.ema
+    if not ema:
+      # EMA not enabled.
+      return tf.no_op()
 
     # Make sure this is called at most once in a graph. In eager mode, the outer
     # tf.function will be traced multiple times in different function graphs.
@@ -849,12 +857,14 @@ class BaseTask(base_layer.BaseLayer):
     self._graphs_applied_ema.add(graph)
 
     tf.logging.info('ApplyExponentialMovingAverage on %s', self)
-
-    def ApplyEma():
-      with tf.name_scope('moving_average'):
-        self._post_train_ops.append(ema.apply(all_vars))
     # Use empty name here so no prefix is added to the EMA variable names.
-    py_utils.GetLingvoVariableCreator('', '')(ApplyEma)
+    scoped_creator = py_utils.GetLingvoVariableCreator('', '')
+    return scoped_creator(self._ApplyEMA, ema=ema)
+
+  def _ApplyEMA(self, ema):
+    all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
+    with tf.name_scope('moving_average'):
+      return ema.apply(all_vars)
 
   # TODO(blee): Rename Decode->DecodeWithDefaultTheta, DecodeWithTheta->Decode.
   def Decode(self, input_batch):
@@ -1199,16 +1209,13 @@ class BaseModel(base_layer.BaseLayer):
   def ConstructFPropBPropGraph(self):
     raise NotImplementedError('Abstract method')
 
-  def ConstructFPropGraph(self, apply_ema=False):
+  def ConstructFPropGraph(self):
     raise NotImplementedError('Abstract method')
 
-  def ConstructDecodeGraph(self, task_name=None, apply_ema=False):
+  def ConstructDecodeGraph(self, task_name=None):
     raise NotImplementedError('Abstract method')
 
   def ConstructPostTrainingLoop(self, outfeed=None):
-    raise NotImplementedError('Abstract method')
-
-  def ApplyExponentialMovingAverage(self):
     raise NotImplementedError('Abstract method')
 
   @property
@@ -1276,6 +1283,16 @@ class SingleTaskBase(BaseModel):
   def __init__(self, params, **kwargs):
     super().__init__(params, **kwargs)
 
+  def _CreateLayerVariables(self) -> None:
+    super()._CreateLayerVariables()
+    # CPU evaler doesn't create EMA variables. It loads EMA variables to
+    # regular variables.
+    use_ema = self.ema and (not self.do_eval or self.use_ema_for_theta)
+    # All variables of the model are created. Now create EMA variables.
+    if use_ema:
+      self._task.CreateExponentialMovingAverage(self.ema)
+      self._MakeEMAVariablesDict()
+
   @property
   def tasks(self):
     return [self._task]
@@ -1287,29 +1304,16 @@ class SingleTaskBase(BaseModel):
   def SampleTask(self, global_step):
     return self._task
 
-  def ApplyExponentialMovingAverage(self):
-    if self.ema:
-      self._task.ApplyExponentialMovingAverage(self.ema)
-      # ConstructFPropGraph/ConstructDecodeGraph also need this to ensure that
-      # ema vars are loaded from checkpoint even when no training is done.
-      self._MakeEMAVariablesDict()
-
   def ConstructFPropBPropGraph(self):
-    self.ApplyExponentialMovingAverage()
     self._task.FPropDefaultTheta()
     self._task.BProp()
 
-  def ConstructFPropGraph(self, apply_ema=False):
-    if apply_ema:
-      self.ApplyExponentialMovingAverage()
+  def ConstructFPropGraph(self):
     self._task.FPropDefaultTheta()
 
   def ConstructDecodeGraph(self,
                            task_name=None,
-                           apply_ema=False,
                            input_batch=None):
-    if apply_ema:
-      self.ApplyExponentialMovingAverage()
     with py_utils.TaskCallScope(self._task):
       if not input_batch:
         input_batch = self._task.GetInputBatch()
@@ -1511,6 +1515,19 @@ class MultiTaskModel(BaseModel):
 
       self.CreateChild('task_schedule', p.task_schedule)
 
+  def _CreateLayerVariables(self) -> None:
+    super()._CreateLayerVariables()
+    # CPU evaler doesn't create EMA variables. It loads EMA variables to
+    # regular variables.
+    use_ema = self.ema and (not self.do_eval or self.use_ema_for_theta)
+    # All variables of the model are created. Now create EMA variables.
+    if use_ema:
+      for task_name in self.task_names:
+        with tf.name_scope(task_name):
+          task = self.GetTask(task_name)
+          task.CreateExponentialMovingAverage(self.ema)
+      self._MakeEMAVariablesDict()
+
   def _child_variable_scope_override(self):
     p = self.params
     res = super()._child_variable_scope_override()
@@ -1545,24 +1562,14 @@ class MultiTaskModel(BaseModel):
     tf.logging.info('Sampled task: %s', sampled_task)
     return self.children[sampled_task]
 
-  def ApplyExponentialMovingAverage(self):
-    if self.ema:
-      for task_name in self.task_names:
-        with tf.name_scope(task_name):
-          task = self.GetTask(task_name)
-          task.ApplyExponentialMovingAverage(self.ema)
-      self._MakeEMAVariablesDict()
-
   def ConstructFPropBPropGraph(self):
     for task_name in self.task_names:
       with tf.name_scope(task_name):
-        self.ApplyExponentialMovingAverage()
         task = self.GetTask(task_name)
         task.FPropDefaultTheta()
         task.BProp()
 
-  def ConstructFPropGraph(self, apply_ema=False):
-    assert not apply_ema
+  def ConstructFPropGraph(self):
     for task_name in self.task_names:
       with tf.name_scope(task_name):
         task = self.GetTask(task_name)
@@ -1570,8 +1577,7 @@ class MultiTaskModel(BaseModel):
         # loaded as EMA variables, so we don't need to apply EMA.
         task.FPropDefaultTheta()
 
-  def ConstructDecodeGraph(self, task_name=None, apply_ema=False):
-    assert not apply_ema
+  def ConstructDecodeGraph(self, task_name=None):
     if not task_name:
       raise ValueError(
           'It can decode only one task at a time, but task_name is not set.')

@@ -1113,14 +1113,27 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     for k in self.theta.keys():
       assert k in self.vars or k in self._extra_theta
 
-  def PostTrainingStepUpdate(self):
+  def PostTrainingStepUpdate(self) -> tf.Operation:
     """Returns a TF op which will be invoked at each training step.
 
     Subclasses of `BaseLayer` can implement this method. The method should
-    return a TF op to be invoked during training after gradients are applied.
+    return a TF op to be invoked during training after gradients are applied and
+    before EMA is updated.
     """
     update_ops = [
         child.PostTrainingStepUpdate()
+        for child in py_utils.Flatten(self._private_children)
+    ]
+    return tf.group(*update_ops)
+
+  def PostEmaUpdate(self) -> tf.Operation:
+    """Returns a TF op which will be invoked at each training step.
+
+    Subclasses of `BaseLayer` can implement this method. The method should
+    return a TF op to be invoked during training after EMA is updated.
+    """
+    update_ops = [
+        child.PostEmaUpdate()
         for child in py_utils.Flatten(self._private_children)
     ]
     return tf.group(*update_ops)
