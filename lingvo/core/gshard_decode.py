@@ -55,43 +55,6 @@ def preload_zero(n=None, batch_size=None, max_len=None, key_size=2):
   return batch
 
 
-def get_zero_batch(batch_size=None,
-                   max_len=None,
-                   key_size=2,
-                   return_tgt_mask=False,
-                   return_scorer_alpha=False):
-  """Returns zero batch.
-
-  Args:
-    batch_size: batch size.
-    max_len: max length.
-    key_size: key size.
-    return_tgt_mask: if to return tgt_mask.
-    return_scorer_alpha: if to return scorer_alpha used to set scaling factor
-      for controlled decoding.
-  Returns: a tuple of tensors
-    key: int32 tensor [batch_size, key_size]
-    tgt_id: int32 tensor [batch_size, max_len]
-    tgt_segment_id: float32 tensor [batch_size, max_len]
-    tgt_segment_pos: int32 tensor [batch_size, max_len]
-    tgt_labels: int32 tensor [batch_size, max_len]
-    tgt_sample_temperature: float32 tensor [batch_size]
-    tgt_mask: optional float32 tensor [batch_size, max_len, max_len]
-    tgt_scorer_alpha: float32 tensor [batch_size]
-  """
-  batch = preload_zero(
-      n=1, batch_size=batch_size, max_len=max_len, key_size=key_size)
-  batch = py_utils.Transform(lambda x: np.squeeze(x, 0), batch)
-  if return_tgt_mask:
-    tgt_mask = np.zeros([batch_size, max_len, max_len], np.float32)
-    batch = (*batch, tgt_mask)
-  if return_scorer_alpha:
-    assert not return_tgt_mask
-    scorer_alpha = np.zeros([batch_size], np.float32)
-    batch = (*batch, scorer_alpha)
-  return batch
-
-
 # mimic training_loop.repeat(), but make it repeat forever.
 def infinite_repeat(body_fn, infeed_queue):
   """Builds infinite loop.
@@ -353,6 +316,44 @@ class GShardDecode:
 
     daemon(run_heartbeat_loop)
 
+  @classmethod
+  def get_zero_batch(cls,
+                     batch_size=None,
+                     max_len=None,
+                     key_size=2,
+                     return_tgt_mask=False,
+                     return_scorer_alpha=False):
+    """Returns zero batch.
+
+    Args:
+      batch_size: batch size.
+      max_len: max length.
+      key_size: key size.
+      return_tgt_mask: if to return tgt_mask.
+      return_scorer_alpha: if to return scorer_alpha used to set scaling factor
+        for controlled decoding.
+    Returns: a tuple of tensors
+      key: int32 tensor [batch_size, key_size]
+      tgt_id: int32 tensor [batch_size, max_len]
+      tgt_segment_id: float32 tensor [batch_size, max_len]
+      tgt_segment_pos: int32 tensor [batch_size, max_len]
+      tgt_labels: int32 tensor [batch_size, max_len]
+      tgt_sample_temperature: float32 tensor [batch_size]
+      tgt_mask: optional float32 tensor [batch_size, max_len, max_len]
+      tgt_scorer_alpha: float32 tensor [batch_size]
+    """
+    batch = preload_zero(
+        n=1, batch_size=batch_size, max_len=max_len, key_size=key_size)
+    batch = py_utils.Transform(lambda x: np.squeeze(x, 0), batch)
+    if return_tgt_mask:
+      tgt_mask = np.zeros([batch_size, max_len, max_len], np.float32)
+      batch = (*batch, tgt_mask)
+    if return_scorer_alpha:
+      assert not return_tgt_mask
+      scorer_alpha = np.zeros([batch_size], np.float32)
+      batch = (*batch, scorer_alpha)
+    return batch
+
   def _config_infeed(self,
                      num_partitions,
                      device_assignment,
@@ -362,7 +363,7 @@ class GShardDecode:
                      return_scorer_alpha=False,
                      use_partitioned_infeed_queue=False):
     """Config the infeed ops and args."""
-    zero_batch = get_zero_batch(
+    zero_batch = self.get_zero_batch(
         batch_size=batch_size,
         max_len=self._prefix_max_len,
         key_size=key_size,
