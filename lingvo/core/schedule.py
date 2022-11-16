@@ -319,12 +319,19 @@ class TransformerSchedule(BaseSchedule):
              'decay_end-th step.')
     p.Define('decay_factor', -0.5, 'Decay factor after warmup.')
     p.Define('start_step', 0, 'Translate the function left in the step axis.')
+    p.Define(
+        'cyclical_step', None, 'Int, if set, at the step, the cycle restarts. '
+        'Cyclic LR escapes a bad local minimum. arxiv.org/abs/1704.00109')
     return p
 
   def Value(self, step=None):
     """Returns the current learning rate decay."""
     p = self.params
-    current_step = tf.cast(self.GetStep(step), tf.float32)
+    current_step = self.GetStep(step)
+    if p.cyclical_step is not None:
+      assert isinstance(p.cyclical_step, int)
+      current_step = tf.math.mod(current_step, p.cyclical_step)
+    current_step = tf.cast(current_step, tf.float32)
     start_step = tf.cast(p.start_step, tf.float32)
     warmup_steps = tf.cast(p.warmup_steps * p.worker_replicas, tf.float32)
     if p.decay_end is not None:

@@ -307,6 +307,22 @@ class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
           self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
           self.assertAllClose(base_lrs.Value().eval(), lrs.Value().eval())
 
+  def testTransformerScheduleCycle(self):
+    ref_p = schedule.TransformerSchedule.Params().Set(warmup_steps=0)
+    cycle = 3000
+    cyc_p = ref_p.Copy().Set(cyclical_step=cycle)
+    with self.session():
+      ref = ref_p.Instantiate()
+      cyc = cyc_p.Instantiate()
+      ref_pts = []
+      cyc_pts = []
+      for step in range(0, 1000, 10_000):
+        with py_utils.GlobalStepContext(step % cycle):
+          ref_pts.append(ref.Value().eval())
+        with py_utils.GlobalStepContext(step):
+          cyc_pts.append(cyc.Value().eval())
+      self.assertAllClose(ref_pts, cyc_pts)
+
   def testTransformerMLPerfSchedule(self):
     params = schedule.TransformerMLPerfSchedule.Params().Set(
         warmup_steps=4000, warmup_init_fraction=.3, model_dim=512)
