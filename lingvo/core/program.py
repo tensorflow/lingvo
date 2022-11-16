@@ -1798,6 +1798,12 @@ class ExperimentalDecodeProgram(DecodeProgram):
     self.WaitThread([infeed_future, decode_future] + post_futures)
     elapsed_secs = time.time() - start_time
 
+    # Reset again after decoding to release input generator memories for other
+    # programs.
+    if self._task.input.params.resettable:
+      tf.logging.info('Resetting input_generator after decoding.')
+      self._task.input.Reset(sess)
+
     return_future = None
     if threadpool:
       return_future = self._ThreadCall(
