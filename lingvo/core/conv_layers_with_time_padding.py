@@ -338,7 +338,7 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
 
       def _ApplyPadding(tensor_in, padding_in):
         padding_expanded = tf.expand_dims(tf.expand_dims(padding_in, -1), -1)
-        return tensor_in * (1.0 - padding_expanded)
+        return py_utils.ApplyPadding(padding_expanded, tensor_in)
 
       # Zeroing out padded inputs.
       inputs = _ApplyPadding(inputs, paddings)
