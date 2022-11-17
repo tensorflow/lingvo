@@ -5290,11 +5290,7 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim, use_einsum=True):
     outputs = tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, weight)
   else:
     # not use_einsum or not use_tpu() or inputs.shape.rank >= 26
-    outputs = Matmul(tf.reshape(inputs, [-1, input_dim]), weight)
-    outputs = tf.reshape(
-        outputs,
-        tf.concat([tf.cast(GetShape(inputs)[:-1], tf.int32), [output_dim]],
-                  axis=0))
+    outputs = tf.tensordot(inputs, weight, 1)
 
   return outputs
 
