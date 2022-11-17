@@ -444,7 +444,7 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
 
 @functools.lru_cache()
 def _cached_mesh_pspec_sharding(mesh, pspec):
-  return sharding.MeshPspecSharding(mesh, pspec)
+  return sharding.NamedSharding(mesh, pspec)
 
 
 def _restore_checkpoint_gda(
