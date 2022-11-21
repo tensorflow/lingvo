@@ -108,7 +108,7 @@ class BaseProgram:
                params,
                shared_model=None,
                trial=base_trial.NoOpTrial(),
-               ema=None,
+               executor_ema=base_model.ExecutorEma(),
                **kwargs):
     self.params = params.Copy()
     p = self.params
@@ -121,7 +121,7 @@ class BaseProgram:
     self._tf_master = kwargs.pop('tf_master', None)
     self._write_train_input_stats = p.write_train_input_stats
     self._trial = trial
-    self._ema = ema
+    self._executor_ema = executor_ema
 
     self._SetProgramDir()
     # Initialized on use; access via self._summary_writer property only.
@@ -394,8 +394,8 @@ class BaseProgram:
     """
     if issubclass(task_params.cls, base_model.MultiTaskSubModel):
       return task_params.Instantiate(
-          shared_model=self._shared_model, executor_ema=self._ema)
-    return task_params.Instantiate(executor_ema=self._ema)
+          shared_model=self._shared_model, executor_ema=self._executor_ema)
+    return task_params.Instantiate(executor_ema=self._executor_ema)
 
   def _OutfeedEnqueue(self, per_example_tensors):
     if not per_example_tensors:
@@ -1875,7 +1875,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
     with py_utils.OpportunisticVariableReuseScope(True):
       self._train_model = self._train_task_params.Instantiate(
-          executor_ema=self._ema)
+          executor_ema=self._executor_ema)
     self._train_task = self._train_model.GetTask()
     self._train_task.input.InfeedSetupGraph()
     self._model = self._train_model

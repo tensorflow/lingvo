@@ -751,13 +751,27 @@ def GradientTape(*args, **kwargs):
     _GRADIENT_TAPE_STACK.stack.pop()
 
 
-def CreateEMAForModel(model_params, global_step):
+def CreateEMADecayVar(model_params):
+  """Creates an EMA decay variable."""
+  p = model_params
+  tp = p.train
+  if tp.ema_schedule:
+    tf.logging.log_if(tf.logging.WARNING,
+                      f'ema_schedule overrides ema_decay:{tp.ema_decay}.',
+                      tp.ema_decay > 0)
+    wp = WeightParams(
+        shape=[], init=WeightInit.Constant(tp.ema_decay), dtype=p.dtype)
+    return CreateVariable('ema_decay', wp, trainable=False)
+  return None
+
+
+def CreateEMAForModel(model_params, global_step, ema_decay):
   """Creates an EMA object for model with param `model_params` if applicable."""
   p = model_params
 
   # Check that EMA settings for the model and subtasks match.
   def CheckEMA(task_name, task_params):
-    for field in ['ema_decay', 'ema_decay_moving_vars']:
+    for field in ['ema_decay', 'ema_decay_moving_vars', 'ema_schedule']:
       model_value = p.train.Get(field)
       task_value = task_params.train.Get(field)
       if task_value != model_value:
@@ -774,9 +788,16 @@ def CreateEMAForModel(model_params, global_step):
     # SingleTaskModel.
     CheckEMA(p.task.name, p.task)
 
-  if p.train.ema_decay > 0:
+  tp = p.train
+  if tp.ema_decay > 0 or tp.ema_schedule:
+    if tp.ema_schedule:
+      assert isinstance(ema_decay, tf.Variable)
+      # ema_decay takes all control. Otherwise, global_step affects ema_decay.
+      global_step = None
+    else:
+      ema_decay = p.train.ema_decay
     return tf.train.ExponentialMovingAverage(
-        decay=p.train.ema_decay, num_updates=global_step)
+        decay=ema_decay, num_updates=global_step)
   return None
 
 

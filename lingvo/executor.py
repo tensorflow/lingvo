@@ -292,9 +292,13 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     self._checkpoint_to_load = None
     with self._cluster:
-      # Create the ExponentialMovingAverage singleton shared by all programs, if
-      # applicable.
-      ema = py_utils.CreateEMAForModel(train_cfg, self._global_step_var)
+      with tf.container(self._container_id), contextlib.ExitStack() as stack:
+        if not py_utils.IsEagerMode():
+          stack.enter_context(self._graph.as_default())
+        ema_decay_var = py_utils.CreateEMADecayVar(train_cfg)
+      ema_obj = py_utils.CreateEMAForModel(train_cfg, self._global_step_var,
+                                           ema_decay_var)
+      executor_ema = base_model.ExecutorEma(ema_obj, ema_decay_var)
       tf.logging.info('ps_params_dict=%s',
                       {k: v.ToText() for k, v in ps_params_dict.items()})
       for task_string, program_schedule_params in ps_params_dict.items():
@@ -306,7 +310,7 @@ class ExecutorTpu(base_runner.BaseRunner):
         ps = program_schedule_params.Instantiate(
             shared_model=shared_model,
             trial=self._trial,
-            ema=ema,
+            executor_ema=executor_ema,
             tf_master=self._tf_master)
         self._program_schedule_dict[task_string] = ps
         tf.logging.info('program_schedule_params: %s',

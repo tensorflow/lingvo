@@ -23,6 +23,7 @@ from lingvo.core import checkpointer
 from lingvo.core import cluster_factory
 from lingvo.core import layers
 from lingvo.core import py_utils
+from lingvo.core import schedule
 from lingvo.core import test_utils
 import mock
 import numpy as np
@@ -146,8 +147,11 @@ class EmaTest(test_utils.TestCase):
         graph=tf.Graph()) as sess, cluster_factory.ForTestingWorker(
             job='executor_tpu', do_eval=True), mock.patch(
                 'lingvo.core.py_utils.use_tpu', return_value=True):
-      executor_ema = py_utils.CreateEMAForModel(
-          p, py_utils.GetOrCreateGlobalStepVar())
+      ema_decay_var = None
+      ema_var = py_utils.CreateEMAForModel(p,
+                                           py_utils.GetOrCreateGlobalStepVar(),
+                                           ema_decay_var)
+      executor_ema = base_model.ExecutorEma(ema_var, ema_decay_var)
       model = p.Instantiate(executor_ema=executor_ema)
       self.assertIsNotNone(model.ema)
       task = model._task
@@ -165,6 +169,82 @@ class EmaTest(test_utils.TestCase):
 
       self.assertAllClose([beta_1, beta_1_ema, mean_1, mean_1_ema],
                           self.evaluate([beta, beta_ema, mean, mean_ema]))
+
+  def testEmaSchedule(self):
+    task = self.TestParams(layers.BatchNormLayer.Params().Set(dim=1))
+    task.train.ema_decay = 0
+    # Note: EMA = decay * EMA + (1 - decay) * var
+    ema_off = 1.0  # ema keeps constant.
+    ema_is_var = 0.0  # ema copys var value.
+    task.train.ema_schedule = schedule.PiecewiseConstantSchedule.Params().Set(
+        boundaries=[99, 199], values=[ema_off, 0.9, ema_is_var])
+    task.train.ema_decay_moving_vars = True
+    p = base_model.SingleTaskModel.Params(task)
+    model = p.Instantiate()
+    self.assertIsNotNone(model.ema)
+    self.assertIsNotNone(model.ema_decay)
+    task = model._task
+
+    layer = task.encoder
+    self.assertLen(layer.vars, 4)
+    for var in layer.vars.Flatten():
+      self.assertIsNotNone(model.ema.average(var), msg=var.name)
+    beta = layer.vars.beta
+    mean = layer.vars.moving_mean
+
+    beta_0 = np.asarray([0.])
+    mean_0 = np.asarray([0.])
+    beta_1 = np.asarray([.2])
+    mean_1 = np.asarray([.03])
+    beta_1_ema = beta_1 * .1
+    mean_1_ema = mean_1 * .1
+    # Check EMA decay schedul in Train.
+    with self.session():
+      # Test EMA values.
+      self.evaluate(tf.global_variables_initializer())
+      # var is initialized as 0, and EMA assigns the var value.
+      self.assertAllClose([beta_0, beta_0, mean_0, mean_0],
+                          self.evaluate([
+                              beta,
+                              model.ema.average(beta), mean,
+                              model.ema.average(mean)
+                          ]))
+
+      # At step=1, ema_decay=1.0 by ema_schedule. EMA update is off.
+      global_step = 1
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
+      self.evaluate(tf.assign(beta, beta_1))
+      self.evaluate(tf.assign(mean, mean_1))
+      ema_op = task.ApplyExponentialMovingAverage()
+      self.evaluate(ema_op)
+      self.assertAllClose([beta_1, beta_0, mean_1, mean_0],
+                          self.evaluate([
+                              beta,
+                              model.ema.average(beta), mean,
+                              model.ema.average(mean)
+                          ]))
+
+      # At step=100, ema_decay=0.9 by ema_schedule.
+      global_step = 100
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
+      self.evaluate(ema_op)
+      self.assertAllClose([beta_1, beta_1_ema, mean_1, mean_1_ema],
+                          self.evaluate([
+                              beta,
+                              model.ema.average(beta), mean,
+                              model.ema.average(mean)
+                          ]))
+
+      # At step=200, ema_decay=0.0 by ema_schedule. EMA copies var value.
+      global_step = 200
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
+      self.evaluate(ema_op)
+      self.assertAllClose([beta_1, beta_1, mean_1, mean_1],
+                          self.evaluate([
+                              beta,
+                              model.ema.average(beta), mean,
+                              model.ema.average(mean)
+                          ]))
 
 if __name__ == '__main__':
   test_utils.main()

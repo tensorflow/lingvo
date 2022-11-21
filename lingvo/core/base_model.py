@@ -18,7 +18,7 @@ import collections
 import dataclasses
 import functools
 import re
-from typing import Dict, Union
+from typing import Dict, Optional, Union
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -62,6 +62,15 @@ class DecodeEmailOptions:
   train_executions_per_eval: int
   # Global Step in the training.
   global_step: int
+
+
+@dataclasses.dataclass(frozen=True)
+class ExecutorEma:
+  """EMA related instances which an executor prepares."""
+  # EMA object.
+  ema: Optional[tf.train.ExponentialMovingAverage] = None
+  # ema_decay variable.
+  ema_decay: Optional[tf.Variable] = None
 
 
 def _VariablesForEMA(params, model_var_list):
@@ -168,6 +177,7 @@ class BaseTask(base_layer.BaseLayer):
     tp.Define(
         'ema_decay_moving_vars', None,
         'If True, include variables from collection "moving_vars" in ema.')
+    tp.Define('ema_schedule', None, 'EMA decay schedule over global_step.')
     tp.Define(
         'init_from_checkpoint_rules', {},
         'If not None, a dictionary with keys corresponding to a checkpoint '
@@ -436,6 +446,9 @@ class BaseTask(base_layer.BaseLayer):
             self.CreateChildren('learners', tp.learner)
           else:
             self.CreateChildren('learners', [tp.learner])
+
+        if tp.ema_schedule:
+          self.CreateChild('ema_schedule', tp.ema_schedule)
       self._UpdateVnConfig()
 
       if (tp and tp.pruning_hparams_dict and
@@ -857,9 +870,22 @@ class BaseTask(base_layer.BaseLayer):
     self._graphs_applied_ema.add(graph)
 
     tf.logging.info('ApplyExponentialMovingAverage on %s', self)
+    pre_op = tf.no_op()
+
+    # Update EMA decay.
+    tp = self.params.train
+    if tp.ema_schedule:
+      assert isinstance(self.parent, BaseModel)
+      ema_decay_var = self.parent.ema_decay
+      assert ema_decay_var is not None
+      ema_decay = self.ema_schedule.Value(step=self._global_step_var)
+      ema_decay = tf.minimum(ema_decay, 1.0)
+      pre_op = ema_decay_var.assign(ema_decay, read_value=False)
+
     # Use empty name here so no prefix is added to the EMA variable names.
     scoped_creator = py_utils.GetLingvoVariableCreator('', '')
-    return scoped_creator(self._ApplyEMA, ema=ema)
+    with tf.control_dependencies([pre_op]):
+      return scoped_creator(self._ApplyEMA, ema=ema)
 
   def _ApplyEMA(self, ema):
     all_vars = _VariablesForEMA(self.params, self.vars.Flatten())
@@ -1134,6 +1160,7 @@ class BaseModel(base_layer.BaseLayer):
         'ema_decay_moving_vars', None,
         'If True, include variables from collection "moving_vars" in ema. '
         'Must be set consistent across all tasks.')
+    tp.Define('ema_schedule', None, 'EMA decay schedule over global_step.')
     tp.Define('init_from_checkpoint_rules', {},
               'See BaseTask documentation for details.')
     tp.Define('init_from_checkpoint_override', '',
@@ -1163,7 +1190,7 @@ class BaseModel(base_layer.BaseLayer):
         'checkpoints. Currently only support custom saver.')
     return p
 
-  def __init__(self, params, executor_ema=None):
+  def __init__(self, params, executor_ema=ExecutorEma()):
     """Initializes this Model."""
     assert issubclass(params.cls, BaseModel)
     super().__init__(params)
@@ -1172,21 +1199,23 @@ class BaseModel(base_layer.BaseLayer):
     self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
 
     tp = self.params.train
-    if tp.ema_decay > 0:
+    if tp.ema_decay > 0 or tp.ema_schedule:
       assert tp.ema_decay < 1.0
-      assert self.cluster.is_executor_tpu == (executor_ema is not None)
-      if executor_ema is not None:
+      assert self.cluster.is_executor_tpu == (executor_ema.ema is not None)
+      if executor_ema.ema is not None:
         # Use the EMA for executor training if set.
-        self._ema = executor_ema
+        self._ema, self._ema_decay = executor_ema.ema, executor_ema.ema_decay
       else:
-        self._ema = py_utils.CreateEMAForModel(self.params, self.global_step)
+        self._ema_decay = py_utils.CreateEMADecayVar(self.params)
+        self._ema = py_utils.CreateEMAForModel(self.params, self.global_step,
+                                               self._ema_decay)
     else:
       # Evaler/Decoder may disable EMA while ExecutorTpu uses EMA. executor_ema
       # depends on the trainer task params, but Evaler/Decoder may have
       # different task params (e.g. ema_decay=0). See model_registry.py
       if not self.do_eval:
-        assert not executor_ema
-      self._ema = None
+        assert executor_ema.ema is None
+      self._ema = self._ema_decay = None
     self._ema_variables_dict = {}
 
   @property
@@ -1196,6 +1225,10 @@ class BaseModel(base_layer.BaseLayer):
   @property
   def variables_for_ema(self):
     return _VariablesForEMA(self.params, self.vars.Flatten())
+
+  @property
+  def ema_decay(self):
+    return self._ema_decay
 
   def _MakeEMAVariablesDict(self):
     if self.ema:
@@ -1364,6 +1397,7 @@ class SingleTaskModel(SingleTaskBase):
     tp.checkpoint_finite_check = p.task.train.checkpoint_finite_check
     tp.ema_decay = p.task.train.ema_decay
     tp.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
+    tp.ema_schedule = p.task.train.ema_schedule
 
   def __init__(self, params, **kwargs):
     assert issubclass(params.cls, SingleTaskModel)
@@ -1498,10 +1532,11 @@ class MultiTaskModel(BaseModel):
       p.task_schedule = task_scheduler.ConstantScheduler.Params()
       p.task_schedule.task_probs = sorted(list(p.task_probs.IterParams()))
 
-    if p.train.ema_decay > 0:
+    tp = p.train
+    if tp.ema_decay > 0 or tp.ema_schedule:
       for task_name, task_params in sorted_task_params:
         for field in ['ema_decay', 'ema_decay_moving_vars']:
-          if task_params.train.Get(field) != p.train.Get(field):
+          if task_params.train.Get(field) != tp.Get(field):
             raise ValueError('Params did not match for field %s in task %s' %
                              (field, task_name))
 
