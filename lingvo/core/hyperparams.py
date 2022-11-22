@@ -210,6 +210,35 @@ def CopyFieldsTo(from_p, to_p, skip=None, ignore_unknown_keys=False):
   return to_p
 
 
+def CopyFieldsSubsetTo(from_p, to_p, fields_to_set):
+  """Copy fields from one Params to another, with optional skipped params.
+
+  Preserves `type(to_p.Instantiate())`. Use `from_p.Copy()` instead if requiring
+  a deep copy of `from_p`, without updating `to_p`.
+
+  Args:
+    from_p: Source params to copy from.
+    to_p: Destination params to copy to.
+    fields_to_set: A string, a list of strings or None. Params to copy.
+
+  Returns:
+    The updated to_p.
+  """
+  if not isinstance(fields_to_set, list):
+    fields_to_set = [fields_to_set]
+
+  for key, value in from_p.IterParams():
+    if key == 'cls':
+      continue
+    if key not in fields_to_set:
+      continue
+    if isinstance(value, Params):
+      to_p.Set(**{key: value.Copy()})
+    else:
+      to_p.Set(**{key: value})
+  return to_p
+
+
 ParamsT = TypeVar('ParamsT', bound='Params')
 
 

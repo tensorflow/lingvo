@@ -166,6 +166,20 @@ class ParamsTest(test_utils.TestCase):
     hyperparams.CopyFieldsTo(source, dest)
     self.assertEqual(dest.cls, hyperparams.InstantiableParams)
 
+  def testCopyFieldsSubsetTo(self):
+    source = hyperparams.Params()
+    dest = hyperparams.Params()
+    source.Define('a', 'a', '')
+    source.Define('b', 'b', '')
+    source.Define('c', 'c', '')
+    dest.Define('a', '', '')
+    dest.Define('d', 'd', '')
+    hyperparams.CopyFieldsSubsetTo(source, dest, ['a'])
+    self.assertEqual(source.a, dest.a)
+    self.assertNotIn('b', dest)
+    self.assertNotIn('c', dest)
+    self.assertEqual(dest.d, 'd')
+
   def testDefineExisting(self):
     p = hyperparams.Params()
     p.Define('foo', 1, '')
