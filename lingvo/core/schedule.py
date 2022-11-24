@@ -705,6 +705,26 @@ class LinearRampupCosineSchedule(BaseSchedule):
     return self.combine.Value(step)
 
 
+class EmaDecaySchedule(BaseSchedule):
+  """Mimic EMA decay schedule of tf.train.ExponentialMovingAverage.
+
+  https://www.tensorflow.org/api_docs/python/tf/train/ExponentialMovingAverage
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('ema_decay', 0.9999, 'The EMA decay parameter.')
+    return p
+
+  def Value(self, step=None):
+    p = self.params
+    x = tf.cast(self.GetStep(step), dtype=p.dtype)
+    # https://github.com/tensorflow/tensorflow/blob/v2.11.0/tensorflow/python/training/moving_averages.py#L578-L582
+    warmup = (1.0 + x) / (10.0 + x)
+    return tf.minimum(warmup, p.ema_decay)
+
+
 class DevBasedSchedule(BaseSchedule):
   """Decay triggered by lack of improvement on the dev set.
 
@@ -928,10 +948,10 @@ class CycleSchedule(BaseSchedule):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define(
-        'schedules', None, 'A list of sub-schedules. Unlike PiecewiseSchedule, '
-        'the absolute step is passed to the sub-schedule.')
+    p.Define('schedules', None, 'A list of sub-schedules.')
     p.Define('steps', None, 'The number of steps to run each sub-schedule.')
+    p.Define('pass_absolute_step', True,
+             'Whether to pass the absolute step to the sub-schedule.')
     return p
 
   def __init__(self, params):
@@ -949,9 +969,11 @@ class CycleSchedule(BaseSchedule):
 
   def Value(self, step=None):
     values = []
+    step = self.GetStep(step)
+    relative_step = tf.math.mod(step, self._period)
+    schedule_step = step if self.params.pass_absolute_step else relative_step
     for schedule in self.schedules:
-      values.append(schedule.Value(step))
-    relative_step = tf.math.mod(self.GetStep(step), self._period)
+      values.append(schedule.Value(schedule_step))
     return py_utils.PiecewiseConstant(relative_step, self._boundaries, values,
                                       values[0].dtype)
 

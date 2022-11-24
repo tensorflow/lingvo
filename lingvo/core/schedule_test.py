@@ -642,6 +642,25 @@ class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
       with py_utils.GlobalStepContext(1599):
         self.assertAllClose(lrs.Value().eval(), 0.025)
 
+  def testEmaDecaySchedule(self):
+    p = schedule.EmaDecaySchedule.Params().Set(ema_decay=0.9999)
+    with self.session():
+      lrs = p.Instantiate()
+      pts = []
+      for step in range(0, 130_000, 25_000):
+        with py_utils.GlobalStepContext(step):
+          pts.append([step, lrs.Value().eval()])
+      self.assertAllClose(
+          pts,
+          [
+              [0, 0.1],  # (1.0 + x) / (10.0 + x)
+              [25000, 0.99964017],  # (1.0 + x) / (10.0 + x)
+              [50000, 0.99982005],  # (1.0 + x) / (10.0 + x)
+              [75000, 0.99988],  # (1.0 + x) / (10.0 + x)
+              [100000, 0.9999],  # 0.9999
+              [125000, 0.9999],  # 0.9999
+          ])
+
   def testDevBasedSchedule(self):
     logdir = tf.test.get_temp_dir()
     tf.io.gfile.mkdir(os.path.join(logdir, 'eval_dev'))
@@ -838,25 +857,49 @@ class LearningRateScheduleTest(test_utils.TestCase, parameterized.TestCase):
               [60000, 0.0],  # pi.
           ])
 
-  def testCycleSchedule(self):
-    p0 = schedule.LinearSchedule.Params().Set(start=(0, 0.), limit=(1000, 1.))
+  @parameterized.named_parameters(
+      {
+          'testcase_name':
+              'RelCycle',
+          'pass_absolute_step':
+              False,
+          'expected_step_value': [
+              [0, 0.0],
+              [2, 2 / 10.],
+              [4, 4 / 10.],
+              [6, 5.0],
+              [8, 5.0],
+              [10, 0.0],  # rel_step = 10%10 = 0
+              [12, 2 / 10.],
+          ]
+      },
+      {
+          'testcase_name':
+              'AbsCycle',
+          'pass_absolute_step':
+              True,
+          'expected_step_value': [
+              [0, 0.0],
+              [2, 2 / 10.],
+              [4, 4 / 10.],
+              [6, 5.0],
+              [8, 5.0],
+              [10, 1.0],  # abs_step, LinearSchedule is stuck at limit.
+              [12, 1.0],
+          ]
+      })
+  def testCycleSchedule(self, pass_absolute_step, expected_step_value):
+    p0 = schedule.LinearSchedule.Params().Set(start=(0, 0.), limit=(10, 1.))
     p1 = schedule.Constant.Params().Set(value=5.0)
-    p = schedule.CycleSchedule.Params().Set(schedules=[p0, p1], steps=[4, 1])
+    p = schedule.CycleSchedule.Params().Set(
+        schedules=[p0, p1], steps=[6, 4], pass_absolute_step=pass_absolute_step)
     with self.session():
       lrs = p.Instantiate()
       pts = []
-      for step in [0, 1, 4, 5, 998, 999, 1000]:
+      for step in range(0, 13, 2):
         with py_utils.GlobalStepContext(step):
           pts.append([step, lrs.Value().eval()])
-      self.assertAllClose(pts, [
-          [0, 0.0],
-          [1, 1.0 / 1000.0],
-          [4, 5.0],
-          [5, 5.0 / 1000.0],
-          [998, 998.0 / 1000.0],
-          [999, 5.0],
-          [1000, 1.0],
-      ])
+      self.assertAllClose(pts, expected_step_value)
 
   def testAnnealingSchedule(self):
     p = schedule.AnnealingSchedule.Params().Set(
