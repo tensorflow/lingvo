@@ -664,6 +664,12 @@ py_test(
     ],
 )
 
+pytype_strict_library(
+    name = "compare",
+    srcs = ["compare.py"],
+    deps = [":py_utils"],
+)
+
 py_library(
     name = "datasource",
     srcs = ["datasource.py"],
