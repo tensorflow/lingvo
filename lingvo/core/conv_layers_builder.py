@@ -95,7 +95,7 @@ class CausalPoolingLayer(base_layer.BaseLayer):
 
     window_size = p.left_context
     left_pad_size = window_size - 1
-    large_negative = p.dtype.max * tf.constant(-0.7, dtype=p.dtype)
+    large_negative = tf.constant(-0.7 * p.dtype.max, dtype=p.dtype)
     # For max pooling, use a large negative padding value such that the max
     # element is almost always from a non-padding position.
     pad_value = 0 if p.pooling_type == 'AVG' else large_negative

@@ -1006,7 +1006,7 @@ class GlobalPoolingLayer(base_layer.BaseLayer):
       out_feature = global_sum / tf.maximum(1.0, count)
     elif p.pooling_type == 'MAX':
       large_negative = (
-          tf.ones_like(inputs) * p.dtype.max * tf.constant(-0.7, dtype=p.dtype))
+          tf.ones_like(inputs) * tf.constant(-0.7 * p.dtype.max, dtype=p.dtype))
       padded_inputs = tf.where_v2(mask > 0.0, inputs, large_negative)
       out_feature = tf.reduce_max(padded_inputs, axis=[1, 2], keepdims=True)
     if paddings is None:

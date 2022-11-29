@@ -2121,8 +2121,8 @@ def Top2GatingOnLogits(inputs,
     # Generates standard Gumbel(0, 1) noise, GSE Tensors
     noise = -tf.math.log(-tf.math.log(noise))
     very_negative_logits = _MaybeSplit(
-        (tf.ones_like(logits) * logits.dtype.max *
-         tf.constant(-0.7, dtype=logits.dtype)))
+        (tf.ones_like(logits) *
+         tf.constant(-0.7 * logits.dtype.max, dtype=logits.dtype)))
     # Gets rid of the first expert by setting its logit to be very negative
     updated_logits = _MaybeSplit(
         tf.where(mask_1 > 0.0, very_negative_logits, logits))

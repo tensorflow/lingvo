@@ -394,8 +394,8 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     assert logits.dtype.is_floating
     assert hasattr(logits.dtype, 'max')
     very_negative_logits = (
-        tf.ones_like(logits) * logits.dtype.max *
-        tf.constant(-0.7, dtype=logits.dtype))
+        tf.ones_like(logits) *
+        tf.constant(-0.7 * logits.dtype.max, dtype=logits.dtype))
     if self.do_eval:
       very_negative_logits = self.QAct('logits', very_negative_logits)
     padded_logits = tf.where(padding > 0.0, very_negative_logits, logits)

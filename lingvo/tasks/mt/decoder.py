@@ -1170,8 +1170,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     # the current hyp contains fewer sentences than expected to disallow
     # eos in such misaligned cases.
     large_negative_value = tf.ones_like(log_probs[:, eos_id]) * tf.constant(
-        -self._FLOAT_DTYPE_MAX_SCALER,
-        dtype=log_probs.dtype) * log_probs.dtype.max
+        -self._FLOAT_DTYPE_MAX_SCALER * log_probs.dtype.max,
+        dtype=log_probs.dtype)
     eos_log_probs = tf.where(
         tf.math.greater(source_num_sentences, hyp_num_sentences),
         large_negative_value, log_probs[:, eos_id])
@@ -1214,8 +1214,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     is_eos = tf.math.equal(tf.range(v), tf.ones_like(tf.range(v)) * eos_id)
     is_eos = tf.tile(tf.expand_dims(is_eos, 0), [b, 1])
     large_neg_probs = tf.ones_like(log_probs) * tf.constant(
-        -self._FLOAT_DTYPE_MAX_SCALER,
-        dtype=log_probs.dtype) * log_probs.dtype.max
+        -self._FLOAT_DTYPE_MAX_SCALER * log_probs.dtype.max,
+        dtype=log_probs.dtype)
     new_log_probs = tf.where(is_eos, tf.zeros_like(large_neg_probs),
                              large_neg_probs)
     return tf.where(is_single_token_2d, new_log_probs, log_probs)

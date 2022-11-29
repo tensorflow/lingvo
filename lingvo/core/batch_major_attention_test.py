@@ -327,8 +327,8 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       segment_id = tf.zeros([6, 6])
       segment_mask = attention.SegmentMask(segment_id, segment_id)
       padding = tf.tile(tf.reshape(input_padding, [6, 1, 1, 6]), [1, 1, 6, 1])
-      padding_mask = padding * segment_mask.dtype.max * tf.constant(
-          -0.7, dtype=segment_mask.dtype)
+      padding_mask = padding * tf.constant(
+          -0.7 * segment_mask.dtype.max, dtype=segment_mask.dtype)
       segment_mask += padding_mask
 
       l = p.Instantiate()

@@ -786,7 +786,7 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
 
     # For padded positions we update the distances to very large numbers.
     very_large_dists = tf.ones_like(dists) * tf.constant(
-        0.1, dtype=dists.dtype) * dists.dtype.max
+        0.1 * dists.dtype.max, dtype=dists.dtype)
     paddings_tiled = tf.tile(paddings_4d, [1, 1, p.num_heads, p.num_clusters])
     dists = tf.where(paddings_tiled > 0.0, very_large_dists, dists)
 
@@ -977,8 +977,8 @@ def ComputeSparseAttention(q, k, v, sparsity_indices, paddings=None):
   logits *= tf.math.rsqrt(tf.cast(dim_per_head, q.dtype))
 
   very_negative_logits = (
-      tf.ones_like(logits) * logits.dtype.max *
-      tf.constant(-0.7, dtype=logits.dtype))
+      tf.ones_like(logits) *
+      tf.constant(-0.7 * logits.dtype.max, dtype=logits.dtype))
   padded_logits = tf.where(
       tf.math.logical_or(sparsity_indices < 0, paddings > 0.0),
       very_negative_logits, logits)
