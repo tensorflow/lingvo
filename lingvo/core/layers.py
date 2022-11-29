@@ -5761,6 +5761,12 @@ class MultitaskAdapterBaseLayer(base_layer.BaseLayer):
         'Weight initialization for up and down projections. Only used for '
         'weights, not biases.  If None, uses default weight init, which is '
         'typically Xavier with scale of 1.0.')
+    p.Define(
+        'residual_weight', 1.0,
+        'Residual weight (scaling factor) applied to the output of the adapter '
+        'as suggested in https://arxiv.org/pdf/2110.04366.pdf')
+    p.Define('apply_residual', True,
+             'Whether to add the adapter output with inputs.')
     return p
 
 
@@ -5795,10 +5801,11 @@ class MultitaskAdapterLayer(MultitaskAdapterBaseLayer):
     self.CreateChild('down_proj_b', down_proj_b_params)
     self.CreateChild('up_proj_w', up_proj_w_params)
     self.CreateChild('up_proj_b', up_proj_b_params)
-    params = p.layer_norm_tpl.Copy()
-    params.name = 'adapter_ln'
-    params.input_dim = p.input_dim
-    self.CreateChild('layer_norm', params)
+    if p.layer_norm_tpl is not None:
+      params = p.layer_norm_tpl.Copy()
+      params.name = 'adapter_ln'
+      params.input_dim = p.input_dim
+      self.CreateChild('layer_norm', params)
 
   def FProp(self, theta, inputs, tasks):
     """Fprop for multitask adapter.
@@ -5873,7 +5880,10 @@ class MultitaskAdapterLayer(MultitaskAdapterBaseLayer):
         self.up_proj_b.EmbLookup(theta.up_proj_b, tasks), time_index)
 
     # Layer norm -> down-projection -> non-linearity -> up-projection
-    norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
+    if p.layer_norm_tpl is not None:
+      norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
+    else:
+      norm_inputs = inputs
     # If per_timestep_task, t = 1, b = time * batch.
     # Otherwise, t = time, b = batch.
     if p.data_format == 'TBC':
@@ -5886,8 +5896,8 @@ class MultitaskAdapterLayer(MultitaskAdapterBaseLayer):
       up_projected = tf.einsum('tbk,bkh->tbh', down_projected, up_weights)
     else:
       up_projected = tf.einsum('btk,bkh->bth', down_projected, up_weights)
-    up_projected += up_biases
-    output = inputs + up_projected
+    up_projected = (up_projected + up_biases) * p.residual_weight
+    output = inputs + up_projected if p.apply_residual else up_projected
 
     # Unflatten output:
     #   for 'TBC': [1, time * batch, hidden] -> [time, batch, hidden]
@@ -5916,7 +5926,10 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     assert p.data_format == 'BTC'
     params = p.layer_norm_tpl.Copy()
     params.input_dim = p.input_dim
-    self.CreateChild('layer_norm', params)
+    if p.layer_norm_tpl is not None:
+      params = p.layer_norm_tpl.Copy()
+      params.input_dim = p.input_dim
+      self.CreateChild('layer_norm', params)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -6025,17 +6038,21 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
                        theta.up_b)[b_broadcaster]
 
     # Layer norm -> down-projection -> non-linearity -> up-projection
-    with tf.name_scope('layer_norm_feed'):
-      norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
+    if p.layer_norm_tpl is not None:
+      with tf.name_scope('layer_norm_feed'):
+        norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
+    else:
+      norm_inputs = inputs
     # [batch, time, bottleneck_dim].
     down_projected = tf.einsum(f'bti,b{t}in->btn', norm_inputs, down_w) + down_b
     # ReLU.
     down_projected = tf.nn.relu(down_projected)
     # [batch, time, input_dim].
     up_projected = tf.einsum(f'btn,b{t}ni->bti', down_projected, up_w) + up_b
+    up_projected *= p.residual_weight
     # Residual.
-    res = inputs + up_projected
-    return res
+    output = inputs + up_projected if p.apply_residual else up_projected
+    return output
 
 
 class CCTGatingNetwork(quant_utils.QuantizableLayer):
