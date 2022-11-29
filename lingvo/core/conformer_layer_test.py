@@ -626,7 +626,8 @@ class ConformerLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
                        py_utils.NestedMap(features=inputs, paddings=paddings))
 
   def _StreamStep(self, layer, step_inputs, step_paddings, state):
-    return layer.StreamStep(layer.theta, step_inputs, step_paddings, state)
+    in_nmap = py_utils.NestedMap(features=step_inputs, paddings=step_paddings)
+    return layer.StreamStep(layer.theta, in_nmap, state)
 
   def _GetFPropOutput(self, fprop_out):
     return fprop_out.features, fprop_out.paddings

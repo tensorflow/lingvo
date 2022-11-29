@@ -1013,13 +1013,13 @@ class ConformerLayer(base_layer.BaseLayer):
     else:
       return py_utils.NestedMap()
 
-  def StreamStep(self, theta, inputs, paddings, state0):
+  def StreamStep(self, theta, in_nmap, state0):
     """Streams t steps.
 
     Args:
       theta: A NestedMap of read-only layer params.
-      inputs: A tensor of shape [b, t, d].
-      paddings: A 0/1 valued tensor of shape [b, t].
+      in_nmap: A NestedMap including features tensor of shape [b, t, d], and
+        paddings tensor of shape [b, t].
       state0: A NestedMap of tensors of the same struct as returned by
         zero_state().
 
@@ -1033,7 +1033,7 @@ class ConformerLayer(base_layer.BaseLayer):
     assert not p.remat
 
     with tf.name_scope(f'{p.name}/StreamStep'):
-      features, aux_loss = inputs, None
+      features, paddings, aux_loss = in_nmap.features, in_nmap.paddings, None
 
       if self.has_fflayer_start:
         features, paddings, aux_loss = self._MoeOrFFLayer(
@@ -1064,6 +1064,12 @@ class ConformerLayer(base_layer.BaseLayer):
       features, paddings, _ = self._MoeOrFFLayer(theta, 'fflayer_end', features,
                                                  paddings, aux_loss)
       outputs = self.final_ln.FProp(theta.final_ln, features)
+
+      if p.adapter_tpl:
+        adapter_in_map = in_nmap.DeepCopy()
+        adapter_in_map.features, adapter_in_map.padding = outputs, paddings
+        adapter_out_nmap = self.adapter.FProp(theta.adapter, adapter_in_map)
+        outputs, paddings = adapter_out_nmap.features, adapter_out_nmap.paddings
 
       state1 = py_utils.NestedMap(
           lconv_state=lconv_state1, atten_state=atten_state1)
