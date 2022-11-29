@@ -68,6 +68,7 @@ class _BaseModelParams:
     try:
       all_datasets = self.GetAllDatasetParams()
       if dataset not in all_datasets:
+        # When `GetAllDatasetParams` is defined, all public methods are ignored.
         raise DatasetError(f'Dataset {dataset} not found; '
                            f'available datasets are: {all_datasets.keys()}')
       return all_datasets.get(dataset)

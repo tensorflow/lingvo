@@ -68,6 +68,7 @@ def GetDatasets(cls: Any, warn_on_error: bool = True) -> List[str]:
   if mdl_params:
     try:
       all_datasets = mdl_params.GetAllDatasetParams()
+      # When `GetAllDatasetParams` is defined, all public methods are ignored.
       return sorted(list(all_datasets.keys()))
     except GetAllDatasetParamsNotImplementedError:
       pass

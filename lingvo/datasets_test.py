@@ -121,6 +121,20 @@ class DatasetsTest(test_utils.TestCase):
     self.assertAllEqual(['Dev', 'Train'],
                         datasets.GetDatasets(DummyDatasetHolder()))
 
+  def testGetDatasetsWithGetAllDatasetParamsAndPublicMethods(self):
+
+    class DummyDatasetHolder(base_model_params._BaseModelParams):
+
+      def UnexpectedDatasetName1(self):
+        pass
+
+      def GetAllDatasetParams(self):
+        return {'UnexpectedDatasetName2': None}
+
+    found_datasets = datasets.GetDatasets(DummyDatasetHolder)
+
+    self.assertAllEqual(['UnexpectedDatasetName2'], found_datasets)
+
   def testGetDatasetsOnClassWithPositionalArgumentInit(self):
 
     class DummyDatasetHolder(base_model_params._BaseModelParams):

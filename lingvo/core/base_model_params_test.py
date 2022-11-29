@@ -24,6 +24,15 @@ class TestModelParams(base_model_params.SingleTaskModelParams):
     raise NotImplementedError('test error')
 
 
+class PartialDatasetParams(base_model_params.SingleTaskModelParams):
+
+  def GetAllDatasetParams(self):
+    return dict(Test_X1=self.Test())
+
+  def Test_X2(self):
+    pass
+
+
 class BaseModelParamsTest(test_utils.TestCase):
 
   def testGetDatasetParams_SingleTaskModelParams(self):
@@ -46,6 +55,13 @@ class BaseModelParamsTest(test_utils.TestCase):
     dummy_model = TestModelParams()
     with self.assertRaisesRegexp(NotImplementedError, 'test error'):
       dummy_model.GetDatasetParams('Train')
+
+  def testGetDatasetParams_PartialDatasetParams(self):
+    dummy_model = PartialDatasetParams()
+    self.assertEqual(dummy_model.Test(),
+                     dummy_model.GetDatasetParams('Test_X1'))
+    with self.assertRaises(base_model_params.DatasetError):
+      dummy_model.GetDatasetParams('Test_X2')
 
 
 if __name__ == '__main__':
