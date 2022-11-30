@@ -424,8 +424,8 @@ class ParamsTest(test_utils.TestCase):
     outer.Visit(Visit)
 
     self.assertListEqual(visit_keys, [
-        'inner.a[0][0]', 'inner.a[0][1][0]', 'inner.a[0][1][1]',
-        'inner.a[0][1][2][x]'
+        'inner[\'a\'][0][0]', 'inner[\'a\'][0][1][0]', 'inner[\'a\'][0][1][1]',
+        'inner[\'a\'][0][1][2][x]'
     ])
 
   def testToText(self):
@@ -446,6 +446,10 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('plain_dict', {'a': 10}, '')
     outer.Define('complex_dict', {'a': 10, 'b': inner}, '')
     outer.Define('complex_dict_escape', {'a': 'abc"\'\ndef'}, '')
+    outer.Define('complex_dict_with_params', {
+        'a': inner,
+        'b': inner.Copy()
+    }, '')
     outer.Define('some_class', complex(0, 1), '')
     outer.Define('optional_bool', None, '')
     outer.Define('enum', TestEnum.B, '')
@@ -460,7 +464,12 @@ class ParamsTest(test_utils.TestCase):
         '\n' + outer.ToText(), r"""
 class : type/__main__/TestClass1
 complex_dict : {'a': 10, 'b': {'bar': 2.71, 'baz': 'hello'}}
-complex_dict_escape : {'a': 'abc"\'\ndef'}
+complex_dict_escape : {'a': 'abc"\'
+def'}
+complex_dict_with_params['a'].bar : 2.71
+complex_dict_with_params['a'].baz : 'hello'
+complex_dict_with_params['b'].bar : 2.71
+complex_dict_with_params['b'].baz : 'hello'
 dataclass : {'a': [42], 'b': 'float32'}
 dtype : float32
 dtype2 : int32
@@ -488,6 +497,10 @@ tuple : (1, 'NoneType')
         dtype2 : float32
         inner.baz : 'world'
         # foo : 123
+        complex_dict_with_params['a'].bar : 2.71
+        complex_dict_with_params['a'].baz : 'world'
+        complex_dict_with_params['b'].bar : 2.71
+        complex_dict_with_params['b'].baz : 'hello'
         optional_bool : true
         list_of_params[0].bar : 2.72
         seqlen : [1, 2.0, '3', [4]]
@@ -507,7 +520,12 @@ tuple : (1, 'NoneType')
         '\n' + outer.ToText(), r"""
 class : type/__main__/TestClass2
 complex_dict : {'a': 10, 'b': {'bar': 2.71, 'baz': 'world'}}
-complex_dict_escape : {'a': 'abc"\'\ndef'}
+complex_dict_escape : {'a': 'abc"\'
+def'}
+complex_dict_with_params['a'].bar : 2.71
+complex_dict_with_params['a'].baz : 'world'
+complex_dict_with_params['b'].bar : 2.71
+complex_dict_with_params['b'].baz : 'hello'
 dataclass : {'a': 27, 'b': 'int32'}
 dtype : float32
 dtype2 : float32

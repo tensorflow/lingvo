@@ -104,7 +104,8 @@ class _SortedDict(dict):
 
   def __repr__(self):
     return '{' + ', '.join(
-        '%r: %r' % item for item in sorted(self.items())) + '}'
+        '%r: %s' % (k, _QuoteString(v) if isinstance(v, str) else repr(v))
+        for k, v in sorted(self.items())) + '}'
 
 
 class _Param:
@@ -390,17 +391,18 @@ class Params:
     for i, part in enumerate(parts[:-1]):
       # Get the value (nested Params object) associated with name 'part'.
       try:
-        if is_list := re.match(r'^(.+)\[(.+)\]$', part):
-          part = is_list.group(1)
-          list_index = int(is_list.group(2))
+        if is_list_or_dict := re.match(r'^(.+)\[(.+)\]$', part):
+          part = is_list_or_dict.group(1)
+          list_index = ast.literal_eval(is_list_or_dict.group(2))
         # pylint: disable=protected-access
         curr = curr._params[part].Get()
-        if is_list:
+        if is_list_or_dict:
           curr = curr[list_index]
       except KeyError:
         raise AttributeError('.'.join(parts[:i + 1]))
       assert isinstance(curr, Params), ('Cannot introspect %s for %s' %
                                         (type(curr), '.'.join(parts[:i + 1])))
+
     return curr, parts[-1]
 
   def Set(self: ParamsT, **kwargs: Any) -> ParamsT:
@@ -697,7 +699,7 @@ class Params:
       elif isinstance(val, dict):
         if enter_fn(key, val):
           for k, v in val.items():
-            _Visit(_SubKey(key, k), v)
+            _Visit(f'{key}[\'{k}\']', v)
           exit_fn(key, val)
         else:
           visit_fn(key, val)
@@ -802,6 +804,9 @@ class Params:
       elif (isinstance(p, (list, tuple)) and all(
           isinstance(x, tuple) and len(x) == 2 and isinstance(x[0], str) and
           isinstance(x[1], Params) for x in p)):
+        return True
+      elif (isinstance(p, dict) and p and all(
+          isinstance(k, str) and isinstance(v, Params) for k, v in p.items())):
         return True
       return False
 

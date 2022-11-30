@@ -833,6 +833,7 @@ pytype_library(
         ":symbolic",
         # Implicit python proto dependency.
         "//lingvo:compat",
+        # Implicit numpy dependency.
         # Implicit typing_extensions dependency.
     ],
 )
