@@ -2576,10 +2576,14 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       ('F32FPropF32Input', tf.float32, tf.float32, 0.668211),
       ('F32FPropBF16Input', tf.float32, tf.bfloat16, 0.669565),
-      ('BF16FPropF32Input', tf.bfloat16, tf.float32, 0.667969),
-      ('BF16FPropBF16Input', tf.bfloat16, tf.bfloat16, 0.667969),
+      ('BF16FPropF32Input', tf.bfloat16, tf.float32, 0.667969, 1e-2),
+      ('BF16FPropBF16Input', tf.bfloat16, tf.bfloat16, 0.667969, 1e-2),
   )
-  def testFCLayerDtypes(self, fprop_dtype, input_dtype, expected_sum=0.):
+  def testFCLayerDtypes(self,
+                        fprop_dtype,
+                        input_dtype,
+                        expected_sum=0.,
+                        tol=1e-6):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
@@ -2597,7 +2601,11 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       output = proj_layer.FPropDefaultTheta(inputs)
       self.evaluate(tf.global_variables_initializer())
-      self.assertAllClose(expected_sum, self.evaluate(tf.reduce_sum(output)))
+      self.assertAllClose(
+          expected_sum,
+          self.evaluate(tf.reduce_sum(output)),
+          atol=tol,
+          rtol=tol)
 
   def testFCLayerBackProp(self):
     with self.session(use_gpu=True) as sess:
