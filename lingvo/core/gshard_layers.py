@@ -1942,7 +1942,8 @@ def Top2GatingOnLogits(inputs,
                        legacy_mtf_behavior=True,
                        capacity_factor=None,
                        importance=None,
-                       mask_dtype=None):
+                       mask_dtype=None,
+                       expert_padding_idx=None):
   """Computes Top-2 gating for Mixture-of-Experts.
 
   There are two expected usages of this function:
@@ -1998,6 +1999,8 @@ def Top2GatingOnLogits(inputs,
     mask_dtype: using bfloat16 for fprop_dtype could be problematic for mask
       tensors, mask_dtype is a special dtype for such tensors. TODO(lepikhin):
       get rid of the legacy_mtf_behavior flag.
+    expert_padding_idx: a list of integers indicating which expert(s) to mask
+      (by setting as a very negative value).
 
   Returns:
     A tuple (aux_loss, combine_tensor, dispatch_tensor).
@@ -2007,6 +2010,16 @@ def Top2GatingOnLogits(inputs,
     - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to
       experts.
   """
+
+  # top first and second gate value and expert index for each input
+  #
+  # GSK Tensors, K=2
+  def _MaybeSplit(x):
+    if use_xla_sharding:
+      return gshard_utils.Split(x, 0, num_devices)
+    else:
+      return x
+
   if mask_dtype is None:
     mask_dtype = fprop_dtype
   if use_xla_sharding:
@@ -2014,6 +2027,27 @@ def Top2GatingOnLogits(inputs,
                        'within Top2GatingOnLogits are generally redundant.')
   del inputs  # inputs is currently not used.
   # logits.dtype could be tf.float32
+
+  if expert_padding_idx:
+    very_negative_logits = _MaybeSplit(
+        (tf.ones_like(logits) * logits.dtype.max *
+         tf.constant(-0.7, dtype=logits.dtype)))
+    # Gets rid of the first expert by setting its logit to be very negative
+    # logits[..., expert_padding_idx[0]:expert_padding_idx[1]+1] =
+    # very_negative_logits
+    # logits[..., expert_padding_idx[0]:expert_padding_idx[1]+1].assign(1. *
+    # logits.dtype.max *
+    # tf.constant(-0.7, dtype=logits.dtype))
+    shape = logits.get_shape().as_list()
+    epad_mask = np.zeros(shape)
+    epad_mask[:, :, np.array(expert_padding_idx)] = 1.0
+    epad_mask = tf.convert_to_tensor(epad_mask, dtype=logits.dtype)
+    # print(epad_mask.dtype, epad_mask.get_shape().as_list(),
+    # very_negative_logits.dtype, very_negative_logits.get_shape().as_list(),
+    # logits.dtype, logits.get_shape().as_list())
+    logits = _MaybeSplit(
+        tf.where(epad_mask > 0.0, very_negative_logits, logits))
+
   raw_gates = tf.nn.softmax(logits)  # along E dim
   if raw_gates.dtype != fprop_dtype:
     raw_gates = tf.cast(raw_gates, fprop_dtype)
@@ -2046,15 +2080,6 @@ def Top2GatingOnLogits(inputs,
           expert_capacity_dim, capacity_factor, group_size_dim, experts_dim,
           tf.get_default_graph().get_name_scope())
     tpu_summary.scalar('expert_capacity', expert_capacity_dim)
-
-  # top first and second gate value and expert index for each input
-  #
-  # GSK Tensors, K=2
-  def _MaybeSplit(x):
-    if use_xla_sharding:
-      return gshard_utils.Split(x, 0, num_devices)
-    else:
-      return x
 
   def _CreateOverCapacityRatioSummary(mask, position_in_expert, capacity, name):
     with tf.name_scope('over_capacity'):
@@ -2121,8 +2146,8 @@ def Top2GatingOnLogits(inputs,
     # Generates standard Gumbel(0, 1) noise, GSE Tensors
     noise = -tf.math.log(-tf.math.log(noise))
     very_negative_logits = _MaybeSplit(
-        (tf.ones_like(logits) *
-         tf.constant(-0.7 * logits.dtype.max, dtype=logits.dtype)))
+        (tf.ones_like(logits) * logits.dtype.max *
+         tf.constant(-0.7, dtype=logits.dtype)))
     # Gets rid of the first expert by setting its logit to be very negative
     updated_logits = _MaybeSplit(
         tf.where(mask_1 > 0.0, very_negative_logits, logits))
@@ -2829,7 +2854,8 @@ def ComputeGating(w,
                   model_dim_reshape_segments=None,
                   mask_dtype=None,
                   gating_logits_dtype=None,
-                  expert_id=None):
+                  expert_id=None,
+                  expert_padding_idx=None):
   """Computes gating for Mixture-of-Experts.
 
   See Top2GatingOnLogits for more details.
@@ -2870,6 +2896,8 @@ def ComputeGating(w,
     gating_logits_dtype: using bfloat16 for fprop_dtype could be problematic for
       gating logits, gating_logits_dtype is a special dtype for such tensors.
     expert_id: expert id for each token.
+    expert_padding_idx: a list of integers indicating which expert(s) to mask
+      (by setting as a very negative value).
 
   Returns:
     A tuple (dispatch_tensor, combine_tensor, aux_loss).
@@ -2916,7 +2944,7 @@ def ComputeGating(w,
         inputs, paddings, logits, num_devices, experts_dim, expert_capacity_dim,
         fprop_dtype, use_xla_sharding, second_expert_policy,
         second_expert_threshold, legacy_mtf_behavior, capacity_factor, None,
-        mask_dtype)
+        mask_dtype, expert_padding_idx)
   elif gating_func == 'hashing':
     aux_loss, combine_tensor, dispatch_tensor = HashGatingOnLogits(
         inputs, expert_id, paddings, num_devices, experts_dim,

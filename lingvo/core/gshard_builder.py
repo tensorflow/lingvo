@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -26,6 +27,25 @@ from lingvo.core import layers
 from lingvo.core import py_utils
 import numpy as np
 import six
+
+
+def KLDiv(f_old, f_new):
+  """KL Divergence.
+
+  Args:
+    f_old: old feature (as reference).
+    f_new: new feature (as prediction).
+
+  Returns:
+    kl divergence loss between f_old and f_new.
+  """
+
+  # f: BLD [batch, length, key_value]
+  # b, l, h = tf.shape(f_old_prob)
+  b = tf.cast(tf.shape(f_old)[0], tf.bfloat16)
+  # https://www.tensorflow.org/api_docs/python/tf/keras/losses/KLDivergence
+  kl = tf.keras.losses.KLDivergence(reduction=tf.keras.losses.Reduction.SUM)
+  return kl(f_old, f_new) / b
 
 
 def _ToInt32(t):
@@ -3175,6 +3195,286 @@ class DenseBuilder(MoEBuilder):
         ('outputs_pre_split->outputs', self.Split('outputs_split')))
 
 
+class DenseLifelongBuilder(MoEBuilder):
+  """Desnse and MoE layers for Lifelong Learning, Dense and DenseSparse Builder.
+
+  On top of MoEBuilder, suppoert:
+  1) expanding experts and gating dimensions.
+  2) merge expert and gating groups.
+  2) freezing old experts and gating dimensions.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('e_dim_old', None, 'old E dimension. Base number of experts.')
+    p.Define(
+        'expert_padding_idx', None,
+        'list of two elements to mask partial dims for gating expert dim.')
+    p.Define(
+        'expert_padding_idx_old', None,
+        'list of two elements to mask partial dims for old gating expert dim.')
+    p.Define('lwf_scale', 0, 'scaling factor for LwF regularization loss.')
+
+    return p
+
+  def _Top2GatingWeights(self, name):
+    p = self.params
+    stddev = (1. / p.model_dim)**0.5
+    init_scale = stddev * 3.**0.5
+    if p.e_dim_old and p.e_dim_old > 0 and p.e_dim > p.e_dim_old:
+      return self._Var(
+          name=name,
+          weights=[('w',
+                    py_utils.WeightParams(
+                        shape=[p.model_dim, p.e_dim_old],
+                        init=py_utils.WeightInit.Uniform(init_scale),
+                        dtype=p.dtype)),
+                   ('w_expand',
+                    py_utils.WeightParams(
+                        shape=[p.model_dim, p.e_dim - p.e_dim_old],
+                        init=py_utils.WeightInit.Uniform(init_scale),
+                        dtype=p.dtype))])
+    else:
+      return self._Var(
+          name=name,
+          weights=[('w',
+                    py_utils.WeightParams(
+                        shape=[p.model_dim, p.e_dim],
+                        init=py_utils.WeightInit.Uniform(init_scale),
+                        dtype=p.dtype))])
+
+  def _ComputeGating(self, name):
+    p = self.params
+
+    def _Compute(w, inputs, paddings):
+      return gshard_layers.ComputeGating(
+          w=w,
+          inputs=inputs,
+          paddings=paddings,
+          num_devices=p.num_devices,
+          experts_dim=p.e_dim,
+          expert_capacity_dim=p.c_dim,
+          model_dim_reshape_segments=self._model_dim_reshape_segments,
+          local_dispatch=True,
+          fprop_dtype=py_utils.FPropDtype(p),
+          mask_dtype=p.mask_dtype,
+          gating_logits_dtype=p.gating_logits_dtype,
+          # We rely on sharding propagation here, Top2Gating is done
+          # independently for each group and inputs are typically sharded by
+          # group dimension.
+          gating_func=p.gating_func,
+          use_xla_sharding=False,
+          second_expert_policy=p.second_expert_policy,
+          second_expert_threshold=p.second_expert_threshold,
+          legacy_mtf_behavior=p.legacy_mtf_behavior,
+          capacity_factor=p.capacity_factor,
+          expert_padding_idx=p.expert_padding_idx)
+
+    return self._Fn(name, _Compute)
+
+  def MoE(self, name, decoder=False):
+    """Returns layer params to compute (outputs, scalar_aux_loss)."""
+    if decoder:
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
+    p = self.params
+    if p.e_dim_old and p.e_dim_old > 0 and p.e_dim > p.e_dim_old:
+      return self._Graph(
+          name,
+          input_endpoints,
+          ['outputs', 'aux_loss'],
+          ('vec->input_split',
+           self.MeshSplit('input_split', self._AdjustMSplit(p.blm_split, 2))),
+          ('segment_id->segment_id_split',
+           self.MeshSplit('segment_id_split', p.blm_split[:-1])),
+          ('->wi_base,wi_expand,wo_base,wo_expand',
+           self._ShardedFeedForwardNetworksWeights('expert_group')),
+          ('wi_base,wi_expand,wo_base,wo_expand->wi,wo',
+           self._CombineExperts(name)),
+          # ('->wi,wo', self._ShardedFeedForwardNetworksWeights(name)),
+          ('input_split,segment_id_split,wi,wo->outputs_pre_split,aux_loss',
+           self._ShardedMoEPositionWiseFeedForwardNetworks('ffw')),
+          ('outputs_pre_split->outputs',
+           self.MeshSplit('outputs_split', self._AdjustMSplit(p.blm_split, 2))))
+    else:
+      return self._Graph(
+          name, input_endpoints, ['outputs', 'aux_loss'],
+          ('vec->input_split',
+           self.MeshSplit('input_split', self._AdjustMSplit(p.blm_split, 2))),
+          ('segment_id->segment_id_split',
+           self.MeshSplit('segment_id_split', p.blm_split[:-1])),
+          ('->wi,wo', self._ShardedFeedForwardNetworksWeights(name)),
+          ('input_split,segment_id_split,wi,wo->outputs_pre_split,aux_loss',
+           self._ShardedMoEPositionWiseFeedForwardNetworks('ffw')),
+          ('outputs_pre_split->outputs',
+           self.MeshSplit('outputs_split', self._AdjustMSplit(p.blm_split, 2))))
+
+  def _CombineExperts(self, name):
+
+    def _Combine(wi_0, wi_1, wo_0, wo_1):
+      wi = tf.concat([wi_0, wi_1], axis=0)
+      wo = tf.concat([wo_0, wo_1], axis=0)
+      return wi, wo
+
+    return self._Fn(name, _Combine)
+
+  def _ShardedFeedForwardNetworksWeights(self, name, model_dim=None):
+    """Gets the sharded weights for the two layer feedforward nets."""
+    p = self.params
+    device_mesh = self._device_mesh
+    if model_dim is None:
+      model_dim = p.model_dim
+    if p.e_dim_old and p.e_dim_old > 0 and p.e_dim > p.e_dim_old:
+      emh_shape_base = [p.e_dim_old, model_dim, p.moe_hidden_dim]
+      # See VarianceScalingInitializer in py_utils
+      #   scale        ~ 1.0
+      #   reduced_dims ~ params.input_dim
+      #   mode         ~ 'fan_in'
+      #
+      stddev = (1. / model_dim)**0.5
+      wi_kernel_param_init_scale = stddev * 3.**0.5
+      wi_pc_base = gshard_layers.ShardedWeightParams(
+          shape=emh_shape_base,
+          init=py_utils.WeightInit.Uniform(wi_kernel_param_init_scale),
+          dtype=p.dtype,
+          tensor_split_dims_mapping=p.emh_split)
+      emh_shape_expand = [p.e_dim - p.e_dim_old, model_dim, p.moe_hidden_dim]
+      # See VarianceScalingInitializer in py_utils
+      #   scale        ~ 1.0
+      #   reduced_dims ~ params.input_dim
+      #   mode         ~ 'fan_in'
+      #
+      # stddev = (1. / model_dim)**0.5
+      # wi_kernel_param_init_scale = stddev * 3.**0.5
+      wi_pc_expand = gshard_layers.ShardedWeightParams(
+          shape=emh_shape_expand,
+          init=py_utils.WeightInit.Uniform(wi_kernel_param_init_scale),
+          dtype=p.dtype,
+          tensor_split_dims_mapping=p.emh_split)
+
+      # EHM Tensor (output transformation after RELU)
+      ehm_shape_base = [p.e_dim_old, p.moe_hidden_dim, model_dim]
+      # See VarianceScalingInitializer in py_utils
+      #   scale        ~ 1.0
+      #   reduced_dims ~ params.moe_hidden_dim
+      #   mode         ~ 'fan_in'
+      #
+      stddev = (1. / p.moe_hidden_dim)**0.5
+      wo_kernel_param_init_scale = stddev * 3.**0.5
+      wo_pc_base = gshard_layers.ShardedWeightParams(
+          shape=ehm_shape_base,
+          init=py_utils.WeightInit.Uniform(wo_kernel_param_init_scale),
+          dtype=p.dtype,
+          tensor_split_dims_mapping=p.ehm_split)
+      ehm_shape_expand = [p.e_dim - p.e_dim_old, p.moe_hidden_dim, model_dim]
+      # See VarianceScalingInitializer in py_utils
+      #   scale        ~ 1.0
+      #   reduced_dims ~ params.moe_hidden_dim
+      #   mode         ~ 'fan_in'
+      #
+      stddev = (1. / p.moe_hidden_dim)**0.5
+      wo_kernel_param_init_scale = stddev * 3.**0.5
+      wo_pc_expand = gshard_layers.ShardedWeightParams(
+          shape=ehm_shape_expand,
+          init=py_utils.WeightInit.Uniform(wo_kernel_param_init_scale),
+          dtype=p.dtype,
+          tensor_split_dims_mapping=p.ehm_split)
+      return self._ShardedVar(
+          name=name,
+          weights=[('wi', wi_pc_base), ('wi_expand', wi_pc_expand),
+                   ('wo', wo_pc_base), ('wo_expand', wo_pc_expand)],
+          device_mesh=device_mesh)
+    else:
+      emh_shape = [p.e_dim, model_dim, p.moe_hidden_dim]
+      # See VarianceScalingInitializer in py_utils
+      #   scale        ~ 1.0
+      #   reduced_dims ~ params.input_dim
+      #   mode         ~ 'fan_in'
+      #
+      stddev = (1. / model_dim)**0.5
+      wi_kernel_param_init_scale = stddev * 3.**0.5
+      wi_pc = gshard_layers.ShardedWeightParams(
+          shape=emh_shape,
+          init=py_utils.WeightInit.Uniform(wi_kernel_param_init_scale),
+          dtype=p.dtype,
+          tensor_split_dims_mapping=p.emh_split)
+
+      # EHM Tensor (output transformation after RELU)
+      ehm_shape = [p.e_dim, p.moe_hidden_dim, model_dim]
+      # See VarianceScalingInitializer in py_utils
+      #   scale        ~ 1.0
+      #   reduced_dims ~ params.moe_hidden_dim
+      #   mode         ~ 'fan_in'
+      #
+      stddev = (1. / p.moe_hidden_dim)**0.5
+      wo_kernel_param_init_scale = stddev * 3.**0.5
+      wo_pc = gshard_layers.ShardedWeightParams(
+          shape=ehm_shape,
+          init=py_utils.WeightInit.Uniform(wo_kernel_param_init_scale),
+          dtype=p.dtype,
+          tensor_split_dims_mapping=p.ehm_split)
+      return self._ShardedVar(
+          name=name,
+          weights=[('wi', wi_pc), ('wo', wo_pc)],
+          device_mesh=device_mesh)
+
+  def _CombineGatings(self, name):
+
+    def _Combine(w_0, w_1):
+      w = tf.concat([w_0, w_1], axis=1)
+      return w
+
+    return self._Fn(name, _Combine)
+
+  def _ShardedMoEPositionWiseFeedForwardNetworks(self, name):
+    """Simple MoE FFN with xla_sharding."""
+    p = self.params
+    num_groups = p.num_groups or p.num_devices
+
+    reshape_input = gshard_layers.ReshapeInputLayer.Params().Set(
+        num_groups=num_groups,
+        num_devices=p.num_devices,
+        model_dims=self._ReshapedModelDims(),
+        device_mesh=p.device_mesh)
+
+    if p.e_dim_old and p.e_dim_old > 0 and p.e_dim > p.e_dim_old:
+      return self._Graph(
+          name, ['inputs', 'segment_id', 'wi', 'wo'], ['outputs', 'aux_loss'],
+          ('inputs,segment_id->reshaped_inputs, paddings', reshape_input),
+          ('->gw_base,gw_expand',
+           self._Top2GatingWeights('top_2_gating_group')),
+          ('gw_base,gw_expand->gw', self._CombineGatings(name)),
+          ('gw->gw_reshaped',
+           self._Fn('reshape_gw', fn=lambda x: self._ReshapeM(x, 0))),
+          ('wi->wi_reshaped',
+           self._Fn('reshape_wi', fn=lambda x: self._ReshapeM(x, 1))),
+          ('wo->wo_reshaped',
+           self._Fn('reshape_wo', fn=lambda x: self._ReshapeM(x, 2))),
+          ('gw_reshaped,reshaped_inputs,paddings->gating',
+           self._ComputeGating('compute_gating')),
+          ('gating,inputs,reshaped_inputs,wi_reshaped,wo_reshaped' +
+           '->outputs,aux_loss',
+           self._FeedForwardNetworksApplyGating('process_gating')))
+    else:
+      return self._Graph(
+          name, ['inputs', 'segment_id', 'wi', 'wo'], ['outputs', 'aux_loss'],
+          ('inputs,segment_id->reshaped_inputs, paddings', reshape_input),
+          ('->gw', self._Top2GatingWeights('top_2_gating')),
+          ('gw->gw_reshaped',
+           self._Fn('reshape_gw', fn=lambda x: self._ReshapeM(x, 0))),
+          ('wi->wi_reshaped',
+           self._Fn('reshape_wi', fn=lambda x: self._ReshapeM(x, 1))),
+          ('wo->wo_reshaped',
+           self._Fn('reshape_wo', fn=lambda x: self._ReshapeM(x, 2))),
+          ('gw_reshaped,reshaped_inputs,paddings->gating',
+           self._ComputeGating('compute_gating')),
+          ('gating,inputs,reshaped_inputs,wi_reshaped,wo_reshaped' +
+           '->outputs,aux_loss',
+           self._FeedForwardNetworksApplyGating('process_gating')))
+
+
 class RecurrentDenseBuilderParallelDecode(DenseBuilder):
   """Same as RecurrentDenseBuilder but with micro variables.
 
@@ -4205,6 +4505,414 @@ class UniTransformer(base_model.BaseTask):
     all_outputs = self.dec.FProp(theta_with_state, dec_inputs)
     del enc_output, src_segment_ids, src_segment_pos, aux_loss
     return self._SplitDecoderOutputAndSoftmax(theta, all_outputs, dec_state)
+
+
+class LifelongUniTransformer(UniTransformer):
+  """Lifelong LM TransformerModel."""
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+
+    if p.use_repeat_layer or p.num_spmd_pipeline_stages > 1:
+      p.builder.deterministic_dropout = True
+    assert p.num_transformer_layers % p.num_spmd_pipeline_stages == 0
+    b = p.builder.Instantiate()
+
+    tgt_vocab_size = p.vocab_size
+
+    if callable(p.gated_ffn_activation):
+      gated_ffn_activation = p.gated_ffn_activation
+    elif p.gated_ffn_activation == 'silu':
+      gated_ffn_activation = tf.nn.silu
+    elif p.gated_gelu or p.gated_ffn_activation == 'gelu':
+      gated_ffn_activation = lambda x: tf.nn.gelu(x, approximate=True)
+    else:
+      assert not p.gated_ffn_activation, p.gated_ffn_activation
+      gated_ffn_activation = None
+
+    # Whether or not to embed the inputs.
+    # `has_embedding_layer` needs to be True for `sinusoid_positional_embedding`
+    # to be usable.
+    if p.has_embedding_layer:
+      dec_emb = b.Embedding('dec_emb', tgt_vocab_size)
+      self.CreateChild('dec_emb', dec_emb)
+      if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+        dec_emb_old = b.Embedding('dec_emb_old', tgt_vocab_size)
+        self.CreateChild('dec_emb_old', dec_emb_old)
+
+      if p.positional_embedding:
+        if p.sinusoid_positional_embedding:
+          dec_pos_emb = layers.PositionalEmbeddingLayer.Params().Set(
+              embedding_dim=p.builder.model_dim,
+              max_timescale=p.pos_emb_max_timescale)
+        else:
+          dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
+        self.CreateChild('dec_pos_emb', dec_pos_emb)
+        if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+          if p.sinusoid_positional_embedding:
+            dec_pos_emb_old = layers.PositionalEmbeddingLayer.Params().Set(
+                embedding_dim=p.builder.model_dim,
+                max_timescale=p.pos_emb_max_timescale)
+          else:
+            dec_pos_emb_old = b.Embedding('dec_pos_emb_old', p.max_length)
+          self.CreateChild('dec_pos_emb_old', dec_pos_emb_old)
+      else:
+        assert not p.sinusoid_positional_embedding
+    else:
+      assert not p.sinusoid_positional_embedding
+
+    if not self.do_eval:
+      # Make sure training won't enable partially constructed model code
+      # path.
+      assert p.start_layer_id == 0
+      assert p.has_embedding_layer
+      assert p.has_final_layer
+
+    if p.parallel_ffn:  # Only works with RecurrentDenseBuilderParallelDecode.
+      assert not p.positional_embedding
+      assert gated_ffn_activation
+      assert isinstance(b, RecurrentDenseBuilderParallelDecode)
+      # Make sure multi stage inference won't jump into this path.
+      assert p.start_layer_id == 0
+      assert p.has_embedding_layer
+      assert p.has_final_layer
+      decoder_sub_layers = [
+          b.Repeat(
+              name='blocks',
+              body=b.DecoderLayer(
+                  'block',
+                  gated_ffn_activation,
+                  p.conv_kernel_size,
+                  p.hidden_dim_reshape_segments,
+                  norm_type=p.norm_type,
+                  norm_policy=p.norm_policy),
+              repeat=p.num_transformer_layers,
+              per_layer_vars=p.use_per_layer_vars_for_recurrent)
+      ]
+      dec = b.DecoderLayerStack(
+          'decoder',
+          decoder_sub_layers,
+          1,
+          conv_kernel_size=p.conv_kernel_size,
+          norm_type=p.norm_type,
+          norm_policy=p.norm_policy)
+      if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+        e_dim = p.builder.e_dim
+        e_dim_expand = p.builder.e_dim_expand
+        p.builder.e_dim = p.builder.e_dim_old
+        p.builder.e_dim_expand = p.builder.e_dim_old_expand
+        b_old = p.builder.Instantiate()
+        dec_old = b_old.DecoderLayerStack(
+            'decoder_old',
+            decoder_sub_layers,
+            1,
+            conv_kernel_size=p.conv_kernel_size,
+            norm_type=p.norm_type,
+            norm_policy=p.norm_policy)
+        p.builder.e_dim = e_dim
+        p.builder.e_dim_expand = e_dim_expand
+    else:
+
+      def BuildDecoderSubLayers(b, p):
+        if p.positional_embedding:
+          if p.multi_dconv_head_att:
+            atten_layer = b.DecMultiDconvHeadAttention('multi_dconv_head_att')
+          else:
+            if p.is_quantize:
+              atten_layer = b.DecSelfAttentionQuantized('dec_self_attention')
+            else:
+              atten_layer = b.DecSelfAttention('dec_self_attention')
+        elif p.multi_dconv_head_att:
+          atten_layer = b.DecMultiDconvHeadAttentionRelativeBias(
+              'multi_dconv_head_att')
+        else:
+          atten_layer = b.DecSelfAttentionRelativeBias('dec_self_attention')
+        if gated_ffn_activation is None:
+          if p.is_quantize:
+            ffw_layer = b.DenseReluDenseQuantized(
+                'dense_relu_dense', decoder=True, activation=p.activation)
+          else:
+            ffw_layer = b.DenseReluDense(
+                'dense_relu_dense', decoder=True, activation=p.activation)
+        else:
+          ffw_layer = b.DenseReluDenseGated(
+              'dense_relu_dense', gated_ffn_activation, decoder=True)
+        if p.moe:
+          if p.moe_gated_gelu:
+            moe_layer = b.MoEGated('moe', decoder=True)
+          else:
+            moe_layer = b.MoE('moe', decoder=True)
+          layer_type_dict = {
+              'attn': atten_layer,
+              'moe': moe_layer,
+              'ffw': ffw_layer
+          }
+          if p.sub_layer_types:
+            decoder_sub_layers, num_decoder_layers = self._GetDecoderLayerStackParams(
+                p, b, layer_type_dict=layer_type_dict)
+          else:
+            decoder_sub_layers = [
+                layer_type_dict['attn'], layer_type_dict['moe'],
+                layer_type_dict['attn'], layer_type_dict['ffw']
+            ]
+            num_decoder_layers = p.num_transformer_layers // 2
+        else:
+          decoder_sub_layers = [atten_layer, ffw_layer]
+          num_decoder_layers = p.num_transformer_layers
+        return decoder_sub_layers, num_decoder_layers
+
+      decoder_sub_layers, num_decoder_layers = BuildDecoderSubLayers(b, p)
+      dec = b.DecoderLayerStack(
+          'decoder',
+          decoder_sub_layers,
+          num_decoder_layers,
+          conv_kernel_size=p.conv_kernel_size,
+          norm_type=p.norm_type,
+          norm_policy=p.norm_policy,
+          use_repeat_layer=p.use_repeat_layer,
+          spmd_pipeline_stages=p.num_spmd_pipeline_stages,
+          spmd_pipeline_microbatches=p.num_spmd_pipeline_microbatches,
+          start_layer_id=p.start_layer_id,
+          has_final_layer=p.has_final_layer)
+      if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+        e_dim = p.builder.e_dim
+        expert_padding_idx = p.builder.expert_padding_idx
+        p.builder.e_dim = p.builder.e_dim_old
+        p.builder.expert_padding_idx = p.builder.expert_padding_idx_old
+        b_old = p.builder.Instantiate()
+        decoder_sub_layers_old, num_decoder_layers_old = BuildDecoderSubLayers(
+            b_old, p)
+        dec_old = b_old.DecoderLayerStack(
+            'decoder_old',
+            decoder_sub_layers_old,
+            num_decoder_layers_old,
+            conv_kernel_size=p.conv_kernel_size,
+            norm_type=p.norm_type,
+            norm_policy=p.norm_policy,
+            use_repeat_layer=p.use_repeat_layer,
+            spmd_pipeline_stages=p.num_spmd_pipeline_stages,
+            spmd_pipeline_microbatches=p.num_spmd_pipeline_microbatches,
+            start_layer_id=p.start_layer_id,
+            has_final_layer=p.has_final_layer)
+        p.builder.e_dim = e_dim
+        p.builder.expert_padding_idx = expert_padding_idx
+    dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+
+    emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
+    dec_out_split = b.MeshSplit('dec_out_split',
+                                b._AdjustMSplit(b.params.blm_split[-3:], 2))
+    logits_split = b.MeshSplit('logits_split', b.params.logits_split)
+
+    self.CreateChild('dec', dec)
+    if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+      dec_old.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      self.CreateChild('dec_old', dec_old)
+    self.CreateChild('emb_w_split', emb_w_split)
+    self.CreateChild('dec_out_split', dec_out_split)
+    self.CreateChild('logits_split', logits_split)
+    if p.has_final_layer and p.softmax_bias:
+      bias_params = py_utils.WeightParams(
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          shape=[p.vocab_size])
+      self.CreateVariable('softmax_bias', bias_params)
+      if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+        bias_params_old = py_utils.WeightParams(
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            shape=[p.vocab_size])
+        self.CreateVariable('softmax_bias_old', bias_params_old)
+
+  def _ComputeDecoderInput(self, theta, input_batch, old=False):
+    p = self.params
+    if 'tgt' not in input_batch:
+      input_batch.tgt = py_utils.NestedMap()
+      input_batch.tgt.ids = input_batch.ids
+      input_batch.tgt.labels = input_batch.labels
+      input_batch.tgt.segment_ids = input_batch.segment_ids
+      input_batch.tgt.segment_pos = input_batch.segment_pos
+    if p.moe and p.builder.gating_func == 'hashing':
+      expert_id = tf.math.floormod(input_batch.tgt.ids, p.builder.e_dim)
+    if p.has_embedding_layer:
+      if not old:
+        y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
+        if self.params.positional_embedding:
+          if self.params.sinusoid_positional_embedding:
+            y += self.dec_pos_emb.FPropWithPosition(theta.dec_pos_emb,
+                                                    input_batch.tgt.segment_pos)
+          else:
+            y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
+                                        input_batch.tgt.segment_pos)
+      else:
+        y = self.dec_emb_old.FProp(theta.dec_emb_old, input_batch.tgt.ids)
+        if self.params.positional_embedding:
+          if self.params.sinusoid_positional_embedding:
+            y += self.dec_pos_emb.FPropWithPosition(theta.dec_pos_emb_old,
+                                                    input_batch.tgt.segment_pos)
+          else:
+            y += self.dec_pos_emb.FProp(theta.dec_pos_emb_old,
+                                        input_batch.tgt.segment_pos)
+    else:
+      y = tf.cast(input_batch.tgt.ids, py_utils.FPropDtype(self.params))
+
+    decoded_input = py_utils.NestedMap(
+        vec=y,
+        segment_id=input_batch.tgt.segment_ids,
+        segment_pos=input_batch.tgt.segment_pos,
+        encoder_output=tf.zeros_like(y),
+        encoder_segment_id=tf.zeros_like(input_batch.tgt.segment_ids),
+        encoder_segment_pos=tf.zeros_like(input_batch.tgt.segment_pos),
+        aux_loss=tf.convert_to_tensor(0.0, py_utils.FPropDtype(self.params)))
+
+    if p.moe and p.builder.gating_func == 'hashing':
+      decoded_input.expert_id = expert_id
+    return decoded_input
+
+  def _ComputeDecoderInputOld(self, theta, input_batch):
+    p = self.params
+    old = True
+    if 'tgt' not in input_batch:
+      input_batch.tgt = py_utils.NestedMap()
+      input_batch.tgt.ids = input_batch.ids
+      input_batch.tgt.labels = input_batch.labels
+      input_batch.tgt.segment_ids = input_batch.segment_ids
+      input_batch.tgt.segment_pos = input_batch.segment_pos
+    if p.moe and p.builder.gating_func == 'hashing':
+      expert_id = tf.math.floormod(input_batch.tgt.ids, p.builder.e_dim)
+    if p.has_embedding_layer:
+      if not old:
+        y = self.dec_emb.FProp(theta.dec_emb, input_batch.tgt.ids)
+        if self.params.positional_embedding:
+          if self.params.sinusoid_positional_embedding:
+            y += self.dec_pos_emb.FPropWithPosition(theta.dec_pos_emb,
+                                                    input_batch.tgt.segment_pos)
+          else:
+            y += self.dec_pos_emb.FProp(theta.dec_pos_emb,
+                                        input_batch.tgt.segment_pos)
+      else:
+        y = self.dec_emb_old.FProp(theta.dec_emb_old, input_batch.tgt.ids)
+        if self.params.positional_embedding:
+          if self.params.sinusoid_positional_embedding:
+            y += self.dec_pos_emb.FPropWithPosition(theta.dec_pos_emb_old,
+                                                    input_batch.tgt.segment_pos)
+          else:
+            y += self.dec_pos_emb.FProp(theta.dec_pos_emb_old,
+                                        input_batch.tgt.segment_pos)
+    else:
+      y = tf.cast(input_batch.tgt.ids, py_utils.FPropDtype(self.params))
+
+    decoded_input = py_utils.NestedMap(
+        vec=y,
+        segment_id=input_batch.tgt.segment_ids,
+        segment_pos=input_batch.tgt.segment_pos,
+        encoder_output=tf.zeros_like(y),
+        encoder_segment_id=tf.zeros_like(input_batch.tgt.segment_ids),
+        encoder_segment_pos=tf.zeros_like(input_batch.tgt.segment_pos),
+        aux_loss=tf.convert_to_tensor(0.0, py_utils.FPropDtype(self.params)))
+
+    if p.moe and p.builder.gating_func == 'hashing':
+      decoded_input.expert_id = expert_id
+    return decoded_input
+
+  def ComputePredictions(self, theta, input_batch, read_vars_from_theta=False):
+    """Forward propagation through one tower of the model.
+
+    Args:
+      theta: A `.NestedMap` object containing variable values of this task
+        copied to this tower's devices.
+      input_batch: A `.NestedMap` object containing input tensors to this tower.
+      read_vars_from_theta: If true, read variables from `theta`. Else, read
+        variables from self.vars.
+
+    Returns:
+      A dict containing metrics pairs.
+    """
+    p = self.params
+
+    with tf.name_scope(p.name):
+      decoder_input = self._ComputeDecoderInput(theta, input_batch)
+      all_outputs = self.dec.FProp(theta.dec, decoder_input)
+      dec_outputs, aux_loss = all_outputs.vec, all_outputs.aux_loss
+      if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+        decoder_input_old = self._ComputeDecoderInputOld(theta, input_batch)
+        all_outputs_old = self.dec_old.FProp(theta.dec_old, decoder_input_old)
+        dec_outputs_old = all_outputs_old.vec
+
+      if not p.has_final_layer:
+        if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+          lwf_loss = KLDiv(dec_outputs_old, dec_outputs)
+          aux_loss += lwf_loss * p.builder.lwf_scale
+
+        return dec_outputs, aux_loss
+
+      if p.scale_decoder_outputs:
+        dec_outputs *= (p.builder.model_dim**-0.5)
+      dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
+      # TODO(lepikhin): we only support
+      # shared_embedding_and_softmax_weights=True at the moment.
+      if read_vars_from_theta:
+        softmax_weights = theta.dec_emb.w.embedding
+      else:
+        softmax_weights = self.vars.dec_emb.w.embedding.read_value()
+      softmax_weights = self.emb_w_split.FProp(theta.emb_w_split,
+                                               softmax_weights)
+      if dec_outputs.dtype != softmax_weights.dtype:
+        # to enable fprop_dtype = tf.bfloat16
+        softmax_weights = tf.cast(softmax_weights, dec_outputs.dtype)
+      if p.builder.model_dim_reshape_segments is not None:
+        dec_outputs = tf.reshape(
+            dec_outputs, [dec_outputs.shape[0], dec_outputs.shape[1], -1])
+      logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
+      if p.has_final_layer and p.softmax_bias:
+        logits = tf.nn.bias_add(logits, theta.softmax_bias)
+      if p.softmax_logit_cap and p.softmax_logit_cap > 0:
+        logits = py_utils.MaybeSoftCapLogits(logits, p.softmax_logit_cap)
+      logits = self.logits_split.FProp(theta.logits_split, logits)
+
+      if p.logits_abs_max is not None:
+        logits = py_utils.clip_by_value(logits, -p.logits_abs_max,
+                                        p.logits_abs_max)
+      logits = self.logits_split.FProp(theta.logits_split, logits)
+
+      if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
+        if p.scale_decoder_outputs:
+          dec_outputs_old *= (p.builder.model_dim**-0.5)
+        dec_outputs_old = self.dec_out_split.FProp(theta.dec_out_split,
+                                                   dec_outputs_old)
+        # TODO(lepikhin): we only support
+        # shared_embedding_and_softmax_weights=True at the moment.
+        if read_vars_from_theta:
+          softmax_weights_old = theta.dec_emb_old.w.embedding
+        else:
+          softmax_weights_old = self.vars.dec_emb_old.w.embedding.read_value()
+        softmax_weights_old = self.emb_w_split.FProp(theta.emb_w_split,
+                                                     softmax_weights_old)
+        if dec_outputs_old.dtype != softmax_weights_old.dtype:
+          # to enable fprop_dtype = tf.bfloat16
+          softmax_weights_old = tf.cast(softmax_weights_old,
+                                        dec_outputs_old.dtype)
+        if p.builder.model_dim_reshape_segments is not None:
+          dec_outputs_old = tf.reshape(
+              dec_outputs_old,
+              [dec_outputs_old.shape[0], dec_outputs_old.shape[1], -1])
+        logits_old = tf.einsum('BLM,VM->BLV', dec_outputs_old,
+                               softmax_weights_old)
+        if p.has_final_layer and p.softmax_bias:
+          logits_old = tf.nn.bias_add(logits_old, theta.softmax_bias_old)
+        if p.softmax_logit_cap and p.softmax_logit_cap > 0:
+          logits_old = py_utils.MaybeSoftCapLogits(logits_old,
+                                                   p.softmax_logit_cap)
+        logits_old = self.logits_split.FProp(theta.logits_split, logits_old)
+
+        if p.logits_abs_max is not None:
+          logits_old = py_utils.clip_by_value(logits_old, -p.logits_abs_max,
+                                              p.logits_abs_max)
+        logits_old = self.logits_split.FProp(theta.logits_split, logits_old)
+        lwf_loss = KLDiv(logits_old, logits)
+        aux_loss += lwf_loss * p.builder.lwf_scale
+
+      return logits, aux_loss
 
 
 class TunableUniTransformer(UniTransformer):
