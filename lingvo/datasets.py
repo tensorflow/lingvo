@@ -31,10 +31,6 @@ class DatasetFunctionError(TypeError):
   pass
 
 
-class GetAllDatasetParamsNotImplementedError(NotImplementedError):
-  pass
-
-
 def GetDatasets(cls: Any, warn_on_error: bool = True) -> List[str]:
   """Returns the list of dataset functions (e.g., Train, Dev, ...).
 
@@ -55,7 +51,6 @@ def GetDatasets(cls: Any, warn_on_error: bool = True) -> List[str]:
     DatasetFunctionError: if the cls contains public methods that cannot be used
       as datasets, and warn_on_error is False.
   """
-
   mdl_params = None
   if inspect.isclass(cls):
     try:
@@ -65,13 +60,11 @@ def GetDatasets(cls: Any, warn_on_error: bool = True) -> List[str]:
   else:
     mdl_params = cls
 
-  if mdl_params:
-    try:
-      all_datasets = mdl_params.GetAllDatasetParams()
+  if mdl_params and hasattr(mdl_params, 'GetAllDatasetParams'):
+    all_datasets = mdl_params.GetAllDatasetParams()
+    if all_datasets is not None:
       # When `GetAllDatasetParams` is defined, all public methods are ignored.
       return sorted(list(all_datasets.keys()))
-    except GetAllDatasetParamsNotImplementedError:
-      pass
 
   datasets = []
   for name, _ in inspect.getmembers(cls, inspect.isroutine):

@@ -129,9 +129,8 @@ class BaseModelsTest(test_utils.TestCase):
   def _testOneModelParams(self, registry, name):
     with tf.Graph().as_default():
       model_params = registry.GetClass(name)()
-      try:
-        all_datasets = model_params.GetAllDatasetParams()
-      except datasets.GetAllDatasetParamsNotImplementedError:
+      all_datasets = model_params.GetAllDatasetParams()
+      if all_datasets is None:
         all_datasets = {}
         for dataset_name in datasets.GetDatasets(model_params):
           try:

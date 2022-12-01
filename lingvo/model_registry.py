@@ -244,6 +244,22 @@ class _ModelRegistryHelper:
     return all_params[class_key]
 
   @classmethod
+  @functools.lru_cache(maxsize=8)
+  def GetCachedObject(cls, class_key):
+    """Returns a ModelParams class object with the given `class_key`.
+
+    To reuse the same object for given `class_key`, it uses
+    functools.lru_cache annotation.
+
+    Args:
+      class_key: string key of the ModelParams subclass to return.
+
+    Returns:
+      A instance of `~.base_model_params._BaseModelParams`.
+    """
+    return cls.GetClass(class_key)()
+
+  @classmethod
   def GetParamsFromModelParamsObject(cls, model_params_obj, dataset_name):
     """Returns a `Params` object for given _BaseModelParams instance.
 
@@ -281,7 +297,7 @@ class _ModelRegistryHelper:
     return cfg
 
   @classmethod
-  def GetParams(cls, class_key, dataset_name):
+  def GetParams(cls, class_key, dataset_name, cache=True):
     """Constructs a `Params` object for given model and dataset, obeying flags.
 
     In case of default model, params may be updated based on the flags
@@ -290,12 +306,17 @@ class _ModelRegistryHelper:
     Args:
       class_key: String class key (i.e. `image.mnist.LeNet5`).
       dataset_name: Method to generate dataset params (i.e. 'Test').
+      cache: Whether to cache the params given class_key and dataset_name.
 
     Returns:
       Full `~.hyperparams.Params` for the model class.
     """
-    model_params_cls = cls.GetClass(class_key)
-    return cls.GetParamsFromModelParamsObject(model_params_cls(), dataset_name)
+    if cache:
+      # Reuse the cached object to reused the cached obj.GetAllDatasetParams().
+      model_params_obj = cls.GetCachedObject(class_key)
+    else:
+      model_params_obj = cls.GetClass(class_key)()
+    return cls.GetParamsFromModelParamsObject(model_params_obj, dataset_name)
 
   @classmethod
   def GetProgramScheduleFromModelParamsObject(cls, model_params_obj):

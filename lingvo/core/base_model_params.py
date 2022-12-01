@@ -13,7 +13,7 @@
 # limitations under the License.
 # ==============================================================================
 """BaseModelParams class definition."""
-
+import functools
 
 from lingvo import datasets
 from lingvo.core import base_input_generator
@@ -35,6 +35,13 @@ class DatasetError(Exception):
   pass
 
 
+# Cache the GetAllDatasetParams() results, which may include many Task_XXX.
+# Note: datasets inspect _BaseModelParams, so it can not have a cached method.
+@functools.lru_cache(maxsize=8)
+def GetCachedAllDatasetParams(obj):
+  return obj.GetAllDatasetParams()
+
+
 class _BaseModelParams:
   """Base class for storing model Params for a single experiment."""
 
@@ -45,12 +52,10 @@ class _BaseModelParams:
     be treated as dataset specifications.
 
     Returns:
-      A dict of {dataset_name: dataset_params}.
-
-    Raises:
-      GetAllDatasetParamsNotImplementedError: by default.
+      A dict of {dataset_name: dataset_params}. If not implemented, returns
+      None.
     """
-    raise datasets.GetAllDatasetParamsNotImplementedError(type(self))
+    return None
 
   def GetDatasetParams(self, dataset):
     """Convenience function that returns the param for the given dataset name.
@@ -65,16 +70,13 @@ class _BaseModelParams:
     Raises:
       DatasetError: if there is not a `${dataset}` method defined under `cls`.
     """
-    try:
-      all_datasets = self.GetAllDatasetParams()
-      if dataset not in all_datasets:
+    all_datasets = GetCachedAllDatasetParams(self)
+    if all_datasets is not None:
+      if dataset not in all_datasets.keys():
         # When `GetAllDatasetParams` is defined, all public methods are ignored.
         raise DatasetError(f'Dataset {dataset} not found; '
                            f'available datasets are: {all_datasets.keys()}')
       return all_datasets.get(dataset)
-    except datasets.GetAllDatasetParamsNotImplementedError:
-      # Fall through the legacy path.
-      pass
 
     try:
       f = getattr(self, dataset)
