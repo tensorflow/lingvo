@@ -512,13 +512,10 @@ class ConformerLayer(base_layer.BaseLayer):
         'If True, will ignore `fflayer_end_tpl`, and will make the fflayer_end '
         'layer as a weight-shared copy of the fflayer_start layer.')
     p.Define('final_ln_tpl', layers.LayerNorm.Params(), 'Final layer norm.')
-    # If adapter_tpl is set, layer_out = adapter(conformer(layer_in))
-    # The adapter must
-    # 1. have instance method FProp(self, theta, in_nmap) -> out_nmap, where
-    # {in,out}_nmap must have 'features' and 'paddings' and $adapter_p.task_ids
-    # fields.
-    # 2. have class method SetInputDim(cls, p, input_dim)
-    p.Define('adapter_tpl', None, 'If set, runs an adapter layer in the end.')
+    p.Define(
+        'adapter_tpl', None, 'If set, runs an adapter layer in the end. '
+        'This is expected to be an OnlineLayer, whose FProp signature is '
+        'FProp(self, theta, in_nmap, state0=None) -> (out_nmap, state1).')
     # https://b/167460492#comment16
     p.Define(
         'remat', False, 'If to rematerialize the layer. If true, '
@@ -831,7 +828,7 @@ class ConformerLayer(base_layer.BaseLayer):
       self.CreateChild('final_ln', ln_p)
 
       if p.adapter_tpl:
-        p.adapter_tpl.cls.SetInputDim(p.adapter_tpl, p.input_dim)
+        p.adapter_tpl.cls.SetNumInputNodes(p.adapter_tpl, p.input_dim)
         self.CreateChild('adapter', p.adapter_tpl)
 
   # lconv and fflayer_start have the special treatment, which can be absent,
@@ -968,7 +965,7 @@ class ConformerLayer(base_layer.BaseLayer):
       if p.adapter_tpl:
         adapter_in_map = in_nmap.DeepCopy()
         adapter_in_map.features, adapter_in_map.padding = features, paddings
-        adapter_out_nmap = self.adapter.FProp(theta.adapter, adapter_in_map)
+        adapter_out_nmap, _ = self.adapter.FProp(theta.adapter, adapter_in_map)
         features, paddings = adapter_out_nmap.features, adapter_out_nmap.paddings
 
       features, paddings = self._CastToFPropDtype((features, paddings))
@@ -1068,7 +1065,7 @@ class ConformerLayer(base_layer.BaseLayer):
       if p.adapter_tpl:
         adapter_in_map = in_nmap.DeepCopy()
         adapter_in_map.features, adapter_in_map.padding = outputs, paddings
-        adapter_out_nmap = self.adapter.FProp(theta.adapter, adapter_in_map)
+        adapter_out_nmap, _ = self.adapter.FProp(theta.adapter, adapter_in_map)
         outputs, paddings = adapter_out_nmap.features, adapter_out_nmap.paddings
 
       state1 = py_utils.NestedMap(
