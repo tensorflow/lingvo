@@ -20,7 +20,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__version__ = '0.12.5'
+__version__ = '0.12.6'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -30,21 +30,21 @@ if '--project_name' in sys.argv:
 
 REQUIRED_PACKAGES = [
     'attrs',
-    'ipykernel',
-    'jupyter',
-    'jupyter_http_over_ws',
     'graph-compression-google-research',
+    'ipykernel',
+    'jupyter_http_over_ws',
+    'jupyter',
     'matplotlib',
     'model-pruning-google-research',
     'Pillow',
     'protobuf',
+    'scikit-learn',
     'sentencepiece',
-    'sklearn',
     'sympy',
     'tensorflow-datasets',
-    'tensorflow~=2.9.2',
-    'tensorflow-text~=2.9.0',
     'tensorflow-hub',
+    'tensorflow-text~=2.9.0',
+    'tensorflow~=2.9.2',
 ]
 
 
