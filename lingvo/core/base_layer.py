@@ -930,6 +930,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     return py_utils.AddVN(self.params, value, per_step=per_step)
 
   def AddGlobalVN(self, theta):
+    if self.do_eval:
+      return theta
 
     def AddGlobalVNHelper(child, theta):
       if isinstance(child, list):
