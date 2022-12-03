@@ -3195,7 +3195,7 @@ class DenseBuilder(MoEBuilder):
         ('outputs_pre_split->outputs', self.Split('outputs_split')))
 
 
-class DenseLifelongBuilder(MoEBuilder):
+class DenseLifelongBuilder(DenseBuilder):
   """Desnse and MoE layers for Lifelong Learning, Dense and DenseSparse Builder.
 
   On top of MoEBuilder, suppoert:
@@ -4535,20 +4535,11 @@ class LifelongUniTransformer(UniTransformer):
     # `has_embedding_layer` needs to be True for `sinusoid_positional_embedding`
     # to be usable.
     if p.has_embedding_layer:
-      dec_emb = b.Embedding('dec_emb', tgt_vocab_size)
-      self.CreateChild('dec_emb', dec_emb)
       if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
         dec_emb_old = b.Embedding('dec_emb_old', tgt_vocab_size)
         self.CreateChild('dec_emb_old', dec_emb_old)
 
       if p.positional_embedding:
-        if p.sinusoid_positional_embedding:
-          dec_pos_emb = layers.PositionalEmbeddingLayer.Params().Set(
-              embedding_dim=p.builder.model_dim,
-              max_timescale=p.pos_emb_max_timescale)
-        else:
-          dec_pos_emb = b.Embedding('dec_pos_emb', p.max_length)
-        self.CreateChild('dec_pos_emb', dec_pos_emb)
         if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
           if p.sinusoid_positional_embedding:
             dec_pos_emb_old = layers.PositionalEmbeddingLayer.Params().Set(
@@ -4590,13 +4581,6 @@ class LifelongUniTransformer(UniTransformer):
               repeat=p.num_transformer_layers,
               per_layer_vars=p.use_per_layer_vars_for_recurrent)
       ]
-      dec = b.DecoderLayerStack(
-          'decoder',
-          decoder_sub_layers,
-          1,
-          conv_kernel_size=p.conv_kernel_size,
-          norm_type=p.norm_type,
-          norm_policy=p.norm_policy)
       if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
         e_dim = p.builder.e_dim
         e_dim_expand = p.builder.e_dim_expand
@@ -4662,19 +4646,7 @@ class LifelongUniTransformer(UniTransformer):
           num_decoder_layers = p.num_transformer_layers
         return decoder_sub_layers, num_decoder_layers
 
-      decoder_sub_layers, num_decoder_layers = BuildDecoderSubLayers(b, p)
-      dec = b.DecoderLayerStack(
-          'decoder',
-          decoder_sub_layers,
-          num_decoder_layers,
-          conv_kernel_size=p.conv_kernel_size,
-          norm_type=p.norm_type,
-          norm_policy=p.norm_policy,
-          use_repeat_layer=p.use_repeat_layer,
-          spmd_pipeline_stages=p.num_spmd_pipeline_stages,
-          spmd_pipeline_microbatches=p.num_spmd_pipeline_microbatches,
-          start_layer_id=p.start_layer_id,
-          has_final_layer=p.has_final_layer)
+      decoder_sub_layers, _ = BuildDecoderSubLayers(b, p)
       if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
         e_dim = p.builder.e_dim
         expert_padding_idx = p.builder.expert_padding_idx
@@ -4697,32 +4669,10 @@ class LifelongUniTransformer(UniTransformer):
             has_final_layer=p.has_final_layer)
         p.builder.e_dim = e_dim
         p.builder.expert_padding_idx = expert_padding_idx
-    dec.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
-    emb_w_split = b.MeshSplit('w_split', b.params.emb_w_split)
-    dec_out_split = b.MeshSplit('dec_out_split',
-                                b._AdjustMSplit(b.params.blm_split[-3:], 2))
-    logits_split = b.MeshSplit('logits_split', b.params.logits_split)
-
-    self.CreateChild('dec', dec)
     if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
       dec_old.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       self.CreateChild('dec_old', dec_old)
-    self.CreateChild('emb_w_split', emb_w_split)
-    self.CreateChild('dec_out_split', dec_out_split)
-    self.CreateChild('logits_split', logits_split)
-    if p.has_final_layer and p.softmax_bias:
-      bias_params = py_utils.WeightParams(
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=p.dtype,
-          shape=[p.vocab_size])
-      self.CreateVariable('softmax_bias', bias_params)
-      if p.builder.e_dim_old and p.builder.e_dim_old > 0 and p.builder.lwf_scale > 0:
-        bias_params_old = py_utils.WeightParams(
-            init=py_utils.WeightInit.Constant(0.0),
-            dtype=p.dtype,
-            shape=[p.vocab_size])
-        self.CreateVariable('softmax_bias_old', bias_params_old)
 
   def _ComputeDecoderInput(self, theta, input_batch, old=False):
     p = self.params
