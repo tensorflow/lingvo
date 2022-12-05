@@ -5917,15 +5917,12 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
   def Params(cls):
     p = super().Params()
     p.data_format = 'BTC'
-
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
     assert p.data_format == 'BTC'
-    params = p.layer_norm_tpl.Copy()
-    params.input_dim = p.input_dim
     if p.layer_norm_tpl is not None:
       params = p.layer_norm_tpl.Copy()
       params.input_dim = p.input_dim
