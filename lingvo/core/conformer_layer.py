@@ -679,6 +679,14 @@ class ConformerLayer(base_layer.BaseLayer):
     return 1
 
   @classmethod
+  def RightContext(cls, params):
+    if 'atten_tpl' in params:
+      return params.atten_tpl.right_context
+    raise ValueError(
+        'Failed to resolve right context for {params.cls}: '
+        '"atten_tpl" should have been declared in the ConformerLayer params')
+
+  @classmethod
   def NumOutputNodes(cls, p):
     return p.input_dim
 
