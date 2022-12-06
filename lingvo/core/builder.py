@@ -28,6 +28,7 @@ from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import tshape
+import numpy as np
 
 
 class Base:
@@ -63,7 +64,8 @@ class Base:
     # SPMD partition related params.
     p.Define(
         'device_mesh', None,
-        'A numpy.ndarray specifying the topology of a device mesh to place the '
+        'A numpy.ndarray (or type that can be converted to ndarary) '
+        'specifying the topology of a device mesh to place the '
         'computations onto. If device_mesh is None, it is assumed to be a '
         'single device. Here are some examples: '
         'np.array([0, 1, 2, 3, 4, 5, 6, 7]) which is a 1d mesh with 8 devices, '
@@ -89,6 +91,10 @@ class Base:
   def __init__(self, params):
     # Sub-classes should put some options common to many layers in __init__.
     self._params = params.Copy()
+    # Handling the case when device_mesh is a list instead of an np.array.
+    p = self.params
+    if p.device_mesh is not None:
+      p.device_mesh = np.array(p.device_mesh)
 
   ######################################################################
   # Layers to compose multiple layers.
@@ -177,8 +183,8 @@ class Base:
       name: The layer name.
       fn: A lambda tuple(Tensor) -> tuple(Tensor).
       fn_out: A lambda tuple(tshape.Shape) -> output tuple(tshape.Shape)
-      fn_flops: A lambda tuple(tshape.Shape) -> estimated flops of fn.
-        If None, we assume flops == sum of elements in the inputs.
+      fn_flops: A lambda tuple(tshape.Shape) -> estimated flops of fn. If None,
+        we assume flops == sum of elements in the inputs.
 
     Returns:
       The param for the composed layer.
@@ -201,7 +207,8 @@ class Base:
     return builder_layers.FnLayer.Params().Set(name=name, fn=fn, fn_meta=FnMeta)
 
   def _Save(self, name):
-    """Returns a layer from which the activation and gradient can be accessed."""
+    """Returns a layer from which the activation and gradient can be accessed.
+    """
     return layers.FetchLayer.Params().Set(name=name)
 
   def _AddFetches(self, name, body, fetches):
