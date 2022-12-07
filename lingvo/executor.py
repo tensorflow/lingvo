@@ -17,7 +17,6 @@
 import contextlib
 import multiprocessing.dummy
 import os
-import time
 
 from lingvo import compat as tf
 from lingvo import pdb_wrapper
@@ -147,8 +146,13 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
   return ps_params_dict, train_cfg
 
 
+def _GetGlobalStep(sess=None):
+  step = py_utils.GetGlobalStep()
+  return step.numpy() if sess is None else sess.run(step)
+
+
 class ExecutorTpu(base_runner.BaseRunner):
-  """An runner that does arbitrary multi-program execution on TPU.
+  """A runner that does arbitrary multi-program execution on TPU.
 
   Overview of operation:
 
@@ -189,9 +193,7 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     self.task_scheduler = None
     self._checkpoint_dir = os.path.join(self._logdir, 'train')
-
     self._variable_renaming_rules = []
-
     self._ml_perf = None
 
     # If this is a multi-task model, grab the params for the TaskScheduler.
@@ -504,13 +506,12 @@ class ExecutorTpu(base_runner.BaseRunner):
       # This unblocks TPU from waiting for CPU processing on "main" thread, and
       # saves time for time-consuming CPU steps (e.g. PostProcessDecodeOut).
       program_threadpool = multiprocessing.dummy.Pool(1)
-      start_time = time.time()
+      program_timer = py_utils.Timer()
+      program_timer.Start()
       while True:
-        cycle_start_time = time.time()
-        if py_utils.IsEagerMode():
-          global_step = py_utils.GetGlobalStep().numpy()
-        else:
-          global_step = sess.run(py_utils.GetGlobalStep())
+        cycle_timer = py_utils.Timer()
+        cycle_timer.Start()
+        global_step = _GetGlobalStep(sess)
 
         def RunSave(sess, global_step):
           # Run TPU embedding retrieve ops.
@@ -527,11 +528,10 @@ class ExecutorTpu(base_runner.BaseRunner):
           # Save the checkpoints asynchronously.
           self._checkpointer.Save(sess, global_step, sync=False)
 
-        checkpoint_write_secs = 0.0
+        ckpt_timer = py_utils.Timer()
         if not self._ml_perf_log and self._checkpointer.ShouldSave(global_step):
-          checkpoint_write_start = time.time()
-          RunSave(sess, global_step)
-          checkpoint_write_secs = time.time() - checkpoint_write_start
+          with ckpt_timer:
+            RunSave(sess, global_step)
 
         # If a task is explicitly selected, only run the programs associated
         # with that task.
@@ -550,17 +550,13 @@ class ExecutorTpu(base_runner.BaseRunner):
         done, train_time_in_secs, eval_time_in_secs = program_schedule.Run(
             sess, program_threadpool)
 
-        executor_cycle_in_secs = time.time() - cycle_start_time
-        if py_utils.IsEagerMode():
-          global_step = py_utils.GetGlobalStep().numpy()
-        else:
-          global_step = sess.run(py_utils.GetGlobalStep())
+        global_step = _GetGlobalStep(sess)
         self._ExportMetrics(
             global_step=global_step,
-            executor_cycle_secs=executor_cycle_in_secs,
+            executor_cycle_secs=cycle_timer.duration,
             executor_train_time_secs=train_time_in_secs,
             executor_eval_time_secs=eval_time_in_secs,
-            checkpoint_write_secs=checkpoint_write_secs,
+            checkpoint_write_secs=ckpt_timer.duration,
         )
 
         def _ShutDown():
@@ -571,13 +567,13 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info(
               'Program schedule told us to stop.\n'
               'Shutting down programs after running %f seconds.',
-              time.time() - start_time)
+              program_timer.duration)
           program_schedule.Shutdown()
 
         if done:
           tf.logging.info(
               'Program done after %f seconds. Waiting for threads to end.',
-              time.time() - start_time)
+              program_timer.duration)
           _ShutDown()
           return
 
@@ -587,6 +583,6 @@ class ExecutorTpu(base_runner.BaseRunner):
             RunSave(sess, global_step)
           tf.logging.info(
               'Program finished after %f seconds. Waiting for threads to end.',
-              time.time() - start_time)
+              program_timer.duration)
           _ShutDown()
           return

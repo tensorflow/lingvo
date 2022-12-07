@@ -21,6 +21,7 @@
 
 import collections as py_collections
 import contextlib
+import datetime
 import functools
 import hashlib
 import inspect
@@ -30,9 +31,10 @@ import os
 import pkgutil
 import re
 import threading
+import time
 import traceback
 import typing
-from typing import Any, Callable, List, Optional, Tuple, Union
+from typing import Any, Callable, List, Literal, Optional, Tuple, Union
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -191,7 +193,7 @@ def AssertIdShape(expected_ids_shape_pattern, ids_shape, *args):
   return CallDefun(AssertFn, Transform(tf.convert_to_tensor, inputs))
 
 
-def _CheckNumerics(x, message=None, *args, **kwargs):
+def _CheckNumerics(x, message=None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
   if x.dtype.is_floating:
     x_name = x.name if not tf.executing_eagerly() else '[eager]'
     if 'name' not in kwargs:
@@ -202,7 +204,7 @@ def _CheckNumerics(x, message=None, *args, **kwargs):
     return x
 
 
-def CheckNumerics(inp, message=None, *args, **kwargs):
+def CheckNumerics(inp, message=None, *args, **kwargs):  # pylint: disable=keyword-arg-before-vararg
   """Check numerics for tensors in inp."""
   if not py_utils_flags.enable_check_numerics():
     return inp
@@ -1687,6 +1689,7 @@ def VariableStore(default_store=None):
   Args:
     default_store: variable store dict. If set, and there is no store in the
       stack, use this store instead of creating a new dict.
+
   Yields:
     A dictionary representing the variable store.
   """
@@ -4501,10 +4504,10 @@ def ShiftLeft(tensor, shift_size, pad_val=0, axis=1):
   with tf.control_dependencies(
       [assert_greater_equal(rank, 2),
        assert_greater_equal(shift_size, 0)]):
-    time = GetShape(tensor)[axis]
+    time_dim = GetShape(tensor)[axis]
     begin = tf.scatter_nd([[axis]], [shift_size], [rank])
     return PadSequenceDimension(
-        tf.slice(tensor, begin, size=[-1] * rank), time, pad_val, axis=axis)
+        tf.slice(tensor, begin, size=[-1] * rank), time_dim, pad_val, axis=axis)
 
 
 def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2, trim=False):
@@ -6371,7 +6374,7 @@ def GetTpuEmbeddingGraphCollection():
   return tpu_emb_graph_collection
 
 
-class AuxLossContext:
+class AuxLossContext(contextlib.AbstractContextManager):
   """Context that holds a list of aux-losses.
 
   By default it is non-reentrant, but can be specified as reentrant explicitly
@@ -6654,9 +6657,9 @@ def DecodeProtoField(serialized_protos, message_type, field_name, output_type):
   Args:
     serialized_protos: A string Tensor of shape [batch].
     message_type: Name of the proto message type. Since tf.io.decode_proto() is
-    called with the default descriptor_source='local://', the C++ (not Python!)
-    proto definition(s) must be linked to the binary. You can link in a proto
-    descriptor by creating a cc_library target with alwayslink=1.
+      called with the default descriptor_source='local://', the C++ (not
+      Python!) proto definition(s) must be linked to the binary. You can link in
+      a proto descriptor by creating a cc_library target with alwayslink=1.
     field_name: Name of the field.
     output_type: A DType for the output.
 
@@ -6675,9 +6678,9 @@ def DecodeRepeatedProtoField(serialized_protos, message_type, field_name,
   Args:
     serialized_protos: A string Tensor of shape [batch].
     message_type: Name of the proto message type. Since tf.io.decode_proto() is
-    called with the default descriptor_source='local://', the C++ (not Python!)
-      proto definition(s) must be linked to the binary. You can link in a proto
-      descriptor by creating a cc_library target with alwayslink=1.
+      called with the default descriptor_source='local://', the C++ (not
+      Python!) proto definition(s) must be linked to the binary. You can link in
+      a proto descriptor by creating a cc_library target with alwayslink=1.
     field_name: Name of the field.
     output_type: A DType for the output.
 
@@ -6687,3 +6690,59 @@ def DecodeRepeatedProtoField(serialized_protos, message_type, field_name,
   [output] = tf.io.decode_proto(serialized_protos, message_type, [field_name],
                                 [output_type]).values
   return output
+
+
+class Timer(contextlib.AbstractContextManager):
+  """A utility class and context manager to measure time intervals."""
+
+  def __init__(self):
+    self._start = None
+    self._end = None
+
+  def _Duration(self) -> float:
+    if not self._end:
+      if not self._start:
+        return 0.0
+      # Continue running timer when accessing duration from within the context.
+      return time.time() - self._start
+    return self._end - self._start
+
+  @property
+  def duration(self) -> float:
+    return self._Duration()
+
+  # TODO(b/261583342): Uncomment when pytype is updated/fixed.
+  #   Currently, this errors with GetDuration: bad return type [bad-return-type]
+  # @overload
+  # def GetDuration(self, fmt: Literal['s', 'ms']) -> float:
+  #   ...
+
+  # @overload
+  # def GetDuration(self, fmt: Literal['delta']) -> datetime.timedelta:
+  #   ...
+
+  def GetDuration(
+      self,
+      fmt: Literal['s', 'ms', 'delta'],
+  ) -> Union[float, datetime.timedelta]:
+    """Returns the duration from start to now (or end) in the specified format.
+    """
+    seconds = self._Duration()
+    if fmt == 's':
+      return seconds
+    elif fmt == 'ms':
+      return seconds * 1000
+    return datetime.timedelta(seconds=seconds)
+
+  def Start(self):
+    self._start = time.time()
+
+  def Stop(self):
+    self._end = time.time()
+
+  def __enter__(self):
+    self.Start()
+    return self
+
+  def __exit__(self, *args):
+    self.Stop()

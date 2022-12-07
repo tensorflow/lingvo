@@ -1428,6 +1428,7 @@ pytype_strict_test(
     args = ["--noenable_eager_execution"],
     deps = [
         ":py_utils_test_lib",
+        # Implicit freezegun dependency.
         # Implicit tensorflow functional_ops dependency.
         # Implicit tensorflow init_ops dependency.
     ],
@@ -1440,6 +1441,7 @@ pytype_strict_test(
     main = "py_utils_test.py",
     deps = [
         ":py_utils_test_lib",
+        # Implicit freezegun dependency.
         # Implicit tensorflow functional_ops dependency.
         # Implicit tensorflow init_ops dependency.
     ],

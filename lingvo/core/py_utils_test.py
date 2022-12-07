@@ -23,6 +23,7 @@ import sys
 
 from absl.testing import flagsaver
 from absl.testing import parameterized
+from freezegun import freeze_time
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -4400,6 +4401,20 @@ class MergeDuplicateIdsTest(test_utils.TestCase):
       self.assertAllEqual(ret_ids, expected_ids)
       self.assertAllClose(ret_paddings, expected_paddings)
       self.assertAllClose(ret_tensors['f'], expected_f)
+
+  def testTimerSimple(self):
+    with freeze_time('2022-02-02 03:33:33') as clock:
+      with py_utils.Timer() as t:
+        clock.move_to('2022-02-02 03:33:34')
+    self.assertNear(t.duration, 1, 1e-2)
+
+  def testTimerTwice(self):
+    with freeze_time('2022-02-02 03:33:33') as clock:
+      with py_utils.Timer() as t:
+        clock.move_to('2022-02-02 03:33:34')
+        self.assertNear(t.duration, 1, 1e-2)
+        clock.move_to('2022-02-02 03:33:35')
+    self.assertNear(t.duration, 2, 1e-2)
 
 
 if __name__ == '__main__':

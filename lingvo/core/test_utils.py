@@ -21,7 +21,7 @@ import os
 import re
 import sys
 import typing
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, overload
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -66,7 +66,7 @@ SkipIfNonEager = functools.partial(
     msg='Not compatible with TF1 graph mode, skipping.')
 
 
-class TapeIfEager:
+class TapeIfEager(contextlib.AbstractContextManager):
   """Context manager adaptor for gradient computation across graph/eager modes.
 
   In eager mode, passes through `watch` and `gradient` calls to a managed
@@ -122,7 +122,7 @@ class OverloadedForGraph(typing.Protocol, typing.Generic[RetT]):
     ...
 
 
-@typing.overload
+@overload
 def DefineAndTrace(
     *tensor_specs_or_placeholders: pytypes.Nested[tf.TensorSpec]
 ) -> Callable[[OverloadedForEager[RetT]],
@@ -133,7 +133,7 @@ def DefineAndTrace(
 
 # TODO(jlipschultz): Consider changing the behavior of the graph-mode version of
 # DefineAndTrace to also return a Callable[Callable, Callable] for simplicity.
-@typing.overload
+@overload
 def DefineAndTrace(
     *tensor_specs_or_placeholders: pytypes.Nested[Placeholder]
 ) -> Callable[[OverloadedForGraph[RetT]], RetT]:
