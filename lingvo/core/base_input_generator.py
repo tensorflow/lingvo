@@ -436,6 +436,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
           'CreateTpuEnqueueOps should only be called once.')
     self._tpu_queues = []
     self._per_host_batches = []
+    # Only used when we want to load sparse tensors via a tpu_embedding.
+    # Dense tensors are passed to the TensorCore even if they're not used.
     self._per_host_emb_batches = []
     # A list of lists, where the [i][j] element is the j-th passthrought batch
     # of the i-th task. Each task will have more than one passthrought batch iff
@@ -488,10 +490,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
     else:
       # Run train input generation on the first device
       task_ids = [0]
+
     for task_id in task_ids:
       host_device = host_devices[task_id]
-      if cpu_passthrough_keys and (
-          '/task:{}/device:CPU:0'.format(task_id) not in host_device):
+      if cpu_passthrough_keys and (f'/task:{task_id}/device:CPU:0'
+                                   not in host_device):
         raise ValueError(
             f'CPU passthrough configuration mismatch, device {host_device} '
             f'does not match task id {task_id}.')
@@ -561,6 +564,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
         shapes = batch[0].Transform(lambda x: x.shape).Flatten()
         dtypes = batch[0].Transform(lambda x: x.dtype).Flatten()
 
+        # For SPMD
         if p.use_partitioned_infeed_queue:
           device_assignment = py_utils.GetTpuDeviceAssignment(job_name)
 
@@ -579,6 +583,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
               tuple_types=dtypes,
               tuple_shapes=shapes)
         else:
+          # For SPMD
           if p.use_per_core_infeed:
             q = tpu_feed.InfeedQueue(
                 tuple_types=dtypes,

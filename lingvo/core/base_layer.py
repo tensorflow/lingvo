@@ -392,13 +392,13 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # symbolic expressions, one for each dimension of the variable.
     self._var_symbolic_shape_map = {}
 
-  def FPropDefaultTheta(self, *args, **kwargs):
-    """Calls `FProp`."""
-    return self.FProp(self.theta, *args, **kwargs)
-
   def __call__(self, *args, **kwargs):
-    """Forwards call to FPropDefaultTheta."""
+    """Forwards call to `FPropDefaultTheta`."""
     return self.FPropDefaultTheta(*args, **kwargs)
+
+  def FPropDefaultTheta(self, *args, **kwargs):
+    """Forwards call to `FProp`."""
+    return self.FProp(self.theta, *args, **kwargs)
 
   def FProp(self, theta, *args, **kwargs):
     """Forward propagation.

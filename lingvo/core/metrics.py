@@ -15,6 +15,7 @@
 """Helper classes for computing performance metrics."""
 
 import collections
+from typing import Dict, Tuple, Optional
 
 import lingvo.compat as tf
 from lingvo.core import hyperparams
@@ -276,12 +277,20 @@ class TpuEvalMetrics:
   """
 
   def __init__(self, max_metrics=256):
-    self._metrics = None
-    self._max_metrics = max_metrics
+    self._metrics: Optional[Dict[str, Tuple[tf.Tensor, tf.Tensor]]] = None
+    self._max_metrics: int = max_metrics
 
     # Loop-carried values alternate value and weight; all values are scalars.
     self._initial_values = (2 *
                             self._max_metrics) * [tf.constant(0, tf.float32)]
+
+  @property
+  def initial_values(self):
+    return self._initial_values
+
+  @property
+  def metrics(self):
+    return self._metrics
 
   def SetMetrics(self, metric_dict, step_args):
     """Sets the metrics to evaluate and the per-step output tensors.
@@ -305,10 +314,9 @@ class TpuEvalMetrics:
                                               num_metrics)
     self._metrics = metric_dict
 
-    # self._metrics contains a map of (metric_value,
-    # metric_weight). We convert it into [metric_value *
-    # metric_weight, metric_weight] to make it easier to aggregate
-    # metric values across steps and TPU replicas.
+    # self._metrics contains a map of (metric_value, metric_weight).
+    # We convert it into [metric_value * metric_weight, metric_weight] to make
+    # it easier to aggregate metric values across steps and TPU replicas.
     ret = []
     for _, (value, weight) in sorted(self._metrics.items()):
       assert value.shape.is_fully_defined(), ('%s' % value)
@@ -320,19 +328,6 @@ class TpuEvalMetrics:
     assert len(ret) == 2 * num_metrics
     ret += list(step_args)[len(ret):]
     return ret
-
-  @property
-  def initial_values(self):
-    """Returns the initial loop values."""
-    return self._initial_values
-
-  @property
-  def metrics(self):
-    return self._metrics
-
-  def _Zip(self, values):
-    assert isinstance(values, list)
-    return list(zip(values[::2], values[1::2]))
 
   def FinalizeMetrics(self, loop_result):
     """Compute final average of the metrics, given loop_result tensors.
@@ -347,11 +342,11 @@ class TpuEvalMetrics:
       The tensors of the final avg values and total weights.
     """
     # Each metric has two tensors in the loop carrying result.
-    metrics = loop_result[:2 * len(self._metrics.items())]
+    metrics = loop_result[:len(self.metrics) * 2]
     # Aggregate across tpu replicas.
     metrics = [tf.tpu.cross_replica_sum(x) for x in metrics]
     ret = []
-    for (value, weight) in self._Zip(metrics):
+    for value, weight in py_utils.Chunked(metrics):
       value, weight = py_utils.WeightedAvg(
           tf.math.divide_no_nan(value, weight), weight)
       ret += [value, weight]
@@ -359,7 +354,7 @@ class TpuEvalMetrics:
 
   def PackMetricsValues(self, values):
     """Packs numpy values into a dict of metrics."""
-    for k, v in zip(sorted(self._metrics.keys()), self._Zip(values)):
+    for k, v in zip(sorted(self._metrics.keys()), py_utils.Chunked(values)):
       self._metrics[k] = v
 
   @classmethod
@@ -375,10 +370,10 @@ class TpuEvalMetrics:
     Returns:
       A dict that maps metric names to AverageMetric objects.
     """
-    ret = {}
-    for name, (value, weight) in self._metrics.items():
-      ret[name] = self.ToAverageMetric(value, weight)
-    return ret
+    return {
+        name: self.ToAverageMetric(value, weight)
+        for name, (value, weight) in self._metrics.items()
+    }
 
 
 class AUCMetric(BaseMetric):
@@ -621,18 +616,18 @@ class CorrelationMetric(BaseMetric):
 
 
 class AverageKeyedCorrelationMetric(BaseMetric):
-  """Class to compute correlation per key, then report average across all keys."""
+  """Class to compute correlation per key, then report average across all keys.
+  """
 
   def __init__(self, mode='pearson', bypass_nan=True):
     """Constructor of the class.
 
     Args:
       mode: Possible values: 'pearson', 'spearman', 'kendalltau'.
-      bypass_nan: for keys that has only 1 example, the metric will be NaN,
-        turn on this flag to skip those keys.
-        Depending on the scipy library, it may raise ValueException instead
-        of produce NaN. In this case, the Exception will be suppressed and the
-        key is skipped during calculation.
+      bypass_nan: for keys that has only 1 example, the metric will be NaN, turn
+        on this flag to skip those keys. Depending on the scipy library, it may
+        raise ValueException instead of produce NaN. In this case, the Exception
+        will be suppressed and the key is skipped during calculation.
 
     Raises:
       ImportError: If user has not installed scipy.stats, raise an ImportError.

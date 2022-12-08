@@ -30,6 +30,7 @@ if '--project_name' in sys.argv:
 
 REQUIRED_PACKAGES = [
     'attrs',
+    'etils',
     'graph-compression-google-research',
     'ipykernel',
     'jupyter_http_over_ws',

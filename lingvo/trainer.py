@@ -451,7 +451,7 @@ class RunnerManager:
           additional_job_name = additional_job.replace('/job:', '', 1)
           worker_hosts.extend(_GetClusterSpecDict()[additional_job_name])
       cluster.worker.targets = ','.join(
-          'grpc://{}'.format(host) for host in worker_hosts)
+          f'grpc://{host}' for host in worker_hosts)
 
     cluster.ps.name = FLAGS.ps_job
     cluster.ps.replicas = FLAGS.ps_replicas
@@ -516,7 +516,7 @@ class RunnerManager:
       ps_cfg_dict, train_cfg = self.GetExecutorParams()
       return self.ExecutorTpu(train_cfg, ps_cfg_dict, *common_args)
     else:
-      raise ValueError('job %s is not supported' % job)
+      raise ValueError(f'job {job} is not supported')
 
   def CreateRunners(self, jobs, logdir, trial=base_trial.NoOpTrial()):
     """Creates a list of runners based on `FLAGS.mode`.
@@ -577,9 +577,9 @@ class RunnerManager:
               tf.logging.info('Starting enqueue op %s', op.name)
               return lambda: runner.StartEnqueueOp(op)
 
-            enqueue_name = '%s-enqueue-%d' % (runner_class_name, i)
             tq = threading.Thread(
-                target=StartEnqueue(runner, enqueue_op), name=enqueue_name)
+                target=StartEnqueue(runner, enqueue_op),
+                name=f'{runner_class_name}-enqueue-{i}')
             tq.start()
             threads.append(tq)
       tf.logging.info('Waiting for runners to finish...')

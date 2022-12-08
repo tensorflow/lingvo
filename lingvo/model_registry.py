@@ -337,12 +337,16 @@ class _ModelRegistryHelper:
       decode_summary_emails = FLAGS.decode_summary_emails.split(';')
 
     program_schedule_cfg = program.UpdateProgramSchedule(
-        program_schedule_cfg, datasets_to_eval,
+        program_schedule_cfg,
+        datasets_to_eval,
         FLAGS.executor_train_executions_per_eval,
-        FLAGS.executor_train_steps_per_loop, FLAGS.executor_eval_steps_per_loop,
+        FLAGS.executor_train_steps_per_loop,
+        FLAGS.executor_eval_steps_per_loop,
         FLAGS.executor_decode_steps_per_loop,
-        FLAGS.executor_multi_inputs_decoder, decode_summary_emails,
-        FLAGS.executor_oneoff_checkpoint_to_load)
+        FLAGS.executor_multi_inputs_decoder,
+        decode_summary_emails,
+        FLAGS.executor_oneoff_checkpoint_to_load,
+    )
     return program_schedule_cfg
 
   @classmethod

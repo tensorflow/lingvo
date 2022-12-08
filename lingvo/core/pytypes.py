@@ -19,6 +19,7 @@ A subset of third_party/py/praxis/pytypes.py.
 
 from typing import List, Tuple, TypeVar, Union, Mapping
 
+import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import nested_map
 from lingvo.core import py_utils
@@ -32,5 +33,6 @@ InstantiableParams = hyperparams.InstantiableParams
 
 T = TypeVar('T')
 Nested = Union[T, Tuple[T, ...], List[T], Mapping[str, T], py_utils.NestedMap]
+NestedTensor = Nested[tf.Tensor]
 NestedBool = Nested[bool]
 NestedInt = Nested[int]

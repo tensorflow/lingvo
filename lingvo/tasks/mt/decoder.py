@@ -519,10 +519,8 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     if p.force_alignment and p.sentence_boundary_token_id is None:
       raise ValueError('When p.force_alignment is set, '
                        'must specify p.sentence_boundary_token_id.')
-    if p.softmax.cls == layers.SharedSoftmaxLayer:
-      self._share_sm_emb = True
-    else:
-      self._share_sm_emb = False
+
+    self._share_sm_emb = p.softmax.cls == layers.SharedSoftmaxLayer
 
     if p.cc_schedule is None:
       self.cc_schedule = None
@@ -646,17 +644,15 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
   def ApplyDropout(self, x_in):
     p = self.params
-    assert 0 <= p.dropout_prob and p.dropout_prob < 1.0
+    assert 0 <= p.dropout_prob < 1.0
     if self.do_eval or p.dropout_prob == 0.0:
       return x_in
-    else:
-      return tf.nn.dropout(x_in, rate=p.dropout_prob)
+    return tf.nn.dropout(x_in, rate=p.dropout_prob)
 
   def ApplyClipping(self, theta, x):
     if self.cc_schedule:
       return self.cc_schedule.ApplyClipping(theta.cc_schedule, x)
-    else:
-      return x
+    return x
 
   def _ZeroOutFirstTimeStep(self, token_embs, batch, time):
     """Zeroes out the first time step.
@@ -672,8 +668,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     p = self.params
 
     # [[[0]]]
-    zero_out_index = tf.expand_dims(
-        tf.expand_dims(tf.constant([0]), axis=1), axis=1)
+    zero_out_index = tf.constant([[[0]]])
     # [[[0]] ... [[time-1]]]
     time_steps = tf.expand_dims(tf.expand_dims(tf.range(time), axis=1), axis=1)
     condition = tf.equal(zero_out_index, time_steps)

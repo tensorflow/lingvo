@@ -2239,10 +2239,9 @@ class EmbeddingLayer(base_layer.BaseLayer):
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
 
-    # EmbeddingLayer handles vars/theta differently from other layers
-    # because when embedding shards are placed on ps, it's more
-    # efficiently to do embedding lookups on ps and sends the result
-    # back to the worker.
+    # EmbeddingLayer handles vars/theta differently from other layers because
+    # when embedding shards are placed on the ps, it's more efficient to do
+    # embedding lookups there and send the result back to the worker.
     emb_vars = []
     emb_shards = []
     for i in range(self._actual_shards):

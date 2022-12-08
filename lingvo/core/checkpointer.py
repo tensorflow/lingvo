@@ -658,7 +658,10 @@ class EagerCheckpointerV1(_EagerCheckpointer):
 
 
 class EagerCheckpointerV2(_EagerCheckpointer):
-  """Eager mode V2 checkpointer."""
+  """Eager mode V2 checkpointer.
+
+  Places checkpoints in /{LOGDIR}/train/ckpt_V2/{step:08}.
+  """
 
   def __init__(self,
                train_dir,

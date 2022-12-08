@@ -18,7 +18,7 @@ import collections
 import dataclasses
 import functools
 import re
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -76,7 +76,7 @@ class ExecutorEma:
 def _VariablesForEMA(params, model_var_list):
   """Gets a list of variables that need to apply exponential moving average."""
   # Use variable reference since variable is not hashable in eager mode.
-  ref_set = lambda variables: set([v.ref() for v in variables])
+  ref_set = lambda variables: {v.ref() for v in variables}
 
   trainable_variables = [var for var in model_var_list if var.trainable]
 
@@ -201,7 +201,7 @@ class BaseTask(base_layer.BaseLayer):
         'one of the rules in the loading rules, as well as one of the regular '
         'expressions in the ignore rules, the variable will not be initialized '
         'from the checkpoint, but will instead be initialized from the '
-        'variable initalizer defined in the graph.'
+        'variable initializer defined in the graph.'
         'Examples:'
         '{"checkpoint_path": ([("(.*)", "%s")], [])} will initialize all the '
         'model parameters from the checkpoint_path.')
@@ -269,7 +269,7 @@ class BaseTask(base_layer.BaseLayer):
         'clip_gradient_single_norm_to_value', 0.0,
         'Clip gradient by single tensor norm to this value. This is '
         'similar to the behaviour of tf.clip_by_norm. Note this is mutually '
-        'exlusive to using clip_gradient_norm_to_value.')
+        'exclusive to using clip_gradient_norm_to_value.')
     tp.Define('grad_norm_to_clip_to_zero', 0.0,
               'Clip gradient to 0 if its norm exceeds this value.')
     tp.Define('grad_norm_tracker', None, 'Params for GradNormTracker.')
@@ -564,6 +564,12 @@ class BaseTask(base_layer.BaseLayer):
     predictions = self.ComputePredictions(theta, input_batch)
     return self.ComputeLoss(theta, predictions, input_batch)
 
+  def FPropDefaultTheta(self, input_batch=None):
+    """Calls `FProp` with this layer's parameters."""
+    if input_batch is None:
+      input_batch = self.GetInputBatch()
+    return self.FProp(self.theta, input_batch)
+
   def FProp(self, theta, input_batch):
     """Forward propagation.
 
@@ -587,13 +593,14 @@ class BaseTask(base_layer.BaseLayer):
         index.
     """
     p = self.params
-    with tf.name_scope('fprop'), tf.name_scope(
-        p.name), py_utils.TaskCallScope(self):
-      with py_utils.GlobalStepContext(self._global_step_var):
-        # Always reset step seed at the start of a new global_step.
-        py_utils.ResetStepSeed()
-        metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
-        self._FPropResult(metrics, per_example, input_batch)
+    with tf.name_scope('fprop'), \
+         tf.name_scope(p.name), \
+         py_utils.TaskCallScope(self), \
+         py_utils.GlobalStepContext(self._global_step_var):
+      # Always reset step seed at the start of a new global_step.
+      py_utils.ResetStepSeed()
+      metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
+      self._FPropResult(metrics, per_example, input_batch)
 
     return metrics, per_example
 
@@ -629,23 +636,23 @@ class BaseTask(base_layer.BaseLayer):
     with self.cluster:
       for w_id, w_devs in enumerate(dev_list_per_replica):
         # Make local copy of the vars, shard on devices for this worker.
-        theta_local = py_utils.CreateLocalTheta(
-            theta, w_devs, label='worker %d' % w_id)
+        theta_local = py_utils.CreateLocalTheta(theta, w_devs, f'worker {w_id}')
 
         for s_id in range(splits_per_replica):
           # s_id-th split for the w_id-th worker.
           split_id = splits_per_replica * w_id + s_id
           with cluster_factory.SetModelSplit(split_id) as c:
             with tf.device(c.WorkerDeviceInModelSplit(0)):
-              with tf.name_scope('tower_%d_%d' % (w_id, s_id)):
+              with tf.name_scope(f'tower_{w_id}_{s_id}'):
                 batch = input_batch[split_id]
                 metrics, per_example = self.FPropTower(theta_local, batch)
           all_metrics.append(metrics)
           all_per_example_tensors.append(per_example)
-    return py_utils.WeightedAvgOfMetrics(
-        all_metrics), py_utils.ConcatPerExampleTensors(all_per_example_tensors)
+    return (py_utils.WeightedAvgOfMetrics(all_metrics),
+            py_utils.ConcatPerExampleTensors(all_per_example_tensors))
 
   def _FPropResult(self, metrics, per_example, input_batch):
+    """Post-process the result of FPropSplitInputBatch."""
     # Adds stats about the input batch.
     p = self._params
     if p.input is not None and 'num_samples_in_batch' not in metrics:
@@ -657,31 +664,32 @@ class BaseTask(base_layer.BaseLayer):
         # the final result is the client-side batch size.
         per_batch_size = self.input_generator.GetPerBatchSize(input_batch)
 
-      if per_batch_size is not None:
-        metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
-            per_batch_size * self.cluster.num_splits_per_client),
-                                           tf.constant(1.0))
+      if per_batch_size is None:
+        n_samples = self.input_generator.GlobalBatchSize()
       else:
-        # By default `GetPerBatchSize` returns None. In that case, fall back to
-        # using `GlobalBatchSize`.
-        metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
-            self.input_generator.GlobalBatchSize()), tf.constant(1.0))
+        n_samples = per_batch_size * self.cluster.num_splits_per_client
+      metrics['num_samples_in_batch'] = (tf.convert_to_tensor(n_samples),
+                                         tf.constant(1.0))
 
-    # Generates summaries.
+    # Generate summaries.
     for name, (value, weight) in metrics.items():
       self.AddEvalMetric(
           name,
           value,
           weight,
           raise_if_already_added=not py_utils.IsEagerMode())
+
     if p.train.keep_per_example_loss and 'loss' in per_example:
       metrics['per_example_loss'] = per_example['loss']
+
     per_example = self.FilterPerExampleTensors(per_example)
     for name, value in per_example.items():
       self.AddPerExampleTensor(name, value)
+
     # Loss.
     self._loss, num_predictions = metrics['loss']
     self._loss = py_utils.CheckNumerics(self._loss)
+
     self._metrics = metrics
     if 'num_predictions' not in metrics:
       summary_utils.scalar('num_predictions', num_predictions)
@@ -693,12 +701,6 @@ class BaseTask(base_layer.BaseLayer):
     else:
       return self.input_generator.SplitInputBatch(
           self.cluster.num_splits_per_client)
-
-  def FPropDefaultTheta(self, input_batch=None):
-    """Calls `FProp` with this layer's parameters."""
-    if input_batch is None:
-      input_batch = self.GetInputBatch()
-    return self.FProp(self.theta, input_batch)
 
   def AdjustGradients(self, vars_gradients):
     """Allow for custom gradient manipulation prior to clipping."""
@@ -716,12 +718,23 @@ class BaseTask(base_layer.BaseLayer):
           *[opt.ApplyPostTrainingLoop() for opt in self.learners])
 
   def BProp(self):
-    with py_utils.GlobalStepContext(
-        self._global_step_var), py_utils.TaskCallScope(self):
-      self._BPropForVariables(self.vars)
+    with py_utils.GlobalStepContext(self._global_step_var):
+      with py_utils.TaskCallScope(self):
+        self._BPropForVariables(self.vars)
 
   def _BPropGenTrainOps(self, vmap, metrics=None, add_summary=True):
-    """Populates the train_ops dictionary in a backwards pass."""
+    """Populates the train_ops dictionary in a backwards pass.
+
+    Primarily, calls optimization.Apply for each learner.
+
+    Args:
+      vmap: a NestedMap of variables to optimize.
+      metrics: an optional Dict[str, (value, weight)] containing 'loss'.
+      add_summary: if true, publishes eval metrics returned by optimizer.Apply.
+
+    Returns:
+      Dictionary of op name -> bprop op.
+    """
     metrics = metrics or self._metrics
 
     bprop_variable_filters = self.input_generator.GetBpropVariableFilters()
@@ -1056,8 +1069,7 @@ class BaseTask(base_layer.BaseLayer):
     self._eval_metrics[name] = (value, weight)
 
   def AddPerExampleTensor(self, name, value):
-    if name in self._per_example and not tf.executing_eagerly(
-    ) and not py_utils.IsEagerMode():
+    if name in self._per_example and not py_utils.IsEagerMode():
       raise ValueError('Metric %s has already been defined.' % name)
     self._per_example[name] = value
 
@@ -1252,11 +1264,11 @@ class BaseModel(base_layer.BaseLayer):
     raise NotImplementedError('Abstract method')
 
   @property
-  def tasks(self):
+  def tasks(self) -> List[BaseTask]:
     """Returns a list of all tasks."""
     raise NotImplementedError('Abstract method')
 
-  def GetTask(self, task_name):
+  def GetTask(self, task_name) -> BaseTask:
     """Return the task associated with 'task_name'.
 
     Args:
@@ -1327,26 +1339,24 @@ class SingleTaskBase(BaseModel):
       self._MakeEMAVariablesDict()
 
   @property
-  def tasks(self):
+  def tasks(self) -> List[BaseTask]:
     return [self._task]
 
-  def GetTask(self, task_name=None):
+  def GetTask(self, task_name: Optional[str] = None) -> BaseTask:
     assert not task_name, 'Must not specify >task_name< for single-task model.'
     return self._task
 
-  def SampleTask(self, global_step):
+  def SampleTask(self, global_step) -> BaseTask:
     return self._task
 
-  def ConstructFPropBPropGraph(self):
+  def ConstructFPropBPropGraph(self) -> None:
     self._task.FPropDefaultTheta()
     self._task.BProp()
 
-  def ConstructFPropGraph(self):
+  def ConstructFPropGraph(self) -> None:
     self._task.FPropDefaultTheta()
 
-  def ConstructDecodeGraph(self,
-                           task_name=None,
-                           input_batch=None):
+  def ConstructDecodeGraph(self, task_name=None, input_batch=None):
     with py_utils.TaskCallScope(self._task):
       if not input_batch:
         input_batch = self._task.GetInputBatch()
@@ -1578,14 +1588,14 @@ class MultiTaskModel(BaseModel):
     return MultiTaskModel.TaskNames(self.params)
 
   @property
-  def tasks(self):
+  def tasks(self) -> List[BaseTask]:
     return [self.children[name] for name in self.task_names]
 
-  def GetTask(self, task_name):
+  def GetTask(self, task_name: str) -> BaseTask:
     assert task_name, 'Must specify >task_name< for multi-task model.'
     return self.children[task_name]
 
-  def SampleTask(self, global_step):
+  def SampleTask(self, global_step: int) -> BaseTask:
     """Returns a sampled task according to self.task_schedule.
 
     `self.task_schedule.cur_probs` will also be updated.
@@ -1597,14 +1607,14 @@ class MultiTaskModel(BaseModel):
     tf.logging.info('Sampled task: %s', sampled_task)
     return self.children[sampled_task]
 
-  def ConstructFPropBPropGraph(self):
+  def ConstructFPropBPropGraph(self) -> None:
     for task_name in self.task_names:
       with tf.name_scope(task_name):
         task = self.GetTask(task_name)
         task.FPropDefaultTheta()
         task.BProp()
 
-  def ConstructFPropGraph(self):
+  def ConstructFPropGraph(self) -> None:
     for task_name in self.task_names:
       with tf.name_scope(task_name):
         task = self.GetTask(task_name)

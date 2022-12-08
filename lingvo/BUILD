@@ -2,7 +2,7 @@ load(
     "//lingvo:lingvo.bzl",
     "lingvo_py_binary",
 )
-load("//lingvo:lingvo.bzl", "pytype_strict_library")
+load("//lingvo:lingvo.bzl", "pytype_library", "pytype_strict_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -17,7 +17,7 @@ config_setting(
     values = {"define": "using_cuda=true"},
 )
 
-py_library(
+pytype_library(
     name = "base_runner",
     srcs = ["base_runner.py"],
     deps = [
@@ -344,6 +344,7 @@ py_library(
         "//lingvo/core:cluster_factory",
         "//lingvo/core:ml_perf_log",
         "//lingvo/core:multitask_model",
+        "//lingvo/core:program_lib",
         "//lingvo/core:py_utils",
         "//lingvo/core:task_scheduler",
         "//lingvo/core:tpu_embedding_layers",

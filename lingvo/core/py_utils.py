@@ -34,7 +34,7 @@ import threading
 import time
 import traceback
 import typing
-from typing import Any, Callable, List, Literal, Optional, Tuple, Union
+from typing import Any, Dict, Callable, List, Literal, Optional, Tuple, Union, Sequence
 
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -3563,7 +3563,7 @@ def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum, name=''):
   return tf.cast(avg, values.dtype), total_weight
 
 
-def WeightedAvgOfMetrics(metrics):
+def WeightedAvgOfMetrics(metrics: List[Dict[str, Tuple[float, float]]]):
   """Computes the weighted average of metrics in the list.
 
   Args:
@@ -3572,20 +3572,23 @@ def WeightedAvgOfMetrics(metrics):
   Returns:
     ret_dict - dictionary of weighted averages of each metrics.
   """
-  ret_dict = {}
-  lists_of_metrics = {}
+  lists_of_metrics = py_collections.defaultdict(list)
   for m in metrics:
     for name, (value, weight) in m.items():
-      if name not in lists_of_metrics:
-        lists_of_metrics[name] = []
       lists_of_metrics[name].append((value, weight))
 
+  ret_dict = {}
   for name, values_and_weights in sorted(lists_of_metrics.items()):
     values = tf.stack([x[0] for x in values_and_weights])
     weights = tf.stack([x[1] for x in values_and_weights])
     ret_dict[name] = WeightedAvg(values, weights, tf.reduce_sum, name)
 
   return ret_dict
+
+
+def Chunked(values: Sequence[Any]) -> List[Tuple[Any, Any]]:
+  """Chunks the input list of `2n` values into a list of `n` 2-tuples."""
+  return list(zip(values[::2], values[1::2]))
 
 
 def ConcatPerExampleTensors(per_example):
@@ -3595,20 +3598,17 @@ def ConcatPerExampleTensors(per_example):
     per_example: list of dictionaries of per-example tensors.
 
   Returns:
-    ret_dict - string -> concatenated tensors.
+    string -> concatenated tensors.
   """
-  ret_dict = {}
-  lists_of_per_example = {}
+  lists_of_per_example = py_collections.defaultdict(list)
   for m in per_example:
     for name, value in m.items():
-      if name not in lists_of_per_example:
-        lists_of_per_example[name] = []
       lists_of_per_example[name].append(value)
 
-  for name, values in sorted(lists_of_per_example.items()):
-    ret_dict[name] = tf.concat(values, 0)
-
-  return ret_dict
+  return {
+      name: tf.concat(values, 0)
+      for name, values in sorted(lists_of_per_example.items())
+  }
 
 
 def CombineMetrics(loss_metric_weight_pairs):
@@ -4520,8 +4520,8 @@ def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2, trim=False):
     eos_id: ID for the eos special token.
     trim: Whether to trim the last elements in the output Tensors, so that the
       lenghts of the output Tensors are same as the input Tensors. Otherwise,
-      the output Tensors are longer than the input Tensors by one because of
-      the added sos / eos.
+      the output Tensors are longer than the input Tensors by one because of the
+      added sos / eos.
 
   Returns:
     A NestedMap with the following fields, where maxlen' equals maxlen when

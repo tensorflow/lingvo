@@ -122,6 +122,7 @@ class BaseRunner:
     # Ensure global step tensor is created.
     with contextlib.ExitStack() as stack:
       if not py_utils.IsEagerMode():
+        assert self._graph
         stack.enter_context(self._graph.as_default())
         stack.enter_context(tf.device(self._cluster.GetPlacer()))
       # It is important that we enter the tf.container scope *after*
@@ -523,7 +524,7 @@ class BaseRunner:
     return
 
   def _LoopEnqueue(self, op, session_override=None):
-    """Runs the enqueue op in a loop."""
+    """Runs the enqueue op in a loop. Used by the Trainer and TrainerTpu."""
     if py_utils.IsEagerMode():
       raise ValueError('_LoopEnqueue is not supported in eager mode.')
     p = self.params

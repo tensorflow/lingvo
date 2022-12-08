@@ -280,6 +280,7 @@ py_library(
         ":tpu_embedding_layers",
         "//lingvo:compat",
         "//lingvo/core/ops",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -2341,7 +2342,9 @@ py_library(
         ":ml_perf_log",
         ":program_utils",
         ":py_utils",
+        ":pytypes",
         ":summary_utils",
+        # Implicit etils (/epath) dependency.
         "//lingvo:base_trial",
         "//lingvo:compat",
         # Implicit tensorflow grpc dependency.
@@ -2627,6 +2630,7 @@ pytype_strict_library(
         ":hyperparams",
         ":nested_map",
         ":py_utils",
+        "//lingvo:compat",
         # Implicit numpy dependency.
     ],
 )

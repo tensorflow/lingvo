@@ -15,6 +15,7 @@
 """Programs for interleaving execution on TPU."""
 
 import _thread
+import abc
 import collections
 import contextlib
 import functools
@@ -22,16 +23,19 @@ import multiprocessing.dummy
 import os
 import queue
 import time
+from typing import Callable, List, Union, Optional
 
+from etils import epath
 from lingvo import base_trial
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
-from lingvo.core import metrics
+from lingvo.core import metrics as metrics_lib
 from lingvo.core import ml_perf_log as mlp_log
 from lingvo.core import program_utils
 from lingvo.core import py_utils
+from lingvo.core import pytypes
 from lingvo.core import summary_utils
 
 # pylint:disable=g-direct-tensorflow-import
@@ -85,7 +89,7 @@ class BaseProgram:
 
   @classmethod
   def Params(cls):
-    """"Defaults parameters for Programs."""
+    """Default parameters for Programs."""
     p = hyperparams.InstantiableParams(cls)
     p.Define('task', None, 'Underlying task')
     p.Define('logdir', None, 'Log directory')
@@ -156,20 +160,28 @@ class BaseProgram:
 
     self._InitializeVizier()
 
+  @property
+  def model(self) -> base_model.BaseModel:
+    return self._model
+
+  @property
+  def task(self) -> base_model.BaseTask:
+    return self._task
+
   def _SetProgramDir(self):
     """Set program dir for output."""
     p = self.params
+
     # Program dirs are where the summaries are written to.
     if p.task_name:
-      program_dir_name = (
-          p.task_name + '_' + p.name + '_' + p.dataset_name.lower())
+      program_dir_name = f'{p.task_name}_{p.name}_{p.dataset_name.lower()}'
     else:
-      program_dir_name = p.name + '_' + p.dataset_name.lower()
+      program_dir_name = f'{p.name}_{p.dataset_name.lower()}'
     self._program_dir = os.path.join(self._logdir, program_dir_name)
-    tf.io.gfile.makedirs(self._program_dir)
-    with tf.io.gfile.GFile(os.path.join(self._program_dir, 'params.txt'),
-                           'w') as f:
-      f.write(p.ToText())
+
+    pdir = epath.Path(self._program_dir)
+    pdir.mkdir(parents=True, exist_ok=True)
+    (pdir / 'params.txt').write_text(p.ToText())
 
   def _InitializeVizier(self):
     """Checks if this program should report metrics to vizier."""
@@ -219,7 +231,7 @@ class BaseProgram:
         tf.compat.v2.summary.scalar(tag, value, step=steps)
     else:
       self._summary_writer.add_summary(
-          metrics.CreateScalarSummary(tag, value), steps)
+          metrics_lib.CreateScalarSummary(tag, value), steps)
 
   def _WriteSummaries(self, job_name, global_step, summaries):
     """Write summaries to be viewed by TensorBoard.
@@ -336,7 +348,7 @@ class BaseProgram:
     """Compile the program using the given session handle."""
     self.InitInputs(sess)
     if not py_utils.IsEagerMode() and self._compile_op is not None:
-      self.SetStatusMessage('Compiling %s' % self._program_name)
+      self.SetStatusMessage(f'Compiling {self._program_name}')
       result = sess.run(self._compile_op)
       proto = tpu_compilation_result.CompilationResultProto()
       proto.ParseFromString(result)
@@ -346,7 +358,7 @@ class BaseProgram:
         self.SetStatusMessage(error_msg)
         tf.logging.fatal(error_msg)
 
-      self.SetStatusMessage('Compiling {} done.'.format(self._program_name))
+      self.SetStatusMessage(f'Compiling {self._program_name} done.')
       tf.logging.info('Compiling %s done.', self._program_name)
 
   def Run(self, sess=None, threadpool=None):
@@ -397,7 +409,8 @@ class BaseProgram:
           shared_model=self._shared_model, executor_ema=self._executor_ema)
     return task_params.Instantiate(executor_ema=self._executor_ema)
 
-  def _OutfeedEnqueue(self, per_example_tensors):
+  def _OutfeedEnqueue(self,
+                      per_example_tensors: Optional[pytypes.NestedTensor]):
     if not per_example_tensors:
       return tf.constant(0.0)
     per_example_tensors = py_utils.NestedMap(per_example_tensors)
@@ -405,47 +418,13 @@ class BaseProgram:
     with tf.device(device):
       return tpu_ops.outfeed_enqueue_tuple(per_example_tensors.Flatten())
 
-  def GetModel(self):
-    return self._model
+  def _GetTaskStep(self, sess=None):
+    step = self.task.global_step
+    return step.numpy() if sess is None else sess.run(step)
 
-
-class InputBenchmark(BaseProgram):
-  """Measures input generation steps/sec depending on the params below."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define('warmup_loops', 1,
-             'How many loops to warmup before measuring elapsed time.')
-    p.Define('measurement_loops', 5, 'How many loops to measure across.')
-    return p
-
-  def __init__(self, params, **kwargs):
-    super().__init__(params, input_benchmark_only=True, **kwargs)
-    self._program_name = 'InputBenchmark'
-
-  def BuildTpuSubgraph(self):
-    with py_utils.OpportunisticVariableReuseScope(True):
-      self._model = self._InstantiateTaskModel(self._task_params)
-    self._task = self._model.GetTask()
-    self._task.input.CreateTpuEnqueueOps(benchmark_only=True)
-
-  def Run(self, sess=None):
-    p = self.params
-    # Input benchmark doesn't work with eager yet.
-    assert not py_utils.IsEagerMode()
-
-    for _ in range(p.warmup_loops):
-      self._InfeedLoop(sess)
-
-    start_time = time.time()
-    for _ in range(p.measurement_loops):
-      self._InfeedLoop(sess)
-    elapsed_secs = time.time() - start_time
-
-    steps_per_sec = p.measurement_loops * self._steps_per_loop / elapsed_secs
-    tf.logging.info('Input benchmark: steps/sec %f', steps_per_sec)
-    return True
+  def _GetGlobalStep(self, sess=None):
+    step = self.model.global_step
+    return step.numpy() if sess is None else sess.run(step)
 
 
 class TrainProgram(BaseProgram):
@@ -468,6 +447,7 @@ class TrainProgram(BaseProgram):
     p = self.params
     self._summary_interval_steps = p.summary_interval_steps
     self._next_summary_step = None
+
     if (p.ml_perf is not None and p.ml_perf.benchmark_name is not None and
         p.ml_perf.steps_per_epoch is not None):
       self._ml_perf = p.ml_perf
@@ -567,21 +547,21 @@ class TrainProgram(BaseProgram):
             stack.enter_context(py_utils.GradientTape(persistent=True))
           self._model.ConstructFPropBPropGraph()
       per_step_eval_metrics = self._eval_metrics.SetMetrics(
-          self._task.eval_metrics, args)
-      outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
+          self.task.eval_metrics, args)
+      outfeed_op = self._OutfeedEnqueue(self.task.per_example_tensors)
       summed_metrics = []
       assert len(per_step_eval_metrics) == len(args)
       with tf.control_dependencies([outfeed_op]):
         for x, y in zip(per_step_eval_metrics, args):
           summed_metrics.append(x + y)
-      return summed_metrics + [self._task.train_op]
+      return summed_metrics + [self.task.train_op]
 
   def InfeedTFFunc(self):
-    """Infeed function. Only needed in tf.function."""
-    self._task.input.DeviceLoopSetupEager()
+    """Infeed function. Only needed in tf.function / eager mode."""
+    self.task.input.DeviceLoopSetupEager()
 
     def InfeedBody(i):
-      self._task.input.CreateTpuEnqueueOps()
+      self.task.input.CreateTpuEnqueueOps()
       return i + 1
 
     tf.while_loop(
@@ -596,7 +576,7 @@ class TrainProgram(BaseProgram):
         self.params.spmd or
         self._task_params.input.use_partitioned_infeed_queue)
 
-    self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
+    self._eval_metrics = metrics_lib.TpuEvalMetrics(max_metrics=p.max_metrics)
 
     with py_utils.OpportunisticVariableReuseScope(True):
       self._model = self._InstantiateTaskModel(self._task_params)
@@ -623,9 +603,12 @@ class TrainProgram(BaseProgram):
           TpuTrainLoop,
           num_shards=self.data_parallelism,
           device_assignment=py_utils.GetTpuDeviceAssignment())
-      outfeed = self._OutfeedDequeueLoop(self._task.per_example_tensors,
-                                         self._steps_per_loop,
-                                         self.data_parallelism)
+
+      outfeed = self._OutfeedDequeueLoop(
+          self._task.per_example_tensors,
+          self._steps_per_loop,
+          self.data_parallelism,
+      )
 
       def _ConstructPostTrainingLoop(metric_values, outfeed):
         """Returns the op for tpu training with tail cpu computation."""
@@ -648,19 +631,18 @@ class TrainProgram(BaseProgram):
       with self._summary_writer.as_default():
         self.infeed_fn = tf.function(autograph=False)(
             self.InfeedTFFunc).get_concrete_function()
-        self.tpu_outs = (
+        self.tpu_train_fn = (
             tf.function(autograph=False)(TrainFunc).get_concrete_function())
     else:
-      self.tpu_outs = TrainFunc()
+      self.tpu_train_fn = TrainFunc()
 
     # Write model analysis.
     self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
         self._model)
     tf.logging.info('Total params=%d', self._total_num_params)
     try:
-      with tf.io.gfile.GFile(
-          os.path.join(self._program_dir, 'model_analysis.txt'), 'w') as f:
-        f.write(self._model_analysis)
+      analysis_file = epath.Path(self._program_dir) / 'model_analysis.txt'
+      analysis_file.write_text(self._model_analysis)
     except tf.errors.NotFoundError as e:
       tf.logging.info('Failed to write model analysis %s', e)
 
@@ -675,51 +657,10 @@ class TrainProgram(BaseProgram):
     else:
       return False
 
-  def Run(self, sess=None):
-    # Prevent overtraining.
-    if py_utils.IsEagerMode():
-      task_global_step = self._task.global_step.numpy()
-    else:
-      task_global_step = sess.run(self._task.global_step)
-    if self._ShouldStop(task_global_step):
-      return True
-
-    if self._ml_perf:
-      mlp_log.mlperf_print(
-          'block_start',
-          None,
-          metadata={
-              'epoch_count': 1,
-              'first_epoch_num': 1
-          })
-
-    if py_utils.IsEagerMode():
-      async_executor = executor.new_executor(enable_async=True)
-      with context.executor_scope(async_executor):
-        self.infeed_fn()
-
-      values, outfeeds = self.tpu_outs()
-      # Ensure that the infeed ops are finished
-      # This is necessary to ensure that any state in the infeed ops is
-      # synchronized before the next device loop. Otherwise we might see that
-      # a device loop still using the same data batches in the last device loop.
-      async_executor.wait()
-
-      values = py_utils.Transform(lambda x: x.numpy(), values)
-      outfeeds = py_utils.Transform(lambda x: x.numpy(), outfeeds)
-    else:
-      infeed_future = self._infeed_pool.apply_async(
-          self._InfeedLoop, args=(sess,))
-      values, outfeeds = sess.run(self.tpu_outs)
-      infeed_future.get()
-
+  def _MaybeWriteSummary(self, sess, global_step, values, outfeeds):
+    """Handles writing summaries when _ShouldWriteSummary is true."""
     self._eval_metrics.PackMetricsValues(values)
     eval_metrics = self._eval_metrics.metrics
-
-    if py_utils.IsEagerMode():
-      global_step = self._model.global_step.numpy()
-    else:
-      global_step = sess.run(self._model.global_step)
 
     if self._ShouldWriteSummary(global_step):
       step_rate, example_rate, total_examples = (
@@ -739,30 +680,68 @@ class TrainProgram(BaseProgram):
       self.SetStatusMessage('Executing train program at step %d %s' %
                             (global_step, ','.join(status_strs)))
 
-      if py_utils.IsEagerMode():
-        task_global_step = self._task.global_step.numpy()
-        # TODO(laigd): Not all `ProcessFPropResults` work in Eager.
-        if py_utils.RunProcessFPropResultsInEager():
-          summaries = self._task.ProcessFPropResults(None, task_global_step,
-                                                     eval_metrics, outfeeds)
-      else:
-        task_global_step = sess.run(self._task.global_step)
-        summaries = self._task.ProcessFPropResults(sess, task_global_step,
+      # TODO(laigd): Not all `ProcessFPropResults` work in Eager.
+      if not py_utils.IsEagerMode() or py_utils.RunProcessFPropResultsInEager():
+        summaries = self._task.ProcessFPropResults(sess,
+                                                   self._GetGlobalStep(sess),
                                                    eval_metrics, outfeeds)
+      if not py_utils.IsEagerMode():
         self._WriteSummaries(
             os.path.basename(self._program_dir), global_step, summaries)
       self._summary_writer.flush()
 
+  def Run(self, sess=None):
+    """Runs the encapsulated training program.
+
+    Args:
+      sess: the session. None if in eager mode.
+
+    Returns:
+      True if the task is complete, False otherwise.
+    """
+    task_step = self._GetTaskStep(sess)
+    if self._ShouldStop(task_step):
+      return True  # Prevent overtraining.
+
     if self._ml_perf:
       mlp_log.mlperf_print(
-          'block_stop', None, metadata={
-              'epoch_num': 1,
-              'first_epoch_num': 1
-          })
+          'block_start', None, metadata=dict(epoch_count=1, first_epoch_num=1))
+
+    # Run the actual graph
+    if py_utils.IsEagerMode():
+      # Use this async executor to manage the infeed thread. (Using
+      # threading.Thread causes issues because the tpu library is dependent on
+      # some global state which wouldn't be properly managed.)
+      async_executor = executor.new_executor(enable_async=True)
+      with context.executor_scope(async_executor):
+        self.infeed_fn()
+
+      values, outfeeds = self.tpu_train_fn()
+      # Ensure that the infeed ops are finished
+      # This is necessary to ensure that any state in the infeed ops is
+      # synchronized before the next device loop. Otherwise we might see that
+      # a device loop still using the same data batches in the last device loop.
+      async_executor.wait()
+
+      values, outfeeds = py_utils.Transform(lambda x: x.numpy(),
+                                            (values, outfeeds))
+    else:
+      infeed_future = self._infeed_pool.apply_async(
+          self._InfeedLoop, args=(sess,))
+      values, outfeeds = sess.run(self.tpu_train_fn)
+      infeed_future.get()
+
+    global_step = self._GetGlobalStep(sess)
+
+    self._MaybeWriteSummary(sess, global_step, values, outfeeds)
+
+    if self._ml_perf:
+      mlp_log.mlperf_print(
+          'block_stop', None, metadata=dict(epoch_num=1, first_epoch_num=1))
 
     vizier_early_stop = self._ReportVizierMetrics(
         global_step, self._eval_metrics.ToAverageMetrics())
-    return self._ShouldStop(task_global_step) or vizier_early_stop
+    return self._ShouldStop(task_step) or vizier_early_stop
 
   def _ShouldStop(self, task_global_step):
     """Simpler version of _ShouldStop without early stopping."""
@@ -801,10 +780,7 @@ class EvalProgram(BaseProgram):
       self._model.ConstructFPropGraph()
       per_step_eval_metrics = self._eval_metrics.SetMetrics(
           self._task.eval_metrics, args)
-      summed_metrics = []
-      for x, y in zip(per_step_eval_metrics, args):
-        summed_metrics.append(x + y)
-      return summed_metrics
+      return [x + y for x, y in zip(per_step_eval_metrics, args)]
 
   def InfeedTFFunc(self):
     """Infeed function. Only needed in tf.function."""
@@ -847,7 +823,7 @@ class EvalProgram(BaseProgram):
     tf.logging.info(f'EvalProgram {self.params.dataset_name} BuildTpuSubGraph')
     p = self.params
     with cluster_factory.SetEval(True):
-      self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
+      self._eval_metrics = metrics_lib.TpuEvalMetrics(max_metrics=p.max_metrics)
       with py_utils.OpportunisticVariableReuseScope(True):
         self._model = self._InstantiateTaskModel(self._task_params)
       self._task = self._model.GetTask()
@@ -860,17 +836,13 @@ class EvalProgram(BaseProgram):
         with self._summary_writer.as_default():
           self.infeed_fn = tf.function(autograph=False)(
               self.InfeedTFFunc).get_concrete_function()
-          self.tpu_outs = (
-              tf.function(autograph=False)(
-                  self.EvalFunc).get_concrete_function())
+          self.tpu_eval_fn = tf.function(autograph=False)(
+              self.EvalFunc).get_concrete_function()
       else:
-        self.tpu_outs = self.EvalFunc()
+        self.tpu_eval_fn = self.EvalFunc()
 
   def Run(self, sess=None):
-    if py_utils.IsEagerMode():
-      global_step = self._model.global_step.numpy()
-    else:
-      global_step = sess.run(self._model.global_step)
+    global_step = self._GetGlobalStep(sess)
 
     mlperf_epoch_num = None
     if self._ml_perf:
@@ -893,7 +865,7 @@ class EvalProgram(BaseProgram):
       with context.executor_scope(async_executor):
         self.infeed_fn()
 
-      values = self.tpu_outs()
+      values = self.tpu_eval_fn()
       values = py_utils.Transform(lambda x: x.numpy(), values)
       # Ensure that the infeed ops are finished
       # This is necessary to ensure that any state in the infeed ops is
@@ -903,7 +875,7 @@ class EvalProgram(BaseProgram):
     else:
       infeed_future = self._infeed_pool.apply_async(
           self._InfeedLoop, args=(sess,))
-      values = sess.run(self.tpu_outs)
+      values = sess.run(self.tpu_eval_fn)
       infeed_future.get()
 
     status_strs = []
@@ -928,9 +900,8 @@ class EvalProgram(BaseProgram):
     mlperf_done = False
     if self._ml_perf:
       mlperf_metric = self._ml_perf.decoder_metric_name
-      if (mlperf_metric
-          in eval_metrics) and (self._ml_perf.decoder_metric_success_threshold
-                                is not None):
+      if (mlperf_metric in eval_metrics and
+          self._ml_perf.decoder_metric_success_threshold is not None):
         mlperf_metric_value = eval_metrics[mlperf_metric][0]
         mlp_log.mlperf_print(
             'eval_accuracy',
@@ -968,7 +939,7 @@ class EvalProgram(BaseProgram):
       average_metrics = self._eval_metrics.ToAverageMetrics()
       if 'example_rate' not in average_metrics:
         average_metrics['example_rate'] = (
-            metrics.TpuEvalMetrics.ToAverageMetric(example_rate))
+            metrics_lib.TpuEvalMetrics.ToAverageMetric(example_rate))
       return self._ReportVizierMetrics(global_step, average_metrics)
 
 
@@ -987,7 +958,8 @@ def _UpdateCpuPassThroughData(decode_out_dict, cpu_pt):
   return decode_out_dict
 
 
-def _FetchDecodeOut(tpu_outs, sess=None):
+def _FetchDecodeOut(tpu_outs: Union[List[tf.Tensor], Callable[..., tf.Tensor]],
+                    sess=None):
   """Fetch decoder outputs, combining with CPU passthrough tensors if needed.
 
   Args:
@@ -1357,10 +1329,7 @@ class DecodeProgram(BaseProgram):
 
   def RunForInput(self, dataset_name, inp_instance, sess=None, threadpool=None):
     """Setup and execute Decode program."""
-    if py_utils.IsEagerMode():
-      global_step = self._model.global_step.numpy()
-    else:
-      global_step = sess.run(self._model.global_step)
+    global_step = self._GetGlobalStep(sess)
     self.SetStatusMessage(f'Executing decode program on dataset {dataset_name} '
                           f'at step {global_step}')
 
@@ -1409,8 +1378,8 @@ class DecodeProgram(BaseProgram):
       return
 
     dec_metrics.update({
-        'decode_secs': metrics.AverageMetric(),
-        'postprocess_secs': metrics.AverageMetric(),
+        'decode_secs': metrics_lib.AverageMetric(),
+        'postprocess_secs': metrics_lib.AverageMetric(),
     })
 
     buffered_decode_out = []
@@ -1471,8 +1440,12 @@ class DecodeProgram(BaseProgram):
     self._trigger_scheduler.Trigger()
     if not self._trigger_scheduler.ShouldRun():
       return
-    return self.RunForInput(self.params.dataset_name, self._task.input, sess,
-                            threadpool)
+    return self.RunForInput(
+        self.params.dataset_name,
+        self._task.input,
+        sess=sess,
+        threadpool=threadpool,
+    )
 
 
 class MultiInputsDecodeProgram(DecodeProgram):
@@ -1822,7 +1795,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
   @classmethod
   def Params(cls):
-    """"Defaults parameters for Programs."""
+    """Default parameters for Programs."""
     p = super().Params()
     p.Define('train_task', None, 'Underlying task')
     p.Define('decode_task', None, 'Underlying task')
@@ -1872,7 +1845,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       mlp_log.mlperf_print('opt_learning_rate_warmup_steps',
                            self._ml_perf.warmup_steps)
 
-    self._eval_metrics = metrics.TpuEvalMetrics(max_metrics=p.max_metrics)
+    self._eval_metrics = metrics_lib.TpuEvalMetrics(max_metrics=p.max_metrics)
     with py_utils.OpportunisticVariableReuseScope(True):
       self._train_model = self._train_task_params.Instantiate(
           executor_ema=self._executor_ema)
@@ -1959,7 +1932,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     self._decode_task.PostProcessDecodeOut(decode_out_dict, self.dec_metrics)
 
   def Run(self, sess=None):
-    global_step = sess.run(self._model.global_step)
+    global_step = self._GetGlobalStep(sess)
     self.dec_metrics = self._decode_task.CreateDecoderMetrics()
     # Start TPU program thread.
     train_future = self._train_pool.apply_async(
@@ -2029,6 +2002,76 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     return False
 
 
+class InputBenchmark(BaseProgram):
+  """Measures input generation steps/sec depending on the params below."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('warmup_loops', 1,
+             'How many loops to warmup before measuring elapsed time.')
+    p.Define('measurement_loops', 5, 'How many loops to measure across.')
+    return p
+
+  def __init__(self, params, **kwargs):
+    super().__init__(params, input_benchmark_only=True, **kwargs)
+    self._program_name = 'InputBenchmark'
+
+  def BuildTpuSubgraph(self):
+    with py_utils.OpportunisticVariableReuseScope(True):
+      self._model = self._InstantiateTaskModel(self._task_params)
+    self._task = self._model.GetTask()
+    self._task.input.CreateTpuEnqueueOps(benchmark_only=True)
+
+  def Run(self, sess=None):
+    p = self.params
+    # Input benchmark doesn't work with eager yet.
+    assert not py_utils.IsEagerMode()
+
+    for _ in range(p.warmup_loops):
+      self._InfeedLoop(sess)
+
+    with py_utils.Timer() as t:
+      for _ in range(p.measurement_loops):
+        self._InfeedLoop(sess)
+
+    steps_per_sec = p.measurement_loops * self._steps_per_loop / t.duration
+    tf.logging.info('Input benchmark: steps/sec %f', steps_per_sec)
+    return True
+
+
+class BaseProgramSchedule(abc.ABC):
+  """Base ProgramSchedule type.
+
+  Program schedules are the programming model provided by the Lingvo Executor
+  API for multi-program interleaving on the accellerator. The schedule defines
+  how this interleaving takes place. There are two primary types of schedules:
+  SimpleProgramSchedule and MultiTaskProgramSchedule. Typically, the schedule is
+  fetched using `model_registry.GetProgramSchedule`, so users defining new
+  models can define a `ProgramSchedule()` to provide their own.
+  """
+
+  @classmethod
+  def Params(cls):
+    """Returns an instance of the hparams used to configure the schedule."""
+    return hyperparams.InstantiableParams(cls)
+
+  @abc.abstractmethod
+  def Run(self):
+    """Runs the program for some number of steps according to the schedule."""
+    pass
+
+  @abc.abstractmethod
+  def Shutdown(self):
+    """Runs and necessary cleanup defined by the progrm."""
+    pass
+
+  @abc.abstractmethod
+  def Programs(self) -> List[BaseProgram]:
+    """Returns the list of programs managed by the schedule."""
+    pass
+
+
 class MultiTaskProgramSchedule:
   """Container for ProgramSchedules for a MultiTask model."""
 
@@ -2039,7 +2082,7 @@ class MultiTaskProgramSchedule:
     return p
 
 
-class SimpleProgramSchedule:
+class SimpleProgramSchedule(BaseProgramSchedule):
   """A schedule of programs associated with a single task.
 
   Simple sequence is:
@@ -2098,7 +2141,7 @@ class SimpleProgramSchedule:
       p.train_program.task = p.task_dict[p.train_program.dataset_name]
       p.train_program.num_splits_per_client = p.num_splits_per_client
       p.train_program.task_name = p.task_name
-      self.train_program = p.train_program.Instantiate(**kwargs)
+      self.train_program: TrainProgram = p.train_program.Instantiate(**kwargs)
       self._programs.append(self.train_program)
 
     for eval_program_params in p.eval_programs:
@@ -2141,40 +2184,44 @@ class SimpleProgramSchedule:
   def Run(self, sess=None, threadpool=None):
     """Execute the program schedule."""
     p = self.params
-    start_time = time.time()
-    for _ in range(p.train_executions_per_eval):
-      done = self.train_program.Run(sess)
-      if done:
-        break
-    train_finish_time = time.time()
-    train_time_in_secs = train_finish_time - start_time
+    num_train_runs = p.train_executions_per_eval
+
+    # Train
+    with py_utils.Timer() as train_timer:
+      for _ in range(num_train_runs):
+        if self.train_program.Run(sess):
+          break
+    train_time_in_secs = train_timer.duration
     tf.logging.info('Train took %f seconds.', train_time_in_secs)
 
-    program_futures = []
-    for eval_program in self.eval_programs:
-      futures = None
-      eval_program.train_executions_per_eval = p.train_executions_per_eval
-      if p.async_postprocess and isinstance(
-          eval_program, (DecodeProgram, ExperimentalDecodeProgram)):
-        futures = eval_program.Run(sess, threadpool)
-        if not isinstance(futures, list):
-          futures = [futures]
-        program_futures.append((futures, eval_program))
-      else:
-        eval_program.Run(sess)
-        program_futures.append(([], eval_program))
+    # Eval
+    with py_utils.Timer() as eval_timer:
+      program_futures = []
+      for eval_program in self.eval_programs:
+        futures = None
+        eval_program.train_executions_per_eval = num_train_runs
+        if p.async_postprocess and isinstance(
+            eval_program, (DecodeProgram, ExperimentalDecodeProgram)):
+          futures = eval_program.Run(sess, threadpool=threadpool)
+          if not isinstance(futures, list):
+            futures = [futures]
+          program_futures.append((futures, eval_program))
+        else:
+          eval_program.Run(sess)
+          program_futures.append(([], eval_program))
 
-    if p.train_executions_per_eval == 0 and hasattr(self, '_summary_exporter'):
-      dataset_summaries = {}
-      for pf in program_futures:
-        for x in pf[0]:
-          x.get()
-        if isinstance(pf[1], DecodeProgram):
-          dataset_summaries.update(pf[1].Summary())
-      self._summary_exporter.Export(dataset_summaries, p.checkpoint_to_load)
-    eval_time_in_secs = time.time() - train_finish_time
+      if num_train_runs == 0 and hasattr(self, '_summary_exporter'):
+        dataset_summaries = {}
+        for pf in program_futures:
+          for x in pf[0]:
+            x.get()
+          if isinstance(pf[1], DecodeProgram):
+            dataset_summaries.update(pf[1].Summary())
+        self._summary_exporter.Export(dataset_summaries, p.checkpoint_to_load)
+
+    eval_time_in_secs = eval_timer.duration
     tf.logging.info('Eval took %f seconds.', eval_time_in_secs)
-    should_exit = (p.train_executions_per_eval == 0)
+    should_exit = num_train_runs == 0
     return should_exit, train_time_in_secs, eval_time_in_secs
 
   def Shutdown(self):
@@ -2268,8 +2315,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       TrainProgram.
     eval_program_cls: The class to use for eval programs.  Defaults to
       EvalProgram.
-    summary_exporter_cls: The class to export summaries. Default to None. If
-      not None, the class should implement Export().
+    summary_exporter_cls: The class to export summaries. Default to None. If not
+      None, the class should implement Export().
     async_postprocess: bool. Whether to run CPU postprocessing for Decode in a
       separate thread to save time (i.e. concurrent with train). This avoids
       blocking training. But if the CPU postprocessing takes more time compared
@@ -2311,11 +2358,9 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     program_schedule_params.train_program.summary_interval_steps = train_summary_interval_steps
 
   program_schedule_params.dataset_names = []
-
-  if experimental_decoder:
-    program_schedule_params.async_postprocess = experimental_async_postprocess
-  else:
-    program_schedule_params.async_postprocess = async_postprocess
+  program_schedule_params.async_postprocess = (
+      experimental_async_postprocess
+      if experimental_decoder else async_postprocess)
 
   if emails:
     program_schedule_params.emails = emails
@@ -2393,11 +2438,10 @@ def SimpleProgramScheduleForTask(train_dataset_name,
 
 
 def _ClearSpecifiedProgram(program_list, program_cls_to_clear):
-  ret_programs = []
-  for program in program_list:
-    if not issubclass(program.cls, program_cls_to_clear):
-      ret_programs.append(program)
-  return ret_programs
+  return [
+      program for program in program_list
+      if not issubclass(program.cls, program_cls_to_clear)
+  ]
 
 
 def UpdateProgramSchedule(ps_params,
@@ -2412,7 +2456,7 @@ def UpdateProgramSchedule(ps_params,
                           train_summary_interval_steps=None):
   """Update ProgramSchedule params with the given new configs.
 
-  Currently this override only support EvalProgram, DecodeProgram and
+  Currently this override only supports EvalProgram, DecodeProgram and
   MultiInputsDecodeProgram.
 
   Args:
@@ -2530,7 +2574,7 @@ def UpdateProgramSchedule(ps_params,
   return ps_params
 
 
-class MLPerfProgramSchedule:
+class MLPerfProgramSchedule(BaseProgramSchedule):
   """Program schedule for ML Perf benchmark."""
 
   @classmethod
@@ -2597,15 +2641,11 @@ class MLPerfProgramSchedule:
   def Run(self, sess=None, threadpool=None):
     """Execute the program schedule."""
     del threadpool  # Unused.
-    p = self.params
-    start_time = time.time()
-    ret = False
-    for _ in range(p.train_executions_per_eval):
-      program_done = self.train_program.Run(sess)
-      if program_done:
-        ret = True
-        break
-    train_time_in_secs = time.time() - start_time
+    with py_utils.Timer() as timer:
+      for _ in range(self.params.train_executions_per_eval):
+        if ret := self.train_program.Run(sess):
+          break
+    train_time_in_secs = timer.duration
     eval_time_in_secs = 0
     return ret, train_time_in_secs, eval_time_in_secs
 
