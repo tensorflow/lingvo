@@ -475,7 +475,7 @@ class ExecutorTpu(base_runner.BaseRunner):
   def _LoadCheckpoint(self, sess=None):
     if self._checkpoint_to_load:
       return self._checkpointer.RestoreFromPath(
-          None, checkpoint_path=self._checkpoint_to_load)
+          sess, checkpoint_path=self._checkpoint_to_load)
     else:
       return self._checkpointer.Restore(sess)
 
