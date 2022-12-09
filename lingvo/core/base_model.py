@@ -361,11 +361,6 @@ class BaseTask(base_layer.BaseLayer):
     super().__init__(params)
 
     p = self.params
-
-    self._encoder = None
-    self._online_encoder = None
-    self._decoder = None
-
     self._loss = None
     self._train_op = None
     self._post_train_ops = []
