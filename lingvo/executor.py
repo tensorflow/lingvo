@@ -262,19 +262,19 @@ class ExecutorTpu(base_runner.BaseRunner):
           computation_shape = py_utils.ComputationShape(num_devices_per_split,
                                                         topology)
 
-        kwarg = {}
-        if train_cfg.train.tpu_device_order_mode is not None:
-          kwarg['device_order_mode'] = train_cfg.train.tpu_device_order_mode
-        self.device_assignment = device_assignment_lib.device_assignment(
+        device_assignment = device_assignment_lib.device_assignment(
             topology,
             computation_shape=computation_shape,
             num_replicas=data_parallelism,
-            **kwarg)
-        py_utils.SetTpuDeviceAssignment(self.device_assignment, job)
+            device_order_mode=getattr(
+                train_cfg.train, 'tpu_device_order_mode',
+                device_assignment_lib.DeviceOrderMode.AUTO),
+        )
+        py_utils.SetTpuDeviceAssignment(device_assignment, job)
         tf.logging.info('device_assignment.core_assignment: %s',
-                        str(self.device_assignment.core_assignment))
+                        str(device_assignment.core_assignment))
         tf.logging.info('device_assignment.topology.device_coordinates: %s',
-                        str(self.device_assignment.topology.device_coordinates))
+                        str(device_assignment.topology.device_coordinates))
       except py_utils.transient_tf_errors as e:
         tf.logging.info('TPU initialization failed: %s', e)
         raise
@@ -283,9 +283,9 @@ class ExecutorTpu(base_runner.BaseRunner):
       mlp_log.mlperf_print(key='init_start', value=None)
     if len(self._cluster.all_worker_names) > 1:
       for worker in self._cluster.all_worker_names:
-        _WaitTillInit(worker)
+        device_assignment = _WaitTillInit(worker)
     else:
-      _WaitTillInit(None)
+      device_assignment = _WaitTillInit(None)
 
     shared_model = self._MaybeConstructSharedModel(train_cfg)
 
@@ -349,7 +349,7 @@ class ExecutorTpu(base_runner.BaseRunner):
           resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
               FLAGS.tf_master, job_name=FLAGS.worker_job[len('/job:'):])
           self._tpu_strategy = tf.distribute.TPUStrategy(
-              resolver, experimental_device_assignment=self.device_assignment)
+              resolver, experimental_device_assignment=device_assignment)
           stack.enter_context(self._tpu_strategy.scope())
           stack.enter_context(
               tpu_strategy._TPUReplicaContext(self._tpu_strategy))
@@ -375,7 +375,7 @@ class ExecutorTpu(base_runner.BaseRunner):
           program.BuildTpuSubgraph()
           py_utils.ClearTpuSummaryTensors()
 
-      self._CreateCheckpointer(train_cfg.train)
+      self._checkpointer = self._CreateCheckpointer(train_cfg.train)
 
       for program in self._programs:
         program.SetStatusMessageFn(self._SetStatusMessage)
@@ -392,6 +392,9 @@ class ExecutorTpu(base_runner.BaseRunner):
     Args:
       train_params: the training hyperparams.  TODO(jlipschultz): unify with
         BaseRunner._CreateCheckpointer and remove.
+
+    Returns:
+      The instantiated checkpointer corresponding to the mode and params.
     """
     common_args = dict(
         train_dir=self._checkpoint_dir,
@@ -401,19 +404,20 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     if py_utils.IsEagerMode():
       if FLAGS.use_eager_v2_checkpoints:
-        self._checkpointer = checkpointer_lib.EagerCheckpointerV2(
+        return checkpointer_lib.EagerCheckpointerV2(
             experimental_enable_async_checkpoint=FLAGS
             .experimental_enable_async_checkpoint,
             **common_args)
       else:
-        self._checkpointer = checkpointer_lib.EagerCheckpointerV1(**common_args)
+        return checkpointer_lib.EagerCheckpointerV1(**common_args)
     else:
-      self._checkpointer = checkpointer_lib.Checkpointer(**common_args)
+      checkpointer = checkpointer_lib.Checkpointer(**common_args)
       # Get the global_variables_initializer after creating the Checkpointer,
       # since it may create additional variables used by async checkpointing.
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       self._initialize_global_vars = tf.global_variables_initializer()
+      return checkpointer
 
   def _GetSession(self, **kwargs):
     if py_utils.IsEagerMode():
@@ -482,14 +486,14 @@ class ExecutorTpu(base_runner.BaseRunner):
   def _Loop(self):
     """Main loop in the executor.
 
-    - Initializes TPU state & variables
-    - Restores variables from checkpoint
-    - Compiles all programs
+    - Initializes TPU state & variables.
+    - Restores variables from checkpoint.
+    - Compiles all programs.
     - Then loops:
-      - Saves a checkpoint periodically
-      - Using the program schedule, samples a program to run, then runs it
-      - Exports metrics
-      - Conditionally terminates
+      - Saves a checkpoint periodically.
+      - Using the program schedule, samples a program to run, then runs it.
+      - Exports metrics.
+      - Conditionally terminates.
     """
     with self._cluster, tf.container(
         self._container_id), contextlib.ExitStack() as stack:

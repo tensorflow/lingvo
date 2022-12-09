@@ -122,7 +122,7 @@ class BaseRunner:
     # Ensure global step tensor is created.
     with contextlib.ExitStack() as stack:
       if not py_utils.IsEagerMode():
-        assert self._graph
+        assert self._graph  # Tell pytype that this Optional isn't None
         stack.enter_context(self._graph.as_default())
         stack.enter_context(tf.device(self._cluster.GetPlacer()))
       # It is important that we enter the tf.container scope *after*

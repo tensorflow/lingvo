@@ -882,8 +882,9 @@ class Evaler(base_runner.BaseRunner):
     with self._graph.as_default(), tf.container(self._container_id):
       self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
       self._CreateTF2SummaryWriter(self._eval_dir)
-      with self._cluster, tf.device(
-          self._cluster.GetPlacer()), self._TF2SummaryContext():
+      with self._cluster, \
+           tf.device(self._cluster.GetPlacer()), \
+           self._TF2SummaryContext():
         self._model = self.params.Instantiate()
         self._params = self._model.params
         self._model.ConstructFPropGraph()

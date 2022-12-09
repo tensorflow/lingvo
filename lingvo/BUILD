@@ -201,7 +201,7 @@ py_library(
     ],
 )
 
-py_library(
+pytype_library(
     name = "trainer_lib",
     srcs = ["trainer.py"],
     deps = [
@@ -330,7 +330,7 @@ genrule(
     ],
 )
 
-py_library(
+pytype_library(
     name = "executor_lib",
     srcs = ["executor.py"],
     deps = [

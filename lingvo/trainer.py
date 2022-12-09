@@ -247,6 +247,7 @@ class RunnerManager:
 
   def __init__(self, model):
     self._model_name = model
+    self._tf_server = None
 
   def MaybeLaunchTensorFlow(self):
     """Starts TF machinery in this process."""
@@ -369,7 +370,7 @@ class RunnerManager:
     FLAGS.mode = 'sync'
     FLAGS.tf_master = cluster_resolver.master()
 
-    FLAGS.worker_job = '/job:{}'.format(FLAGS.job)
+    FLAGS.worker_job = f'/job:{FLAGS.job}'
     FLAGS.worker_replicas = 1
     FLAGS.worker_num_tpu_hosts = len(cluster_spec_dict[FLAGS.job])
     FLAGS.worker_tpus = (
@@ -840,10 +841,12 @@ class RunnerManager:
   def RunEvalerOnce(self):
     """Run once evaler."""
     m = re.match(r'evaler_once_([^_@]+)@(\d+)', FLAGS.job)
+    assert m
     dataset_name, ckpt_id = m.group(1), int(m.group(2))
     cfg = self.GetParamsForDataset('evaler', dataset_name)
     evaler = self.Evaler(dataset_name.lower(), cfg, FLAGS.model_task_name,
                          FLAGS.logdir, FLAGS.tf_master)
+    assert isinstance(evaler, runners.Evaler)
     evaler.EvalCheckpoint(ckpt_id)
 
   def Start(self):

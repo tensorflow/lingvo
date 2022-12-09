@@ -676,7 +676,7 @@ class TrainProgram(BaseProgram):
       for key, (val, _) in sorted(eval_metrics.items()):
         self._SummarizeValue(global_step, key, val)
         tf.logging.info((global_step, key, val))
-        status_strs.append('%s=%s' % (key, val))
+        status_strs.append(f'{key}={val}')
       self.SetStatusMessage('Executing train program at step %d %s' %
                             (global_step, ','.join(status_strs)))
 
@@ -2231,6 +2231,10 @@ class SimpleProgramSchedule(BaseProgramSchedule):
       eval_program.Shutdown()
 
 
+ProgramScheduleParamsT = Union[SimpleProgramSchedule.Params,
+                               MultiTaskProgramSchedule.Params]
+
+
 def _CreateProgramParams(cls,
                          program_name,
                          dataset_name,
@@ -2641,13 +2645,12 @@ class MLPerfProgramSchedule(BaseProgramSchedule):
   def Run(self, sess=None, threadpool=None):
     """Execute the program schedule."""
     del threadpool  # Unused.
-    with py_utils.Timer() as timer:
+    with py_utils.Timer() as train_timer:
       for _ in range(self.params.train_executions_per_eval):
         if ret := self.train_program.Run(sess):
           break
-    train_time_in_secs = timer.duration
     eval_time_in_secs = 0
-    return ret, train_time_in_secs, eval_time_in_secs
+    return ret, train_timer.duration, eval_time_in_secs
 
   def Shutdown(self):
     self.train_program.Shutdown()

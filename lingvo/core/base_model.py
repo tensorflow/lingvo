@@ -102,7 +102,7 @@ def _VariablesForEMA(params, model_var_list):
   # set-iteration, to maintain determninism of the resulting computation graph.
   all_vars = []
   for var in trainable_variables + tf.moving_average_variables() + moving_vars:
-    if (var.ref() in allowed_refs) and (var.ref() not in disallowed_refs):
+    if var.ref() in allowed_refs and var.ref() not in disallowed_refs:
       disallowed_refs.add(var.ref())
       all_vars.append(var)
 
@@ -376,18 +376,18 @@ class BaseTask(base_layer.BaseLayer):
     self._per_input_gradient_mask = None
 
     if p.task_global_step:
-      with tf.name_scope(None), tf.variable_scope(
-          py_utils.GetGlobalVariableScope()):
-        var_name = p.name + '_global_step'
-        self.CreateVariable(
-            var_name,
-            var_params=py_utils.WeightParams([],
-                                             py_utils.WeightInit.Constant(0),
-                                             tf.int64),
-            trainable=False,
-            collections=[tf.GraphKeys.GLOBAL_VARIABLES])
-        summary_utils.scalar(var_name, self._private_vars[var_name])
-        self._global_step_var = self._private_vars[var_name]
+      with tf.name_scope(None):
+        with tf.variable_scope(py_utils.GetGlobalVariableScope()):
+          var_name = p.name + '_global_step'
+          self.CreateVariable(
+              var_name,
+              var_params=py_utils.WeightParams([],
+                                               py_utils.WeightInit.Constant(0),
+                                               tf.int64),
+              trainable=False,
+              collections=[tf.GraphKeys.GLOBAL_VARIABLES])
+          summary_utils.scalar(var_name, self._private_vars[var_name])
+          self._global_step_var = self._private_vars[var_name]
     else:
       self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
 
@@ -753,7 +753,7 @@ class BaseTask(base_layer.BaseLayer):
     all_losses = []
     for optimization in self.learners:
       learner_name = optimization.params.name
-      (losses, train_ops['train/%s' % learner_name],
+      (losses, train_ops[f'train/{learner_name}'],
        eval_metrics) = optimization.Apply(
            metrics,
            vmap,

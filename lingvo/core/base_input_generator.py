@@ -493,8 +493,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     for task_id in task_ids:
       host_device = host_devices[task_id]
-      if cpu_passthrough_keys and (f'/task:{task_id}/device:CPU:0'
-                                   not in host_device):
+      if (cpu_passthrough_keys and
+          f'/task:{task_id}/device:CPU:0' not in host_device):
         raise ValueError(
             f'CPU passthrough configuration mismatch, device {host_device} '
             f'does not match task id {task_id}.')

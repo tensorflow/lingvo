@@ -4754,10 +4754,10 @@ def CheckShapes(shapes):
   assert isinstance(shapes, tuple), str(shapes)
   for s in shapes:
     if isinstance(s, NestedMap):
-      assert all([isinstance(t, tshape.Shape) for t in Flatten(s)
-                 ]), '{} contains non-tensor value.'.format(s)
+      assert all(isinstance(t, tshape.Shape)
+                 for t in Flatten(s)), f'{s} contains non-tensor value.'
     else:
-      assert isinstance(s, tshape.Shape), '{}: {}'.format(type(s), s)
+      assert isinstance(s, tshape.Shape), f'{type(s)}: {s}'
 
 
 def FPropDtype(params):
@@ -6139,7 +6139,7 @@ def GetSavedModelAssets():
     return tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.ASSET_FILEPATHS)
 
 
-def ComputationShape(split_size, topology=None):
+def ComputationShape(split_size, topology=None) -> List[int]:
   """Decides the computation shape based on the split_size.
 
   Args:
@@ -6377,7 +6377,7 @@ def GetTpuEmbeddingGraphCollection():
 class AuxLossContext(contextlib.AbstractContextManager):
   """Context that holds a list of aux-losses.
 
-  By default it is non-reentrant, but can be specified as reentrant explicitly
+  By default, it is non-reentrant, but can be specified as reentrant explicitly
   when creating an inner context.
   """
 
