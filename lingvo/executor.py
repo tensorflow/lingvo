@@ -17,7 +17,7 @@
 import contextlib
 import multiprocessing.dummy
 import os
-from typing import Optional
+from typing import Dict, Optional
 
 from lingvo import compat as tf
 from lingvo import pdb_wrapper
@@ -26,6 +26,7 @@ from lingvo.core import checkpointer as checkpointer_lib
 from lingvo.core import cluster_factory
 from lingvo.core import ml_perf_log as mlp_log
 from lingvo.core import multitask_model
+from lingvo.core import program as lingvo_program
 from lingvo.core import py_utils
 from lingvo.core import task_scheduler
 from lingvo.core import tpu_embedding_layers
@@ -473,7 +474,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     # from checkpoint.
     for program in programs:
       program.SaveProgramState(sess, global_step)
-
+    # Save the checkpoints asynchronously.
     checkpointer.Save(sess, global_step, sync=False)
 
   def _LoadCheckpoint(self, sess=None):
@@ -489,7 +490,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     - Initializes TPU state & variables.
     - Restores variables from checkpoint.
     - Compiles all programs.
-    - Then loops:
+    - Then loops
       - Saves a checkpoint periodically.
       - Using the program schedule, samples a program to run, then runs it.
       - Exports metrics.
@@ -605,3 +606,272 @@ class ExecutorTpu(base_runner.BaseRunner):
               program_timer.duration)
           _ShutDown()
           return
+
+
+class HostDrivenExecutor(base_runner.BaseRunner):
+  """A host-driven loop version of the TPU Executor that uses a TPUStrategy.
+
+  Assumptions:
+  - Eager mode
+  - No SPMD
+  - Single task models
+  - No ML Perf
+  """
+
+  def __init__(
+      self,
+      train_cfg: py_utils.InstantiableParams,
+      ps_params_dict: Dict[str, lingvo_program.ProgramScheduleParamsT],
+      *args,
+      **kwargs,
+  ):
+    """Construct an ExecutorTpu BaseRunner.
+
+    Args:
+      train_cfg: SingleTaskModelParams or MultiTaskModelParams
+      ps_params_dict: A dict of top-level task name -> ProgramSchedule params,
+        if train_cfg is a SingleTaskModelParams, we expect only one entry.
+      *args: List args to pass through to BaseRunner.
+      **kwargs: keyword args to pass through to BaseRunner.
+    """
+    assert py_utils.IsEagerMode()
+    tf.logging.info('FLAGS.tf_master: %s', FLAGS.tf_master)
+    super().__init__(params=train_cfg, *args, **kwargs)
+    self.tpu_strategy = self._ConnectToTPU(train_cfg)
+    data_parallelism = self._cluster.num_splits_per_client
+    assert data_parallelism
+    tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
+                    data_parallelism, self._cluster.num_devices_per_split)
+    self.task_scheduler = None
+    self._checkpoint_dir = os.path.join(self._logdir, 'train')
+
+    # If this is a multi-task model, grab the params for the TaskScheduler.
+    assert issubclass(train_cfg.cls, base_model.SingleTaskModel)
+    assert len(ps_params_dict) == 1
+    self._model_task_name = list(ps_params_dict.keys())[0]
+    tf.logging.info('train_cfg.cls: %s', train_cfg.cls)
+
+    self._WriteToLog(train_cfg.ToText(), self._checkpoint_dir,
+                     'trainer_params.txt')
+    self._WriteToLog(
+        text_format.MessageToString(train_cfg.ToProto(), as_utf8=True),
+        self._checkpoint_dir, 'trainer_params.pbtxt')
+
+    # Start constructing the programs
+    self._program_schedule_dict = {}
+    self._programs = []
+    self._ckpt_programs = []
+    self._checkpoint_to_load = None
+
+    with self.tpu_strategy.scope(), self._cluster:
+      ema_decay_var = py_utils.CreateEMADecayVar(train_cfg)
+      executor_ema = base_model.ExecutorEma(
+          py_utils.CreateEMAForModel(self.params, self._global_step_var,
+                                     ema_decay_var),
+          ema_decay_var,
+      )
+
+      # Single task => just one iteration through this loop
+      for task_string, ps_params in ps_params_dict.items():
+        ps_params.logdir = self._logdir
+        ps_params.num_splits_per_client = data_parallelism
+        ps_params.task_name = task_string
+
+        ps: lingvo_program.SimpleProgramSchedule = (
+            ps_params.Instantiate(
+                shared_model=None,
+                trial=self._trial,
+                executor_ema=executor_ema,
+                tf_master=self._tf_master,
+                strategy=self.tpu_strategy))
+        self._program_schedule_dict[task_string] = ps
+        self._programs += ps.Programs()
+
+        if ps.train_program:
+          self._ckpt_programs.append(ps.train_program)
+        else:
+          self._ckpt_programs += ps.Programs()
+
+        if 'checkpoint_to_load' in ps_params and ps_params.checkpoint_to_load:
+          if (self._checkpoint_to_load and
+              self._checkpoint_to_load != ps_params.checkpoint_to_load):
+            raise ValueError(f'Multiple values found for checkpoint_to_load: '
+                             f'{self._checkpoint_to_load}, '
+                             f'{ps_params.checkpoint_to_load}.')
+          self._checkpoint_to_load = ps_params.checkpoint_to_load
+
+      tf.logging.info('num_programs: %d', len(self._programs))
+
+      # When running in a vizier trainer, the executor reports infeasiable runs
+      # in case of errors. The programs report metrics and normal completions.
+      self._should_report_metrics |= any(
+          p._should_report_metrics for p in self._programs)
+
+      with contextlib.ExitStack() as stack:
+        if FLAGS.pdb_on_exception:
+          stack.enter_context(pdb_wrapper.catch_post_mortem())
+        with py_utils.VariableStore(), py_utils.WarnOnGlobalStepAccess():
+          # `BuildTpuSubgraph` has to be called before checkpoint restore, so
+          # that the optimizer slot variables are guaranteed to be initialized
+          # before they get loaded. Otherwise, the optimizers' slot variables
+          # will not be properly loaded when V1 checkpoint is used.
+          for program in self._programs:
+            program.BuildTpuSubgraph()
+            py_utils.ClearTpuSummaryTensors()
+
+        self._checkpointer = checkpointer_lib.EagerCheckpointerV2(
+            train_dir=self._checkpoint_dir,
+            models=[program.model for program in self._ckpt_programs],
+            train_params=train_cfg.train,
+            save_only=False,
+        )
+
+        for program in self._programs:
+          program.SetStatusMessageFn(self._SetStatusMessage)
+
+        tpu_embedding_collection = (
+            tpu_embedding_layers.TpuEmbeddingCollection.Get())
+        self._load_ops = tpu_embedding_collection.load_ops
+        self._retrieve_ops = tpu_embedding_collection.retrieve_ops
+        self._tpu_embedding = tpu_embedding_collection.tpu_embedding
+
+  @py_utils.RetryOnTransientTfError()
+  def _ConnectToTPU(self, train_cfg) -> tf.distribute.TPUStrategy:
+    """Connect to the TPU runtime and return the corresponding TPUStrategy."""
+    resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+        FLAGS.tf_master, job_name=FLAGS.worker_job[len('/job:'):])
+    tf.config.experimental_connect_to_cluster(resolver)
+    topology = tf.tpu.experimental.initialize_tpu_system(resolver)
+
+    if train_cfg.train.tpu_computation_shape:
+      computation_shape = train_cfg.train.tpu_computation_shape
+    else:
+      computation_shape = py_utils.ComputationShape(
+          self._cluster.num_devices_per_split, topology)
+    assert self._cluster.num_devices_per_split == np.prod(computation_shape)
+
+    device_assignment = device_assignment_lib.device_assignment(
+        topology,
+        computation_shape=computation_shape,
+        num_replicas=self._cluster.num_splits_per_client,
+        device_order_mode=getattr(train_cfg.train, 'tpu_device_order_mode',
+                                  device_assignment_lib.DeviceOrderMode.AUTO),
+    )
+    if len(self._cluster.all_worker_names) <= 1:
+      py_utils.SetTpuDeviceAssignment(device_assignment)
+    else:
+      for worker in self._cluster.all_worker_names:
+        py_utils.SetTpuDeviceAssignment(device_assignment, worker)
+
+    tf.logging.info('device_assignment.core_assignment: %s',
+                    str(device_assignment.core_assignment))
+    tf.logging.info('device_assignment.topology.device_coordinates: %s',
+                    str(device_assignment.topology.device_coordinates))
+
+    strategy = tf.distribute.TPUStrategy(resolver, device_assignment)
+    return strategy
+
+  def _GetSession(self, **kwargs):
+    raise RuntimeError('Eager mode does not support _GetSession.')
+
+  def RunSave(self, global_step, retrieve_ops, programs, saver):
+    # Save program state first, so it's recoverable after we restore
+    # from checkpoint.
+    for program in programs:
+      program.SaveProgramState(None, global_step)
+    # Save the checkpoints asynchronously.
+    saver: checkpointer_lib.EagerCheckpointerV2
+    saver.Save(None, global_step, sync=False)
+
+  def _LoadCheckpoint(self):
+    if self._checkpoint_to_load:
+      return self._checkpointer.RestoreFromPath(
+          None, checkpoint_path=self._checkpoint_to_load)
+    else:
+      return self._checkpointer.Restore(None)
+
+  def _Loop(self):
+    """Main loop in the executor.
+
+    - Initializes TPU state & variables
+    - Restores variables from checkpoint
+    - Compiles all programs
+    - Then loops
+      - Saves a checkpoint periodically
+      - Using the program schedule, sample a program to run, then run it.
+      - Export metrics
+      - Conditionally terminate
+    """
+    print('Running host-driven executor loop...')
+    with self._cluster:
+      py_utils.GetOrCreateGlobalStepVar()
+      _ = self._LoadCheckpoint()
+
+      for program in self._programs:
+        program.task.input.Initialize()
+
+      # Programs meant to be run on the TPU use this thread, so that the CPU can
+      # independently handle host processing tasks (e.g. PostProcessDecodeOut).
+      program_timer = py_utils.Timer()
+      program_timer.Start()
+      program_schedule = None
+
+      # The training loop
+      while True:
+        with py_utils.Timer() as cycle_timer:
+          global_step = _GetGlobalStep()
+
+          ckpt_timer = py_utils.Timer()
+          if self._checkpointer.ShouldSave(global_step):
+            with ckpt_timer:
+              self.RunSave(global_step, self._retrieve_ops, self._programs,
+                           self._checkpointer)
+
+          tf.logging.info('Single task mode: %s', self._model_task_name)
+          program_schedule = self._program_schedule_dict[self._model_task_name]
+
+          # Runs the actual training loop
+          done, train_time_in_secs, eval_time_in_secs = program_schedule.Run(
+              strategy=self.tpu_strategy)
+
+          global_step = _GetGlobalStep()
+
+        self._ExportMetrics(
+            global_step=global_step,
+            executor_cycle_secs=cycle_timer.duration,
+            executor_train_time_secs=train_time_in_secs,
+            executor_eval_time_secs=eval_time_in_secs,
+            checkpoint_write_secs=ckpt_timer.duration,
+        )
+
+        # Loop termination conditions
+        def _ShutDown():
+          # Wait for the save ops to finish before exit.
+          self._checkpointer.Sync()
+          tf.logging.info(
+              'Program schedule told us to stop.\n'
+              'Shutting down programs after running %f seconds.',
+              program_timer.duration)
+          program_schedule.Shutdown()
+
+        if done:
+          tf.logging.info(
+              'Program done after %f seconds. Waiting for threads to end.',
+              program_timer.duration)
+          _ShutDown()
+          return
+
+        if self._ShouldStop(None, global_step):
+          tf.logging.info('Training finished.')
+          self.RunSave(global_step, self._retrieve_ops, self._programs,
+                       self._checkpointer)
+          tf.logging.info(
+              'Program finished after %f seconds. Waiting for threads to end.',
+              program_timer.duration)
+          _ShutDown()
+          return
+
+  def Start(self):
+    super().Start()
+    # Run training.
+    self._RunLoop('host_driven_executor_tpu', self._Loop)

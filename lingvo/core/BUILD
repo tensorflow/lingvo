@@ -1138,6 +1138,7 @@ py_test(
     ],
 )
 
+# TODO(jlipschultz): update to pytype_strict_library
 py_library(
     name = "metrics",
     srcs = ["metrics.py"],

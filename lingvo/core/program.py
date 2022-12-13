@@ -23,7 +23,7 @@ import multiprocessing.dummy
 import os
 import queue
 import time
-from typing import Callable, List, Union, Optional
+from typing import Any, Callable, List, Union, Optional
 
 from etils import epath
 from lingvo import base_trial
@@ -113,6 +113,7 @@ class BaseProgram:
                shared_model=None,
                trial=base_trial.NoOpTrial(),
                executor_ema=base_model.ExecutorEma(),
+               strategy=None,
                **kwargs):
     self.params = params.Copy()
     p = self.params
@@ -126,6 +127,7 @@ class BaseProgram:
     self._write_train_input_stats = p.write_train_input_stats
     self._trial = trial
     self._executor_ema = executor_ema
+    self._strategy = strategy
 
     self._SetProgramDir()
     # Initialized on use; access via self._summary_writer property only.
@@ -361,12 +363,13 @@ class BaseProgram:
       self.SetStatusMessage(f'Compiling {self._program_name} done.')
       tf.logging.info('Compiling %s done.', self._program_name)
 
-  def Run(self, sess=None, threadpool=None):
+  def Run(self, sess=None, threadpool=None, strategy=None):
     """Execute the program using the given session handle.
 
     Args:
       sess: TF Session.
       threadpool: A ThreadPool on the executor for running async functions.
+      strategy: When in eager mode, strategy to use for distributing compute.
 
     Returns:
       done: Whether to end all execution.
@@ -627,6 +630,7 @@ class TrainProgram(BaseProgram):
       metric_values = [t[0] for t in batch_parallel_res]
       return _ConstructPostTrainingLoop(metric_values, outfeed)
 
+    # Set the eager training tf.function
     if py_utils.IsEagerMode():
       with self._summary_writer.as_default():
         self.infeed_fn = tf.function(autograph=False)(
@@ -690,11 +694,13 @@ class TrainProgram(BaseProgram):
             os.path.basename(self._program_dir), global_step, summaries)
       self._summary_writer.flush()
 
-  def Run(self, sess=None):
+  def Run(self, sess=None, threadpool=None, strategy=None):
     """Runs the encapsulated training program.
 
     Args:
       sess: the session. None if in eager mode.
+      threadpool: Unused here.
+      strategy: Unused here.
 
     Returns:
       True if the task is complete, False otherwise.
@@ -751,6 +757,167 @@ class TrainProgram(BaseProgram):
       return True
 
     return False
+
+
+class HostDrivenTrainProgram(BaseProgram):
+  """TrainProgram trains a single task and handles checkpoints."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('summary_interval_steps', None,
+             ('By default, we write summaries after each program execution. '
+              'If this param is set, we write roughly every '
+              '`summary_interval_steps`.'))
+    return p
+
+  def __init__(self, params, **kwargs):
+    super().__init__(params, **kwargs)
+    self._model = None
+    self._task = None
+    self._metrics_mgr = None
+    self._total_num_params = None
+    self._model_analysis = None
+
+    self._step_rate_tracker = summary_utils.StepRateTracker()
+    self._program_name = 'TrainProgram'
+    p = self.params
+    self._summary_interval_steps = p.summary_interval_steps
+    self._next_summary_step = None
+
+  def _ShouldWriteSummary(self, global_step):
+    if not self._summary_interval_steps:
+      return True
+    if not self._next_summary_step:
+      self._next_summary_step = global_step
+    if global_step >= self._next_summary_step:
+      self._next_summary_step = global_step + self._summary_interval_steps
+      return True
+    else:
+      return False
+
+  def _MaybeWriteSummary(self, global_step, values, outfeeds=None):
+    """Handle writing summaries when _ShouldWriteSummary is true."""
+    self._metrics_mgr.PackMetricsValues(values)
+    eval_metrics = self._metrics_mgr.metrics
+
+    if self._ShouldWriteSummary(global_step):
+      step_rate, example_rate, total_examples = (
+          self._step_rate_tracker.ComputeStepRate(
+              global_step,
+              eval_metrics['num_samples_in_batch'][0] * self._steps_per_loop))
+      self._SummarizeValue(global_step, 'global_step/sec', step_rate)
+      self._SummarizeValue(global_step, 'examples/sec', example_rate)
+      self._SummarizeValue(global_step, 'total_samples', total_examples)
+      self._SummarizeValue(global_step, 'total_num_params',
+                           self._total_num_params)
+      status_strs = []
+      for key, (val, _) in sorted(eval_metrics.items()):
+        self._SummarizeValue(global_step, key, val)
+        tf.logging.info((global_step, key, val))
+        status_strs.append(f'{key}={val}')
+      self.SetStatusMessage('Executing train program at step %d %s' %
+                            (global_step, ','.join(status_strs)))
+
+      # TODO(laigd): Not all `ProcessFPropResults` work in Eager.
+      if py_utils.RunProcessFPropResultsInEager():
+        _ = self._task.ProcessFPropResults(None, self._GetGlobalStep(),
+                                           eval_metrics, outfeeds)
+      self._summary_writer.flush()
+
+  def BuildTpuSubgraph(self):
+    tf.logging.info('HostDrivenTrainProgram BuildTpuSubGraph')
+    p = self.params
+
+    self._metrics_mgr = metrics_lib.TpuEvalMetrics(max_metrics=p.max_metrics)
+
+    with py_utils.OpportunisticVariableReuseScope(True):
+      self._model = self._InstantiateTaskModel(self._task_params)
+    self._task = self._model.GetTask()
+
+    # Write model analysis.
+    self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
+        self._model)
+    tf.logging.info('Total params=%d', self._total_num_params)
+    try:
+      analysis_file = epath.Path(self._program_dir) / 'model_analysis.txt'
+      analysis_file.write_text(self._model_analysis)
+    except tf.errors.NotFoundError as e:
+      tf.logging.info('Failed to write model analysis %s', e)
+
+  def _GetHostTrainLoop(
+      self, strategy: tf.distribute.TPUStrategy) -> Callable[..., Any]:
+    """Provides the host-driven loop to `Run`, using the given strategy.
+
+    Args:
+      strategy: the TPUStrategy object.
+
+    Returns:
+      the tf.function representing a single training loop execution.
+    """
+
+    @tf.function
+    def _Step(batch, running_metrics):
+      """A single forward/backward step. Input batch -> (metrics, outputs)."""
+      with tf.name_scope('tpu_train'):
+        with py_utils.OpportunisticVariableReuseScope(True):
+          with py_utils.GradientTape(persistent=True):
+            _, _ = self.task.FPropDefaultTheta(input_batch=batch)
+            self.task.BProp()
+
+        # Needed to unwrap the dict of metrics from fprop into an array.
+        # self.task.eval_metrics is updated by FProp.
+        step_metrics = self._metrics_mgr.SetMetrics(
+            metric_dict=self.task.eval_metrics, step_args=running_metrics)
+
+        return step_metrics
+
+    @tf.function
+    def _TpuFunction():
+      """Runs a single training step, and returns flattened metrics list."""
+      metrics = self._metrics_mgr.initial_values
+      # TODO(jlipschultz): for _ in tf.range(self._steps_per_loop) here, since
+      #  using tf.range avoids loop unrolling and XLA compile expense.
+      batch = self.task.input.GetPreprocessedInputBatch()
+      metrics = strategy.run(_Step, args=(batch, metrics))
+
+      return self._metrics_mgr.FinalizeMetrics(metrics, strategy)
+
+    return _TpuFunction
+
+  def _ShouldStop(self, task_global_step):
+    """Simpler version of _ShouldStop without early stopping."""
+    if task_global_step >= self._task_params.train.max_steps:
+      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d',
+                      task_global_step, self._task_params.train.max_steps)
+      return True
+
+    return False
+
+  def Run(self, sess=None, threadpool=None, strategy=None):
+    """Run the encapsulated training program.
+
+    Args:
+      sess: the session. Should be None in this program.
+      threadpool: unused in this program.
+      strategy: if present, a TPUStrategy object.
+
+    Returns:
+      true if the task is complete, false otherwise.
+    """
+    assert sess is None and threadpool is None and py_utils.IsEagerMode()
+    assert isinstance(strategy, tf.distribute.TPUStrategy)
+
+    self._task.input.DeviceLoopSetupEager()
+    task_step = self._GetTaskStep(sess)
+    if self._ShouldStop(task_step):
+      return True  # Prevent overtraining.
+
+    metrics = self._GetHostTrainLoop(strategy)()
+
+    global_step = self._GetGlobalStep(sess)
+    self._MaybeWriteSummary(global_step, metrics)
+    return self._ShouldStop(task_step)
 
 
 class EvalProgram(BaseProgram):
@@ -1436,7 +1603,8 @@ class DecodeProgram(BaseProgram):
       self.FinalizeCallback(finalize_ret)
       return None
 
-  def Run(self, sess=None, threadpool=None):
+  def Run(self, sess=None, threadpool=None, strategy=None):
+    del strategy
     self._trigger_scheduler.Trigger()
     if not self._trigger_scheduler.ShouldRun():
       return
@@ -2181,7 +2349,7 @@ class SimpleProgramSchedule(BaseProgramSchedule):
   def Programs(self):
     return self._programs
 
-  def Run(self, sess=None, threadpool=None):
+  def Run(self, sess=None, threadpool=None, strategy=None):
     """Execute the program schedule."""
     p = self.params
     num_train_runs = p.train_executions_per_eval
@@ -2189,7 +2357,8 @@ class SimpleProgramSchedule(BaseProgramSchedule):
     # Train
     with py_utils.Timer() as train_timer:
       for _ in range(num_train_runs):
-        if self.train_program.Run(sess):
+        if self.train_program.Run(
+            sess, threadpool=threadpool, strategy=strategy):
           break
     train_time_in_secs = train_timer.duration
     tf.logging.info('Train took %f seconds.', train_time_in_secs)

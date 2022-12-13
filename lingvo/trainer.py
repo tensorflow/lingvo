@@ -29,6 +29,7 @@ import os
 import re
 import sys
 import threading
+from typing import Literal
 
 from lingvo import base_trial
 from lingvo import datasets
@@ -229,6 +230,7 @@ class RunnerManager:
   Controller = runners.Controller
   TrainerTpu = runners.TrainerTpu
   ExecutorTpu = executor.ExecutorTpu
+  HostDrivenExecutor = executor.HostDrivenExecutor
   TrainSummaries = eager_runners.TrainSummaries
 
   @property
@@ -273,8 +275,13 @@ class RunnerManager:
     assert value == 2.0, 'Something is really wrong.'
     tf.logging.info('Launched tensorflow.')
 
-  def GetExecutorParams(self):
+  def GetExecutorParams(self,
+                        executor_type: Literal['executor_tpu',
+                                               'host_driven_executor_tpu']):
     """Get the params needed to instantiate the ExecutorTpu.
+
+    Args:
+      executor_type: either 'executor_tpu' or 'host_driven_executor_tpu'.
 
     Returns:
        Tuple (dict, params):
@@ -283,7 +290,7 @@ class RunnerManager:
          - train_cfg: Either a SingleTaskModelParams or MultiTaskModelParams.
     """
     cluster = cluster_factory.Current()
-    self.UpdateClusterParamsFromFlags(cluster.params, 'executor_tpu')
+    self.UpdateClusterParamsFromFlags(cluster.params, executor_type)
     ps_params_dict, train_cfg = executor.GetExecutorParams(
         self._model_name, cluster.params, self.model_registry)
 
@@ -514,8 +521,11 @@ class RunnerManager:
     elif job in ('ps', 'worker', 'input'):
       self._tf_server.join()
     elif job == 'executor_tpu':
-      ps_cfg_dict, train_cfg = self.GetExecutorParams()
+      ps_cfg_dict, train_cfg = self.GetExecutorParams(job)
       return self.ExecutorTpu(train_cfg, ps_cfg_dict, *common_args)
+    elif job == 'host_driven_executor_tpu':
+      ps_cfg_dict, train_cfg = self.GetExecutorParams(job)
+      return self.HostDrivenExecutor(train_cfg, ps_cfg_dict, *common_args)
     else:
       raise ValueError(f'job {job} is not supported')
 

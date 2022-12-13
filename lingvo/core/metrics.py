@@ -318,7 +318,7 @@ class TpuEvalMetrics:
     # We convert it into [metric_value * metric_weight, metric_weight] to make
     # it easier to aggregate metric values across steps and TPU replicas.
     ret = []
-    for _, (value, weight) in sorted(self._metrics.items()):
+    for _, (value, weight) in sorted(self.metrics.items()):
       assert value.shape.is_fully_defined(), ('%s' % value)
       assert weight.shape.is_fully_defined(), ('%s' % weight)
       weight = tf.cast(weight, tf.float32)
@@ -329,7 +329,11 @@ class TpuEvalMetrics:
     ret += list(step_args)[len(ret):]
     return ret
 
-  def FinalizeMetrics(self, loop_result):
+  def FinalizeMetrics(
+      self,
+      loop_result,
+      strategy: Optional[tf.distribute.Strategy] = None,
+  ):
     """Compute final average of the metrics, given loop_result tensors.
 
     To be called outside the training loop body , but still in the scope of
@@ -337,14 +341,21 @@ class TpuEvalMetrics:
 
     Args:
       loop_result: Result of the training loop.
+      strategy: When specified, use the tf.distribute sum reduction op.
 
     Returns:
       The tensors of the final avg values and total weights.
     """
     # Each metric has two tensors in the loop carrying result.
-    metrics = loop_result[:len(self.metrics) * 2]
+    metrics = loop_result[:(2 * len(self.metrics))]
     # Aggregate across tpu replicas.
-    metrics = [tf.tpu.cross_replica_sum(x) for x in metrics]
+    if strategy:
+      reduce_fn = lambda x: strategy.reduce('SUM', x, axis=None)
+    else:
+      reduce_fn = tf.tpu.cross_replica_sum
+
+    metrics = [reduce_fn(x) for x in metrics]
+
     ret = []
     for value, weight in py_utils.Chunked(metrics):
       value, weight = py_utils.WeightedAvg(
