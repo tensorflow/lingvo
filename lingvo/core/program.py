@@ -218,7 +218,7 @@ class BaseProgram:
             self._program_dir)
       else:
         self._summary_writer_obj = tf.summary.FileWriter(self._program_dir)
-        # Apply a custom Tensorboard layout for input data stats if writing
+        # Apply a custom TensorBoard layout for input data stats if writing
         # TF summaries for input data stats is enabled and a custom layout is
         # defined by the input generator.
         if (self._task.input.input_data_summary_layout is not None and
@@ -401,7 +401,7 @@ class BaseProgram:
     cannot, so we handle them separately here.
 
     Args:
-      task_params: An params instance that constructs either a SingleTaskModel
+      task_params: A params instance that constructs either a SingleTaskModel
         or a MultiTaskSubModel.
 
     Returns:
@@ -2514,7 +2514,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     emails: List of emails to email decode/scoring summaries.
     train_summary_interval_steps: Number of steps to wait before flushing
       summaries to disk.
-    spmd: Wether all the programs are running in SPMD mode.
+    spmd: Whether all the programs are running in SPMD mode.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -2633,7 +2633,7 @@ def UpdateProgramSchedule(ps_params,
   MultiInputsDecodeProgram.
 
   Args:
-    ps_params: SimpleProgramSchedule.Params(), to be overriden.
+    ps_params: SimpleProgramSchedule.Params(), to be overridden.
     dataset_list: Optional[List[str]], if not None, it will override eval
       datasets in ps_params.
     train_executions_per_eval: Optional[int], if not None, it will override
@@ -2655,7 +2655,7 @@ def UpdateProgramSchedule(ps_params,
       train program's summary_interval_steps.
 
   Returns:
-    ps_params after overriden.
+    ps_params after overridden.
   """
   assert ps_params
   if issubclass(ps_params.cls, MultiTaskProgramSchedule):

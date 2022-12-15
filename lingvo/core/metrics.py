@@ -555,8 +555,8 @@ class MultiClassAUCMetric(BaseMetric):
     Args:
       labels: An list of arrays specifying the groundtruth binary labels for
         each class. Values must be either 0 or 1.
-      probs: A list of arrays specifying teh prediction probabilities for each
-        class. Values must be within [0, 1.0]
+      probs: A list of arrays specifying the prediction probabilities for each
+        class. Values must be within [0, 1.0].
       weights: An array to specify the sample weight for each example in the auc
         computation.
     """
