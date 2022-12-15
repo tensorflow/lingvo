@@ -186,7 +186,7 @@ class _Cluster:
     else:
       device_type = 'CPU'
       devices_per_replica = job_spec.num_tpu_hosts or job_spec.cpus_per_replica
-    ret = np.empty((replicas, devices_per_replica), np.object)
+    ret = np.empty((replicas, devices_per_replica), object)
 
     if self._session_devices:
       devices = [
@@ -421,7 +421,7 @@ class _Cluster:
     """
     from lingvo.core import py_utils  # pylint: disable=g-import-not-at-top
     if self.job_spec.tpus_per_replica and not py_utils.IsEagerMode():
-      ret = np.empty((1, self.num_devices_per_split), np.object)
+      ret = np.empty((1, self.num_devices_per_split), object)
       for i in range(self.num_devices_per_split):
         ret[0, i] = tf.tpu.core(i)
       return ret
