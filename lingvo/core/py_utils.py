@@ -3536,13 +3536,29 @@ def ConcatRecursively(splits, axis=-1):
     raise TypeError('Unexpected type for ConcatRecursively: %s' % type(splits))
 
 
-def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum, name=''):
+class ReductionProtocol(typing.Protocol):
+
+  def __call__(self,
+               input_tensor: tf.Tensor,
+               axis: Optional[int] = None,
+               **kwargs) -> tf.Tensor:
+    ...
+
+
+def WeightedAvg(
+    values: tf.Tensor,
+    weights: tf.Tensor,
+    sum_reduction_fn: ReductionProtocol = tf.reduce_sum,
+    axis: Optional[int] = None,
+    name: str = '',
+) -> Tuple[tf.Tensor, tf.Tensor]:
   """Computes weighted average of values from a tensor.
 
   Args:
-    values: a tensor of values
-    weights: a tensor of weights
-    sum_reduction_fn: called to reduce the values and weights to single value
+    values: a tensor of values.
+    weights: a tensor of weights.
+    sum_reduction_fn: called to reduce the values and weights.
+    axis: the axis to reduce over; defaults to all (i.e. to a scalar).
     name: name of metric.
 
   Returns:
@@ -3554,11 +3570,13 @@ def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum, name=''):
   msg = 'shape of values and weights tensors must match for metric ' + name
   values = with_dependencies(
       [assert_equal(tf.shape(values), tf.shape(weights), message=msg)], values)
-  total_weight = sum_reduction_fn(weights)
   # divide_no_nan only supports tf.{float,complex}*.
   dtype = values.dtype if values.dtype is tf.float64 else tf.float32
+
+  total_weight = sum_reduction_fn(weights, axis=axis)
   avg = tf.math.divide_no_nan(
-      sum_reduction_fn(tf.cast(values, dtype) * tf.cast(weights, dtype)),
+      sum_reduction_fn(
+          tf.cast(values, dtype) * tf.cast(weights, dtype), axis=axis),
       tf.cast(total_weight, dtype))
   return tf.cast(avg, values.dtype), total_weight
 
@@ -3581,7 +3599,7 @@ def WeightedAvgOfMetrics(metrics: List[Dict[str, Tuple[float, float]]]):
   for name, values_and_weights in sorted(lists_of_metrics.items()):
     values = tf.stack([x[0] for x in values_and_weights])
     weights = tf.stack([x[1] for x in values_and_weights])
-    ret_dict[name] = WeightedAvg(values, weights, tf.reduce_sum, name)
+    ret_dict[name] = WeightedAvg(values, weights, name=name)
 
   return ret_dict
 

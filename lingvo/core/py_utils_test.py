@@ -1546,14 +1546,32 @@ class WeightedAvgTest(test_utils.TestCase):
       actual = self.evaluate([loss, weight])
       self.assertAllClose(actual, expected)
 
+  def testVectorWeightedAvg(self):
+    with self.session(use_gpu=False):
+      losses = tf.constant([
+          [5.6, 4.6, 1.5, 3.4],
+          [2.3, 7.6, 4.3, 2.2],
+      ])
+      weights = tf.constant([
+          [10, 9, 2, 8],
+          [11, 12, 13, 14],
+      ])
+      loss, weight = py_utils.WeightedAvg(losses, weights, axis=1)
+      expected = [
+          [4.4, 4.064],
+          [29, 50],
+      ]
+      actual = self.evaluate([loss, weight])
+      self.assertAllClose(actual, expected)
+
   def testWeightedAvgOfMetrics(self):
     with self.session(use_gpu=False):
       metrics = [{
           'a': (2.0, 0.5),
-          'b': (5.0, 1.5)
+          'b': (5.0, 1.5),
       }, {
           'a': (9.0, 3.0),
-          'b': (4.0, 0.5)
+          'b': (4.0, 0.5),
       }]
       expected = {'a': (8.0, 3.5), 'b': (4.75, 2.0)}
       weighted_avg = py_utils.WeightedAvgOfMetrics(metrics)
