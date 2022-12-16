@@ -5330,8 +5330,10 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim, use_einsum=True):
     s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     r = inputs.shape.rank
     outputs = tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, weight)
+  elif inputs.shape.rank is not None and inputs.shape.rank > 2:
+    outputs = tf.matmul(inputs, weight)
   else:
-    # not use_einsum or not use_tpu() or inputs.shape.rank >= 26
+    # inputs.shape.rank is None or inputs.shape.rank == 1
     outputs = Matmul(tf.reshape(inputs, [-1, input_dim]), weight)
     outputs = tf.reshape(
         outputs,
