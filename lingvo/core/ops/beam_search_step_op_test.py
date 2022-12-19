@@ -1268,7 +1268,7 @@ class TopKOpTest(test_utils.TestCase, parameterized.TestCase):
       hyps = np.random.randint(3, 100, size=[seq_len, hyp_size])
       # We align all the hyps to make cumulative_score easy to compute.
       prev_hyps = np.tile(np.arange(hyp_size), [seq_len, 1])
-      done_hyps = np.ones([seq_len, hyp_size], dtype=np.bool)
+      done_hyps = np.ones([seq_len, hyp_size], dtype=bool)
       scores = np.random.uniform(-0.5, 1, size=[seq_len, hyp_size])
       cumulative_scores = np.cumsum(scores, axis=0)
       eos_scores = np.random.uniform(-0.5, 1, size=[seq_len, hyp_size])

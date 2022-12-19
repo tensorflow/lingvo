@@ -18,7 +18,6 @@ import unittest
 from lingvo import compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.car import ops
-import numpy as np
 
 
 class Nms3dOpTest(test_utils.TestCase):
@@ -73,7 +72,7 @@ class Nms3dOpTest(test_utils.TestCase):
       self.assertEqual(mask.sum(), total_expected_valid_boxes)
 
       for cls_idx in range(num_classes):
-        cls_mask = mask[cls_idx, :].astype(np.bool)
+        cls_mask = mask[cls_idx, :].astype(bool)
         self.assertEqual(cls_mask.sum(), len(expected_indices[cls_idx]))
         self.assertAllEqual(bbox_idx[cls_idx, cls_mask],
                             expected_indices[cls_idx])
@@ -151,8 +150,8 @@ class Nms3dOpTest(test_utils.TestCase):
         self.assertEqual(per_class_scores.shape, (1, max_boxes_per_class))
         self.assertEqual(per_class_valid_mask.shape, (1, max_boxes_per_class))
 
-        per_class_mask = per_class_valid_mask[0, :].astype(np.bool)
-        multiclass_mask = multiclass_valid_mask[cls_idx, :].astype(np.bool)
+        per_class_mask = per_class_valid_mask[0, :].astype(bool)
+        multiclass_mask = multiclass_valid_mask[cls_idx, :].astype(bool)
         self.assertAllEqual(per_class_indices[0, per_class_mask],
                             multiclass_indices[cls_idx, multiclass_mask])
         self.assertAllEqual(per_class_scores[0, per_class_mask],

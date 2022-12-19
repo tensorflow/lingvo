@@ -442,7 +442,7 @@ class Utils3DTest(test_utils.TestCase):
       indices, scores, valid_mask = self.evaluate(outputs)
 
       class_masks = [
-          valid_mask[0, cls_idx, :].astype(np.bool) for cls_idx in range(3)
+          valid_mask[0, cls_idx, :].astype(bool) for cls_idx in range(3)
       ]
       # Check the correct number of valid results per class
       self.assertEqual(class_masks[0].sum(), 2)
@@ -469,7 +469,7 @@ class Utils3DTest(test_utils.TestCase):
       indices, scores, valid_mask = self.evaluate(outputs)
 
       class_masks = [
-          valid_mask[0, cls_idx, :].astype(np.bool) for cls_idx in range(3)
+          valid_mask[0, cls_idx, :].astype(bool) for cls_idx in range(3)
       ]
       # Check the correct number of valid results per class
       self.assertEqual(class_masks[0].sum(), 1)

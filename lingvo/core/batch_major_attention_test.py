@@ -4204,8 +4204,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Stack('model', layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4263,8 +4262,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4323,10 +4321,10 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       inputs_np = np.random.random([bs, sl, d]) * 10
       non_pad_len = np.random.randint(sl // 2, sl, size=[bs])
       paddings_np = np.arange(sl)[None, :] >= non_pad_len[:, None]
-      paddings_np = paddings_np.astype(np.float)
+      paddings_np = paddings_np.astype(float)
 
-      inputs = tf.constant(inputs_np, dtype=np.float)
-      paddings = tf.constant(paddings_np, dtype=np.float)
+      inputs = tf.constant(inputs_np, dtype=float)
+      paddings = tf.constant(paddings_np, dtype=float)
 
       pooled_tensor, pooled_paddings = l.FPropDefaultTheta(inputs, paddings)
       tf.global_variables_initializer().run()
@@ -4375,7 +4373,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           name='funnel_pool', stride=stride, pooling_type=pooling_type)
       l = funnel_pooling_params.Instantiate()
       inputs_np = np.random.random([bs, sl, d]) * 10
-      inputs = tf.constant(inputs_np, dtype=np.float)
+      inputs = tf.constant(inputs_np, dtype=float)
       pooled_tensor = l.FPropDefaultTheta(inputs)
       tf.global_variables_initializer().run()
       pooled_tensor_np = sess.run(pooled_tensor)
@@ -4429,8 +4427,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4492,8 +4489,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           upsample_rate=accumulate_stride)
       l_upsample = upsample_p.Instantiate()
 
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4557,8 +4553,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
 
       l_upsample = upsample_p.Instantiate()
 
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
 
       if upsample_shortcut_idx is not None:
@@ -4603,8 +4598,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4642,8 +4636,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4683,8 +4676,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4723,8 +4715,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4752,8 +4743,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       bs = 2
       sl = 10
       d = 16
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       segment_mask = None
       if pack_sequences:
@@ -4836,8 +4826,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       l_out = l.FPropDefaultTheta(
           py_utils.NestedMap(vec=input_embs, paddings=paddings))
@@ -4872,8 +4861,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Seq('model', *layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       with py_utils.AuxLossContext() as aux_loss_ctx:
         l_out = l.FPropDefaultTheta(

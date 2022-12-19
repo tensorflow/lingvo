@@ -163,7 +163,7 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
     # TopDownVisualizationMetric.
 
     # Indices corresponding to the 2D bbox parameters (x, y, dx, dy, phi).
-    bbox_2d_idx = np.asarray([1, 1, 0, 1, 1, 0, 1], dtype=np.bool)
+    bbox_2d_idx = np.asarray([1, 1, 0, 1, 1, 0, 1], dtype=bool)
     bboxes_2d = dec_out_dict.bboxes_3d[..., bbox_2d_idx]
     predicted_bboxes = dec_out_dict.per_class_predicted_bboxes[..., bbox_2d_idx]
 

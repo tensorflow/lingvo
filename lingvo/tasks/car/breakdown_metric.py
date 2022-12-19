@@ -475,7 +475,7 @@ class ByNumPoints(BreakdownMetric):
         self._cumulative_distribution[j].sort()
         x = np.array(self._cumulative_distribution[j])
         nonzeros = np.flatnonzero(x)
-        cdf = np.arange(x.size).astype(np.float) / x.size
+        cdf = np.arange(x.size).astype(float) / x.size
         xs.append(x)
         ys.append(cdf)
         num_zeros.append(x.size - nonzeros.size)

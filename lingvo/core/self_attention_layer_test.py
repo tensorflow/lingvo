@@ -56,8 +56,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       p = atten_builder.Instantiate().TransformerStack('atten', 6)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       segment_mask = tf.zeros([bs, 1, sl, sl])
 
@@ -169,8 +168,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'atten/iter_002/block/self_atten/atten/value/b/var',
           'atten/iter_002/block/self_atten/atten/value/w/var',
       ], [var.op.name for var in tf.nest.flatten(l.vars)])
-      input_embs = tf.constant(
-          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
       paddings = tf.zeros([bs, sl])
       segment_mask = tf.zeros([bs, 1, sl, sl])
 
