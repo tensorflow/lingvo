@@ -49,7 +49,7 @@ class SyntheticDataset(base_model_params.BaseModelParams):
         input=input_p, is_training=is_training)
     return p
 
-  def datasets(self) -> List[InstantiableParams]:
+  def datasets(self) -> List[InstantiableParams]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     """Returns a list of dataset parameters."""
     return [
         self._dataset_common(is_training=True),

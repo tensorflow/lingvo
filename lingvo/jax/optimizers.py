@@ -1002,7 +1002,7 @@ class ShardedDistributedShampoo(DistributedShampoo):
     return jax.tree_map(_weight_param_from_pspec_shape_dtype,
                              partition_spec_opt_state, shapes_and_dtypes)
 
-  def _get_raw_grad_transformation(
+  def _get_raw_grad_transformation(  # pytype: disable=signature-mismatch  # overriding-return-type-checks
       self, lr: optax.Schedule) -> ShardedGradientTransformation:
     result = super()._get_raw_grad_transformation(lr)
     # TODO(rohananil): Refactor after PartitionSpec layering is finalized in

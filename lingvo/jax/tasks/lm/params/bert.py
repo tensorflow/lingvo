@@ -62,7 +62,7 @@ class BertDataset(base_model_params.BaseModelParams):
     p.is_training = False
     return p
 
-  def datasets(self) -> List[InstantiableParams]:
+  def datasets(self) -> List[InstantiableParams]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     """Returns a list of dataset parameters."""
     return [self._datasetTrain(), self._datasetTest()]
 
