@@ -322,11 +322,15 @@ class BaseProgram:
         global_step, {k: metric.value for k, metric in metrics_dict.items()})
     return vizier_early_stop
 
-  def BuildTpuSubgraph(self):
-    """Sub classes should construct a model/graph to be executed by Run.
+  def BuildTpuSubgraph(self, strategy=None):
+    """Subclasses should construct a model/graph to be executed by Run.
 
     Specific to TPU execution, this may involve a
     @tpu_function.on_device_training_loop etc.
+
+    Args:
+      strategy: Intended for use by host-driven TPUStrategy programs, otherwise
+        None.
     """
     raise NotImplementedError()
 
@@ -401,8 +405,8 @@ class BaseProgram:
     cannot, so we handle them separately here.
 
     Args:
-      task_params: A params instance that constructs either a SingleTaskModel
-        or a MultiTaskSubModel.
+      task_params: A params instance that constructs either a SingleTaskModel or
+        a MultiTaskSubModel.
 
     Returns:
       An instantiated object based on task_params.
@@ -549,7 +553,7 @@ class TrainProgram(BaseProgram):
           if py_utils.IsEagerMode():
             stack.enter_context(py_utils.GradientTape(persistent=True))
           self._model.ConstructFPropBPropGraph()
-      per_step_eval_metrics = self._eval_metrics.SetMetrics(
+      per_step_eval_metrics = self._eval_metrics.PackStepMetricsForAccumulation(
           self.task.eval_metrics, args)
       outfeed_op = self._OutfeedEnqueue(self.task.per_example_tensors)
       summed_metrics = []
@@ -619,7 +623,7 @@ class TrainProgram(BaseProgram):
         # step finishes. This allows us to run certain computation that
         # acts on the variable between tpu_train_loop iterations and
         # amortizing the cost of the operations. Alternative of running
-        # tpu.outside_compilation & using tf.cond is expenseive.
+        # tpu.outside_compilation & using tf.cond is expensive.
         with tf.control_dependencies(metric_values):
           self._model.ConstructPostTrainingLoop(outfeed)
           with tf.control_dependencies([self._task.post_training_loop_op]):
@@ -796,11 +800,8 @@ class HostDrivenTrainProgram(BaseProgram):
     else:
       return False
 
-  def _MaybeWriteSummary(self, global_step, values, outfeeds=None):
+  def _MaybeWriteSummary(self, global_step, eval_metrics, outfeeds=None):
     """Handle writing summaries when _ShouldWriteSummary is true."""
-    self._metrics_mgr.PackMetricsValues(values)
-    eval_metrics = self._metrics_mgr.metrics
-
     if self._ShouldWriteSummary(global_step):
       step_rate, example_rate, total_examples = (
           self._step_rate_tracker.ComputeStepRate(
@@ -825,63 +826,62 @@ class HostDrivenTrainProgram(BaseProgram):
                                            eval_metrics, outfeeds)
       self._summary_writer.flush()
 
-  def BuildTpuSubgraph(self):
+  def BuildTpuSubgraph(self, strategy):
     tf.logging.info('HostDrivenTrainProgram BuildTpuSubGraph')
-    p = self.params
 
-    self._metrics_mgr = metrics_lib.TpuEvalMetrics(max_metrics=p.max_metrics)
+    self._metrics_mgr = metrics_lib.TpuVariableMetrics(
+        max_metrics=self.params.max_metrics, strategy=strategy)
 
-    with py_utils.OpportunisticVariableReuseScope(True):
-      self._model = self._InstantiateTaskModel(self._task_params)
+    self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
 
     # Write model analysis.
     self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
         self._model)
     tf.logging.info('Total params=%d', self._total_num_params)
-    try:
-      analysis_file = epath.Path(self._program_dir) / 'model_analysis.txt'
-      analysis_file.write_text(self._model_analysis)
-    except tf.errors.NotFoundError as e:
-      tf.logging.info('Failed to write model analysis %s', e)
+    analysis_file = epath.Path(self._program_dir) / 'model_analysis.txt'
+    analysis_file.write_text(self._model_analysis)
 
   def _GetHostTrainLoop(
       self, strategy: tf.distribute.TPUStrategy) -> Callable[..., Any]:
-    """Provides the host-driven loop to `Run`, using the given strategy.
-
-    Args:
-      strategy: the TPUStrategy object.
-
-    Returns:
-      the tf.function representing a single training loop execution.
-    """
+    """Provides the host-driven loop to `Run`, using the given strategy."""
 
     @tf.function
-    def _Step(batch, running_metrics):
-      """A single forward/backward step. Input batch -> (metrics, outputs)."""
+    def _Step(theta, batch):
+      """A single forward/backward step.
+
+      Processes the given input batch and updates the distributed metrics
+      accumulator. We use FProp (instead of FPropDefaultTheta) and
+      _BPropForVariables (instead of BProp) in order to permit the tf.distribute
+      library to handle threading values across devices.
+
+      Args:
+        theta: dict (because of tf.distribute) of trainable task variables
+        batch: NestedMap of input batch data.
+      """
+      theta = py_utils.NestedMap.FromNestedDict(theta)
       with tf.name_scope('tpu_train'):
-        with py_utils.OpportunisticVariableReuseScope(True):
-          with py_utils.GradientTape(persistent=True):
-            _, _ = self.task.FPropDefaultTheta(input_batch=batch)
-            self.task.BProp()
+        with py_utils.GradientTape(persistent=True):
+          metrics_dict, _ = self.task.FProp(theta, input_batch=batch)
+        self.task._BPropForVariables(theta)  # pylint: disable=protected-access
 
-        # Needed to unwrap the dict of metrics from fprop into an array.
-        # self.task.eval_metrics is updated by FProp.
-        step_metrics = self._metrics_mgr.SetMetrics(
-            metric_dict=self.task.eval_metrics, step_args=running_metrics)
-
-        return step_metrics
+        self._metrics_dict_structure = metrics_dict
+        self._metrics_mgr.AccumulateStepMetrics(metrics_dict)
 
     @tf.function
     def _TpuFunction():
       """Runs a single training step, and returns flattened metrics list."""
-      metrics = self._metrics_mgr.initial_values
-      # TODO(jlipschultz): for _ in tf.range(self._steps_per_loop) here, since
-      #  using tf.range avoids loop unrolling and XLA compile expense.
-      batch = self.task.input.GetPreprocessedInputBatch()
-      metrics = strategy.run(_Step, args=(batch, metrics))
+      self._metrics_mgr.ResetState()
 
-      return self._metrics_mgr.FinalizeMetrics(metrics, strategy)
+      # Explicitly pass theta through the run() call because XLA doesn't
+      # properly handle implicitly in variables.
+      theta = self.task._private_vars  # pylint: disable=protected-access
+      for _ in tf.range(self._steps_per_loop):
+        batch = self.task.input.GetPreprocessedInputBatch()
+        strategy.run(_Step, args=(theta, batch))
+
+      return self._metrics_mgr.FinalizeMetricsWithStructure(
+          self._metrics_dict_structure)
 
     return _TpuFunction
 
@@ -911,7 +911,7 @@ class HostDrivenTrainProgram(BaseProgram):
     self._task.input.DeviceLoopSetupEager()
     task_step = self._GetTaskStep(sess)
     if self._ShouldStop(task_step):
-      return True  # Prevent overtraining.
+      return True
 
     metrics = self._GetHostTrainLoop(strategy)()
 
@@ -945,7 +945,7 @@ class EvalProgram(BaseProgram):
     """
     with tf.name_scope('tpu_eval'):
       self._model.ConstructFPropGraph()
-      per_step_eval_metrics = self._eval_metrics.SetMetrics(
+      per_step_eval_metrics = self._eval_metrics.PackStepMetricsForAccumulation(
           self._task.eval_metrics, args)
       return [x + y for x, y in zip(per_step_eval_metrics, args)]
 
@@ -986,7 +986,8 @@ class EvalProgram(BaseProgram):
     # because TpuEvalMetrics.FinalizeMetrics runs a cross_replica_sum.
     return [t[0] for t in batch_parallel_res]
 
-  def BuildTpuSubgraph(self):
+  def BuildTpuSubgraph(self, strategy=None):
+    del strategy
     tf.logging.info(f'EvalProgram {self.params.dataset_name} BuildTpuSubGraph')
     p = self.params
     with cluster_factory.SetEval(True):
@@ -1347,7 +1348,8 @@ class DecodeProgram(BaseProgram):
       tf.logging.info('_InfeedLoop exception %r: %s', e, e.message)
       raise
 
-  def BuildTpuSubgraph(self):
+  def BuildTpuSubgraph(self, strategy=None):
+    del strategy
     tf.logging.info(
         f'DecodeProgram {self.params.dataset_name} BuildTpuSubGraph')
     with cluster_factory.SetEval(True):
@@ -2409,7 +2411,8 @@ def _CreateProgramParams(cls,
                          dataset_name,
                          steps_per_loop,
                          decode_num_samples=None,
-                         spmd=False):
+                         spmd=False,
+                         train_max_metrics=None) -> BaseProgram.Params:
   """Create different program param instance per inputs."""
   p = cls.Params()
   p.name = program_name
@@ -2422,6 +2425,8 @@ def _CreateProgramParams(cls,
   p.steps_per_loop = steps_per_loop
   if 'decode_num_samples' in p and decode_num_samples:
     p.decode_num_samples = decode_num_samples
+  if train_max_metrics is not None:
+    p.max_metrics = train_max_metrics
   return p
 
 
@@ -2458,7 +2463,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  postprocess_all_at_once=False,
                                  emails=None,
                                  train_summary_interval_steps=None,
-                                 spmd=False):
+                                 spmd=False,
+                                 train_max_metrics=None):
   """Convenient helper method for common case.
 
   Args:
@@ -2499,10 +2505,10 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     experimental_async_postprocess: bool. Whether to run CPU postprocessing in
       separate thread to save time. This flag is only used for
       ExperimentalDecodeProgram, when experimental_decoder=True.
-    decode_until_out_of_range(DEPRECATED): bool. Whether to run Decode (and its
-      Infeed loop) until there is no more data (OutOfRange error is thrown). If
-      this is True, decode_steps_per_loop is ignored (and not required).
-      Currently do not support ExperimentalDecodeProgram, which uses loop on
+      decode_until_out_of_range(DEPRECATED): bool. Whether to run Decode (and
+      its Infeed loop) until there is no more data (OutOfRange error is thrown).
+      If this is True, decode_steps_per_loop is ignored (and not required).
+      Currently, does not support ExperimentalDecodeProgram, which uses loop on
       TPU. So keep experimental_decoder=False
     postprocess_all_at_once: bool/List. Whether to postprocess the (combined)
       batches at once at the end of Decode program, instead of once per step.
@@ -2515,6 +2521,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     train_summary_interval_steps: Number of steps to wait before flushing
       summaries to disk.
     spmd: Whether all the programs are running in SPMD mode.
+    train_max_metrics: overrides TpuEvalMetrics.max_metrics.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -2526,7 +2533,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       'train',
       train_dataset_name,
       train_steps_per_loop,
-      spmd=spmd)
+      spmd=spmd,
+      train_max_metrics=train_max_metrics)
   if issubclass(train_program_cls, TrainProgram):
     program_schedule_params.train_program.summary_interval_steps = train_summary_interval_steps
 

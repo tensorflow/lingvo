@@ -19,6 +19,7 @@ import multiprocessing.dummy
 import os
 from typing import Dict, Optional
 
+from etils import epath
 from lingvo import compat as tf
 from lingvo import pdb_wrapper
 from lingvo.core import base_model
@@ -387,6 +388,10 @@ class ExecutorTpu(base_runner.BaseRunner):
       self._retrieve_ops = tpu_embedding_collection.retrieve_ops
       self._tpu_embedding = tpu_embedding_collection.tpu_embedding
 
+  @property
+  def logdir(self) -> epath.Path:
+    return epath.Path(self._logdir)
+
   def _CreateCheckpointer(self, train_params):
     """Creates one of several checkpointer versions.
 
@@ -716,7 +721,8 @@ class HostDrivenExecutor(base_runner.BaseRunner):
           # before they get loaded. Otherwise, the optimizers' slot variables
           # will not be properly loaded when V1 checkpoint is used.
           for program in self._programs:
-            program.BuildTpuSubgraph()
+            print(f'Building TPU Subgraph for program `{type(program)}`')
+            program.BuildTpuSubgraph(strategy=self.tpu_strategy)
             py_utils.ClearTpuSummaryTensors()
 
         self._checkpointer = checkpointer_lib.EagerCheckpointerV2(
@@ -734,6 +740,10 @@ class HostDrivenExecutor(base_runner.BaseRunner):
         self._load_ops = tpu_embedding_collection.load_ops
         self._retrieve_ops = tpu_embedding_collection.retrieve_ops
         self._tpu_embedding = tpu_embedding_collection.tpu_embedding
+
+  @property
+  def logdir(self) -> epath.Path:
+    return epath.Path(self._logdir)
 
   @py_utils.RetryOnTransientTfError()
   def _ConnectToTPU(self, train_cfg) -> tf.distribute.TPUStrategy:

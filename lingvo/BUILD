@@ -338,6 +338,7 @@ pytype_library(
         ":pdb_wrapper",
         # Implicit network file system dependency.
         # Implicit python proto dependency.
+        # Implicit etils (/epath) dependency.
         "//lingvo:base_runner",
         "//lingvo/core:base_model",
         "//lingvo/core:checkpointer_lib",

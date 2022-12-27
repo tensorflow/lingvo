@@ -168,8 +168,8 @@ class BaseTask(base_layer.BaseLayer):
               'Early stopping based on dev-set performance.')
     tp.Define(
         'ema_decay', 0.0,
-        'If > 0, enable ExponentialMovingAverage during training '
-        'with the give decay. '
+        'If > 0, enable ExponentialMovingAverage during training with the '
+        'given decay. '
         'Must be < 1. Disabled if <= 0. '
         'Note that TPU embedding does not support EMA, so if used together, '
         'there will be a mix of EMA and non-EMA variables in the model and the '
@@ -503,7 +503,7 @@ class BaseTask(base_layer.BaseLayer):
   def FilterPerExampleTensors(self, per_example):
     """Return the per-example tensors ProcessFPropResults needs.
 
-    By default we don't send any per-example tensors to ProcessFPropResults
+    By default, we don't send any per-example tensors to ProcessFPropResults
     because some may be expensive to compute. Implement this method to let
     some of them pass through.
 
@@ -576,7 +576,7 @@ class BaseTask(base_layer.BaseLayer):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch
-        spiltting is used, a list of `NestedMap`, one for each split.
+        splitting is used, a list of `NestedMap`, one for each split.
 
     Returns:
       (dict, dict):
@@ -804,8 +804,8 @@ class BaseTask(base_layer.BaseLayer):
         train_ops['global_step'] = increment_global_steps
 
     if not py_utils.IsEagerMode():
-      # Some of the values could be a tf.no_op(), which returns None in eager
-      # mode, so we don't want to check that when eager is enabled.
+      # Some values could be a tf.no_op(), which returns None in eager mode, so
+      # we don't want to check that when eager is enabled.
       for op_name, op in train_ops.items():
         if op is None:
           raise ValueError(f'Train op {op_name} is None.')
@@ -1056,7 +1056,6 @@ class BaseTask(base_layer.BaseLayer):
 
     Raises:
       ValueError: if `name` is already defined.
-
     """
     if name in self._eval_metrics and not tf.executing_eagerly():
       if raise_if_already_added:

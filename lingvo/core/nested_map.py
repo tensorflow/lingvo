@@ -20,6 +20,9 @@ from typing import (Any, Callable, Dict, List, Mapping, Optional, Sequence,
                     Tuple, TypeVar)
 import lingvo.compat as tf
 from typing_extensions import Literal
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.python.training.tracking import data_structures
+# pylint: enable=g-direct-tensorflow-import
 
 _NAME_PATTERN = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 _SQUARE_BRACKET_PATTERN = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]')
@@ -48,6 +51,13 @@ def _FromNestedDict(x):
     return res
   elif isinstance(x, (list, tuple)):
     return type(x)(_FromNestedDict(v) for v in x)
+  elif isinstance(x, data_structures._DictWrapper):  # pylint: disable=protected-access
+    # This case is needed for the HostDrivenExecutorTpu, during autograph
+    # tracing NestedMaps are implicitly converted to dictionaries and, because
+    # they are dict attributes on "Trackable" objects, get wrapped in this.
+    # Note: We cannot directly check this with isinstance because the python API
+    # does not expose this symbol.
+    return _FromNestedDict(x.__wrapped__)
   else:
     return x
 

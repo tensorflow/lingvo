@@ -472,8 +472,9 @@ class TrainerTpu(base_runner.BaseRunner):
           self._retrieve_ops = tpu_embedding_collection.retrieve_ops
           self._tpu_embedding = tpu_embedding_collection.tpu_embedding
 
-          per_step_eval_metrics = self._eval_metrics.SetMetrics(
-              self._task.eval_metrics, args)
+          per_step_eval_metrics = (
+              self._eval_metrics.PackStepMetricsForAccumulation(
+                  self._task.eval_metrics, args))
           outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
           summed_metrics = []
           assert len(per_step_eval_metrics) == len(args)
