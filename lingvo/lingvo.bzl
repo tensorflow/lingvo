@@ -1,7 +1,5 @@
 """Implements custom rules for Lingvo."""
 
-load("@subpar//:subpar.bzl", "par_binary")
-
 def tf_copts():
     # TODO(drpng): autoconf this.
     return ["-D_GLIBCXX_USE_CXX11_ABI=1", "-std=c++14", "-Wno-sign-compare", "-mavx"] + select({
@@ -55,11 +53,8 @@ def lingvo_cc_test(name, srcs, deps = [], **kwargs):
         **kwargs
     )
 
-def lingvo_py_binary(*args, **kwargs):
-    # Extract all files to a temporary directory is required to allow access to
-    # the shared object containing lingvo ops.
-    kwargs["zip_safe"] = False
-    par_binary(*args, **kwargs)
+# TODO(b/263806511): Determine if this alias breaks any existing OSS use-cases.
+lingvo_py_binary = native.py_binary
 
 def custom_kernel_library(name, op_def_lib, srcs, hdrs = [], deps = []):
     native.cc_library(
