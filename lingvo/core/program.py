@@ -1756,7 +1756,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
         'infer the actual steps_per_loop. If True, we infer steps_per_loop as '
         'floor(decode_num_samples/batch_size), otherwise, we infer it as '
         'ceil(decode_num_samples/batch_size). '
-        'Note: when drop_remainder=False, it is user\'s repsonsibility to pad '
+        'Note: when drop_remainder=False, it is user\'s responsibility to pad '
         'the data for the last batch.')
     p.num_threads = 2
     return p
@@ -2214,7 +2214,7 @@ class BaseProgramSchedule(abc.ABC):
   """Base ProgramSchedule type.
 
   Program schedules are the programming model provided by the Lingvo Executor
-  API for multi-program interleaving on the accellerator. The schedule defines
+  API for multi-program interleaving on the accelerator. The schedule defines
   how this interleaving takes place. There are two primary types of schedules:
   SimpleProgramSchedule and MultiTaskProgramSchedule. Typically, the schedule is
   fetched using `model_registry.GetProgramSchedule`, so users defining new
@@ -2233,7 +2233,7 @@ class BaseProgramSchedule(abc.ABC):
 
   @abc.abstractmethod
   def Shutdown(self):
-    """Runs and necessary cleanup defined by the progrm."""
+    """Runs and necessary cleanup defined by the program."""
     pass
 
   @abc.abstractmethod
@@ -2486,7 +2486,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       trigger_interval below to control trigger schedule.
     decode_trigger_interval: The program is only effectively triggered every
       this num of runs, after trigger_offset is met.
-    experimental_decoder: bool. Whether to use experimental deocder which is
+    experimental_decoder: bool. Whether to use experimental decoder which is
       placed in a tpu loop.
     multi_inputs_decoder: bool. Whether to use multi inputs decoder for all
       datasets.
