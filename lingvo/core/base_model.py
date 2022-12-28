@@ -868,14 +868,16 @@ class BaseTask(base_layer.BaseLayer):
       return tf.no_op()
 
     # Make sure this is called at most once in a graph. In eager mode, the outer
-    # tf.function will be traced multiple times in different function graphs.
-    graph = id(tf.get_default_graph())
-    if graph in self._graphs_applied_ema:
-      raise ValueError(
-          'ApplyExponentialMovingAverage was called before. Calling it again '
-          'will create multiple sets of EMA update ops, and the behavior is '
-          'undefined.')
-    self._graphs_applied_ema.add(graph)
+    # tf.function may be traced multiple times in different function graphs.
+    # Otherwise, skip this check in eager mode.
+    if not tf.executing_eagerly():
+      graph = id(tf.get_default_graph())
+      if graph in self._graphs_applied_ema:
+        raise ValueError(
+            'ApplyExponentialMovingAverage was called before. Calling it again '
+            'will create multiple sets of EMA update ops, and the behavior is '
+            'undefined.')
+      self._graphs_applied_ema.add(graph)
 
     tf.logging.info('ApplyExponentialMovingAverage on %s', self)
     pre_op = tf.no_op()
@@ -1324,9 +1326,11 @@ class SingleTaskBase(BaseModel):
 
   def _CreateLayerVariables(self) -> None:
     super()._CreateLayerVariables()
-    # CPU evaler doesn't create EMA variables. It loads EMA variables to
-    # regular variables.
-    use_ema = self.ema and (not self.do_eval or self.use_ema_for_theta)
+    # CPU evaler doesn't create EMA variables in graph mode. It loads EMA
+    # variables to regular variables. CPU evaler in eager mode creates EMA
+    # variables, and copies them to regular variables.
+    use_ema = self.ema and (not self.do_eval or self.use_ema_for_theta or
+                            py_utils.IsEagerMode())
     # All variables of the model are created. Now create EMA variables.
     if use_ema:
       self._task.CreateExponentialMovingAverage(self.ema)
@@ -1556,9 +1560,10 @@ class MultiTaskModel(BaseModel):
 
   def _CreateLayerVariables(self) -> None:
     super()._CreateLayerVariables()
-    # CPU evaler doesn't create EMA variables. It loads EMA variables to
-    # regular variables.
-    use_ema = self.ema and (not self.do_eval or self.use_ema_for_theta)
+    # CPU evaler does not create EMA variables. It loads EMA variables to
+    # regular variables in graph mode.
+    use_ema = self.ema and (not self.do_eval or self.use_ema_for_theta or
+                            py_utils.IsEagerMode())
     # All variables of the model are created. Now create EMA variables.
     if use_ema:
       for task_name in self.task_names:

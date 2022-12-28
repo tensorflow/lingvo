@@ -88,7 +88,11 @@ class EmaTest(test_utils.TestCase):
       # Test checkpointer.
       train_dir = os.path.join(self.get_temp_dir(), 'testSaveRestore')
       os.mkdir(train_dir)
-      saver = checkpointer.Checkpointer(train_dir, model)
+      if py_utils.IsEagerMode():
+        saver = checkpointer.EagerCheckpointerV1(train_dir, model)
+        sess = None
+      else:
+        saver = checkpointer.Checkpointer(train_dir, model)
       saver.Save(sess, model.global_step)
 
       self.assertTrue(
@@ -106,8 +110,12 @@ class EmaTest(test_utils.TestCase):
       beta = layer.vars.beta
       mean = layer.vars.moving_mean
 
-      saver = checkpointer.Checkpointer(train_dir, model)
-      saver.RestoreIfNeeded(sess)
+      if py_utils.IsEagerMode():
+        saver = checkpointer.EagerCheckpointerV1(train_dir, model)
+        sess = None
+      else:
+        saver = checkpointer.Checkpointer(train_dir, model)
+      saver.Restore(sess)
 
       self.assertAllClose([beta_1, beta_1_ema, mean_1, mean_1_ema],
                           self.evaluate([
@@ -134,8 +142,12 @@ class EmaTest(test_utils.TestCase):
       theta_beta = layer.theta.beta
       theta_mean = layer.theta.moving_mean
 
-      saver = checkpointer.Checkpointer(train_dir, model)
-      saver.RestoreIfNeeded(sess)
+      if py_utils.IsEagerMode():
+        saver = checkpointer.EagerCheckpointerV1(train_dir, model)
+        sess = None
+      else:
+        saver = checkpointer.Checkpointer(train_dir, model)
+      saver.Restore(sess)
 
       # Both beta and mean should use the EMA value.
       self.assertAllClose([beta_1_ema, beta_1_ema, mean_1_ema, mean_1_ema],
@@ -164,8 +176,12 @@ class EmaTest(test_utils.TestCase):
       beta_ema = layer.theta.beta
       mean_ema = layer.theta.moving_mean
 
-      saver = checkpointer.Checkpointer(train_dir, model)
-      saver.RestoreIfNeeded(sess)
+      if py_utils.IsEagerMode():
+        saver = checkpointer.EagerCheckpointerV1(train_dir, model)
+        sess = None
+      else:
+        saver = checkpointer.Checkpointer(train_dir, model)
+      saver.Restore(sess)
 
       self.assertAllClose([beta_1, beta_1_ema, mean_1, mean_1_ema],
                           self.evaluate([beta, beta_ema, mean, mean_ema]))
@@ -227,7 +243,10 @@ class EmaTest(test_utils.TestCase):
       # At step=100, ema_decay=0.9 by ema_schedule.
       global_step = 100
       self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
-      self.evaluate(ema_op)
+      if py_utils.IsEagerMode():
+        ema_op = task.ApplyExponentialMovingAverage()
+      else:
+        self.evaluate(ema_op)
       self.assertAllClose([beta_1, beta_1_ema, mean_1, mean_1_ema],
                           self.evaluate([
                               beta,
@@ -238,7 +257,10 @@ class EmaTest(test_utils.TestCase):
       # At step=200, ema_decay=0.0 by ema_schedule. EMA copies var value.
       global_step = 200
       self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
-      self.evaluate(ema_op)
+      if py_utils.IsEagerMode():
+        ema_op = task.ApplyExponentialMovingAverage()
+      else:
+        self.evaluate(ema_op)
       self.assertAllClose([beta_1, beta_1, mean_1, mean_1],
                           self.evaluate([
                               beta,

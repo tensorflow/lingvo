@@ -516,7 +516,8 @@ class _EagerCheckpointer(Checkpointer):
     do_eval = cluster_factory.Current().do_eval
     if not self._save_only and do_eval:
       for model in self._models:
-        if not model.ema:
+        # ExecutorTpu evaler has both variables and EMA variables.
+        if not model.ema or model.use_ema_for_theta:
           continue
         tf.logging.info('Using EMA for evaluation.')
         # TODO(jiaweix): this implementation will load both the model variables

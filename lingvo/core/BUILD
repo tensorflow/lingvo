@@ -2402,7 +2402,7 @@ py_test(
     ],
 )
 
-py_test(
+pytype_strict_test(
     name = "ema_test",
     srcs = ["ema_test.py"],
     deps = [
@@ -2413,9 +2413,32 @@ py_test(
         ":cluster_factory",
         ":layers",
         ":py_utils",
+        ":schedule",
         ":test_utils",
         "//lingvo:compat",
         # Implicit mock dependency.
+        # Implicit numpy dependency.
+    ],
+)
+
+pytype_strict_test(
+    name = "ema_eager_test",
+    srcs = ["ema_test.py"],
+    args = ["--enable_eager_execution"],
+    main = "ema_test.py",
+    deps = [
+        ":base_decoder",
+        ":base_input_generator",
+        ":base_model",
+        ":checkpointer_lib",
+        ":cluster_factory",
+        ":layers",
+        ":py_utils",
+        ":schedule",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit mock dependency.
+        # Implicit numpy dependency.
     ],
 )
 
