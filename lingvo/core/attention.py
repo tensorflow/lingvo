@@ -830,6 +830,7 @@ class DotProductAttention(BaseAttentionLayer):
         'use_dim_scale', True, 'Whether or not to use per_dim_scale to scale '
         'the individual dims when calculating attention probabilities. It can '
         'increase training stability when set to False.')
+    p.Define('atten_logit_cap', None, 'Clip softmax logits.')
     return p
 
   def __init__(self, params):
@@ -930,6 +931,8 @@ class DotProductAttention(BaseAttentionLayer):
       # => [n * source_batch, time].
       # This makes logits store content in the same order as query_vec.
       logits = tf.reshape(logits, [target_batch, -1])
+      if p.atten_logit_cap is not None and p.atten_logit_cap > 0:
+        logits = py_utils.MaybeSoftCapLogits(logits, p.atten_logit_cap)
       source_padding = tf.reshape(source_padding, [target_batch, -1])
       probs = self._PaddedSoftmax(logits, source_padding)
       return probs
