@@ -4171,32 +4171,38 @@ class UniTransformer(base_model.BaseTask):
       if p.scale_decoder_outputs:
         dec_outputs *= (p.builder.model_dim**-0.5)
       dec_outputs = self.dec_out_split.FProp(theta.dec_out_split, dec_outputs)
-      # TODO(lepikhin): we only support
-      # shared_embedding_and_softmax_weights=True at the moment.
-      if read_vars_from_theta:
-        softmax_weights = theta.dec_emb.w.embedding
-      else:
-        softmax_weights = self.vars.dec_emb.w.embedding.read_value()
-      softmax_weights = self.emb_w_split.FProp(theta.emb_w_split,
-                                               softmax_weights)
-      if dec_outputs.dtype != softmax_weights.dtype:
-        # to enable fprop_dtype = tf.bfloat16
-        softmax_weights = tf.cast(softmax_weights, dec_outputs.dtype)
-      if p.builder.model_dim_reshape_segments is not None:
-        dec_outputs = tf.reshape(
-            dec_outputs, [dec_outputs.shape[0], dec_outputs.shape[1], -1])
-      logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
-      if p.has_final_layer and p.softmax_bias:
-        logits = tf.nn.bias_add(logits, theta.softmax_bias)
-      if p.softmax_logit_cap and p.softmax_logit_cap > 0:
-        logits = py_utils.MaybeSoftCapLogits(logits, p.softmax_logit_cap)
-      logits = self.logits_split.FProp(theta.logits_split, logits)
-
-      if p.logits_abs_max is not None:
-        logits = py_utils.clip_by_value(logits, -p.logits_abs_max,
-                                        p.logits_abs_max)
-      logits = self.logits_split.FProp(theta.logits_split, logits)
+      logits = self._ComputeLogits(
+          theta, dec_outputs, read_vars_from_theta=read_vars_from_theta)
       return logits, aux_loss
+
+  def _ComputeLogits(self, theta, dec_outputs, read_vars_from_theta=False):
+    p = self.params
+
+    # TODO(lepikhin): we only support
+    # shared_embedding_and_softmax_weights=True at the moment.
+    if read_vars_from_theta:
+      softmax_weights = theta.dec_emb.w.embedding
+    else:
+      softmax_weights = self.vars.dec_emb.w.embedding.read_value()
+    softmax_weights = self.emb_w_split.FProp(theta.emb_w_split, softmax_weights)
+    if dec_outputs.dtype != softmax_weights.dtype:
+      # to enable fprop_dtype = tf.bfloat16
+      softmax_weights = tf.cast(softmax_weights, dec_outputs.dtype)
+    if p.builder.model_dim_reshape_segments is not None:
+      dec_outputs = tf.reshape(dec_outputs,
+                               [dec_outputs.shape[0], dec_outputs.shape[1], -1])
+    logits = tf.einsum('BLM,VM->BLV', dec_outputs, softmax_weights)
+    if p.has_final_layer and p.softmax_bias:
+      logits = tf.nn.bias_add(logits, theta.softmax_bias)
+    if p.softmax_logit_cap and p.softmax_logit_cap > 0:
+      logits = py_utils.MaybeSoftCapLogits(logits, p.softmax_logit_cap)
+    logits = self.logits_split.FProp(theta.logits_split, logits)
+
+    if p.logits_abs_max is not None:
+      logits = py_utils.clip_by_value(logits, -p.logits_abs_max,
+                                      p.logits_abs_max)
+    logits = self.logits_split.FProp(theta.logits_split, logits)
+    return logits
 
   def _ComputeNonPadding(self, input_batch):
     if 'paddings' in input_batch.tgt:
@@ -4248,7 +4254,11 @@ class UniTransformer(base_model.BaseTask):
       non_padding = self._ComputeNonPadding(input_batch)
       return loss * non_padding
 
-  def ComputeLoss(self, theta, predictions, input_batch):
+  def ComputeLoss(self,
+                  theta,
+                  predictions,
+                  input_batch,
+                  per_example_loss=False):
     p = self.params
 
     vocab_size = p.vocab_size
@@ -4289,6 +4299,11 @@ class UniTransformer(base_model.BaseTask):
       else:
         loss_denom = tf.reduce_sum(non_padding)
       avg_loss = tf.reduce_sum(per_token_loss) / loss_denom
+      per_example_loss_denom = tf.maximum(
+          tf.reduce_sum(non_padding, axis=1, keepdims=True), 1.0)
+      avg_loss_per_example = tf.reduce_sum(
+          per_token_loss, axis=1, keepdims=True) / per_example_loss_denom
+
       avg_z_loss_increment = (tf.reduce_sum(per_token_z_loss_increment) /
                               loss_denom) if p.z_loss else 0.0
 
@@ -4313,6 +4328,8 @@ class UniTransformer(base_model.BaseTask):
       per_step_loss = {
           'loss': tf.reshape(avg_loss, [1]),
       }
+      if per_example_loss:
+        per_step_loss['avg_loss_per_example'] = avg_loss_per_example
 
       eval_metrics = {
           'num_packed_examples': (num_items_in_batch, 1.0),

@@ -14,6 +14,8 @@
 # ==============================================================================
 r"""Test code for Mixture-of-Experts builder."""
 
+from unittest import mock
+
 from lingvo import compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import gshard_builder
@@ -839,6 +841,68 @@ class UniTransformerTest(test_utils.TestCase):
       sess.run(tf.global_variables_initializer())
       loss_eval = sess.run(loss)
       self.assertLess(abs(loss_eval - 6.015), 0.02)
+
+  def testUniTransformerPerExampleLoss(self):
+    length_dim = 4
+    graph = tf.Graph()
+    params = gshard_builder.UniTransformer.Params().Set(
+        gated_gelu=False,
+        moe=False,
+        moe_gated_gelu=False,
+        positional_embedding=False,
+        dtype=tf.float32,
+        name='transformer',
+        builder=gshard_builder.DenseBuilder.Params().Set(
+            device_mesh_shape=[1, 1],
+            device_mesh=None,
+            relative_attention_num_buckets=32,
+            relative_attention_type='bias',
+            relative_attention_max_distance=128,
+            dtype=tf.float32,
+            num_devices=1,  # we call .Split num_devices on axis 0 (batch)
+            relative_attention_use_universal_1d_position=True,
+            e_dim=None,
+            num_groups=None,
+            c_dim=None,
+            model_dim=32,
+            attention_num_heads=8,
+            moe_hidden_dim=128,
+            ff_dim=128,
+            attention_key_value_dim=8,
+            attention_combine_dims=True),
+        batch_size=32,
+        sequence_length=length_dim,
+        num_transformer_layers=2,
+        aux_loss_coef=0.0,
+        loss_denominator=None,
+        label_smoothing=0,
+        vocab_size=128,
+        max_length=length_dim)
+    with graph.as_default():
+      py_utils.GetOrCreateGlobalStepVar()
+      params.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      tf.random.set_seed(24332)
+      model = params.Instantiate()
+
+    with tf.Session(graph=graph) as sess:
+      real_compute_loss = model.ComputeLoss
+
+      def MockedComputeLoss(theta, predictions, input_batch):
+        return real_compute_loss(
+            theta, predictions, input_batch, per_example_loss=True)
+
+      with mock.patch.object(
+          model,
+          'ComputeLoss',
+          wraps=model.ComputeLoss,
+          side_effect=MockedComputeLoss):
+        input_batch = self._PreLoadInput()
+        loss = model.FPropDefaultTheta(input_batch)[1]['avg_loss_per_example']
+        sess.run(tf.global_variables_initializer())
+        loss_eval = sess.run(loss[0][0])
+        golden_float = 5.504079
+        self.assertEqual(loss.shape, (2, 1))
+        test_utils.CompareToGoldenSingleFloat(self, golden_float, loss_eval)
 
 
 class BertModelTest(test_utils.TestCase):
