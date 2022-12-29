@@ -15,14 +15,14 @@ pytype_strict_binary(
     srcs = ["main.py"],
     deps = [
         ":eval",
-        ":model_imports",
+        ":model_imports",  # buildcleaner: keep
+        ":py_utils",
         ":train",
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
         # Implicit absl.logging dependency.
         # Implicit clu dependency.
         # Implicit jax dependency.
-        "//lingvo/jax:py_utils",
         # Implicit tensorflow dependency.
     ],
 )

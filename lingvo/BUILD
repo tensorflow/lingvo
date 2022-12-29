@@ -264,8 +264,8 @@ py_test(
         "//lingvo/core:test_utils",
         "//lingvo/core:trainer_test_utils",
         "//lingvo/tasks/image:input_generator",
-        "//lingvo/tasks/image/params:mnist",  # build_cleaner: keep
-        "//lingvo/tasks/punctuator/params:codelab",  # build_cleaner: keep
+        "//lingvo/tasks/image/params:mnist",  # BC internal suffix.
+        "//lingvo/tasks/punctuator/params:codelab",  # BC internal suffix.
         # Implicit numpy dependency.
     ],
 )
@@ -295,8 +295,8 @@ py_library(
         "//lingvo/core:test_utils",
         "//lingvo/core:trainer_test_utils",
         "//lingvo/tasks/image:input_generator",
-        "//lingvo/tasks/image/params:mnist",  # build_cleaner: keep
-        "//lingvo/tasks/punctuator/params:codelab",  # build_cleaner: keep
+        "//lingvo/tasks/image/params:mnist",  # BC internal suffix.
+        "//lingvo/tasks/punctuator/params:codelab",  # BC internal suffix.
         # Implicit numpy dependency.
     ],
 )
@@ -308,11 +308,11 @@ lingvo_py_binary(
         "//lingvo/tasks/punctuator/tools:download_brown_corpus",
     ],
     deps = [
-        ":model_imports",  # build_cleaner: keep
-        ":trainer_lib",  # build_cleaner: keep
+        ":model_imports",  # BC internal suffix.
+        ":trainer_lib",  # BC internal suffix.
         # Implicit absl.app dependency.
-        "//lingvo/core:predictor_lib",  # build_cleaner: keep
-        "//lingvo/core/ops:hyps_py_pb2",  # build_cleaner: keep
+        "//lingvo/core:predictor_lib",  # BC internal suffix.
+        "//lingvo/core/ops:hyps_py_pb2",  # BC internal suffix.
     ],
 )
 
