@@ -2575,7 +2575,7 @@ def _MaybeWarnAboutPotentiallyIncorrectEvaluations():
   This is useful for the TF1 -> TF2 migration project. When a model has a value
   that should change as a function of the global step (e.g. a scheduler in the
   input pipeline), it might get incorrectly evaluated to a static value in the
-  TF2 mode trainer at the begining. This function gives a warning to the user
+  TF2 mode trainer at the beginning. This function gives a warning to the user
   about such cases, so that issues e.g. unexpected loss curves can be more
   easily triaged.
   """
@@ -6484,19 +6484,19 @@ def BlockDiagonalMatmul(inputs, w, input_num_blocks, mix_kernel=None):
   Returns:
     A tf.Tensor of shape: inputs.shape[:-1] + [w.shape[-1]].
   """
-  input_splitted = tf.split(inputs, input_num_blocks, axis=-1)
-  output_splitted = []
-  for i, input_i in enumerate(input_splitted):
-    output_splitted.append(tf.matmul(input_i, w[i, :, :]))
+  input_split = tf.split(inputs, input_num_blocks, axis=-1)
+  output_split = []
+  for i, input_i in enumerate(input_split):
+    output_split.append(tf.matmul(input_i, w[i, :, :]))
 
   if mix_kernel is not None:
     output_mixed = [0.0] * input_num_blocks
     for i in range(input_num_blocks):
       for j in range(input_num_blocks):
-        output_mixed[i] += mix_kernel[i, j] * output_splitted[j]
-    output_splitted = output_mixed
+        output_mixed[i] += mix_kernel[i, j] * output_split[j]
+    output_split = output_mixed
 
-  return tf.concat(output_splitted, axis=-1)
+  return tf.concat(output_split, axis=-1)
 
 
 def BlockDiagonalProjectLastDim(inputs,
@@ -6552,19 +6552,19 @@ def BlockDiagonalProjectLastDim(inputs,
     # Unfortunately ... in einsum() leads to extra HBM usage.
     s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     r = inputs.shape.rank
-    input_splitted = tf.split(inputs, num_blocks, axis=-1)
-    output_splitted = []
-    for i, input_i in enumerate(input_splitted):
-      output_splitted.append(
+    input_split = tf.split(inputs, num_blocks, axis=-1)
+    output_split = []
+    for i, input_i in enumerate(input_split):
+      output_split.append(
           tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), input_i,
                     weight[i, :, :]))
     if mix_kernel is not None:
       output_mixed = [0.0] * num_blocks
       for i in range(num_blocks):
         for j in range(num_blocks):
-          output_mixed[i] += mix_kernel[i, j] * output_splitted[j]
-      output_splitted = output_mixed
-    outputs = tf.concat(output_splitted, axis=-1)
+          output_mixed[i] += mix_kernel[i, j] * output_split[j]
+      output_split = output_mixed
+    outputs = tf.concat(output_split, axis=-1)
   else:
     # not use_einsum or not use_tpu() or inputs.shape.rank >= 26
     outputs = BlockDiagonalMatmul(

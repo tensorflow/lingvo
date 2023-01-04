@@ -266,7 +266,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # Merged TF scalar summaries for training related input data stats.
     self._merged_input_data_summary_op = None
 
-    # Tensorboard layout for charts displaying input data stats.
+    # TensorBoard layout for charts displaying input data stats.
     self._input_data_summary_layout = None
 
     assert self.params.tpu_embedding_mode in [None, 'train', 'inference']
@@ -805,13 +805,13 @@ class BaseInputGenerator(base_layer.BaseLayer):
             f'got {feat.shape}')
 
       if isinstance(feat, tf.sparse.SparseTensor):
-        tpu_emb_feat_splitted = tf.sparse.split(feat, num_splits, axis=0)
-        for i, split in enumerate(tpu_emb_feat_splitted):
+        tpu_emb_feat_split = tf.sparse.split(feat, num_splits, axis=0)
+        for i, split in enumerate(tpu_emb_feat_split):
           enqueue_data[i][key] = (
               tpu_embedding_lib.EnqueueData.from_sparse_tensor(split))
       else:
-        tpu_emb_feat_splitted = tf.split(feat, num_splits)
-        for i, split in enumerate(tpu_emb_feat_splitted):
+        tpu_emb_feat_split = tf.split(feat, num_splits)
+        for i, split in enumerate(tpu_emb_feat_split):
           # Dense to sparse. Note the assumption of a padding id.
           sample_indices = tf.where(tf.not_equal(split, -1))
           embedding_indices = tf.gather_nd(split, sample_indices)
@@ -1240,7 +1240,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     p.Define(
         'batch_mixing_partition_boundaries', None,
         'Must be either None or a list of indices into the file_pattern. '
-        'If set, indicies are interpreted as the begining of a partition. E.g. '
+        'If set, indices are interpreted as the beginning of a partition. E.g. '
         '[2, 5, 9] will partition file_pattern into [:,2], [2:5], [5:9], and '
         '[9:]. The patterns within each partition will have '
         'within_batch_mixing. There will be no batch mixining between '
