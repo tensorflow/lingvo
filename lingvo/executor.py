@@ -707,7 +707,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
 
       tf.logging.info('num_programs: %d', len(self._programs))
 
-      # When running in a vizier trainer, the executor reports infeasiable runs
+      # When running in a vizier trainer, the executor reports infeasible runs
       # in case of errors. The programs report metrics and normal completions.
       self._should_report_metrics |= any(
           p._should_report_metrics for p in self._programs)

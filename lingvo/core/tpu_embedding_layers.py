@@ -27,11 +27,6 @@ from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 # pylint:enable=g-direct-tensorflow-import
 
 
-def _IsTpuTraining(p):
-  """Whether we should create embedding tables and run lookup on tpu."""
-  return not p.is_inference and py_utils.use_tpu()
-
-
 def _RemovePrivateVar(layer, var_name):
   """Remove a variable by name from `layer`.
 
@@ -844,7 +839,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         self.CreateVariable(name, aux_params, trainable=False)
         self._auxiliary_var_dict[name] = self.vars[name]
 
-    if not _IsTpuTraining(p):
+    if not py_utils.IsTpuTraining(p):
       # We don't need this for TrainerTpu, as the vars are not directly
       # accessed besides in the TPU embeddding load/retrieve ops.
       # However, this is needed for CPU (eval/decode/controller).
@@ -893,7 +888,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
   # Return variable name for embedding table shards.
   def GetVariableName(self, host_id):
-    return 'var_%d' % host_id
+    return f'var_{host_id}'
 
   @property
   def table_config(self):
@@ -1166,7 +1161,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     # with "sequence embeddings".
     self._sequence_features = {}
 
-    if _IsTpuTraining(p):
+    if py_utils.IsTpuTraining(p):
       num_cores = self.cluster.params.worker.tpus_per_replica
       global_batch_size = (
           self.params.batch_size * self.cluster.num_splits_per_client)
@@ -1187,7 +1182,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         tf.logging.info('TPUEmbedding API singleton already exists, reusing')
         self._tpu_embedding = tpu_embedding
       else:
-        mode = tpu_embedding_lib.TRAINING
         device_config = tpu_embedding_lib.DeviceConfig(
             num_cores=num_cores,
             num_hosts=self.params.tables[0].num_tpu_hosts,
@@ -1196,7 +1190,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             table_to_config_dict,
             feature_to_config_dict,
             global_batch_size,
-            mode,
+            mode=tpu_embedding_lib.TRAINING,
             master=None,
             pipeline_execution_with_tensor_core=(
                 self.params.pipeline_execution_with_tensor_core),
@@ -1234,10 +1228,10 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
   def EmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """Looks up embedding vectors for each entry in dense Tensor ids_map.
 
-    Since the TPUEmbedding is monolothic, and consulted once per
-    FProp/BProp, we must centralize the lookup. Thus, for multiple
-    features, we contain them into a single-lookup rather than allowing
-    the caller to call Lookup multiple times.
+    Since the TPUEmbedding is monolithic, and consulted once per FProp/BProp, we
+    must centralize the lookup. Thus, for multiple features, we contain them
+    into a single-lookup rather than allowing the caller to call Lookup multiple
+    times.
 
     Args:
       ids_map: A NestedMap of nested `input_key` string -> [batch, sequence] int
@@ -1269,7 +1263,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             rets.Set(key, table_rets.GetItem(key))
       return rets
 
-    if _IsTpuTraining(p):
+    if py_utils.IsTpuTraining(p):
       return self._TpuEmbLookup(ids_map)
     else:
       return CpuEmbLookup(ids_map)
@@ -1311,7 +1305,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
             rets.Set(key, table_rets.GetItem(key))
       return rets
 
-    if _IsTpuTraining(p):
+    if py_utils.IsTpuTraining(p):
       return self._TpuEmbLookup(ids_map)
     else:
       return CpuEmbLookupSparse(ids_map)

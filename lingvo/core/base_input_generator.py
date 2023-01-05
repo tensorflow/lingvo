@@ -664,8 +664,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
   def CreateTpuEmbeddingEnqueueOps(self):
     """Creates the TpuEmbedding enqueue ops on all hosts.
 
-    Note that this must be called after the instantiation of the
-    monolithic TPUEmbeddingLayer.
+    Note that this must be called after the instantiation of the monolithic
+    TPUEmbeddingLayer.
     """
     p = self.params
     if self._tpu_embedding_mode is None:
@@ -719,7 +719,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
       for host_device, src_enqueue_data in enqueue_data_per_host.items():
         with tf.device(host_device):
-          # TF's `TPUEmbedding` colocates the enqueue ops with the input
+          # TF's `TPUEmbedding` co-locates the enqueue ops with the input
           # tensors, so we add a tf.identity here to ensure they are copied to
           # `host_device` before generating the enqueue ops.
           dst_enqueue_data = [
@@ -744,7 +744,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
           f'TPUEmbedding.num_cores_per_host: {tpu_embedding.num_cores_per_host}'
           f', tpu_number_of_shards: {self.tpu_number_of_shards}')
       for task_id in range(num_tpu_hosts):
-        host_device = '/task:{}/device:CPU:0'.format(task_id)
+        host_device = f'/task:{task_id}/device:CPU:0'
         batch = input_batches[task_id]
         assert len(batch) == 1, (
             'Tpu Embedding does not support sharded inputs. '

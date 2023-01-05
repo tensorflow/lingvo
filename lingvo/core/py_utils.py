@@ -1434,7 +1434,7 @@ def DisableVariableNameChecking(disable=True):
 _VARIABLE_RENAME_RULES = ThreadLocalStack()
 
 # Global variable to track task calling scope.
-# Currently only used for TPU Embedding purposes as a TPUEmbeddingLayer
+# Currently, only used for TPU Embedding purposes as a TPUEmbeddingLayer
 # may be shared across tasks and the calling task needs to be known
 # for tracking embedding activations for backprop.
 _TASK_CALL_SCOPE = ThreadLocalStack()
@@ -1454,7 +1454,7 @@ def TaskCallScope(task):
     _TASK_CALL_SCOPE.stack.pop()
 
 
-def GetTaskCallScope():
+def GetTaskCallScope() -> Optional[str]:
   """Get the current task call scope."""
   return _TASK_CALL_SCOPE.stack[-1] if _TASK_CALL_SCOPE.stack else None
 
@@ -6392,6 +6392,11 @@ def GetTpuEmbeddingGraphCollection():
   tpu_emb_graph_collection = tf.get_collection_ref('__tpu_embedding_collection')
   assert len(tpu_emb_graph_collection) <= 1
   return tpu_emb_graph_collection
+
+
+def IsTpuTraining(p) -> bool:
+  """Returns True when training on a TPU."""
+  return not p.is_inference and use_tpu()
 
 
 class AuxLossContext(contextlib.AbstractContextManager):
