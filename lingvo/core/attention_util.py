@@ -352,7 +352,7 @@ def AttenLogits(query, key):
 
   Args:
     query: A Tensor of shape [B, T, N, H]
-    key: A Tensor of shape [B, T, N, H]
+    key: A Tensor of shape [B, S, N, H]
 
   Returns:
     A Tensor of shape [B, N, T, S]
