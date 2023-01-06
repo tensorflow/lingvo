@@ -576,7 +576,8 @@ class TrainProgram(BaseProgram):
         body=InfeedBody,
         loop_vars=[tf.constant(0)])
 
-  def BuildTpuSubgraph(self):
+  def BuildTpuSubgraph(self, strategy=None):
+    del strategy  # Unused in graph mode programs.
     tf.logging.info('TrainProgram BuildTpuSubGraph')
     p = self.params
     self.spmd = (
@@ -987,7 +988,7 @@ class EvalProgram(BaseProgram):
     return [t[0] for t in batch_parallel_res]
 
   def BuildTpuSubgraph(self, strategy=None):
-    del strategy
+    del strategy  # Unused in graph mode programs.
     tf.logging.info(f'EvalProgram {self.params.dataset_name} BuildTpuSubGraph')
     p = self.params
     with cluster_factory.SetEval(True):
@@ -1349,7 +1350,7 @@ class DecodeProgram(BaseProgram):
       raise
 
   def BuildTpuSubgraph(self, strategy=None):
-    del strategy
+    del strategy  # Unused in graph mode programs.
     tf.logging.info(
         f'DecodeProgram {self.params.dataset_name} BuildTpuSubGraph')
     with cluster_factory.SetEval(True):
@@ -1606,7 +1607,7 @@ class DecodeProgram(BaseProgram):
       return None
 
   def Run(self, sess=None, threadpool=None, strategy=None):
-    del strategy
+    del strategy  # Unused in graph mode programs.
     self._trigger_scheduler.Trigger()
     if not self._trigger_scheduler.ShouldRun():
       return

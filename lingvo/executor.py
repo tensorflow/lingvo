@@ -304,8 +304,6 @@ class ExecutorTpu(base_runner.BaseRunner):
       executor_ema = base_model.ExecutorEma(
           py_utils.CreateEMAForModel(train_cfg, self._global_step_var,
                                      ema_decay_var), ema_decay_var)
-      tf.logging.info('ps_params_dict=%s',
-                      {k: v.ToText() for k, v in ps_params_dict.items()})
       for task_string, ps_params in ps_params_dict.items():
         ps_params.logdir = self._logdir
         ps_params.num_splits_per_client = data_parallelism
@@ -625,7 +623,8 @@ class HostDrivenExecutor(base_runner.BaseRunner):
 
   def __init__(
       self,
-      train_cfg: py_utils.InstantiableParams,
+      train_cfg: py_utils.InstantiableParams[
+          lingvo_program.HostDrivenTrainProgram],
       ps_params_dict: Dict[str, lingvo_program.ProgramScheduleParamsT],
       *args,
       **kwargs,
@@ -643,6 +642,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     tf.logging.info('FLAGS.tf_master: %s', FLAGS.tf_master)
     super().__init__(params=train_cfg, *args, **kwargs)
     self.tpu_strategy = self._ConnectToTPU(train_cfg)
+
     data_parallelism = self._cluster.num_splits_per_client
     assert data_parallelism
     tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',

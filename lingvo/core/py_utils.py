@@ -4541,7 +4541,7 @@ def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2, trim=False):
     sos_id: ID for the sos special token.
     eos_id: ID for the eos special token.
     trim: Whether to trim the last elements in the output Tensors, so that the
-      lenghts of the output Tensors are same as the input Tensors. Otherwise,
+      lengths of the output Tensors are same as the input Tensors. Otherwise,
       the output Tensors are longer than the input Tensors by one because of the
       added sos / eos.
 
