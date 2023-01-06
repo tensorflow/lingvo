@@ -147,20 +147,20 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
     with cluster_factory.SetEval(True):
       # Restores variables to values saved in `eager_v1_logdir`
       ckpt_v1.Restore()
-    # Verify that the EMA variables from V1 checkpoints at step 1 successfully
-    # overwrite the model variables.
-    for v in mdl.variables:
-      if v.ref() in model_to_ema_map_snapshot_step1:
-        self.assertAllEqual(v, model_to_ema_map_snapshot_step1[v.ref()])
+      # Verify that the EMA variables from V1 checkpoints at step 1 successfully
+      # load the model EMA variables to self.theta.
+      for v, t in zip(mdl.vars.Flatten(), mdl.theta.Flatten()):
+        if v.ref() in model_to_ema_map_snapshot_step1:
+          self.assertAllEqual(t, model_to_ema_map_snapshot_step1[v.ref()])
 
     with cluster_factory.SetEval(True):
       # Restores variables to values saved in `eager_v2_logdir`
       ckpt_v2.Restore()
-    # Verify that the EMA variables from V2 checkpoints at step 2 successfully
-    # overwrite the model variables.
-    for v in mdl.variables:
-      if v.ref() in model_to_ema_map_snapshot_step2:
-        self.assertAllEqual(v, model_to_ema_map_snapshot_step2[v.ref()])
+      # Verify that the EMA variables from V1 checkpoints at step 2 successfully
+      # load the model EMA variables to self.theta.
+      for v, t in zip(mdl.vars.Flatten(), mdl.theta.Flatten()):
+        if v.ref() in model_to_ema_map_snapshot_step2:
+          self.assertAllEqual(t, model_to_ema_map_snapshot_step2[v.ref()])
 
   def testEagerMultiLearnerCheckpointCompatibility(self):
     self.assertTrue(tf.executing_eagerly())

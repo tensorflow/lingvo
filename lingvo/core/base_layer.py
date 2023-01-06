@@ -382,7 +382,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._children_list = []
     # Extra theta's not directly correspond to any underlying vars. For example,
     # the concatenated sharded variables.
-    self._extra_theta = py_utils.NestedMap()
+    self._extra_theta = {}
     # All registered accumulators.
     self._private_accumulators = {}
     # Layer-private functions. Add with AddFunction.
@@ -476,12 +476,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def do_eval(self) -> bool:
     return self.cluster.do_eval
-
-  @property
-  def use_ema_for_theta(self) -> bool:
-    # When ExecutorTpu specifies the EMA (e.g. when running eval/decode program
-    # with EMA enabled), use the EMA version of the variables if applicable.
-    return self.cluster.is_executor_tpu and self.do_eval and self.ema
 
   @property
   def parent(self) -> Optional[BaseLayerT]:
@@ -655,15 +649,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def _InternalGetTheta(self):
     ret = py_utils.Transform(lambda x: x.theta, self.children)
 
-    private_theta = self._private_theta
-
-    if self.use_ema_for_theta:
-      vars_loaded_as_ema = self.params.is_inference or (self.do_eval and
-                                                        not py_utils.use_tpu())
-      assert not vars_loaded_as_ema, (
-          'Not able to use EMA variables since the layer variables are '
-          'potentially already loaded as EMA variables.')
-
+    if self.do_eval and self.ema and not self.params.is_inference:
       def MaybeUseEmaVar(x):
         if not isinstance(x,
                           (tf.Variable, tpu_values_lib.TPUDistributedVariable)):
@@ -672,7 +658,12 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         ema_x = self.ema.average(x)
         return ema_x if ema_x is not None else x
 
-      private_theta = py_utils.Transform(MaybeUseEmaVar, private_theta)
+      private_theta = py_utils.Transform(MaybeUseEmaVar, self._private_vars)
+    else:
+      private_theta = self._private_theta
+
+    # extra_theta has not variables but tensors.
+    private_theta = private_theta | self._extra_theta
 
     if (self._params.fprop_dtype is not None and
         self._params.fprop_dtype != self._params.dtype):
@@ -740,6 +731,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         '%s exists in vars, %s' % (name, list(self._private_vars.keys())))
     assert name not in self._private_theta, (
         '%s exists in theta, %s' % (name, list(self._private_theta.keys())))
+    assert name not in self._extra_theta, (
+        '%s exists in extra_theta, %s' % (name, list(self._extra_theta.keys())))
     assert name not in self._private_children, ('%s exists in children, %s' % (
         name, list(self._private_children.keys())))
     assert name not in self._private_accumulators, (
@@ -923,7 +916,6 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def AddExtraTheta(self, theta_name: str, theta_value) -> None:
     """Add extra `theta` that doesn't directly correspond to `vars`."""
     self._CheckName(theta_name)
-    self._private_theta[theta_name] = theta_value
     self._extra_theta[theta_name] = theta_value
 
   def AddVN(self, value, per_step=False):

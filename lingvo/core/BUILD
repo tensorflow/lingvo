@@ -2316,7 +2316,6 @@ py_library(
     name = "checkpointer_lib",
     srcs = ["checkpointer.py"],
     deps = [
-        ":cluster_factory",
         ":py_utils",
         ":saver",
         "//lingvo:compat",
@@ -2410,7 +2409,6 @@ pytype_strict_test(
         ":base_input_generator",
         ":base_model",
         ":checkpointer_lib",
-        ":cluster_factory",
         ":layers",
         ":py_utils",
         ":schedule",
@@ -2431,7 +2429,6 @@ pytype_strict_test(
         ":base_input_generator",
         ":base_model",
         ":checkpointer_lib",
-        ":cluster_factory",
         ":layers",
         ":py_utils",
         ":schedule",

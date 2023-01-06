@@ -1326,13 +1326,8 @@ class SingleTaskBase(BaseModel):
 
   def _CreateLayerVariables(self) -> None:
     super()._CreateLayerVariables()
-    # CPU evaler doesn't create EMA variables in graph mode. It loads EMA
-    # variables to regular variables. CPU evaler in eager mode creates EMA
-    # variables, and copies them to regular variables.
-    use_ema = self.ema and (not self.do_eval or self.use_ema_for_theta or
-                            py_utils.IsEagerMode())
     # All variables of the model are created. Now create EMA variables.
-    if use_ema:
+    if self.ema and not self.params.is_inference:
       self._task.CreateExponentialMovingAverage(self.ema)
       self._MakeEMAVariablesDict()
 
@@ -1560,12 +1555,8 @@ class MultiTaskModel(BaseModel):
 
   def _CreateLayerVariables(self) -> None:
     super()._CreateLayerVariables()
-    # CPU evaler does not create EMA variables. It loads EMA variables to
-    # regular variables in graph mode.
-    use_ema = self.ema and (not self.do_eval or self.use_ema_for_theta or
-                            py_utils.IsEagerMode())
     # All variables of the model are created. Now create EMA variables.
-    if use_ema:
+    if self.ema and not self.params.is_inference:
       for task_name in self.task_names:
         with tf.name_scope(task_name):
           task = self.GetTask(task_name)

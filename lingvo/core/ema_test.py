@@ -20,12 +20,10 @@ from lingvo.core import base_decoder
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import checkpointer
-from lingvo.core import cluster_factory
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import test_utils
-import mock
 import numpy as np
 
 
@@ -130,41 +128,10 @@ class EmaTest(test_utils.TestCase):
       self.assertAllClose([beta_1, mean_1],
                           self.evaluate([theta_beta, theta_mean]))
 
-    # Restore from ckpt in eval mode, which loads EMA value to variables.
+    # Restore from ckpt in eval mode.
+    # To use EMA variables as theta. See BaseLayer._InternalGetTheta.
     with self.session(graph=tf.Graph()) as sess, self.SetEval(True):
       model = p.Instantiate()
-      self.assertIsNotNone(model.ema)
-      task = model._task
-      layer = task.encoder
-      # Both vars and theta are same, and have EMA value.
-      beta = layer.vars.beta
-      mean = layer.vars.moving_mean
-      theta_beta = layer.theta.beta
-      theta_mean = layer.theta.moving_mean
-
-      if py_utils.IsEagerMode():
-        saver = checkpointer.EagerCheckpointerV1(train_dir, model)
-        sess = None
-      else:
-        saver = checkpointer.Checkpointer(train_dir, model)
-      saver.Restore(sess)
-
-      # Both beta and mean should use the EMA value.
-      self.assertAllClose([beta_1_ema, beta_1_ema, mean_1_ema, mean_1_ema],
-                          self.evaluate([beta, theta_beta, mean, theta_mean]))
-
-    # Restore from ckpt in ExecutorTpu eval mode.
-    # To use EMA variables as theta. See BaseLayer._InternalGetTheta.
-    with self.session(
-        graph=tf.Graph()) as sess, cluster_factory.ForTestingWorker(
-            job='executor_tpu', do_eval=True), mock.patch(
-                'lingvo.core.py_utils.use_tpu', return_value=True):
-      ema_decay_var = None
-      ema_var = py_utils.CreateEMAForModel(p,
-                                           py_utils.GetOrCreateGlobalStepVar(),
-                                           ema_decay_var)
-      executor_ema = base_model.ExecutorEma(ema_var, ema_decay_var)
-      model = p.Instantiate(executor_ema=executor_ema)
       self.assertIsNotNone(model.ema)
       task = model._task
       layer = task.encoder

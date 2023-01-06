@@ -29,7 +29,6 @@ from lingvo.core import quant_utils
 from lingvo.core import symbolic
 from lingvo.core import test_utils
 from lingvo.core import tshape
-import mock
 import numpy as np
 
 _BENCHMARK_ON_TPU = flags.DEFINE_boolean('benchmark_on_tpu', False,
@@ -153,9 +152,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
 
       # To use EMA variables as theta. See BaseLayer._InternalGetTheta.
-      with cluster_factory.ForTestingWorker(
-          job='executor_tpu', do_eval=True), mock.patch(
-              'lingvo.core.py_utils.use_tpu', return_value=True):
+      with self.SetEval(True):
         bn_layer = layers.BatchNormLayer(params)
         bn_layer._ema = tf.train.ExponentialMovingAverage(decay=0.5)
         bn_layer._ema.apply(bn_layer.vars.Flatten())

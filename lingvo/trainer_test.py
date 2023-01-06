@@ -372,10 +372,7 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
     runner = cls('dev', cfg, FLAGS.model_task_name, FLAGS.logdir,
                  FLAGS.tf_master, self._trial)
     var_list = runner._checkpointer._saver._var_list  # pylint: disable=protected-access
-    self.assertIsInstance(var_list, dict)
-    for var_name in var_list.keys():
-      if var_name != 'global_step':
-        self.assertTrue(var_name.endswith('/ExponentialMovingAverage'))
+    self.assertIsInstance(var_list, list)
 
 
 class TrainerWithTrialTest(BaseTrainerTest):
