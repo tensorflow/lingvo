@@ -3893,6 +3893,28 @@ class EmbeddingLayerTest(test_utils.TestCase):
       self.assertAllClose(expected_output / np.sqrt(p.embedding_dim),
                           actual_position_embs)
 
+  def testLearnablePositionalEmbeddingLayer(self):
+    with self.session(use_gpu=False):
+      seq_length = 5
+      p = layers.LearnablePositionalEmbeddingLayer.Params().Set(
+          name='position_emb', embedding_dim=4, max_pos=seq_length)
+
+      pos_emb_layer = p.Instantiate()
+      position_embs = pos_emb_layer.FPropDefaultTheta(seq_length)
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_pos_emb, = self.evaluate([position_embs])
+
+      expected_output = [
+          [0.3585429, -0.37813294, 0.73174167, 0.41872826],
+          [-0.14897797, 0.3872019, 0.01253451, 0.71615356],
+          [0.56691533, 0.7655667, 0.01460458, -0.17758094],
+          [-0.28354135, -0.49698582, 0.04802816, -0.19386494],
+          [0.45408103, -0.4745326, 0.2702817, 0.72868085],
+      ]
+      print('actual_position_embs:', actual_pos_emb)
+      self.assertAllClose(actual_pos_emb, expected_output)
+
   def testRelativePositionalEmbeddingLayer(self):
     with self.session(use_gpu=False):
       radius = 3
@@ -3926,6 +3948,32 @@ class EmbeddingLayerTest(test_utils.TestCase):
       actual_position_embs, = self.evaluate([position_embs])
       expected_output = [[math.sin(p / 2 * math.pi),
                           math.cos(p / 2 * math.pi)] for p in range(4)]
+      self.assertAllClose(actual_position_embs, expected_output)
+
+  def testRotaryPositionalEmbeddingLayer(self):
+    with self.session(use_gpu=False):
+      p = layers.RotaryPositionalEmbeddingLayer.Params()
+      p.name = 'position_emb'
+      p.min_timescale = 1
+      p.max_timescale = 7
+      p.embedding_dim = 4
+      seq_length = 5
+      inputs = tf.ones([1, seq_length, 1, p.embedding_dim])
+
+      pos_emb_layer = p.Instantiate()
+      self.evaluate(tf.global_variables_initializer())
+      position_embs = pos_emb_layer.FPropDefaultTheta(inputs)
+      position_embs = tf.squeeze(position_embs, axis=[0, 2])
+      actual_position_embs, = self.evaluate([position_embs])
+
+      expected_output = [
+          [1., 1., 1., 1.],
+          [-0.30116868, 0.5603883, 1.3817732, 1.2984471],
+          [-1.3254442, 0.04166961, 0.4931506, 1.4135995],
+          [-1.1311125, -0.48293126, -0.8488725, 1.3292018],
+          [0.10315889, -0.9393594, -1.4104462, 1.0571679],
+      ]
+      print('actual_position_embs:', actual_position_embs)
       self.assertAllClose(actual_position_embs, expected_output)
 
   def testOneHotEmbeddingLayer(self):

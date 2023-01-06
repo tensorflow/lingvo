@@ -3086,6 +3086,87 @@ class SinusoidalPositionalEmbeddingLayer(base_layer.BaseLayer):
     return tf.reshape(sincos, [seq_length, -1])
 
 
+class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
+  """Applies rotary position embedding for a given 1-d sequence.
+
+  The Rotary position embedding is described in https://arxiv.org/abs/2104.09864
+  """
+
+  # pylint: disable=arguments-renamed
+  def FProp(self, theta, inputs, position=None):
+    # pylint: enable=arguments-renamed
+    """Generates a JTensor of sinusoids with different frequencies.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The input sequence on which to apply the Rotary position
+        embedding. Since rotary position embeddings are applied to query and
+        keys after projection, it is assumed of shape [B, S, N, H].
+      position: Optional position JTensor which denotes the position of each
+        token in the sequence. This only needs to be supplied when the sequence
+        is packed. It is of shape [B, S].
+
+    Returns:
+      a JTensor of shape [B, S, N, H] if position JTensor
+      is specified, else of shape [1, S, N, H].
+    """
+    p = self.params
+    inputs_shape = py_utils.GetShape(inputs)
+    if len(inputs_shape) != 4:
+      raise ValueError('Input is assumed to be a rank 4 tensor of shape'
+                       '[batch, sequence, heads, dims].')
+    if p.embedding_dim % 2:
+      raise ValueError('Embedding dim for rotary position embedding must be a'
+                       'multiple of 2.')
+    half_embedding_dim = p.embedding_dim // 2
+    fraction = 2 * tf.range(0, half_embedding_dim, dtype=tf.float32)
+    fraction /= p.embedding_dim
+    timescale = p.min_timescale * (p.max_timescale / p.min_timescale)**fraction
+    if position is None:
+      seq_length = inputs_shape[1]
+      position = tf.range(seq_length, dtype=tf.float32)[tf.newaxis, :]
+    position = position[:, :, tf.newaxis, tf.newaxis]
+    timescale = timescale[tf.newaxis, tf.newaxis, tf.newaxis, :]
+    sinusoid_inp = position / timescale
+    sin = tf.sin(sinusoid_inp)
+    cos = tf.cos(sinusoid_inp)
+    first_half, second_half = tf.split(inputs, 2, axis=-1)
+    first_part = first_half * cos - second_half * sin
+    second_part = second_half * cos + first_half * sin
+    return tf.concat([first_part, second_part], axis=-1)
+
+  def ExtendStep(self, theta, inputs, time_step):
+    """Generates a JTensor of sinusoids with different frequencies for a step.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The input sequence on which to apply the Rotary position
+        embedding. Since rotary position embeddings are applied to query and
+        keys after projection, it is assumed of shape [B, N, H] or of shape [B,
+        P, N, H] where P may be a prefix length.
+      time_step: The time step which is being decoded, this should correspond to
+        the time step of the last token in the prefix window (P) in the entire
+        sequence length S.
+
+    Returns:
+      a JTensor of the same shape as input.
+    """
+    assert len(inputs.shape) in [3, 4]
+    inputs_shape = py_utils.GetShape(inputs)
+    if len(inputs_shape) == 3:
+      inputs = inputs[:, tf.newaxis, :, :]
+    seq_length = inputs.shape[1]
+    # Adjust the position with the time step.
+    position = tf.range(time_step - seq_length + 1, time_step + 1)
+    position = tf.map_fn(fn=lambda t: max(t, 0), elems=position)
+    output = self.FProp(theta, inputs, position=position[tf.newaxis, :])
+    if len(inputs_shape) == 3:
+      output = tf.squeeze(output, axis=1)
+    return output
+
+
 class SoftmaxLayer(quant_utils.QuantizableLayer):
   """Base class for softmax layers."""
 
@@ -6783,82 +6864,3 @@ class MaskedLmDataAugmenter(base_layer.BaseLayer):
         random_tokens * replace_with_random + inputs * replace_with_self)
 
     return augmented, replacement_pos
-
-
-class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
-  """Applies rotary position embedding for a given 1-d sequence.
-
-  The Rotary position embedding is described in https://arxiv.org/abs/2104.09864
-  """
-
-  def FProp(self, theta, inputs, position=None):
-    """Generates a JTensor of sinusoids with different frequencies.
-
-    Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      inputs: The input sequence on which to apply the Rotary position
-        embedding. Since rotary position embeddings are applied to query and
-        keys after projection, it is assumed of shape [B, S, N, H].
-      position: Optional position JTensor which denotes the position of each
-        token in the sequence. This only needs to be supplied when the sequence
-        is packed. It is of shape [B, S].
-
-    Returns:
-      a JTensor of shape [B, S, N, H] if position JTensor
-      is specified, else of shape [1, S, N, H].
-    """
-    p = self.params
-    inputs_shape = py_utils.GetShape(inputs)
-    if len(inputs_shape) != 4:
-      raise ValueError('Input is assumed to be a rank 4 tensor of shape'
-                       '[batch, sequence, heads, dims].')
-    if p.embedding_dim % 2:
-      raise ValueError('Embedding dim for rotary position embedding must be a'
-                       'multiple of 2.')
-    half_embedding_dim = p.embedding_dim // 2
-    fraction = 2 * tf.range(0, half_embedding_dim, dtype=tf.float32)
-    fraction /= p.embedding_dim
-    timescale = p.min_timescale * (p.max_timescale / p.min_timescale)**fraction
-    if position is None:
-      seq_length = inputs_shape[1]
-      position = tf.range(seq_length, dtype=tf.float32)[tf.newaxis, :]
-    position = position[:, :, tf.newaxis, tf.newaxis]
-    timescale = timescale[tf.newaxis, tf.newaxis, tf.newaxis, :]
-    sinusoid_inp = position / timescale
-    sin = tf.sin(sinusoid_inp)
-    cos = tf.cos(sinusoid_inp)
-    first_half, second_half = tf.split(inputs, 2, axis=-1)
-    first_part = first_half * cos - second_half * sin
-    second_part = second_half * cos + first_half * sin
-    return tf.concat([first_part, second_part], axis=-1)
-
-  def ExtendStep(self, theta, inputs, time_step):
-    """Generates a JTensor of sinusoids with different frequencies for a step.
-
-    Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      inputs: The input sequence on which to apply the Rotary position
-        embedding. Since rotary position embeddings are applied to query and
-        keys after projection, it is assumed of shape [B, N, H] or of shape [B,
-        P, N, H] where P may be a prefix length.
-      time_step: The time step which is being decoded, this should correspond to
-        the time step of the last token in the prefix window (P) in the entire
-        sequence length S.
-
-    Returns:
-      a JTensor of the same shape as input.
-    """
-    assert len(inputs.shape) in [3, 4]
-    inputs_shape = py_utils.GetShape(inputs)
-    if len(inputs_shape) == 3:
-      inputs = inputs[:, tf.newaxis, :, :]
-    seq_length = inputs.shape[1]
-    # Adjust the position with the time step.
-    position = tf.range(time_step - seq_length + 1, time_step + 1)
-    position = tf.map_fn(fn=lambda t: max(t, 0), elems=position)
-    output = self.FProp(theta, inputs, position=position[tf.newaxis, :])
-    if len(inputs_shape) == 3:
-      output = tf.squeeze(output, axis=1)
-    return output
