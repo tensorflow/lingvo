@@ -3719,6 +3719,8 @@ def AddVN(p, x, per_step=False):
     noises = tf.random.normal(
         tf.shape(x), stddev=1.0, seed=p.vn.seed, dtype=x.dtype)
   scale = tf.where(GetGlobalStep() >= p.vn.start_step, p.vn.scale, 0.0)
+  if p.vn.weight_scale:
+    scale *= tf.stop_gradient(ReduceRms(x))
   return x + tf.cast(scale, x.dtype) * noises
 
 
@@ -3727,6 +3729,7 @@ def VariationalNoiseParams(scale,
                            per_step_vn=False,
                            seed=None,
                            deterministic=None,
+                           weight_scale=False,
                            start_step=0):
   """Returns a hyperparams for variational noise."""
   if deterministic is None:
@@ -3744,6 +3747,7 @@ def VariationalNoiseParams(scale,
   p.Define(
       'deterministic', deterministic, 'If true, generate noise using'
       'stateless random ops that are compatible with TF functional ops.')
+  p.Define('weight_scale', weight_scale, 'If true, noise is scaled by RMS(w).')
   p.Define(
       'start_step', start_step,
       'Step starting from which variational noise is added during training.')
