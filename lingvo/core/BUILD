@@ -330,6 +330,7 @@ py_test(
         ":base_layer",
         ":batch_major_attention",
         ":hyperparams",
+        ":layers",
         ":py_utils",
         ":stream_step_test_base",
         ":test_utils",

@@ -23,6 +23,7 @@ from lingvo.core import attention_util
 from lingvo.core import base_layer
 from lingvo.core import batch_major_attention as attention
 from lingvo.core import hyperparams
+from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import stream_step_test_base
 from lingvo.core import test_utils
@@ -1446,6 +1447,19 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           'left_context': 3,
           'right_context': 2,
           'query_stride': 2,
+      }, {
+          'testcase_name': 'rope',
+          'block_size': None,
+          'left_context': 3,
+          'right_context': 2,
+          'enable_rope': True,
+      }, {
+          'testcase_name': 'rope_funnel',
+          'block_size': None,
+          'left_context': 3,
+          'right_context': 2,
+          'query_stride': 2,
+          'enable_rope': True,
       })
   def testFPropAgainstReference(self,
                                 block_size,
@@ -1457,6 +1471,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
                                 hidden_dim=4,
                                 skip_term_b=False,
                                 query_stride=1,
+                                enable_rope=False,
                                 use_additional_per_step_padding=False):
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
@@ -1492,10 +1507,14 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           name='expected_self_atten',
           num_heads=num_heads,
           input_dim=input_dim,
-          hidden_dim=hidden_dim)
+          hidden_dim=hidden_dim,
+          query_stride=query_stride)
       if pos_emb_dim != 0:
         p.rel_pos_emb_dim = pos_emb_dim
         expected_p.rel_pos_emb_dim = pos_emb_dim
+      if enable_rope:
+        p.rope_tpl = layers.RotaryPositionalEmbeddingLayer.Params()
+        expected_p.rope_tpl = layers.RotaryPositionalEmbeddingLayer.Params()
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       expected_p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
 
@@ -1643,6 +1662,7 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
 
     p_cls = kwargs.get('p_cls', attention.LocalSelfAttention)
     query_stride = kwargs.get('query_stride', 1)
+    enable_rope = kwargs.get('enable_rope', False)
     use_3d_recurrent_state = kwargs.get('use_3d_recurrent_state', False)
     inference_step_max_length = kwargs.get('inference_step_max_length', None)
     minimize_state_size = kwargs.get('minimize_state_size', False)
@@ -1655,6 +1675,8 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
         left_context=left_context,
         right_context=right_context,
         query_stride=query_stride)
+    if enable_rope:
+      p.rope_tpl = layers.RotaryPositionalEmbeddingLayer.Params()
     if p_cls == attention.LocalSelfAttentionXL:
       p.Set(rel_pos_emb_dim=input_dim)
     p.minimize_state_size = minimize_state_size
@@ -1709,6 +1731,18 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
       ('FunnelS2', attention.LocalSelfAttention, False, 2, 2, False, False, 2),
       ('FunnelS2Dynamic', attention.LocalSelfAttention, False, 2, None, False,
        False, 2),
+      ('RopeS4', attention.LocalSelfAttention, False, 4, 4, False, False, 1,
+       True),
+      ('RopeS43d', attention.LocalSelfAttention, False, 4, 4, True, False, 1,
+       True),
+      ('RopeS4Min', attention.LocalSelfAttention, False, 4, 4, False, True, 1,
+       True),
+      ('RopeS4Dynamic', attention.LocalSelfAttention, False, 4, None, False,
+       False, 1, True),
+      ('RopeFunnelS4', attention.LocalSelfAttention, False, 4, 4, False, False,
+       4, True),
+      ('RopeFunnelS4Dynamic', attention.LocalSelfAttention, False, 4, None,
+       False, False, 4, True),
   )
   def testLeftContext(self,
                       p_cls=attention.LocalSelfAttention,
@@ -1717,7 +1751,8 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
                       inference_step_max_length=1,
                       use_3d_recurrent_state=False,
                       minimize_state_size=False,
-                      query_stride=1):
+                      query_stride=1,
+                      enable_rope=False):
     tf.random.set_seed(2021)
     kwargs = dict(
         stride=stride,
@@ -1727,6 +1762,7 @@ class LocalSelfAttentionStreamStepTest(stream_step_test_base.StreamStepTestBase
         left_context=3,
         right_context=0,
         query_stride=query_stride,
+        enable_rope=enable_rope,
         p_cls=p_cls,
         minimize_state_size=minimize_state_size,
         use_3d_recurrent_state=use_3d_recurrent_state,

@@ -720,13 +720,10 @@ class ConformerLayer(base_layer.BaseLayer):
       atten_tpl = attention_lib.LocalSelfAttentionXL.Params().Set(
           left_context=atten_left_context,
           right_context=atten_right_context,
-          rel_pos_emb_dim=relative_pos_emb_dim,
-          query_stride=query_stride)
+          rel_pos_emb_dim=relative_pos_emb_dim)
     elif atten_type == 'local':
       atten_tpl = attention_lib.LocalSelfAttention.Params().Set(
-          left_context=atten_left_context,
-          right_context=atten_right_context,
-          query_stride=query_stride)
+          left_context=atten_left_context, right_context=atten_right_context)
     elif atten_type == 'chunk':
       atten_tpl = attention_lib.ChunkwiseSelfAttention.Params().Set(
           left_context=atten_left_context,
@@ -743,6 +740,7 @@ class ConformerLayer(base_layer.BaseLayer):
       assert atten_type in ('global', 'global_causal'), (
           f'Unknown atten_type {atten_type}')
       atten_tpl = attention_lib.MultiHeadedAttention.Params()
+    atten_tpl.query_stride = query_stride
     return atten_tpl
 
   @classmethod

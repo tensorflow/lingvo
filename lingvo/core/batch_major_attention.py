@@ -424,6 +424,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     B = batch size
     S = length of the key/value (source)
     T = length of the query (target)
+    P = query stride (default to 1, See Strided attention).
     D = model dimension
     N = number of attention heads
     H = dimensions of each attention head.
@@ -447,6 +448,12 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
   probs:[B, N, T, S] = softmax(logits)
   context:[B, T, N, H] = einsum('BNTS,BSNH->BTNH', probs, v_proj)
   Output y:[B, T, D] = einsum('BTNH,DNH>BTD', context, Wout)
+
+  Strided attention:
+  For canonical attention, P is 1. When query_stride (P) is not 1, query(target)
+  steps by P while key(source) steps by 1. This affects a position for the
+  positional embedding. While key position is [0,1,2,...], query position is
+  [0,1*P,2*P,...].
   """
 
   @classmethod
@@ -475,6 +482,14 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         'enable_per_dim_scale', True,
         'Whether using per_dim_scale or scaling by a constant factor. '
         'Only applied when enable_query_scale == True.')
+    p.Define(
+        'query_stride', 1,
+        'Query stride for strided attention. If set to 1, regress to '
+        'canonical self attention. Else, key/value(source) sequence '
+        'length must be equal to query_stride * query length. '
+        'See "Strided attention" in the docstring for more information.')
+    p.Define('rope_tpl', None,
+             'Params for class RotaryPositionalEmbeddingLayer.')
     p.Define('atten_dropout_prob', 0.0,
              'Probability at which we apply dropout to the attention weights.')
     p.Define('proj_tpl', MultiHeadedProjectionLayer.Params(), 'Params for '
@@ -582,6 +597,13 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
             use_bias=p.use_bias,
             device_mesh=p.device_mesh,
             weight_split_dims_mapping=post_weight_split_dims_mapping))
+
+    if p.rope_tpl:
+      assert issubclass(p.rope_tpl.cls, layers.RotaryPositionalEmbeddingLayer)
+      rope_p = p.rope_tpl.Copy()
+      if rope_p.embedding_dim == 0:
+        rope_p.embedding_dim = self.dim_per_head
+      self.CreateChild('rope', rope_p)
 
     if p.attn_add_memory:
       assert p.memory_tpl is not None
@@ -997,6 +1019,36 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
                                      p.activation_split_dims_mapping.bld)
     return encoded
 
+  def _RoPE(self, theta, proj, stride=1, time_step=None):
+    """Add RoPE (Rotary Position Embedding) [1] to q/k proj vector.
+
+    [1] https://arxiv.org/abs/2104.09864
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      proj: The input sequence on which to apply the Rotary position embedding,
+        whose shape is [B, T, N, H].
+      stride: Int, stride of the positional embedding.
+      time_step: A scalar or tensor with [B], current decode step, 0-based. The
+        time step which is being decoded, this should correspond to the time
+        step of the last token in the prefix window (P) in the entire sequence
+        length S. If it's a scalar, all the time step are the same decode step.
+        If it's a tensor, it represents current decode step for each sample.
+
+    Returns:
+      a Tensor of the same shape as proj.
+    """
+    assert self.params.rope_tpl
+    proj_len = py_utils.GetShape(proj)[1]
+    position = tf.range(proj_len)[tf.newaxis, :] * stride
+    if time_step is not None:
+      time_span = proj_len * stride
+      start_time = time_step - time_span + 1
+      position += start_time
+    position = tf.cast(position, dtype=proj.dtype)
+    return self.rope.FProp(theta.rope, proj, position=position)
+
   def FProp(self,
             theta,
             query_vec,
@@ -1031,6 +1083,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     # Heads projection
     query_proj, key_proj, value_proj = self._HeadsProj(theta, query_vec,
                                                        key_vec, value_vec)
+    if p.rope_tpl:
+      key_proj = self._RoPE(theta, key_proj)
+      query_proj = self._RoPE(theta, query_proj, stride=p.query_stride)
 
     if p.packed_input and not self.do_eval:
       assert segment_mask is not None
@@ -1129,6 +1184,11 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     new_key_proj = self.key.FProp(theta.key, query_vec)
     new_value_proj = self.value.FProp(theta.value, query_vec)
     query_proj = self.query.FProp(theta.query, query_vec)
+
+    if p.rope_tpl:
+      new_key_proj = self._RoPE(theta, new_key_proj, time_step=time_step)
+      query_proj = self._RoPE(
+          theta, query_proj, stride=p.query_stride, time_step=time_step)
 
     new_key_proj = gshard_utils.MeshSplit(new_key_proj, p.device_mesh,
                                           p.activation_split_dims_mapping.blnh)
@@ -1371,6 +1431,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     params = self.params
 
     assert not params.packed_input, 'Packed input not implemented yet.'
+    assert not params.rope_tpl, 'Relative positional embedding is used.'
 
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
       raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
@@ -1782,12 +1843,6 @@ class LocalSelfAttention(MultiHeadedAttention):
         'block_size', None, 'Size of a processing block, if unset, default to '
         'max(1, left_context-1).')
     p.Define(
-        'query_stride', 1,
-        'Query stride for strided attention. If set to 1, regress to '
-        'canonical self attention. Else, key/value(source) sequence '
-        'length must be equal to query_stride * query length. '
-        'See "Strided attention" in the docstring for more information.')
-    p.Define(
         'left_context', None, 'Number of left positions to attend '
         '(including current position).')
     p.Define('right_context', 0, 'Number of right positions to attend.')
@@ -2110,11 +2165,14 @@ class LocalSelfAttention(MultiHeadedAttention):
     if (p.inference_step_max_length is not None and
         p.inference_step_max_length > 0 and not p.right_context):
       if p.minimize_state_size:
-        return self._zero_state_static_length_inputs(batch_size)
+        state0 = self._zero_state_static_length_inputs(batch_size)
       else:
-        return self._zero_state_static_length_key_value(batch_size)
+        state0 = self._zero_state_static_length_key_value(batch_size)
     else:
-      return self._zero_state_dynamic_length(batch_size)
+      state0 = self._zero_state_dynamic_length(batch_size)
+    if p.rope_tpl:
+      state0.rope_step = tf.ones([], dtype=tf.int32) * -1
+    return state0
 
   def _zero_state_static_length_inputs(self, batch_size):
     """Returns the initial state given the batch size.
@@ -2325,6 +2383,10 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # [B, S, N, H]: Project input vectors into key space.
     key = self.key.FProp(theta.key, new_inputs)
+    if p.rope_tpl:
+      # Point the time_step to the last entry in the key.
+      time_step = state0.rope_step + dims.q
+      key = self._RoPE(theta, key, time_step=time_step)
 
     # [B, S, N, H]: Project input vectors into value space.
     value = self.value.FProp(theta.value, new_inputs)
@@ -2373,6 +2435,12 @@ class LocalSelfAttention(MultiHeadedAttention):
         'DH,BTD->BTH',
         tf.reshape(theta.key.w, [self.key.params.input_dim, dims.n * dims.h]),
         inputs) + tf.reshape(theta.key.b, [-1])
+    if self.params.rope_tpl:
+      # Point the time_step to the last entry in the key.
+      time_step = state0.rope_step + dims.q
+      incr_key = tf.reshape(incr_key, [dims.b, dims.q, dims.n, dims.h])
+      incr_key = self._RoPE(theta, incr_key, time_step=time_step)
+      incr_key = tf.reshape(incr_key, [dims.b, dims.q, dims.n * dims.h])
     # [B, Q, N * H]
     incr_value = tf.einsum(
         'DH,BTD->BTH',
@@ -2414,6 +2482,10 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # [B, Q, N, H]
     incr_key = self.key.FProp(theta.key, inputs)
+    if self.params.rope_tpl:
+      # Point the time_step to the last entry in the key.
+      time_step = state0.rope_step + dims.q
+      incr_key = self._RoPE(theta, incr_key, time_step=time_step)
     # [B, Q, N, H]
     incr_value = self.value.FProp(theta.value, inputs)
 
@@ -2516,6 +2588,14 @@ class LocalSelfAttention(MultiHeadedAttention):
       key, value, state1 = self._StreamStepStaticComputeKeyValue(
           theta, key_vec, key_paddings, state0)
 
+      if p.rope_tpl:
+        # state0.rope_step: the time step of the last token in the prev step.
+        # time_step: the time step of the last token.
+        time_step = state0.rope_step + (dims.q * p.query_stride)
+        query_proj = self._RoPE(
+            theta, query_proj, stride=p.query_stride, time_step=time_step)
+        state1.rope_step = time_step
+
       # [B, Q, N, T]
       logits = self._StreamAttenLogits(theta, query_proj, key)
 
@@ -2592,6 +2672,15 @@ class LocalSelfAttention(MultiHeadedAttention):
         else:
           query_proj *= h**-0.5
 
+      # [B, Q, N, H].
+      key = self.key.FProp(theta.key, key_vec)
+      if p.rope_tpl:
+        # Point the time_step to the last entry in the key.
+        time_step = state0.rope_step + py_utils.GetShape(key)[1]
+        key = self._RoPE(theta, key, time_step=time_step)
+        query_proj = self._RoPE(
+            theta, query_proj, stride=p.query_stride, time_step=time_step)
+
       input_masks = tf.logical_not(tf.cast(query_paddings, tf.bool))
       if p.right_context == 0:
         # [B, Q, N, H]
@@ -2608,10 +2697,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
       # key, value, mask.
       # [B, T, N, H].
-      key = tf.concat(
-          [state0.key, self.key.FProp(theta.key, key_vec)],
-          axis=1,
-          name='concat_key')
+      key = tf.concat([state0.key, key], axis=1, name='concat_key')
       # [B, T, N, H]
       value = tf.concat(
           [state0.value, self.value.FProp(theta.value, key_vec)],
@@ -2677,6 +2763,8 @@ class LocalSelfAttention(MultiHeadedAttention):
                                 tf.shape(state0.query))
         state1.out_masks = tf.slice(concat_out_masks, [0, q],
                                     tf.shape(state0.out_masks))
+      if p.rope_tpl:
+        state1.rope_step = time_step
       return output, out_paddings, state1
 
   @classmethod
@@ -2700,6 +2788,7 @@ class LocalSelfAttentionXL(LocalSelfAttention):
     """Constructs a LocalSelfAttentionXL object."""
     super().__init__(params)
     params = self.params
+    assert not params.rope_tpl, 'Relative positional embedding is used.'
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
       raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
 
@@ -3193,6 +3282,7 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
   def __init__(self, params):
     super().__init__(params)
     params = self.params
+    assert not params.rope_tpl, 'Relative positional embedding is used.'
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
       raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
 
