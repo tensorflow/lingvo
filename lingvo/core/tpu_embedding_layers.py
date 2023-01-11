@@ -375,6 +375,7 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
     return tpu_embedding_lib.AdagradParameters(
         learning_rate=learning_rate,
         initial_accumulator=p.initial_accumulator,
+        use_gradient_accumulation=p.use_gradient_accumulation,
         clip_weight_min=p.clip_weight_min,
         clip_weight_max=p.clip_weight_max,
         weight_decay_factor=p.weight_decay_factor,
