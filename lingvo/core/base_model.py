@@ -1238,7 +1238,8 @@ class BaseModel(base_layer.BaseLayer):
   def ema_decay(self):
     return self._ema_decay
 
-  def _MakeEMAVariablesDict(self):
+  def MakeEMAVariablesDictTF2(self):
+    """Creates a map for EMA vars to get saved/loaded successfully in TF2."""
     if self.ema:
       res = {}
       # We cannot rely on existing methods e.g. `variables_for_ema` because it
@@ -1329,7 +1330,7 @@ class SingleTaskBase(BaseModel):
     # All variables of the model are created. Now create EMA variables.
     if self.ema and not self.params.is_inference:
       self._task.CreateExponentialMovingAverage(self.ema)
-      self._MakeEMAVariablesDict()
+      self.MakeEMAVariablesDictTF2()
 
   @property
   def tasks(self) -> List[BaseTask]:
@@ -1561,7 +1562,7 @@ class MultiTaskModel(BaseModel):
         with tf.name_scope(task_name):
           task = self.GetTask(task_name)
           task.CreateExponentialMovingAverage(self.ema)
-      self._MakeEMAVariablesDict()
+      self.MakeEMAVariablesDictTF2()
 
   def _child_variable_scope_override(self):
     p = self.params
