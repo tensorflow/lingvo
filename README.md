@@ -167,7 +167,7 @@ The prerequisites are:
 *   a `C++` compiler (only g++ 7.3 is officially supported), and
 *   the bazel build system.
 
-Refer to [docker/dev.dockerfile](docker/dev.dockerfile) for a set of working
+Refer to [docker/dev.Dockerfile](docker/dev.Dockerfile) for a set of working
 requirements.
 
 `git clone` the repository, then use bazel to build and run targets directly.
@@ -181,7 +181,7 @@ found in the comments on the top of each file.
 
 *   [lib.dockerfile](docker/lib.dockerfile) has the Lingvo pip package
     preinstalled.
-*   [dev.dockerfile](docker/dev.dockerfile) can be used to build Lingvo from
+*   [dev.Dockerfile](docker/dev.Dockerfile) can be used to build Lingvo from
     sources.
 
 [How to install docker.](https://docs.docker.com/install/linux/docker-ce/ubuntu/)

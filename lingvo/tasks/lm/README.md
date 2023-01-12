@@ -53,7 +53,7 @@ gcloud auth configure-docker
 sudo usermod -aG docker $(whoami)
 sudo systemctl restart docker
 # Lingvo docker installation
-sudo docker build --tag tensorflow:lingvo_dev_lm - < lingvo/docker/dev.dockerfile
+sudo docker build --tag tensorflow:lingvo_dev_lm - < lingvo/docker/dev.Dockerfile
 ```
 
 ### Data Prep
