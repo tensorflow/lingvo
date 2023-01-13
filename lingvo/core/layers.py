@@ -6673,6 +6673,14 @@ class PerFrameStatisticalPoolingLayer(base_layer.BaseLayer):
     else:
       return mean
 
+  def ZeroState(self, batch_size, dim, dtype):
+    state0 = py_utils.NestedMap()
+    state0.order1 = tf.zeros(shape=[batch_size, dim], dtype=dtype)
+    state0.order2 = tf.zeros(shape=[batch_size, dim], dtype=dtype)
+    state0.nframes = tf.zeros(shape=[batch_size, 1], dtype=dtype)
+
+    return state0
+
   def StreamingStep(self, inputs, paddings, state0):
     """Streams t steps.
 
@@ -6708,10 +6716,7 @@ class PerFrameStatisticalPoolingLayer(base_layer.BaseLayer):
     [_, batch, dim] = py_utils.GetShape(inputs)
     # set the zero state if first time
     if state0 is None:
-      state0 = py_utils.NestedMap()
-      state0.order1 = tf.zeros(shape=[batch, dim], dtype=inputs.dtype)
-      state0.order2 = tf.zeros(shape=[batch, dim], dtype=inputs.dtype)
-      state0.nframes = tf.zeros(shape=[batch, 1], dtype=inputs.dtype)
+      state0 = self.ZeroState(batch, dim, inputs.dtype)
     # execute a streaming step
     state1 = py_utils.NestedMap()
     # compute state1
