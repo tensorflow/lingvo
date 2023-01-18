@@ -640,7 +640,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     """
     assert py_utils.IsEagerMode()
     tf.logging.info('FLAGS.tf_master: %s', FLAGS.tf_master)
-    super().__init__(params=train_cfg, *args, **kwargs)
+    super().__init__(train_cfg, *args, **kwargs)
     self.tpu_strategy = self._ConnectToTPU(train_cfg)
 
     data_parallelism = self._cluster.num_splits_per_client
