@@ -42,6 +42,7 @@ from tensorflow.python.ops import gen_io_ops  # Used in this file only
 from tensorflow.python.ops import inplace_ops  # Used in this file only
 from tensorflow.python.ops import math_ops  # tf.math_ops.bucketize
 from tensorflow.python.tf2 import enabled as tf2_enabled  # Used in this file only
+from tensorflow.python.training.tracking import autotrackable
 from tensorflow.python.util import module_wrapper as _module_wrapper  # Used in this file only
 # For determining if we are running with --define=tf_api_version=1 or 2.
 from tensorflow import _major_api_version  # Used in this file only
@@ -439,6 +440,7 @@ variance_scaling_initializer = tf1.variance_scaling_initializer
 where = tf1.where
 while_loop = tf1.while_loop
 convert_to_tensor_or_indexed_slices = tf1.convert_to_tensor_or_indexed_slices
+AutoTrackable = autotrackable.AutoTrackable
 
 # Explicit 1.x symbol import.
 # For `nn.embedding_lookup` and `nn.embedding_lookup_sparse`, v2 doesn't have

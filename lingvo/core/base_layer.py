@@ -332,6 +332,11 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     return res
 
+  def _trackable_children(self, save_type='checkpoint', **kwargs):
+    return super(tf.AutoTrackable, self)._trackable_children(
+        save_type, **kwargs
+    )
+
   def _GetSelfVariablesDict(self):
     """Returns a dict of variables from the model, excluding its children."""
     res = {}
