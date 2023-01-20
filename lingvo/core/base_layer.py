@@ -356,7 +356,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         'Layer params for %s must have a "name"' % self.__class__.__name__)
 
     tf_module_name = params.name
-    tf_module_name = re.sub('[^a-zA-Z0-9_]+', '_', tf_module_name)
+    tf_module_name = re.sub(r'\W+', '_', tf_module_name, flags=re.ASCII)
     tf_module_name = 'bbf_' + self.__class__.__name__ + '_' + tf_module_name
     py_utils.NestedMap.CheckKey(tf_module_name)
 
