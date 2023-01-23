@@ -1381,11 +1381,13 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertNotEqual(default_vn, disable_vn)
 
   @parameterized.named_parameters(
-      ('Default', False, False, 2.442123),
-      ('Deterministic', True, False, 2.254224),
-      ('WeightScale', False, True, 2.884247),
+      ('Default', False, False, False, 2.442123),
+      ('Uniform', False, True, False, 2.08717),
+      ('Deterministic', True, False, False, 2.254224),
+      ('DeterministicUniform', True, True, False, 1.8315007),
+      ('WeightScale', False, False, True, 2.884247),
   )
-  def testVn(self, deterministic, weight_scale, expected):
+  def testVn(self, deterministic, use_uniform_noise, weight_scale, expected):
     p = hyperparams.Params()
     p.Define('vn', py_utils.DefaultVN(), '')
     p.Define('is_inference', None, '')
@@ -1395,6 +1397,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     p.vn.global_vn = True
     p.vn.seed = p.random_seed
     p.vn.deterministic = deterministic
+    p.vn.use_uniform_noise = use_uniform_noise
     p.vn.weight_scale = weight_scale
     with self.session(use_gpu=False):
       x = tf.ones([], dtype=tf.float32) * 2.

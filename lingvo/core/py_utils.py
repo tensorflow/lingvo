@@ -3709,15 +3709,25 @@ def AddVN(p, x, per_step=False):
     raise ValueError('VN scale must be set.')
 
   if p.vn.deterministic:
-    noises = DeterministicVN(p, tf.shape(x), mean=0.0, std=1.0)
+    noises = DeterministicVN(
+        p,
+        tf.shape(x),
+        mean=0.0,
+        scale=1.0,
+        use_uniform_noise=p.vn.use_uniform_noise)
     noises = tf.cast(noises, x.dtype)
   else:
     if per_step:
       # recurrent.py does not support stateful random ops in cell_fn due to
       # rematerialization.
       raise ValueError('per_step vn requires deterministic=True.')
-    noises = tf.random.normal(
-        tf.shape(x), stddev=1.0, seed=p.vn.seed, dtype=x.dtype)
+    if p.vn.use_uniform_noise:
+      noises = tf.random.uniform(
+          tf.shape(x), minval=-0.5, maxval=0.5, seed=p.vn.seed, dtype=x.dtype)
+    else:
+      noises = tf.random.normal(
+          tf.shape(x), stddev=1.0, seed=p.vn.seed, dtype=x.dtype)
+
   scale = tf.where(GetGlobalStep() >= p.vn.start_step, p.vn.scale, 0.0)
   if p.vn.weight_scale:
     scale *= tf.stop_gradient(ReduceRms(x))
@@ -3729,6 +3739,7 @@ def VariationalNoiseParams(scale,
                            per_step_vn=False,
                            seed=None,
                            deterministic=None,
+                           use_uniform_noise=False,
                            weight_scale=False,
                            start_step=0):
   """Returns a hyperparams for variational noise."""
@@ -3737,8 +3748,9 @@ def VariationalNoiseParams(scale,
   p = hyperparams.Params()
   p.Define(
       'scale', scale,
-      'Std of the variational noise to apply . This can be a scalar,'
-      ' or a scalar tensor.')
+      'The multiplier of the variational noise to apply. This can be a scalar, '
+      'or a scalar tensor. For Gaussian noise, this is the standard deviation. '
+      'For uniform noise, the range is [-scale/2, scale/2].')
   p.Define('global_vn', global_vn,
            'Adds global variational noise every training setp iff True.')
   p.Define('per_step_vn', per_step_vn,
@@ -3747,6 +3759,10 @@ def VariationalNoiseParams(scale,
   p.Define(
       'deterministic', deterministic, 'If true, generate noise using'
       'stateless random ops that are compatible with TF functional ops.')
+  p.Define(
+      'use_uniform_noise', use_uniform_noise,
+      'If True, use Unif(-0.5, 0.5) for the noise. Otherwise, use '
+      'Gaussian(0, 1).')
   p.Define('weight_scale', weight_scale, 'If true, noise is scaled by RMS(w).')
   p.Define(
       'start_step', start_step,
@@ -3917,25 +3933,36 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
     return result
 
 
-def DeterministicVN(params, noise_shape, mean=0.0, std=1.0, name=None):
-  """Produces Fully deterministic Gaussian noise from shape, mean and std.
+def DeterministicVN(params,
+                    noise_shape,
+                    mean=0.0,
+                    scale=1.0,
+                    use_uniform_noise=False,
+                    name=None):
+  """Produces Fully deterministic Gaussian or uniform noise from shape, mean and scale.
 
   Args:
     params: Nested map of params.
     noise_shape: A 1-D `Tensor` of type `int32`, representing the shape for
-      randomly generated Gaussian noise.
-    mean: Mean for the Gaussian noise.
-    std: Standard deviation for noise.
+      randomly generated noise.
+    mean: Mean of the noise.
+    scale: Multiplicative scaling for noise.
+    use_uniform_noise: If True, use Unif(-0.5, 0.5) as the unscaled base noise.
+       If False, use Normal(0, 1).
     name: An optional name for this operation.
 
   Returns:
     A Tensor with the shape noise_shape and type fprop_dtype.
   """
 
-  with tf.name_scope(name, 'gaussian_noise'):
+  with tf.name_scope(name, 'deterministic_vn'):
     seeds = GenerateStepSeedPair(params, params.vn.seed)
-    random_tensor = mean + (
-        std * tf.random.stateless_normal(noise_shape, seed=seeds))
+    if use_uniform_noise:
+      random_tensor = tf.random.stateless_uniform(
+          noise_shape, seed=seeds, minval=-0.5, maxval=0.5)
+    else:
+      random_tensor = tf.random.stateless_normal(noise_shape, seed=seeds)
+    random_tensor = mean + scale * random_tensor
     if FPropDtype(params) != tf.float32:
       random_tensor = tf.cast(random_tensor, FPropDtype(params))
     return random_tensor

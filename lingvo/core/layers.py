@@ -6174,7 +6174,7 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
           ones, zeros)
     else:
       noise_std = self.noise_std.Value()
-      noise = py_utils.DeterministicVN(p, tf.shape(p_c), std=noise_std)
+      noise = py_utils.DeterministicVN(p, tf.shape(p_c), scale=noise_std)
       p_c = tf.nn.sigmoid(p_c + noise)
     return p_c
 
