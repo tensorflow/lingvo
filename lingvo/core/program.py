@@ -836,6 +836,9 @@ class HostDrivenTrainProgram(BaseProgram):
     self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
 
+    # Create the training tf.function only once to avoid recompilation.
+    self._train_fn = self._GetHostTrainLoop(strategy)
+
     # Write model analysis.
     self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
         self._model)
@@ -914,7 +917,7 @@ class HostDrivenTrainProgram(BaseProgram):
     if self._ShouldStop(task_step):
       return True
 
-    metrics = self._GetHostTrainLoop(strategy)()
+    metrics = self._train_fn()
 
     global_step = self._GetGlobalStep(sess)
     self._MaybeWriteSummary(global_step, metrics)
