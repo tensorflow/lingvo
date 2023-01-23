@@ -2597,41 +2597,43 @@ def _MaybeWarnAboutPotentiallyIncorrectEvaluations():
       _WARNED_STACKS.add(tuple(trace))
 
 
-def _IsTF2OnGPU():
-  return (tf.executing_eagerly_outside_functions() and
-          FLAGS.xla_device == 'gpu')
+def _ShouldUseTF2GlobalStep():
+  cluster = cluster_factory.Current()
+  return tf.executing_eagerly_outside_functions() and (
+      FLAGS.xla_device == 'gpu'
+      or cluster.params.job == 'host_driven_executor_tpu'
+  )
 
 
-_GLOBAL_STEP_GPU_TF2 = None
+_GLOBAL_STEP_TF2 = None
 
 
 def _GetOrCreateGlobalStepTF2():
-  # pylint: disable=g-doc-args,g-doc-return-or-yield
   """Create or reuse the global step variable explicitly.
 
   This avoids using `get_or_create_global_step` because it pins the global step
-  to cpu directly. It is intended for on-GPU inference jobs. Note we did not
-  verify if this works for on-GPU training (assuming there is no need for
-  on-GPU training).
+  to cpu directly.
+
+  Returns:
+    The global step tf.Variable.
   """
-  # pylint: enable=g-doc-args,g-doc-return-or-yield
   with tf.variable_scope(GetGlobalVariableScope(), use_resource=True):
-    global _GLOBAL_STEP_GPU_TF2
-    if _GLOBAL_STEP_GPU_TF2 is None:
-      _GLOBAL_STEP_GPU_TF2 = tf.Variable(0, name='global_step', dtype=tf.int64)
-    res = _GLOBAL_STEP_GPU_TF2
-    return res
+    global _GLOBAL_STEP_TF2
+    if _GLOBAL_STEP_TF2 is None:
+      _GLOBAL_STEP_TF2 = tf.Variable(0, name='global_step', dtype=tf.int64)
+    return _GLOBAL_STEP_TF2
 
 
 def GetGlobalStep():
   """Return the global_step."""
   _MaybeWarnAboutPotentiallyIncorrectEvaluations()
-  if _IsTF2OnGPU():
-    return _GetOrCreateGlobalStepTF2()
-
   if _GLOBAL_STEP_STACK.stack:
     return _GLOBAL_STEP_STACK.stack[-1]
-  return tf.train.get_global_step()
+
+  if _ShouldUseTF2GlobalStep():
+    return _GLOBAL_STEP_TF2
+  else:
+    return tf.train.get_global_step()
 
 
 def GetOrCreateGlobalStepVar():
@@ -2642,7 +2644,7 @@ def GetOrCreateGlobalStepVar():
   Returns:
     The global_step variable, or a new created one if it does not exist.
   """
-  if _IsTF2OnGPU():
+  if _ShouldUseTF2GlobalStep():
     return _GetOrCreateGlobalStepTF2()
 
   with tf.variable_scope(GetGlobalVariableScope(), use_resource=True):
@@ -5002,8 +5004,8 @@ def RematerializeFn(fn, *xs):
 
 # A set of names of stateful random number generator ops.
 # See tensorflow/core/ops/random_ops.cc
+# pyformat: disable
 _STATEFUL_RANDOM_OPS = frozenset({
-    # pyformat: disable
     'RandomUniform',
     'RandomUniformInt',
     'RandomStandardNormal',
@@ -5014,8 +5016,8 @@ _STATEFUL_RANDOM_OPS = frozenset({
     'RandomGamma',
     'RandomPoisson',
     'RandomPoissonV2',
-    # pyformat: enable
 })
+# pyformat: enable
 
 
 def StatefulRandomOpsInDefun(func, graph=None):

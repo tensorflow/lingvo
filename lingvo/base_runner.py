@@ -39,21 +39,25 @@ FLAGS = tf.flags.FLAGS
 class BaseRunner:
   """Base class for all jobs."""
 
-  def __init__(self,
-               params,
-               model_task_name='',
-               logdir='',
-               tf_master='',
-               trial=base_trial.NoOpTrial()):
+  def __init__(
+      self,
+      params,
+      model_task_name='',
+      logdir='',
+      tf_master='',
+      trial=base_trial.NoOpTrial(),
+      create_global_step=True,
+  ):
     """A job runner.
 
     Args:
-      params:  Params object containing model configuration.
-      model_task_name:  String name of the task this runner should execute for
+      params: Params object containing model configuration.
+      model_task_name: String name of the task this runner should execute for
         multitask models only.  See flag for details.
-      logdir:  String path to the log directory to output to.
-      tf_master:  String path to the master job, e.g. 'local'.
-      trial:   An optional hyperparameter trial. Used by Vizier studies.
+      logdir: String path to the log directory to output to.
+      tf_master: String path to the master job, e.g. 'local'.
+      trial: An optional hyperparameter trial. Used by Vizier studies.
+      create_global_step: Whether to create the global step variable.
     """
     self._params = trial.OverrideModelParams(params.Copy())
     p = self.params
@@ -120,16 +124,19 @@ class BaseRunner:
       self._cluster.InitDevices(self._GetSession())
 
     # Ensure global step tensor is created.
-    with contextlib.ExitStack() as stack:
-      if not py_utils.IsEagerMode():
-        assert self._graph  # Tell pytype that this Optional isn't None
-        stack.enter_context(self._graph.as_default())
-        stack.enter_context(tf.device(self._cluster.GetPlacer()))
-      # It is important that we enter the tf.container scope *after*
-      # the graph scope. If we reverse the ordering, the tf.container
-      # basically has no-effect which is a tricky silent error.
-      stack.enter_context(tf.container(self._container_id))
-      self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
+    if create_global_step:
+      with contextlib.ExitStack() as stack:
+        if not py_utils.IsEagerMode():
+          assert self._graph  # Tell pytype that this Optional isn't None
+          stack.enter_context(self._graph.as_default())
+          stack.enter_context(tf.device(self._cluster.GetPlacer()))
+        # It is important that we enter the tf.container scope *after*
+        # the graph scope. If we reverse the ordering, the tf.container
+        # basically has no-effect which is a tricky silent error.
+        stack.enter_context(tf.container(self._container_id))
+        self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
+    else:
+      self._global_step_var = None
 
   @property
   def params(self):

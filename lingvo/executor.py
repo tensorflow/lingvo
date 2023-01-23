@@ -640,14 +640,15 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     """
     assert py_utils.IsEagerMode()
     tf.logging.info('FLAGS.tf_master: %s', FLAGS.tf_master)
-    super().__init__(train_cfg, *args, **kwargs)
+    # The global step variable needs to be created inside the TPU strategy
+    # scope below, so we don't create it in the base class.
+    super().__init__(train_cfg, *args, create_global_step=False, **kwargs)
     self.tpu_strategy = self._ConnectToTPU(train_cfg)
 
     data_parallelism = self._cluster.num_splits_per_client
     assert data_parallelism
     tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
                     data_parallelism, self._cluster.num_devices_per_split)
-    self.task_scheduler = None
     self._checkpoint_dir = os.path.join(self._logdir, 'train')
 
     # If this is a multi-task model, grab the params for the TaskScheduler.
@@ -669,6 +670,10 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     self._checkpoint_to_load = None
 
     with self.tpu_strategy.scope(), self._cluster:
+      # Create the global step variable inside the tpu strategy scope.
+      assert self._global_step_var is None
+      self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
+
       ema_decay_var = py_utils.CreateEMADecayVar(train_cfg)
       executor_ema = base_model.ExecutorEma(
           py_utils.CreateEMAForModel(self.params, self._global_step_var,
@@ -721,7 +726,9 @@ class HostDrivenExecutor(base_runner.BaseRunner):
           # before they get loaded. Otherwise, the optimizers' slot variables
           # will not be properly loaded when V1 checkpoint is used.
           for program in self._programs:
-            print(f'Building TPU Subgraph for program `{type(program)}`')
+            tf.logging.info(
+                f'Building TPU Subgraph for program `{type(program)}`'
+            )
             program.BuildTpuSubgraph(strategy=self.tpu_strategy)
             py_utils.ClearTpuSummaryTensors()
 
@@ -734,12 +741,6 @@ class HostDrivenExecutor(base_runner.BaseRunner):
 
         for program in self._programs:
           program.SetStatusMessageFn(self._SetStatusMessage)
-
-        tpu_embedding_collection = (
-            tpu_embedding_layers.TpuEmbeddingCollection.Get())
-        self._load_ops = tpu_embedding_collection.load_ops
-        self._retrieve_ops = tpu_embedding_collection.retrieve_ops
-        self._tpu_embedding = tpu_embedding_collection.tpu_embedding
 
   @property
   def logdir(self) -> epath.Path:
@@ -759,6 +760,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
       computation_shape = py_utils.ComputationShape(
           self._cluster.num_devices_per_split, topology)
     assert self._cluster.num_devices_per_split == np.prod(computation_shape)
+    tf.logging.info(f'computation_shape: {computation_shape}')
 
     device_assignment = device_assignment_lib.device_assignment(
         topology,
@@ -784,7 +786,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
   def _GetSession(self, **kwargs):
     raise RuntimeError('Eager mode does not support _GetSession.')
 
-  def RunSave(self, global_step, retrieve_ops, programs, saver):
+  def RunSave(self, global_step, programs, saver):
     # Save program state first, so it's recoverable after we restore
     # from checkpoint.
     for program in programs:
@@ -812,7 +814,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
       - Export metrics
       - Conditionally terminate
     """
-    print('Running host-driven executor loop...')
+    tf.logging.info('Running host-driven executor loop...')
     with self._cluster:
       py_utils.GetOrCreateGlobalStepVar()
       _ = self._LoadCheckpoint()
@@ -834,8 +836,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
           ckpt_timer = py_utils.Timer()
           if self._checkpointer.ShouldSave(global_step):
             with ckpt_timer:
-              self.RunSave(global_step, self._retrieve_ops, self._programs,
-                           self._checkpointer)
+              self.RunSave(global_step, self._programs, self._checkpointer)
 
           tf.logging.info('Single task mode: %s', self._model_task_name)
           program_schedule = self._program_schedule_dict[self._model_task_name]
@@ -873,8 +874,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
 
         if self._ShouldStop(None, global_step):
           tf.logging.info('Training finished.')
-          self.RunSave(global_step, self._retrieve_ops, self._programs,
-                       self._checkpointer)
+          self.RunSave(global_step, self._programs, self._checkpointer)
           tf.logging.info(
               'Program finished after %f seconds. Waiting for threads to end.',
               program_timer.duration)
