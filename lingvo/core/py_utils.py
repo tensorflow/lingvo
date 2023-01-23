@@ -3729,8 +3729,12 @@ def AddVN(p, x, per_step=False):
           tf.shape(x), stddev=1.0, seed=p.vn.seed, dtype=x.dtype)
 
   scale = tf.where(GetGlobalStep() >= p.vn.start_step, p.vn.scale, 0.0)
-  if p.vn.weight_scale:
+  assert p.vn.weight_norm_type in (None, 'L2', 'Linf')
+  if p.vn.weight_norm_type == 'L2':
+    # TODO(qdavid) Generalize to Lp norm?
     scale *= tf.stop_gradient(ReduceRms(x))
+  elif p.vn.weight_norm_type == 'Linf':
+    scale *= tf.stop_gradient(tf.math.reduce_max(tf.math.abs(x)))
   return x + tf.cast(scale, x.dtype) * noises
 
 
@@ -3740,7 +3744,7 @@ def VariationalNoiseParams(scale,
                            seed=None,
                            deterministic=None,
                            use_uniform_noise=False,
-                           weight_scale=False,
+                           weight_norm_type=None,
                            start_step=0):
   """Returns a hyperparams for variational noise."""
   if deterministic is None:
@@ -3763,7 +3767,12 @@ def VariationalNoiseParams(scale,
       'use_uniform_noise', use_uniform_noise,
       'If True, use Unif(-0.5, 0.5) for the noise. Otherwise, use '
       'Gaussian(0, 1).')
-  p.Define('weight_scale', weight_scale, 'If true, noise is scaled by RMS(w).')
+  p.Define(
+      'weight_norm_type', weight_norm_type,
+      'If in the supported set, scale the noise by the norm of the vectorized '
+      'weight tensor. Currently, only "L2", "Linf", and "None" '
+      '(no norm scaling) are supported. For L2 norm, the norm is also divided '
+      'by sqrt(tf.size(tensor)). Fails if not in the supported set.')
   p.Define(
       'start_step', start_step,
       'Step starting from which variational noise is added during training.')

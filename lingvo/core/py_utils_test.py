@@ -1381,13 +1381,16 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertNotEqual(default_vn, disable_vn)
 
   @parameterized.named_parameters(
-      ('Default', False, False, False, 2.442123),
-      ('Uniform', False, True, False, 2.08717),
-      ('Deterministic', True, False, False, 2.254224),
-      ('DeterministicUniform', True, True, False, 1.8315007),
-      ('WeightScale', False, False, True, 2.884247),
+      ('Default', False, False, None, [[1.4421233, 2.0392153]]),
+      ('Uniform', False, True, None, [[1.0871696, 1.8679601]]),
+      ('Deterministic', True, False, None, [[1.2542243, 2.9178061]]),
+      ('DeterministicUniform', True, True, None, [[0.8315007, 1.7715032]]),
+      ('TwoNormScale', False, False, 'L2', [[1.6990583, 2.0620048]]),
+      ('InfNormScale', False, False, 'Linf', [[1.8842466, 2.0784304]]),
   )
-  def testVn(self, deterministic, use_uniform_noise, weight_scale, expected):
+  def testVn(
+      self, deterministic, use_uniform_noise, weight_norm_type, expected
+  ):
     p = hyperparams.Params()
     p.Define('vn', py_utils.DefaultVN(), '')
     p.Define('is_inference', None, '')
@@ -1398,9 +1401,10 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     p.vn.seed = p.random_seed
     p.vn.deterministic = deterministic
     p.vn.use_uniform_noise = use_uniform_noise
-    p.vn.weight_scale = weight_scale
+    p.vn.weight_norm_type = weight_norm_type
+
     with self.session(use_gpu=False):
-      x = tf.ones([], dtype=tf.float32) * 2.
+      x = tf.constant([[1., 2.]], dtype=tf.float32)
       x = py_utils.AddVN(p, x)
       self.assertAllClose(self.evaluate(x), expected)
 
@@ -2321,7 +2325,7 @@ class CreateIdsAndLablesTest(test_utils.TestCase):
           [0, 1, 6, 4], maxlen=6, dtype=tf.float32)
       targets = self.evaluate(py_utils.CreateIdsAndLabels(ids, paddings))
       self.assertAllEqual(np.sum(1.0 - targets.paddings, -1), [1, 2, 7, 5])
-      # pyformat: disable
+# pyformat: disable
       self.assertAllEqual(
           targets.ids,
           [[1, 2, 2, 2, 2, 2, 2],
@@ -2345,8 +2349,7 @@ class CreateIdsAndLablesTest(test_utils.TestCase):
           [[1, 0, 0, 0, 0, 0, 0],
            [1, 1, 0, 0, 0, 0, 0],
            [1, 1, 1, 1, 1, 1, 1],
-           [1, 1, 1, 1, 1, 0, 0]])
-      # pyformat: enable
+           [1, 1, 1, 1, 1, 0, 0]])      # pyformat: enable
 
   def testCreateIdsAndLables_Trim(self):
     with self.session(use_gpu=False):
@@ -2356,7 +2359,7 @@ class CreateIdsAndLablesTest(test_utils.TestCase):
       targets = self.evaluate(
           py_utils.CreateIdsAndLabels(ids, paddings, trim=True))
       self.assertAllEqual(np.sum(1.0 - targets.paddings, -1), [6, 5])
-      # pyformat: disable
+# pyformat: disable
       self.assertAllEqual(
           targets.ids,
           [[1, 4, 5, 6, 7, 8],
@@ -2372,8 +2375,7 @@ class CreateIdsAndLablesTest(test_utils.TestCase):
       self.assertAllEqual(
           targets.weights,
           [[1, 1, 1, 1, 1, 1],
-           [1, 1, 1, 1, 1, 0]])
-      # pyformat: enable
+           [1, 1, 1, 1, 1, 0]])      # pyformat: enable
 
 
 class PadOrTrimToTest(test_utils.TestCase):
