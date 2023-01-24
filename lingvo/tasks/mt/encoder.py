@@ -548,14 +548,17 @@ class TransformerEncoder(base_layer.BaseLayer):
     p = super().Params()
 
     # Embedding related
-    p.Define('token_emb',
-             layers.EmbeddingLayer.Params().Set(
-                 vocab_size=32000,
-                 embedding_dim=1024,
-                 max_num_shards=16,
-                 params_init=py_utils.WeightInit.Gaussian(
-                     1.0 / math.sqrt(1024)),
-                 scale_sqrt_depth=True), 'Embedding layer params.')
+    p.Define(
+        'token_emb',
+        layers.EmbeddingLayer.Params().Set(
+            vocab_size=32000,
+            embedding_dim=1024,
+            max_num_shards=16,
+            params_init=py_utils.WeightInit.Gaussian(1.0 / math.sqrt(1024)),
+            scale_sqrt_depth=True,
+        ),
+        'Embedding layer params.',
+    )
 
     p.Define('shared_emb', None, 'Embedding shared with Decoder.')
 
@@ -619,9 +622,11 @@ class TransformerEncoder(base_layer.BaseLayer):
       # decoder. Variable names need to be the same in order to be reused.
       self.CreateChild('softmax', p.shared_emb)
 
-    assert p.token_emb.embedding_dim == p.position_emb.embedding_dim
+    if p.token_emb:
+      assert p.token_emb.embedding_dim == p.position_emb.embedding_dim
     p.transformer_stack.Set(model_dim=p.model_dim, packed_input=p.packed_input)
-    if p.model_dim != p.token_emb.embedding_dim:
+
+    if p.emb_projection_tpl and p.model_dim != p.token_emb.embedding_dim:
       tf.logging.warning(
           f'token_emb.embedding_dim != model_dim ({p.token_emb.embedding_dim} '
           f'vs. {p.model_dim}), creating a projection!')
@@ -631,12 +636,12 @@ class TransformerEncoder(base_layer.BaseLayer):
       proj_p.output_dim = p.model_dim
       self.CreateChild('emb_proj', proj_p)
 
-    # Token embeddings
-    if not p.shared_emb:
+    # Token embeddings.
+    if p.token_emb and not p.shared_emb:
       p.token_emb.dtype = p.dtype
       self.CreateChild('token_emb', p.token_emb)
 
-    # Positional embeddings
+    # Positional embeddings.
     self.CreateChild('position_emb', p.position_emb)
 
     # Task embeddings.
@@ -645,7 +650,7 @@ class TransformerEncoder(base_layer.BaseLayer):
       self.CreateChild('task_emb', p.task_emb)
 
     dropout_tpl = layers.DropoutLayer.Params()
-    dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
+    dropout_tpl.keep_prob = 1.0 - p.input_dropout_prob
     self.CreateChild('input_dropout', dropout_tpl)
 
     p.transformer_stack.name = p.name
@@ -659,7 +664,7 @@ class TransformerEncoder(base_layer.BaseLayer):
 
     # Individually tagged input functionality assumes that p.packed_input is
     # turned off.
-    if p.individually_tagged_input:
+    if p.emb_projection_tpl and p.individually_tagged_input:
       assert not p.packed_input
       # Concatenate tag embeddings to token+position embedding.
       tf.logging.warning(
@@ -1125,7 +1130,10 @@ class TransformerXEncoder(TransformerEncoder):
         lambdas = [tf.expand_dims(a, -1) for a in lambdas]
         if 'embs' in input_batch and input_batch.embs is not None:
           input_embs = input_batch.embs
-        if 'embs' in interpolation_batch and interpolation_batch.embs is not None:
+        if (
+            'embs' in interpolation_batch
+            and interpolation_batch.embs is not None
+        ):
           other_input_embs = interpolation_batch.embs
         else:
           input_embs = tf.reshape(

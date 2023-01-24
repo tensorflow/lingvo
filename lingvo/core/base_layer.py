@@ -1060,6 +1060,12 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     Args:
       name: the name of an existing sublayer.
     """
+    if py_utils.IsEagerMode():
+      raise ValueError(
+          f'Removing child ({name}). In eager mode, this causes checkpointing'
+          '/saving issues.'
+      )
+
     self._children_list.remove(self._private_children[name])
     del self._private_children[name]
 
