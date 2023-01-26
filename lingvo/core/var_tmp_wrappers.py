@@ -76,8 +76,9 @@ class VarWrapperTrackAssign:
     return op
 
 
-tf.ops.register_tensor_conversion_function(VarWrapperTrackAssign,
-                                           lambda v, *a, **kw: v.value())
+tf.tensor_conversion_registry.register_tensor_conversion_function(
+    VarWrapperTrackAssign, lambda v, *a, **kw: v.value()
+)
 
 
 class StackedVarWrapperWithManualSharding:
@@ -208,5 +209,6 @@ class StackedVarWrapperWithManualSharding:
     return res
 
 
-tf.ops.register_tensor_conversion_function(StackedVarWrapperWithManualSharding,
-                                           lambda v, *a, **kw: v.value())
+tf.tensor_conversion_registry.register_tensor_conversion_function(
+    StackedVarWrapperWithManualSharding, lambda v, *a, **kw: v.value()
+)

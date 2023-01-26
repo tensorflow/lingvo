@@ -31,8 +31,9 @@ from tensorflow.core.protobuf import config_pb2  # tf.compat.v1.ConfigProto
 from tensorflow.python.data.ops import dataset_ops  # Used in this file only
 from tensorflow.python.data.util import random_seed  # Used in this file only
 from tensorflow.python.framework import function as _function_lib  # Used in this file only
-# tf.ops.colocate_with, tf.ops.get_resource_handle_data, tf.ops.register_tensor_conversion_function
+# tf.ops.colocate_with, tf.ops.get_resource_handle_data, tf.tensor_conversion_registry.register_tensor_conversion_function
 from tensorflow.python.framework import ops
+from tensorflow.python.framework import tensor_conversion_registry
 from tensorflow.python.ops import array_ops  # tf.array_ops.batch_gather
 from tensorflow.python.ops import check_ops  # tf.check_ops.assert_equal
 from tensorflow.python.ops import embedding_ops  # Used in this file only
