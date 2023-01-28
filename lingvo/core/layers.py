@@ -894,6 +894,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('xla_num_partitions', None,
              'Obsolete. Kept for backwards compatibility.')
     p.Define('w_dtype', None, 'Obsolete. Kept for backwards compatibility.')
+    p.Define('enable_vn', False, 'Whether to enable variational noise on the '
+             'matmul weight matrix. If False, variational noise is still on '
+             'if `apply_pruning` is set to True.')
     return p
 
   def __init__(self, params):
@@ -1117,7 +1120,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
   def AddGlobalVN(self, theta):
     theta = super().AddGlobalVN(theta)
-    if self.params.apply_pruning:
+    p = self.params
+    if p.enable_vn or p.apply_pruning:
       theta.w = self.AddVN(theta.w)
     return theta
 

@@ -259,6 +259,8 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
         'This is useful in combining different types of attention heads where'
         'mixing is done after getting all the different attention outputs.')
     p.Define('use_bias', True, 'If to add bias in projection.')
+    p.Define('enable_vn', False, 'Whether to enable variational noise on the '
+             'projection weight matrix.')
     return p
 
   def __init__(self, params):
@@ -318,6 +320,13 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
             tensor_split_dims_mapping=bias_split_dims_mapping,
             collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('b', pc_bias)
+
+  def AddGlobalVN(self, theta):
+    theta = super().AddGlobalVN(theta)
+    p = self.params
+    if p.enable_vn and not p.make_output_proj_no_op:
+      theta.w = self.AddVN(theta.w)
+    return theta
 
   def FProp(self, theta, inputs):
     """Computes the multi headed projection for inputs.

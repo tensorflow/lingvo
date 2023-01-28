@@ -2932,6 +2932,33 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       print(['actual = ', np.array_repr(actual)])
       self.assertAllClose(expected_output, actual)
 
+  @parameterized.parameters(
+      (False, False, [[-0.01792483, 0.07840855], [0.01560314, 0.08165982]]),
+      (False, True, [[-0.41566032, -0.00815286], [-0.13291125, -0.08893491]]),
+      (True, False, [[-0.41566032, -0.00815286], [-0.13291125, -0.08893491]]),
+      (True, True, [[-0.41566032, -0.00815286], [-0.13291125, -0.08893491]]))
+  def testProjectionLayerVn(self, enable_vn, apply_pruning, expected):
+    with self.session(use_gpu=True):
+      params = layers.ProjectionLayer.Params()
+      params.name = 'proj'
+      params.activation = 'NONE'
+      params.batch_norm = False
+      params.has_bias = True
+      params.input_dim = 3
+      params.output_dim = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.enable_vn = enable_vn
+      params.apply_pruning = apply_pruning
+      params.vn = py_utils.VariationalNoiseParams(scale=0.5, global_vn=True)
+
+      proj_layer = layers.ProjectionLayer(params)
+      inputs = tf.constant(np.random.normal(0.1, 0.5, [2, 3]), dtype=tf.float32)
+
+      output = proj_layer.FProp(proj_layer.theta, inputs)
+      self.evaluate(tf.global_variables_initializer())
+      actual = self.evaluate(output)
+      self.assertAllClose(expected, actual)
+
 
 class StackingOverTimeLayerTest(test_utils.TestCase, parameterized.TestCase):
 
