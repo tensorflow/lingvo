@@ -1950,6 +1950,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     if self._task.input.params.resettable:
       tf.logging.info('Resetting input_generator after decoding.')
       self._task.input.Reset(sess)
+      tf.logging.info('Done resetting input_generator after decoding.')
 
     return_future = None
     if threadpool:
@@ -1961,6 +1962,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     else:
       data_summaries = self._PostProcess(global_step, dec_metrics, elapsed_secs)
       self.FinalizeCallback(data_summaries)
+    tf.logging.info('Returning from ExperimentalDecodeProgram.Run().')
     return return_future
 
 
@@ -2386,6 +2388,7 @@ class SimpleProgramSchedule(BaseProgramSchedule):
           program_futures.append(([], eval_program))
 
       if num_train_runs == 0 and hasattr(self, '_summary_exporter'):
+        tf.logging.info('Exporting eval summaries.')
         dataset_summaries = {}
         for pf in program_futures:
           for x in pf[0]:
