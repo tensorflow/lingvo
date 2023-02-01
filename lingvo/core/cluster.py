@@ -437,7 +437,10 @@ class _Cluster:
       # In sync mode, trainer_client can use every device.
       return self.ListDevices(self.job_spec)
 
-    if self.job == 'executor_tpu' and self.synchronous:
+    if (
+        self.job in ('executor_tpu', 'host_driven_executor_tpu')
+        and self.synchronous
+    ):
       # executor_tpu can use every device.
       return self.ListDevices(self.job_spec)
 
