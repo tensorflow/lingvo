@@ -275,9 +275,9 @@ class RunnerManager:
     assert value == 2.0, 'Something is really wrong.'
     tf.logging.info('Launched tensorflow.')
 
-  def GetExecutorParams(self,
-                        executor_type: Literal['executor_tpu',
-                                               'host_driven_executor_tpu']):
+  def GetExecutorParams(
+      self, executor_type: Literal['executor_tpu', 'host_driven_executor_tpu']
+  ):
     """Get the params needed to instantiate the ExecutorTpu.
 
     Args:
@@ -343,8 +343,13 @@ class RunnerManager:
         assert ',' not in job_specs[0], 'Only single machine supported'
         FLAGS.evaler_job = '/job:%s' % job
         FLAGS.evaler_replicas = 1
-    if FLAGS.mode == 'sync' and FLAGS.job in ('controller', 'trainer_client',
-                                              'worker', 'executor_tpu'):
+    if FLAGS.mode == 'sync' and FLAGS.job in (
+        'controller',
+        'trainer_client',
+        'worker',
+        'executor_tpu',
+        'host_driven_executor_tpu',
+    ):
       FLAGS.worker_job = '/job:worker'
       FLAGS.worker_replicas = len(cluster_spec_dict['worker'])
       FLAGS.ps_job = '/job:worker'
@@ -363,9 +368,15 @@ class RunnerManager:
     if not FLAGS.job:
       FLAGS.job = 'trainer_client'
 
-    if FLAGS.job not in ('trainer_client', 'executor_tpu'):
-      raise ValueError('Only trainer_client and executor_tpu jobs are '
-                       'supported on TPU.')
+    if FLAGS.job not in (
+        'trainer_client',
+        'executor_tpu',
+        'host_driven_executor_tpu',
+    ):
+      raise ValueError(
+          'To train on TPU, use trainer_client, executor_tpu, or'
+          ' host_driven_executor_tpu.'
+      )
 
     cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         tpu=FLAGS.tpu,
@@ -405,7 +416,11 @@ class RunnerManager:
     if not FLAGS.job:
       FLAGS.job = 'trainer_client'
 
-    if FLAGS.job not in ('trainer_client', 'executor_tpu'):
+    if FLAGS.job not in (
+        'trainer_client',
+        'executor_tpu',
+        'host_driven_executor_tpu',
+    ):
       raise ValueError('Only trainer_client and executor_tpu jobs are '
                        'supported on TPU.')
 
