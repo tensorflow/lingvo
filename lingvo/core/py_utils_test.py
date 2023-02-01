@@ -1381,18 +1381,27 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     self.assertNotEqual(default_vn, disable_vn)
 
   @parameterized.named_parameters(
-      ('Default', False, False, None, True, [[1.4421233, 2.0392153]]),
-      ('Uniform', False, True, None, True, [[1.0871696, 1.8679601]]),
-      ('Deterministic', True, False, None, True, [[1.2542243, 2.9178061]]),
-      ('DeterministicUniform', True, True, None, True,
+      ('Default', False, False, None, False, True,
+       [[1.4421233, 2.0392153]]),
+      ('Uniform', False, True, None, False, True,
+       [[1.0871696, 1.8679601]]),
+      ('Deterministic', True, False, None, False, True,
+       [[1.2542243, 2.9178061]]),
+      ('DeterministicUniform', True, True, None, False, True,
        [[0.8315007, 1.7715032]]),
-      ('TwoNormScale', False, False, 'L2', True, [[1.6990583, 2.0620048]]),
-      ('InfNormScale', False, False, 'Linf', True, [[1.8842466, 2.0784304]]),
-      ('InfNormScaleStopGrad', False, False, 'Linf', False,
+      ('TwoNormScale', False, False, 'L2', False, True,
+       [[1.6990583, 2.0620048]]),
+      ('InfNormScale', False, False, 'Linf', False, True,
        [[1.8842466, 2.0784304]]),
+      ('InfNormScaleStopGrad', False, False, 'Linf', False, False,
+       [[1.8842466, 2.0784304]]),
+      ('PerChannelInfNormScale', False, False, 'PerChannelLinf', False, True,
+       [[1.4421233, 2.0784304]]),
+      ('PerReverseChannelInfNormScale', False, False, 'PerChannelLinf', True,
+       True, [[1.8842466, 2.0784304]]),
   )
   def testVn(self, deterministic, use_uniform_noise, weight_norm_type,
-             weight_norm_stop_grad, expected):
+             channel_reverse, weight_norm_stop_grad, expected):
     p = hyperparams.Params()
     p.Define('vn', py_utils.DefaultVN(), '')
     p.Define('is_inference', None, '')
@@ -1408,7 +1417,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
     with self.session(use_gpu=False):
       x = tf.constant([[1., 2.]], dtype=tf.float32)
-      x = py_utils.AddVN(p, x)
+      x = py_utils.AddVN(p, x, channel_reverse=channel_reverse)
       self.assertAllClose(self.evaluate(x), expected)
 
   def testShardedFilePatternToGlob(self):

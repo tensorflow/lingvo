@@ -3680,13 +3680,16 @@ def CombineMetrics(loss_metric_weight_pairs):
   return result
 
 
-def AddVN(p, x, per_step=False):
+def AddVN(p, x, per_step=False, channel_reverse=False):
   """Add variational noise to x.
 
   Args:
     p: Layer params, with a `vn` subparam containing `VariationalNoiseParams`.
     x: Input to add variational noise to.
     per_step: Whether to add per_step noise.
+    channel_reverse: If True, the 0-th dimension is treated as the output
+      channel for PerChannelLinf norm scaling. If False, the 0-th dimension is
+      treated as the input channel.
 
   Returns:
     The input with variational noise added according to params.
@@ -3731,12 +3734,23 @@ def AddVN(p, x, per_step=False):
           tf.shape(x), stddev=1.0, seed=p.vn.seed, dtype=x.dtype)
 
   scale = tf.where(GetGlobalStep() >= p.vn.start_step, p.vn.scale, 0.0)
-  assert p.vn.weight_norm_type in (None, 'L2', 'Linf')
+  assert p.vn.weight_norm_type in (None, 'L2', 'Linf', 'PerChannelLinf')
   if p.vn.weight_norm_type == 'L2':
     # TODO(qdavid) Generalize to Lp norm?
     scale *= ReduceRms(x)
   elif p.vn.weight_norm_type == 'Linf':
     scale *= tf.math.reduce_max(tf.math.abs(x))
+  elif p.vn.weight_norm_type == 'PerChannelLinf':
+    if channel_reverse:
+      # 0-th dimension is the output channel and the remaining are the input
+      # channels.
+      scale *= tf.math.reduce_max(
+          tf.math.abs(x), axis=tf.range(1, GetRank(x)), keepdims=True
+      )
+    else:
+      # 0-th dimension is the input channel and remaining are the output
+      # channels.
+      scale *= tf.math.reduce_max(tf.math.abs(x), axis=[0], keepdims=True)
   if p.vn.weight_norm_stop_grad:
     scale = tf.stop_gradient(scale)
   return x + tf.cast(scale, x.dtype) * noises
@@ -3775,9 +3789,9 @@ def VariationalNoiseParams(scale,
   p.Define(
       'weight_norm_type', weight_norm_type,
       'If in the supported set, scale the noise by the norm of the vectorized '
-      'weight tensor. Currently, only "L2", "Linf", and "None" '
-      '(no norm scaling) are supported. For L2 norm, the norm is also divided '
-      'by sqrt(tf.size(tensor)). Fails if not in the supported set.')
+      'weight tensor. Currently, only "L2", "Linf", "PerChannelLinf" and '
+      '"None" (no norm scaling) are supported. For L2 norm, the norm is also '
+      'divided by sqrt(tf.size(tensor)). Fails if not in the supported set.')
   p.Define(
       'weight_norm_stop_grad', weight_norm_stop_grad,
       'If True, when weight_norm_type is nont None, stop the gradient from '

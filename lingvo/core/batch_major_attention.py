@@ -325,7 +325,9 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
     theta = super().AddGlobalVN(theta)
     p = self.params
     if p.enable_vn and not p.make_output_proj_no_op:
-      theta.w = self.AddVN(theta.w)
+      theta.w = self.AddVN(
+          theta.w, channel_reverse=self.params.is_output_projection
+      )
     return theta
 
   def FProp(self, theta, inputs):

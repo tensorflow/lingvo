@@ -923,8 +923,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     self._CheckName(theta_name)
     self._extra_theta[theta_name] = theta_value
 
-  def AddVN(self, value, per_step=False):
-    return py_utils.AddVN(self.params, value, per_step=per_step)
+  def AddVN(self, value, per_step=False, channel_reverse=False):
+    return py_utils.AddVN(self.params, value, per_step, channel_reverse)
 
   def AddGlobalVN(self, theta):
     if self.do_eval:
