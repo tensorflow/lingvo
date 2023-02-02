@@ -111,6 +111,7 @@ pytype_strict_library(
         # Implicit absl.logging dependency.
         # Implicit flax's core dependency.
         # Implicit flax's training dependency.
+        "//third_party/py/flax/training:checkpoints",
         # Implicit jax dependency.
         # Implicit jax/experimental/gda_serialization:google_spec dependency.
         # Implicit jax/experimental/gda_serialization:serialization dependency.
