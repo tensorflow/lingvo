@@ -2564,6 +2564,16 @@ pytype_library(
     ],
 )
 
+pytype_strict_test(
+    name = "nested_map_test",
+    srcs = ["nested_map_test.py"],
+    deps = [
+        ":nested_map",
+        ":py_utils",
+        ":test_utils",
+    ],
+)
+
 py_library(
     name = "repeat_layer",
     srcs = ["repeat_layer.py"],

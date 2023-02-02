@@ -1251,18 +1251,14 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
     def CpuEmbLookup(ids_map):
       """CPU evaluation embedding lookup."""
-      rets = py_utils.NestedMap()
+      ret = py_utils.NestedMap()
       for table in self.tables:
-        table_id_map = py_utils.NestedMap()
-        for key in table.input_keys:
-          if ids_map.Get(key) is not None:
-            table_id_map.Set(key, ids_map.GetItem(key))
-        table_rets = table.CpuEmbLookup(table_id_map, p.partition_strategy)
-        # Merge table_rets with rets
-        for key in table.input_keys:
-          if ids_map.Get(key) is not None:
-            rets.Set(key, table_rets.GetItem(key))
-      return rets
+        lookup_result = table.CpuEmbLookup(
+            ids_map.GetSlice({*table.input_keys} & {*ids_map.Keys()}),
+            p.partition_strategy,
+        )
+        ret.Update(lookup_result)
+      return ret
 
     if py_utils.IsTpuTraining(p):
       return self._TpuEmbLookup(ids_map)
