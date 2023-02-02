@@ -26,7 +26,6 @@ from flax import jax_utils
 from flax.training import checkpoints
 import jax
 from jax import sharding
-from jax.experimental import maps
 from jax.experimental import multihost_utils
 from jax.experimental.gda_serialization import serialization as gda_serialization
 # Internal import
@@ -191,7 +190,7 @@ def latest_checkpoint(checkpoint_dir: str) -> Optional[str]:
 def restore_checkpoint(
     train_state: Optional[train_states.TrainState],
     checkpoint_dir: str,
-    global_mesh: Optional[maps.Mesh] = None,
+    global_mesh: Optional[jax.sharding.Mesh] = None,
     checkpoint_type: CheckpointType = CheckpointType.CHECKPOINT_FLAX,
     state_specs: Optional[train_states.TrainState] = None,
     step: Optional[int] = None) -> train_states.TrainState:
@@ -450,7 +449,7 @@ def _cached_mesh_pspec_sharding(mesh, pspec):
 def _restore_checkpoint_gda(
     train_state: Optional[train_states.TrainState],
     checkpoint_dir: str,
-    global_mesh: Optional[maps.Mesh],
+    global_mesh: Optional[jax.sharding.Mesh],
     state_specs: Optional[train_states.TrainState],
     step: Optional[int] = None) -> train_states.TrainState:
   """Restores a checkpoint using JAX GDA deserialization mechanism."""

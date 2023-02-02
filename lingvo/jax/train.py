@@ -24,7 +24,6 @@ from typing import Optional, Sequence
 
 from absl import logging
 import jax
-from jax.experimental import maps
 from jax.experimental import mesh_utils
 from lingvo.jax import base_input
 from lingvo.jax import base_model_params
@@ -504,7 +503,7 @@ def train_and_evaluate_spmd_model(
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
 
-  global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
+  global_mesh = jax.sharding.Mesh(device_mesh, model_p.mesh_axis_names)
   with global_mesh:
     (partitioned_train_state, train_state_pspecs, inputs_pspecs, train_step,
      eval_step, total_num_params) = trainer_lib.partition_spmd_model(

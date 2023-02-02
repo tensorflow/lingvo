@@ -85,7 +85,7 @@ def _maybe_to_bfloat16(x: JTensor) -> JTensor:
 
 
 def _get_uneven_sharding_paddings(
-    partition_spec: pjit.PartitionSpec, shape: Sequence[int],
+    partition_spec: jax.sharding.PartitionSpec, shape: Sequence[int],
     mesh_shape: Sequence[int], mesh_axis_names: Sequence[str]) -> Sequence[int]:
   """Returns the padding size on each dimension due to uneven sharding."""
   axes_sizes = {}
@@ -101,9 +101,13 @@ def _get_uneven_sharding_paddings(
   return paddings
 
 
-def _maybe_pad_uneven_sharding(x: JTensor, partition_spec: pjit.PartitionSpec,
-                               shape: Sequence[int], mesh_shape: Sequence[int],
-                               mesh_axis_names: Sequence[str]) -> JTensor:
+def _maybe_pad_uneven_sharding(
+    x: JTensor,
+    partition_spec: jax.sharding.PartitionSpec,
+    shape: Sequence[int],
+    mesh_shape: Sequence[int],
+    mesh_axis_names: Sequence[str],
+) -> JTensor:
   """Pads x to make it evenly shardable, if needed."""
   paddings = _get_uneven_sharding_paddings(partition_spec, shape, mesh_shape,
                                            mesh_axis_names)
@@ -115,8 +119,9 @@ def _maybe_pad_uneven_sharding(x: JTensor, partition_spec: pjit.PartitionSpec,
   return jnp.pad(x, [[0, p] for p in paddings])
 
 
-def _maybe_slice_uneven_sharding(x: JTensor, partition_spec: pjit.PartitionSpec,
-                                 shape: Sequence[int]) -> JTensor:
+def _maybe_slice_uneven_sharding(
+    x: JTensor, partition_spec: jax.sharding.PartitionSpec, shape: Sequence[int]
+) -> JTensor:
   """Slices x to remove padding due to uneven sharding, if needed."""
   if list(shape) == list(x.shape):
     return x
@@ -562,7 +567,8 @@ def initialize_partitioned_model_states(
 
 
 def shard_on_batch_dim_partition_spec(
-    mesh_names: Sequence[str], x: jax.ShapeDtypeStruct) -> pjit.PartitionSpec:
+    mesh_names: Sequence[str], x: jax.ShapeDtypeStruct
+) -> jax.sharding.PartitionSpec:
   """Fully shards x on the batch dimension."""
   x_dim = len(x.shape)
   assert x_dim >= 1
@@ -605,7 +611,7 @@ def infer_partition_spec_based_on_rank_fn(
     mapping_dict: Dict[str, base_layer.SplitDimsMapping],
     mesh_names: Sequence[str],
     x: JTensor,
-) -> Optional[pjit.PartitionSpec]:
+) -> Optional[jax.sharding.PartitionSpec]:
   """Infers PartitionSpec of input from the rank of corresponding JTensors.
 
   Args:

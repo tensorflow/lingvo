@@ -24,7 +24,6 @@ from typing import Sequence
 
 import jax
 from jax import numpy as jnp
-from jax.experimental import pjit
 from lingvo.jax import base_layer
 from lingvo.jax import base_model
 from lingvo.jax import learners as learners_lib
@@ -36,7 +35,7 @@ import tensorflow.compat.v2 as tf
 NestedMap = py_utils.NestedMap
 NestedJTensor = base_layer.NestedJTensor
 InstantiableParams = py_utils.InstantiableParams
-PartitionSpec = pjit.PartitionSpec
+PartitionSpec = jax.sharding.PartitionSpec
 TrainState = train_states.TrainState
 
 

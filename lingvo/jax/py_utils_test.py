@@ -20,7 +20,6 @@ from typing import Any
 from absl.testing import absltest
 from flax import struct
 import jax
-from jax.experimental import pjit
 from lingvo.jax import base_layer
 from lingvo.jax import py_utils
 from lingvo.jax import test_utils
@@ -46,7 +45,7 @@ class PyUtilsTest(test_utils.TestCase):
         device_mesh=np.arange(1).reshape([1, 1]),
         device_axis_names=['a', 'b'])
     train_state_partition_specs = train_states.TrainState(
-        step=pjit.PartitionSpec(), mdl_vars=w_sepc, opt_states={})
+        step=jax.sharding.PartitionSpec(), mdl_vars=w_sepc, opt_states={})
     nested_names = py_utils.extract_prefixed_keys_from_nested_map(
         train_state_partition_specs)
     flattened_names, _ = jax.tree_util.tree_flatten(nested_names)

@@ -22,9 +22,7 @@ from absl import logging
 import flax
 import jax
 from jax.experimental import global_device_array as gda_lib
-from jax.experimental import maps
 from jax.experimental import multihost_utils
-from jax.experimental import pjit
 import jax.numpy as jnp
 from lingvo.core import cluster
 from lingvo.core import hyperparams
@@ -145,7 +143,7 @@ def extract_prefixed_keys_from_nested_map(node: Any,
     return _handle_dict(node, prefix, key_separator, left_separator,
                         right_separator)
   # PartitionSpec is subclass of tuple.
-  elif isinstance(node, pjit.PartitionSpec):
+  elif isinstance(node, jax.sharding.PartitionSpec):
     return prefix
   elif isinstance(node, (list, tuple)):
     # Check if it is a NamedTuple.
@@ -192,7 +190,7 @@ def sync_global_devices(name: str) -> None:
 
 
 def create_gda(host_arrays: np.ndarray, global_shapes: jax.ShapeDtypeStruct,
-               global_mesh: maps.Mesh,
+               global_mesh: jax.sharding.Mesh,
                pspecs: Any) -> gda_lib.GlobalDeviceArray:
   """Create GDA from host array.
 

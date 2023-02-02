@@ -23,7 +23,6 @@ from typing import List, Optional, Sequence
 
 from absl import logging
 import jax
-from jax.experimental import maps
 from jax.experimental import mesh_utils
 from lingvo.jax import base_input
 from lingvo.jax import base_layer
@@ -245,7 +244,7 @@ def evaluate_spmd_model(
   mesh_shape = model_p.device_mesh.shape
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
-  global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
+  global_mesh = jax.sharding.Mesh(device_mesh, model_p.mesh_axis_names)
   use_gda_checkpoint = jax.config.jax_parallel_functions_output_gda
   with global_mesh:
     jax_task.model.instantiate_variable_configs()
@@ -682,7 +681,7 @@ def decode_once_spmd_model(
   device_mesh = mesh_utils.create_device_mesh(mesh_shape)
   logging.info('device_mesh: %s', device_mesh)
   jax_task = task_p.Instantiate()
-  global_mesh = maps.Mesh(device_mesh, model_p.mesh_axis_names)
+  global_mesh = jax.sharding.Mesh(device_mesh, model_p.mesh_axis_names)
   with global_mesh:
     if restore_checkpoint_dir:
       model = jax_task.model

@@ -88,8 +88,9 @@ def var_requires_mean_sync(var_params: ParamsT) -> bool:
   return REQUIRES_MEAN_SYNC in var_params.collections
 
 
-def to_partition_spec(split_dims_mapping: SplitDimsMapping,
-                      mesh_axis_names: Sequence[str]) -> pjit.PartitionSpec:
+def to_partition_spec(
+    split_dims_mapping: SplitDimsMapping, mesh_axis_names: Sequence[str]
+) -> jax.sharding.PartitionSpec:
   """Converts split_dims_mapping to pjit.PartitionSpec.
 
   Args:
@@ -132,7 +133,7 @@ def to_partition_spec(split_dims_mapping: SplitDimsMapping,
     return tuple(split_dims)
 
   partition_spec = _parse_split_dims(split_dims_mapping)
-  return pjit.PartitionSpec(*partition_spec)
+  return jax.sharding.PartitionSpec(*partition_spec)
 
 
 def var_partition_specs(
@@ -187,7 +188,8 @@ def global_mesh_defined() -> bool:
 # This wrapped with_sharding_constraint will not throw error for eval_shape
 # outside pjit. It is also used in p5x.
 def with_sharding_constraint(
-    x: JTensor, axis_resources: Optional[pjit.PartitionSpec]) -> JTensor:
+    x: JTensor, axis_resources: Optional[jax.sharding.PartitionSpec]
+) -> JTensor:
   """Wrapper for pjit with_sharding_constraint, no-op on cpu or outside pjit."""
   if jax.devices()[0].platform == 'cpu' or not global_mesh_defined():
     return x
@@ -241,7 +243,7 @@ def maybe_shard(x: JTensor,
     partition_spec_list = list(partition_spec)
     for dim in unconstrained_dims:
       partition_spec_list[dim] = partition_spec.UNCONSTRAINED
-    partition_spec = pjit.PartitionSpec(*partition_spec_list)
+    partition_spec = jax.sharding.PartitionSpec(*partition_spec_list)
 
   return with_sharding_constraint(x, partition_spec)
 

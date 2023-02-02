@@ -18,14 +18,13 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar, Union
 
 import jax
 from jax import numpy as jnp
-from jax.experimental import pjit
 from lingvo.jax import py_utils
 import numpy as np
 
 ParamsT = py_utils.Params
 JTensor = jnp.ndarray
 PRNGKey = JTensor
-JTensorOrPartitionSpec = Union[JTensor, pjit.PartitionSpec]
+JTensorOrPartitionSpec = Union[JTensor, jax.sharding.PartitionSpec]
 NpTensor = np.ndarray
 SummaryDict = Union[py_utils.NestedMap, Dict[str, JTensor]]
 PyTreeDef = type(jax.tree_structure(None))
@@ -36,7 +35,7 @@ Nested = Union[T, Tuple[Any, ...], List[Any], Dict[str, Any],
 NestedJTensor = Nested[JTensor]
 NestedBool = Nested[bool]
 NestedParams = Nested[ParamsT]
-NestedPartitionSpec = Nested[pjit.PartitionSpec]
+NestedPartitionSpec = Nested[jax.sharding.PartitionSpec]
 NestedJTensorOrPartitionSpec = Nested[JTensorOrPartitionSpec]
 NestedShapeDtypeStruct = Nested[jax.ShapeDtypeStruct]
 

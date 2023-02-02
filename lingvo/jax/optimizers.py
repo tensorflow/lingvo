@@ -22,7 +22,6 @@ from absl import logging
 import jax
 from jax import lax
 from jax import numpy as jnp
-import jax.experimental.pjit as pjit
 from lingvo.jax import asserts
 from lingvo.jax import base_layer
 from lingvo.jax import gshard_utils
@@ -927,10 +926,10 @@ class ShardedDistributedShampoo(DistributedShampoo):
   def __init__(self, params: InstantiableParams) -> None:
     super().__init__(params)
     self._params.shard_optimizer_states = True
-    self._params.statistics_partition_spec = pjit.PartitionSpec(
+    self._params.statistics_partition_spec = jax.sharding.PartitionSpec(
         *self._sharded_axes(self._params.mesh_axis_names,
                             self._params.tensor_split_dims_mapping))
-    self._params.preconditioner_partition_spec = pjit.PartitionSpec(
+    self._params.preconditioner_partition_spec = jax.sharding.PartitionSpec(
         *self._sharded_axes(
             self._params.mesh_axis_names,
             self._params.tensor_split_dims_mapping_for_inverse_pth_root))
@@ -960,11 +959,11 @@ class ShardedDistributedShampoo(DistributedShampoo):
     assert len(axes_names) == len(p.tensor_split_dims_mapping)
     device_mesh = first_param.device_mesh
 
-    partition_spec_statistics = pjit.PartitionSpec(
+    partition_spec_statistics = jax.sharding.PartitionSpec(
         *self._sharded_axes(axes_names, p.tensor_split_dims_mapping))
 
     def _pspec_from_weight_param(param):
-      p = pjit.PartitionSpec(
+      p = jax.sharding.PartitionSpec(
           *self._sharded_axes(axes_names, param.tensor_split_dims_mapping))
       return p
 
