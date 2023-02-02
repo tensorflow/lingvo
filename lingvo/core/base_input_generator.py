@@ -26,8 +26,6 @@ There are three types of batch sizes:
 * InfeedBatchSize: global_batch_size // num_infeed_hosts, where
   num_infeed_hosts is cluster.num_tpu_hosts if using per-host infeed with TPU,
   otherwise num_infeed_hosts is 1.
-
-TODO(rpang): Deal with on packed_inputs.
 """
 
 import functools
@@ -186,8 +184,13 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'file_datasource', None,
         'The DataSource that produces input batches for this input generator.')
     p.Define(
-        'batch_size', 0, 'Batch size for a device split. This will be '
-        'scaled to match the accelarator hardware topology.')
+        'batch_size',
+        0,
+        (
+            'Batch size for a device split. This will be '
+            'scaled to match the accelerator hardware topology.'
+        ),
+    )
     p.Define(
         'num_samples', 0,
         'If non-zero, the dataset contains these many samples. '
@@ -225,14 +228,18 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'training related input data stats.')
 
     p.Define(
-        'tpu_embedding_mode', 'train',
-        'The mode used to enqueue TPU embedding ids. Valid values are: {'
-        'None: no TPU embedding enqueue ops will be generated; '
-        '"inference": enqueue ops will be generated, but backprop will be '
-        'disabled (i.e. no gradient will be generated and the embedding '
-        'tables are freezed); '
-        '"train": both enqueue ops and gradient will be generated when '
-        'do_eval is False, otherwise fallback to "inference" mode; }.')
+        'tpu_embedding_mode',
+        'train',
+        (
+            'The mode used to enqueue TPU embedding ids. Valid values are: {'
+            'None: no TPU embedding enqueue ops will be generated; '
+            '"inference": enqueue ops will be generated, but backprop will be '
+            'disabled (i.e. no gradient will be generated and the embedding '
+            'tables are frozen); '
+            '"train": both enqueue ops and gradient will be generated when '
+            'do_eval is False, otherwise fallback to "inference" mode; }.'
+        ),
+    )
     p.Define('cpu_passthrough_keys', [],
              'A list of keys in the input batch to not send to TPU device.')
     p.Define(
@@ -276,13 +283,19 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     if self.parent:
       # Set the TPU embedding mode for the task. This need to happen in __init__
-      # so that the mode is available when the bprop graph is built (note that
-      # CreateTpuEmbeddingEnqueueOps() is called *after* building bprop graph).
+      # so that the mode is available when the BProp graph is built (note that
+      # CreateTpuEmbeddingEnqueueOps() is called *after* building BProp graph).
       tpu_embedding_collection = (
           tpu_embedding_layers.TpuEmbeddingCollection.Get())
       tpu_embedding_collection.SetTaskMode(
           py_utils.TaskCallScopeName(self.parent), self._tpu_embedding_mode)
 
+    self._batch_nm_types = None
+    self._cpu_nm_types = None
+    self._host_queues = None
+    self._per_host_batches = None
+    self._per_host_emb_batches = None
+    self._per_host_passthrough_batches = None
     self.CreateDatasource()
 
   def CreateDatasource(self):
@@ -410,7 +423,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     return batch
 
   @property
-  def tpu_number_of_shards(self):
+  def tpu_number_of_shards(self) -> int:
     """Number of shards to split the input batch into."""
     p = self.params
     num_tpu_hosts = self.cluster.num_tpu_hosts
@@ -420,9 +433,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
       shards = shards // self.cluster.num_devices_per_split
     return shards
 
-  def CreateTpuEnqueueOps(self,
-                          job_name=None,
-                          benchmark_only=False):
+  def CreateTpuEnqueueOps(self, job_name=None, benchmark_only=False):
     """Create the host-side enqueue ops.
 
     This should be called in an outer non-TPU context.
@@ -470,7 +481,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
                            num_cores_per_host))
 
     shards = self.tpu_number_of_shards
-    tf.logging.info('shards {}'.format(shards))
+    tf.logging.info('shards %d', shards)
 
     input_ops_list = []
     cpu_passthrough_keys = self.GetCpuPassthroughKeys()
@@ -796,13 +807,14 @@ class BaseInputGenerator(base_layer.BaseLayer):
       feat = input_batch.GetItem(key)
       config = tpu_embedding.feature_to_config_dict[key]
       expected_batch_size = tpu_embedding.batch_size_per_core * num_splits
-      if (feat.shape and feat.shape[0] != expected_batch_size) or (
-          config.max_sequence_length > 0 and
-          feat.shape[1] != config.max_sequence_length):
+      if (
+          feat.shape and feat.shape[0] != expected_batch_size
+      ) or 0 < config.max_sequence_length != feat.shape[1]:
         raise ValueError(
             'TPU embedding input ids shape mismatch. Expecting '
             f'({expected_batch_size}, {config.max_sequence_length}), '
-            f'got {feat.shape}')
+            f'got {feat.shape}'
+        )
 
       if isinstance(feat, tf.sparse.SparseTensor):
         tpu_emb_feat_split = tf.sparse.split(feat, num_splits, axis=0)
@@ -883,7 +895,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
     assert len(self._per_host_batches) == num_infeed_hosts
     for task_id in range(num_infeed_hosts):
-      host_device = '/task:{}/device:CPU:0'.format(task_id)
+      host_device = f'/task:{task_id}/device:CPU:0'
       batch = self._per_host_passthrough_batches[task_id]
       assert isinstance(batch, list)
       with tf.device(host_device):
@@ -929,9 +941,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
     tensor_list = []
     for task_id in range(num_infeed_hosts):
-      with tf.device('/task:{}/device:CPU:0'.format(task_id)):
+      with tf.device(f'/task:{task_id}/device:CPU:0'):
         tensors = self._host_queues[task_id].dequeue()
-        # Make list if only one tensor.
         if not isinstance(tensors, list):
           tensors = [tensors]
         tensor_list.append(tensors)
@@ -1780,10 +1791,10 @@ class TFDataSequenceInputGenerator(BaseSequenceInputGenerator):
       file_patterns = file_pattern.split(',')
       weights = None
     else:
-      if all([isinstance(x, str) for x in file_pattern]):
+      if all(isinstance(x, str) for x in file_pattern):
         file_patterns = file_pattern
         weights = None
-      elif all([isinstance(x, tuple) for x in file_pattern]):
+      elif all(isinstance(x, tuple) for x in file_pattern):
         file_patterns, weights = zip(*file_pattern)
       else:
         raise ValueError(

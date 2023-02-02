@@ -577,7 +577,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     return sub
 
   @property
-  def ema(self):
+  def ema(self) -> tf.train.ExponentialMovingAverage:
     """Returns the EMA object used by the model that contains this layer."""
     # Note: if 'self' is not instantiated inside a model or is instantiated
     # inside an EMA-disabled sub-model created by the main model, None will be
@@ -1007,8 +1007,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     or::
 
-        self.children['foo'][10].Fprop...
-        self.children.foo[10].Fprop...
+        self.children['foo'][10].FProp...
+        self.children.foo[10].FProp...
 
     Args:
       name: The name for the sub layers, which is used as the key into
@@ -1024,7 +1024,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     def Instantiate(p):
       p = self.CopyBaseParams(self.params, p.Copy())
       if not p.name:
-        p.name = '%s_%d' % (name, next(uid))
+        p.name = f'{name}_{next(uid)}'
       return p.Instantiate()
 
     with self._CreateChildContext(name):

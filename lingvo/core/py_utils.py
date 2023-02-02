@@ -3186,16 +3186,16 @@ def ComputeGradients(
                     grad_aggregation_method, colocate_gradients_with_ops,
                     gate_gradients)
 
+  tpu_embedding_grads = None
   if tpu_embedding_activations:
     tpu_embedding_grads = grads[len(filtered_vlist):]
     grads = grads[:len(filtered_vlist)]
-  else:
-    tpu_embedding_grads = None
 
   # Formulate pairs of (var, grad) and pack them into the same
   # structure as filtered_vmap.
   var_grads = filtered_vmap.Pack(
-      [VarGrad(v, g) for v, g in zip(filtered_vlist, grads)])
+      [VarGrad(v, g) for v, g in zip(filtered_vlist, grads)]
+  )
 
   if skip_none_gradients:
     var_grads = SkipNoneGradients(var_grads)
@@ -3203,13 +3203,13 @@ def ComputeGradients(
   if tpu_embedding_grads:
     # Create VarGrads for TPU embedding activations in a dedicated sub map.
     assert 'tpu_embedding_var_grads' not in var_grads
-    tpu_embedding_activation_list = tpu_embedding_activations.Flatten()
-    tpu_embedding_var_grads = [
+    tpu_emb_var_grads = [
         VarGrad(v, g)
-        for v, g in zip(tpu_embedding_activation_list, tpu_embedding_grads)
+        for v, g in zip(
+            tpu_embedding_activations.Flatten(), tpu_embedding_grads
+        )
     ]
-    tpu_embedding_var_grads = tpu_embedding_activations.Pack(
-        tpu_embedding_var_grads)
+    tpu_embedding_var_grads = tpu_embedding_activations.Pack(tpu_emb_var_grads)
 
     # Replace None gradients with zeros, since TPU embedding expect all
     # activations to have gradients.
@@ -3217,12 +3217,14 @@ def ComputeGradients(
       if var_grad.grad is None:
         tf.logging.warning(
             f'TPU embedding gradient for feature {key} is None. Replacing with '
-            'zeros.')
+            'zeros.'
+        )
         return VarGrad(var_grad.var, tf.zeros_like(var_grad.var))
       return var_grad
 
     var_grads.tpu_embedding_var_grads = (
-        tpu_embedding_var_grads.TransformWithKey(_NoneToZeros))
+        tpu_embedding_var_grads.TransformWithKey(_NoneToZeros)
+    )
 
   return var_grads
 

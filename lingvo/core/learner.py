@@ -155,7 +155,7 @@ class Learner(base_layer.BaseLayer):
                                           p.bprop_variable_exclusion, vmap)
 
   def ApplyPostTrainingLoop(self):
-    """Applies any computation to run after each tpu trainining loop.
+    """Applies any computation to run after each tpu training loop.
 
     Returns:
       Ops to run after training loop ends.
@@ -207,7 +207,6 @@ class Learner(base_layer.BaseLayer):
 
     assert py_utils.GetGlobalStep() is not None
     lr = self.LearningRate()
-
     var_grads, stats = self.AdjustGradients(
         var_grads,
         gradient_mask=gradient_mask,
@@ -387,7 +386,7 @@ class Learner(base_layer.BaseLayer):
     In case there are NaN or Inf values the function will return 0.0.
 
     Args:
-      all_grad_norm: A scalar represeting the total norm of all vars.
+      all_grad_norm: A scalar representing the total norm of all vars.
       has_nan_or_inf: A scalar of 0 or 1, indicating whether there is any NaN or
         Inf in input gradients.
 

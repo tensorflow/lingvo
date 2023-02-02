@@ -16,6 +16,7 @@
 
 import math
 
+from typing import Dict
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
@@ -116,13 +117,13 @@ class TpuEmbeddingCollection:
     return result
 
   @property
-  def tpu_embedding(self):
+  def tpu_embedding(self) -> tpu_embedding_lib.TPUEmbedding:
     return self._tpu_embedding
 
   @tpu_embedding.setter
-  def tpu_embedding(self, tpu_embedding):
+  def tpu_embedding(self, tpu_embedding: tpu_embedding_lib.TPUEmbedding):
     if self._tpu_embedding is not None:
-      raise ValueError('TPUEmbedding already set before.')
+      raise ValueError('TPUEmbedding has already been set.')
     self._tpu_embedding = tpu_embedding
 
   def AddLoadRetrieveOps(self, table_name, load_ops, retrieve_ops):
@@ -140,14 +141,14 @@ class TpuEmbeddingCollection:
   def retrieve_ops(self):
     return self._retrieve_ops_map
 
-  def _ValidateTaskScope(self, task_call_scope):
+  def _ValidateTaskScope(self, task_call_scope: str):
     if not task_call_scope:
       raise ValueError(
           'It expects a non-empty task call scope name, but get '
           f'{task_call_scope}. This usually means the current code is not run '
           'under a py_utils.TaskCallScope() context.')
 
-  def AddActivations(self, task_call_scope):
+  def AddActivations(self, task_call_scope: str) -> Dict[str, tf.Tensor]:
     self._ValidateTaskScope(task_call_scope)
     tf.logging.info(
         f'Adding TPU embedding activations for task {task_call_scope}.')
@@ -156,13 +157,12 @@ class TpuEmbeddingCollection:
       self._activations_by_task[task_call_scope] = activations
     return self._activations_by_task[task_call_scope]
 
-  def GetActivations(self, task_call_scope):
+  def GetActivations(self, task_call_scope: str) -> Dict[str, tf.Tensor]:
     tf.logging.info(
         f'Getting TPU embedding activations for task {task_call_scope}.')
-    if task_call_scope in self._activations_by_task:
+    if activations := self._activations_by_task.get(task_call_scope):
       self._ValidateTaskScope(task_call_scope)
-      return self._activations_by_task[task_call_scope]
-    return None
+    return activations
 
   def AddSummaryTensor(self, name, value, weight=1.0):
     self._summary_tensors.append((name, value, tf.convert_to_tensor(weight)))
@@ -282,7 +282,7 @@ class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
     self._slot_var_dict = {}
 
   def CreateOptimizerParameters(self, learning_rate):
-    """Create TPUEmbedding API optimzier parameters."""
+    """Create TPUEmbedding API optimizer parameters."""
     return NotImplementedError()
 
   def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
@@ -684,11 +684,15 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         'Must be "sum", "sqrtn", "mean" or None in the case of a '
         '"sequence embedding "')
     p.Define(
-        'max_sequence_length', None,
-        'If not None or 0, embedding lookup will return a '
-        '"sequence embedding" of shape '
-        '`[batch, max_sequence_length, embedding_dim]` without applying a '
-        'sequence  reducing combiner')
+        'max_sequence_length',
+        None,
+        (
+            'If not None or 0, embedding lookup will return a '
+            '"sequence embedding" of shape '
+            '`[batch, max_sequence_length, embedding_dim]` without applying a '
+            'sequence reducing combiner over dim 1.'
+        ),
+    )
     p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
     p.Define(
         'optimizer', None,
@@ -749,10 +753,11 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       with py_utils.GlobalStepContext(step):
         lr = self.schedule.Value() * p.learning_rate
       self._tpu_embedding_collection.AddSummaryTensor(
-          'tpu_embedding_lr/{}'.format(p.name), lr)
+          f'tpu_embedding_lr/{p.name}', lr
+      )
       return lr
 
-    self._table_name = '{}_table'.format(p.name)
+    self._table_name = f'{p.name}_table'
     self._table_config = tpu_embedding_lib.TableConfig(
         self._padded_vocab_size,
         p.embedding_dim,
@@ -782,7 +787,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         inference_with_merged_var = p.inference_use_merged_variable
         if p.inference_variable_dtype is not None:
           dtype = p.inference_variable_dtype
-        is_inference_with_bfloat16 = (p.inference_variable_dtype == tf.bfloat16)
+        is_inference_with_bfloat16 = p.inference_variable_dtype == tf.bfloat16
         if dtype not in [tf.float32, tf.bfloat16]:
           # Note: it doesn't matter what initialization value is used, the
           # actual value of the variable will be loaded from checkpoint.
@@ -842,7 +847,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
     if not py_utils.IsTpuTraining(p):
       # We don't need this for TrainerTpu, as the vars are not directly
-      # accessed besides in the TPU embeddding load/retrieve ops.
+      # accessed besides in the TPU embedding load/retrieve ops.
       # However, this is needed for CPU (eval/decode/controller).
       self._private_vars['wm'] = embedding_table_vars
       self._private_theta['wm'] = embedding_table_vars
@@ -1040,7 +1045,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
   def Params(cls):
     p = super().Params()
     p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
-    p.Define('tables', None, 'TPUEmbeddingTables')
+    p.Define('tables', None, 'List[TPUEmbeddingTable]')
     p.Define('pipeline_execution_with_tensor_core', False,
              'Set to True to be faster. See tpu_embedding.py for details.')
     p.Define('batch_size', 0, 'Per-core batch size.')
@@ -1075,13 +1080,12 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     if p.num_tpu_hosts > 0:
       for table_params in p.tables:
         num_tpu_hosts = table_params.num_tpu_hosts
-        if num_tpu_hosts > 0 and num_tpu_hosts != p.num_tpu_hosts:
-          raise ValueError(
-              f'num_tpu_hosts mismatch: {num_tpu_hosts} vs {p.num_tpu_hosts}')
+        if 0 < num_tpu_hosts != p.num_tpu_hosts:
+          raise ValueError(f'{num_tpu_hosts=} != {p.num_tpu_hosts=}')
         table_params.num_tpu_hosts = p.num_tpu_hosts
     else:
       num_tpu_hosts = p.tables[0].num_tpu_hosts
-      assert all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
+      assert all(t.num_tpu_hosts == num_tpu_hosts for t in p.tables)
 
     # Stop if a table has no optimizer related parameters and the layer also
     # has no optimizer parameters
@@ -1158,16 +1162,16 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     super()._CreateLayerVariables()
     p = self.params
 
-    # At the feature level, track which are associated
-    # with "sequence embeddings".
+    # Track which features are intended to be "sequence embeddings".
     self._sequence_features = {}
 
     if py_utils.IsTpuTraining(p):
       num_cores = self.cluster.params.worker.tpus_per_replica
       global_batch_size = (
           self.params.batch_size * self.cluster.num_splits_per_client)
-      table_to_config_dict = {}
-      feature_to_config_dict = {}
+
+      table_to_config_dict: Dict[str, tpu_embedding_lib.TableConfig] = {}
+      feature_to_config_dict: Dict[str, tpu_embedding_lib.FeatureConfig] = {}
       for table in self.tables:
         table_to_config_dict[table.table_name] = table.table_config
         for feature in table.input_keys:
@@ -1212,19 +1216,21 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
         if k in self._sequence_features:
           ret.Set(k, v)
         else:
-          # Non-sequence embeddings, we fill the "time" dimension with 1.
+          # Non-sequence embeddings, we add a "time" dimension of size 1.
           with tf.name_scope(k):
-            ret.Set(k, tf.expand_dims(v, axis=[1]))
+            ret.Set(k, tf.expand_dims(v, axis=1))
     return ret
 
   def _CheckIdsMap(self, ids_map: py_utils.NestedMap) -> None:
     """Check that the keys in `ids_map` is valid for embedding lookup."""
     assert isinstance(ids_map, py_utils.NestedMap)
     valid_keys = set().union(*[table.input_keys for table in self.tables])
-    for key, _ in ids_map.FlattenItems():
-      if key not in valid_keys:
-        raise ValueError(
-            f'Invalid input key: {key}. Valid keys are: {valid_keys}')
+    keys = set(key for key, _ in ids_map.FlattenItems())
+    invalid_keys = keys - valid_keys
+    if invalid_keys != set():
+      raise ValueError(
+          f'Invalid input keys: {invalid_keys}. (Valid keys: {valid_keys})'
+      )
 
   def EmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """Looks up embedding vectors for each entry in dense Tensor ids_map.
@@ -1268,14 +1274,14 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
   def EmbLookupSparse(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """Looks up embedding vectors for each entry in SparseTensor ids_map.
 
-    Since the TPUEmbedding is monolothic, and consulted once per
-    FProp/BProp, we must centralize the lookup. Thus, for multiple
-    features, we contain them into a single-lookup rather than allowing
-    the caller to call Lookup multiple times.
+    Since the TPUEmbedding is monolithic, and consulted once per FProp/BProp, we
+    must centralize the lookup. Thus, for multiple features, we contain them
+    into a single-lookup rather than allowing the caller to call Lookup multiple
+    times.
 
     Args:
       ids_map: A NestedMap of nested `input_key` string -> [batch, ...] int
-      SparseTensor.
+        SparseTensor.
 
     Returns:
       Activations NestedMap of nested string ->

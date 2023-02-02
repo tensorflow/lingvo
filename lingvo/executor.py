@@ -843,7 +843,8 @@ class HostDrivenExecutor(base_runner.BaseRunner):
 
           # Runs the actual training loop
           done, train_time_in_secs, eval_time_in_secs = program_schedule.Run(
-              strategy=self.tpu_strategy)
+              strategy=self.tpu_strategy
+          )
 
           global_step = _GetGlobalStep()
 
@@ -877,7 +878,8 @@ class HostDrivenExecutor(base_runner.BaseRunner):
           self.RunSave(global_step, self._programs, self._checkpointer)
           tf.logging.info(
               'Program finished after %f seconds. Waiting for threads to end.',
-              program_timer.duration)
+              program_timer.duration,
+          )
           _ShutDown()
           return
 

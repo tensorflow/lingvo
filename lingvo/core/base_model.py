@@ -908,7 +908,7 @@ class BaseTask(base_layer.BaseLayer):
 
     Args:
       input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch
-        spiltting is used, a list of `NestedMap`, one for each split.
+        splitting is used, a list of `NestedMap`, one for each split.
 
     Returns:
       a dict of Tensors as decoder output.
@@ -921,7 +921,7 @@ class BaseTask(base_layer.BaseLayer):
     Args:
       theta: A `.NestedMap` object containing variable values of this task.
       input_batch: The input batch. A `NestedMap` of tensors. Or, if input batch
-        spiltting is used, a list of `NestedMap`, one for each split.
+        splitting is used, a list of `NestedMap`, one for each split.
 
     Returns:
       a dict of Tensors as decoder output.

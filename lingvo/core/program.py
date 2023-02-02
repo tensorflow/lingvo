@@ -46,8 +46,8 @@ from tensorflow.python.tpu import tpu
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.tpu import training_loop as tpu_training_loop
 from tensorflow.python.tpu.ops import tpu_ops
-
 # pylint:enable=g-direct-tensorflow-import
+
 FLAGS = tf.flags.FLAGS
 # According to the Runtime team, by default (set to True), even if we use
 # async executors locally, the remote host will still run the functions
@@ -827,7 +827,7 @@ class HostDrivenTrainProgram(BaseProgram):
                                            eval_metrics, outfeeds)
       self._summary_writer.flush()
 
-  def BuildTpuSubgraph(self, strategy):
+  def BuildTpuSubgraph(self, strategy=None):
     tf.logging.info('HostDrivenTrainProgram BuildTpuSubGraph')
 
     self._metrics_mgr = metrics_lib.TpuVariableMetrics(
@@ -878,7 +878,7 @@ class HostDrivenTrainProgram(BaseProgram):
       self._metrics_mgr.ResetState()
 
       # Explicitly pass theta through the run() call because XLA doesn't
-      # properly handle implicitly in variables.
+      # properly handle implicitly passed-in variables.
       theta = self.task._private_vars  # pylint: disable=protected-access
       for _ in tf.range(self._steps_per_loop):
         batch = self.task.input.GetPreprocessedInputBatch()
