@@ -1225,8 +1225,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     """Check that the keys in `ids_map` is valid for embedding lookup."""
     assert isinstance(ids_map, py_utils.NestedMap)
     valid_keys = set().union(*[table.input_keys for table in self.tables])
-    keys = set(key for key, _ in ids_map.FlattenItems())
-    invalid_keys = keys - valid_keys
+    invalid_keys = set(ids_map.Keys()) - valid_keys
     if invalid_keys != set():
       raise ValueError(
           f'Invalid input keys: {invalid_keys}. (Valid keys: {valid_keys})'

@@ -262,6 +262,7 @@ class NestedMap(Dict[str, Any]):
     return sliced
 
   def Keys(self) -> List[str]:
+    """Returns a list of all the keys in nested/array-style form if needed."""
     return self._RecursiveMap(lambda k, v: k, flatten=True)
 
   def Set(self, key: str, value: Any) -> None:
