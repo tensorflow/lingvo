@@ -560,7 +560,9 @@ def initialize_partitioned_model_states(
       in_axis_resources=(None,),
       out_axis_resources=train_state_partition_specs)
 
-  assert base_layer.global_mesh_defined(), 'must be inside maps.mesh scope'
+  assert (
+      base_layer.global_mesh_defined()
+  ), 'must be inside jax.sharding.Mesh scope'
   partitioned_vars = init_fn(prng_key)
 
   return (train_state_partition_specs, partitioned_vars)

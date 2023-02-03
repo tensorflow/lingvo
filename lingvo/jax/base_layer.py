@@ -91,7 +91,7 @@ def var_requires_mean_sync(var_params: ParamsT) -> bool:
 def to_partition_spec(
     split_dims_mapping: SplitDimsMapping, mesh_axis_names: Sequence[str]
 ) -> jax.sharding.PartitionSpec:
-  """Converts split_dims_mapping to pjit.PartitionSpec.
+  """Converts split_dims_mapping to jax.sharding.PartitionSpec.
 
   Args:
     split_dims_mapping: A (nested) tuple of mesh axis to split x over. Below are
@@ -108,7 +108,7 @@ def to_partition_spec(
     mesh_axis_names: A tuple/list of strings of the name of the device mesh.
 
   Returns:
-    A pjit.PartitionSpec.
+    A jax.sharding.PartitionSpec.
   """
 
   def _parse_split_dims(dims_mapping):
