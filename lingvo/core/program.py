@@ -851,7 +851,7 @@ class HostDrivenTrainProgram(BaseProgram):
     """Provides the host-driven loop to `Run`, using the given strategy."""
 
     @tf.function
-    def _Step(theta, batch):
+    def _Step(batch):
       """A single forward/backward step.
 
       Processes the given input batch and updates the distributed metrics
@@ -860,14 +860,12 @@ class HostDrivenTrainProgram(BaseProgram):
       library to handle threading values across devices.
 
       Args:
-        theta: dict (because of tf.distribute) of trainable task variables
         batch: NestedMap of input batch data.
       """
-      theta = py_utils.NestedMap.FromNestedDict(theta)
       with tf.name_scope('tpu_train'):
         with py_utils.GradientTape(persistent=True):
-          metrics_dict, _ = self.task.FProp(theta, input_batch=batch)
-        self.task._BPropForVariables(theta)  # pylint: disable=protected-access
+          metrics_dict, _ = self.task.FPropDefaultTheta(input_batch=batch)
+        self.task.BProp()
 
         self._metrics_dict_structure = metrics_dict
         self._metrics_mgr.AccumulateStepMetrics(metrics_dict)
@@ -877,12 +875,9 @@ class HostDrivenTrainProgram(BaseProgram):
       """Runs a single training step, and returns flattened metrics list."""
       self._metrics_mgr.ResetState()
 
-      # Explicitly pass theta through the run() call because XLA doesn't
-      # properly handle implicitly passed-in variables.
-      theta = self.task._private_vars  # pylint: disable=protected-access
       for _ in tf.range(self._steps_per_loop):
         batch = self.task.input.GetPreprocessedInputBatch()
-        strategy.run(_Step, args=(theta, batch))
+        strategy.run(_Step, args=(batch,))
 
       return self._metrics_mgr.FinalizeMetricsWithStructure(
           self._metrics_dict_structure)
