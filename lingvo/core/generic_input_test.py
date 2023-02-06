@@ -367,6 +367,22 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
       for i in range(100):
         self.assertIn(('%08d' % i).encode('utf-8'), record_seen)
 
+  def testStaticShapesArePreserved(self):
+    def _parse_record(record):
+      del record
+      bucketing_key = 1
+      outputs = py_utils.NestedMap(x=tf.ones((3, 4)), y=tf.ones((5, 6)))
+      return outputs, bucketing_key
+
+    outputs, _ = generic_input.GenericInput(
+        _parse_record,
+        file_pattern='',
+        bucket_upper_bound=[1],
+        bucket_batch_limit=[1],
+    )
+    self.assertEqual(outputs.x.shape[1:], [3, 4])
+    self.assertEqual(outputs.y.shape[1:], [5, 6])
+
 
 class GenericInputOpBenchmark(tf.test.Benchmark):
 

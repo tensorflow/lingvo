@@ -807,9 +807,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
       feat = input_batch.GetItem(key)
       config = tpu_embedding.feature_to_config_dict[key]
       expected_batch_size = tpu_embedding.batch_size_per_core * num_splits
-      if (
-          feat.shape and feat.shape[0] != expected_batch_size
-      ) or 0 < config.max_sequence_length != feat.shape[1]:
+      if not feat.shape.is_compatible_with(
+          (expected_batch_size, config.max_sequence_length or None)
+      ):
         raise ValueError(
             'TPU embedding input ids shape mismatch. Expecting '
             f'({expected_batch_size}, {config.max_sequence_length}), '
