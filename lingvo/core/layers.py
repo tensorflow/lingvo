@@ -212,8 +212,9 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
         'must be 1.')
     p.Define(
         'activation', 'RELU',
-        'Activation function to use. Options are RELU, RELU6, SIGMOID, '
-        'TANH, NONE.')
+        'Activation function to use. Options include RELU, RELU6, SIGMOID, '
+        'TANH, NONE, etc. The full list can be found in '
+        'third_party.py.lingvo.core.activations.IsSupported().')
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     p.Define('batch_norm', True, 'Whether or not to apply batch norm.')
     p.Define(

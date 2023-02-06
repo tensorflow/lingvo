@@ -2207,11 +2207,12 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   @parameterized.parameters(
       ('RELU', [[0., 0.07840855], [0.01560314, 0.08165982]]),
-      ('SWISH_GLU', [[0., 0.07840855], [0.01560314, 0.08165982]]))
+      ('SWISH_GLU', [[0.00181353, -0.00163004], [-0.00044914, -0.00029596]]))
   def testProjectionLayerActivation(self, activation, expected):
     with self.session(use_gpu=True):
       params = layers.ProjectionLayer.Params()
       params.name = 'proj'
+      params.activation = activation
       params.batch_norm = False
       params.has_bias = True
       params.input_dim = 3
