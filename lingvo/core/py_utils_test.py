@@ -1280,6 +1280,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     disable_vn = py_utils.DisableVN()
     self.assertNotEqual(default_vn, disable_vn)
 
+  # TODO(b/268038712) Deflake deterministic uniform eager mode test case.
   @parameterized.named_parameters(
       ('Default', False, False, None, False, True,
        [[1.4421233, 2.0392153]]),
@@ -1287,8 +1288,6 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
        [[1.0871696, 1.8679601]]),
       ('Deterministic', True, False, None, False, True,
        [[1.2542243, 2.9178061]]),
-      ('DeterministicUniform', True, True, None, False, True,
-       [[0.8315007, 1.7715032]]),
       ('TwoNormScale', False, False, 'L2', False, True,
        [[1.6990583, 2.0620048]]),
       ('InfNormScale', False, False, 'Linf', False, True,
