@@ -426,7 +426,7 @@ class TpuVariableMetrics:
                                        tf.Tensor]]) -> List[tf.Tensor]:
     """Compute final average of the metrics using the accumulator variables.
 
-    To be called outside of a strategy.run context, so that the tf.Variables'
+    To be called outside a strategy.run context, so that the tf.Variables'
     tf.VariableAggregation logic is triggered on this read (i.e. a tpu
     cross_replica_sum).
 
