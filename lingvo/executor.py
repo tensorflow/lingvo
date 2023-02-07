@@ -629,7 +629,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
       *args,
       **kwargs,
   ):
-    """Construct an ExecutorTpu BaseRunner.
+    """Construct a HostDrivenExecutor BaseRunner.
 
     Args:
       train_cfg: SingleTaskModelParams or MultiTaskModelParams
@@ -640,10 +640,17 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     """
     assert py_utils.IsEagerMode()
     tf.logging.info('FLAGS.tf_master: %s', FLAGS.tf_master)
+    # Connect to TPU cluster first, so it can initialize the devices correctly
+    # in super().__init__.
+    resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
+        FLAGS.tf_master, job_name=FLAGS.worker_job[len('/job:') :]
+    )
+    tf.config.experimental_connect_to_cluster(resolver)
+
     # The global step variable needs to be created inside the TPU strategy
     # scope below, so we don't create it in the base class.
     super().__init__(train_cfg, *args, create_global_step=False, **kwargs)
-    self.tpu_strategy = self._ConnectToTPU(train_cfg)
+    self.tpu_strategy = self._CreateTpuStrategy(resolver, train_cfg)
 
     data_parallelism = self._cluster.num_splits_per_client
     assert data_parallelism
@@ -747,11 +754,10 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     return epath.Path(self._logdir)
 
   @py_utils.RetryOnTransientTfError()
-  def _ConnectToTPU(self, train_cfg) -> tf.distribute.TPUStrategy:
+  def _CreateTpuStrategy(
+      self, resolver, train_cfg
+  ) -> tf.distribute.TPUStrategy:
     """Connect to the TPU runtime and return the corresponding TPUStrategy."""
-    resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
-        FLAGS.tf_master, job_name=FLAGS.worker_job[len('/job:'):])
-    tf.config.experimental_connect_to_cluster(resolver)
     topology = tf.tpu.experimental.initialize_tpu_system(resolver)
 
     if train_cfg.train.tpu_computation_shape:
