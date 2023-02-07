@@ -252,6 +252,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
   def __init__(self, params):
     super().__init__(params)
+    p = self.params
+
     # parameter to tell the bprop one hot for all the files.
     # TODO(ankurbpn): Initialize when using sources from mixed record yielders.
     self._bprop_onehot = tf.constant([1], dtype=tf.float32)
@@ -276,8 +278,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # TensorBoard layout for charts displaying input data stats.
     self._input_data_summary_layout = None
 
-    assert self.params.tpu_embedding_mode in [None, 'train', 'inference']
-    self._tpu_embedding_mode = self.params.tpu_embedding_mode
+    assert p.tpu_embedding_mode in [None, 'train', 'inference']
+    self._tpu_embedding_mode = p.tpu_embedding_mode
     if self._tpu_embedding_mode == 'train' and self.do_eval:
       self._tpu_embedding_mode = 'inference'  # Always disable backprop in eval.
 

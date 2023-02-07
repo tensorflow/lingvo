@@ -227,7 +227,8 @@ class Learner(base_layer.BaseLayer):
     with self._SelfVariableScope():
       var_update_op = tf.group(
           tpu_emb_update_op,
-          self.optimizer.Apply(lr_or_callable, var_grads, grads_weight))
+          self.optimizer.Apply(lr_or_callable, var_grads, grads_weight),
+      )
 
     return losses, var_update_op, eval_metrics
 
