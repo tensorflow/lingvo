@@ -103,8 +103,8 @@ class TpuEmbeddingCollection:
     self._table_vars[table_name] = (var_list, is_inference_with_bfloat16)
 
   @property
-  def table_variables(self):
-    """Returns a list of table variables."""
+  def table_variables(self) -> py_utils.NestedMap:
+    """Returns a nested map of table variables."""
     return self._table_vars.Transform(lambda val: val[0])
 
   @property
