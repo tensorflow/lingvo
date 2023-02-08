@@ -30,6 +30,7 @@ There are three types of batch sizes:
 
 import functools
 import inspect
+from typing import Dict, List
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -288,9 +289,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
       # so that the mode is available when the BProp graph is built (note that
       # CreateTpuEmbeddingEnqueueOps() is called *after* building BProp graph).
       tpu_embedding_collection = (
-          tpu_embedding_layers.TpuEmbeddingCollection.Get())
+          tpu_embedding_layers.TpuEmbeddingCollection.Get()
+      )
       tpu_embedding_collection.SetTaskMode(
-          py_utils.TaskCallScopeName(self.parent), self._tpu_embedding_mode)
+          py_utils.TaskCallScopeName(self.parent), self._tpu_embedding_mode
+      )
 
     self._batch_nm_types = None
     self._cpu_nm_types = None
@@ -786,7 +789,12 @@ class BaseInputGenerator(base_layer.BaseLayer):
           'regular input batch and TPU embedding input batch.')
     self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
-  def _GetTpuEmbeddingEnqueueData(self, tpu_embedding, input_batch, num_splits):
+  def _GetTpuEmbeddingEnqueueData(
+      self,
+      tpu_embedding: tpu_embedding_lib.TPUEmbedding,
+      input_batch: py_utils.NestedMap,
+      num_splits: int,
+  ) -> List[Dict[str, tpu_embedding_lib.EnqueueData]]:
     """Get a list of per-core TPU embedding enqueue data.
 
     Args:
@@ -844,7 +852,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
   def DeviceLoopSetupEager(self):
     """Set up device-loop-level params."""
-    assert py_utils.IsEagerMode(
+    assert (
+        py_utils.IsEagerMode()
     ), 'This function should only be called in pure Eager/tf.function.'
 
   def PreprocessTpuEmbeddingInputBatch(self, input_batch):

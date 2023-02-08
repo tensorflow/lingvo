@@ -960,7 +960,6 @@ py_library(
     srcs = ["learner.py"],
     deps = [
         ":base_layer",
-        ":gradient_combiner",
         ":optimizer",
         ":py_utils",
         ":schedule",
@@ -974,6 +973,7 @@ py_test(
     srcs = ["learner_test.py"],
     deps = [
         ":base_layer",
+        ":gradient_combiner",
         ":layers",
         ":learner",
         ":optimizer",

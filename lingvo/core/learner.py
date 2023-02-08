@@ -62,10 +62,14 @@ class Learner(base_layer.BaseLayer):
         'tf.clip_by_norm refer to clip_gradient_single_norm_to_value. Note '
         'these are mutually exclusive.')
     p.Define(
-        'clip_gradient_single_norm_to_value', 0.0,
-        'Clip gradient by single tensor norm to this value. This is '
-        'similar to the behaviour of tf.clip_by_norm. Note this is mutually '
-        'exlusive to using clip_gradient_norm_to_value.')
+        'clip_gradient_single_norm_to_value',
+        0.0,
+        (
+            'Clip gradient by single tensor norm to this value. This is similar'
+            ' to the behaviour of tf.clip_by_norm. Note this is mutually'
+            ' exclusive to using clip_gradient_norm_to_value.'
+        ),
+    )
     p.Define('grad_norm_to_clip_to_zero', 0.0,
              'Clip gradient to 0 if its norm exceeds this value.')
     p.Define('grad_norm_tracker', None, 'Params for GradNormTracker.')
@@ -217,13 +221,9 @@ class Learner(base_layer.BaseLayer):
     eval_metrics['learning_rate'] = (tf.convert_to_tensor(lr),
                                      tf.convert_to_tensor(1.))
 
-    if py_utils.IsEagerMode():
-      # Use a callback for learning_rate so we can keep just one instance of
-      # optimizer object in the whole trainer lifetime in Eager mode.
-      lr_or_callable = self.LearningRate
-    else:
-      lr_or_callable = lr
-
+    # Use a callback for learning_rate in order to keep just one instance of the
+    # optimizer object for the entire trainer lifetime in Eager mode.
+    lr_or_callable = self.LearningRate if py_utils.IsEagerMode() else lr
     with self._SelfVariableScope():
       var_update_op = tf.group(
           tpu_emb_update_op,

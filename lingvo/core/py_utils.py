@@ -753,6 +753,12 @@ def GradientTape(*args, **kwargs):
     _GRADIENT_TAPE_STACK.stack.pop()
 
 
+def CurrentGradientTape() -> tf.GradientTape:
+  if not _GRADIENT_TAPE_STACK.stack:
+    raise RuntimeError('Cannot get current tape outside of taped context.')
+  return _GRADIENT_TAPE_STACK.stack[-1]
+
+
 def CreateEMADecayVar(model_params):
   """Creates an EMA decay variable."""
   p = model_params

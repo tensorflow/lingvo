@@ -434,6 +434,7 @@ train.Saver = tf1.train.Saver
 train.SaverDef = tf1.train.SaverDef
 train.summary_iterator = tf1.train.summary_iterator
 trainable_variables = tf1.trainable_variables
+types = tf2.types
 Variable = tf1.Variable
 variables_initializer = tf1.variables_initializer
 VariableScope = tf1.VariableScope

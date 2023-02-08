@@ -49,9 +49,6 @@ from tensorflow.python.tpu.ops import tpu_ops
 from tensorflow.python.util import nest
 # pylint:enable=g-direct-tensorflow-import
 
-NestedMap = pytypes.NestedMap
-
-
 FLAGS = tf.flags.FLAGS
 # According to the Runtime team, by default (set to True), even if we use
 # async executors locally, the remote host will still run the functions
@@ -836,8 +833,7 @@ class HostDrivenTrainProgram(BaseProgram):
     tf.logging.info('HostDrivenTrainProgram BuildTpuSubGraph')
 
     self._metrics_mgr = metrics_lib.TpuVariableMetrics(
-        max_metrics=self.params.max_metrics,
-        strategy=strategy,
+        max_metrics=self.params.max_metrics, strategy=strategy
     )
     tf.logging.info('Instantiating task model in BuildTpuSubgraph')
     self._model = self._InstantiateTaskModel(self._task_params)
@@ -870,7 +866,7 @@ class HostDrivenTrainProgram(BaseProgram):
 
     def _GetShardedBatch() -> tf.types.experimental.distributed.PerReplica:
       """Fetch and shard one batch per attached device."""
-      per_host_batches: List[NestedMap] = []
+      per_host_batches: List[py_utils.NestedMap] = []
       # Note: `available_devices` omits the executor host; just those with TPUs.
       for host_device in py_utils.Flatten(
           cluster_factory.Current().available_devices.tolist()

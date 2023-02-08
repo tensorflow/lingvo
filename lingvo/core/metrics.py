@@ -281,8 +281,9 @@ class TpuEvalMetrics:
     self._max_metrics: int = max_metrics
 
     # Loop-carried values alternate value and weight; all values are scalars.
-    self._initial_values = (2 *
-                            self._max_metrics) * [tf.constant(0, tf.float32)]
+    self._initial_values = (2 * self._max_metrics) * [
+        tf.constant(0, tf.float32)
+    ]
 
   @property
   def initial_values(self):
@@ -310,8 +311,9 @@ class TpuEvalMetrics:
       loop).
     """
     num_metrics = len(metric_dict)
-    assert num_metrics <= self._max_metrics, ('Increase max_metrics to >= %d' %
-                                              num_metrics)
+    assert num_metrics <= self._max_metrics, (
+        'Increase max_metrics to >= %d' % num_metrics
+    )
     # Persisting to reuse structure in Finalize
     self._metrics = metric_dict
 
@@ -320,18 +322,19 @@ class TpuEvalMetrics:
     # it easier to aggregate metric values across steps and TPU replicas.
     ret = []
     for _, (value, weight) in sorted(metric_dict.items()):
-      assert value.shape.is_fully_defined(), ('%s' % value)
-      assert weight.shape.is_fully_defined(), ('%s' % weight)
+      assert value.shape.is_fully_defined(), '%s' % value
+      assert weight.shape.is_fully_defined(), '%s' % weight
       weight = tf.cast(weight, tf.float32)
       value = tf.cast(value, tf.float32) * weight
       ret += [value, weight]
     # Each metric has two tensors: value and weight.
     assert len(ret) == 2 * num_metrics
-    ret += list(step_args)[len(ret):]
+    ret += list(step_args)[len(ret) :]
     return ret
 
-  def FinalizeMetrics(self,
-                      loop_carried_metrics: List[tf.Tensor]) -> List[tf.Tensor]:
+  def FinalizeMetrics(
+      self, loop_carried_metrics: List[tf.Tensor]
+  ) -> List[tf.Tensor]:
     """Compute final average of the metrics, given loop_carried_metrics tensors.
 
     To be called outside the training loop body , but still in the scope of
@@ -346,13 +349,15 @@ class TpuEvalMetrics:
     # Each metric has two tensors in the loop carrying result.
     metrics = [
         tf.tpu.cross_replica_sum(x)
-        for x in loop_carried_metrics[:(2 * len(self.metrics))]
+        for x in loop_carried_metrics[: (2 * len(self.metrics))]
     ]
 
-    return tf.nest.flatten([
-        py_utils.WeightedAvg(tf.math.divide_no_nan(value, weight), weight)
-        for value, weight in py_utils.Chunked(metrics)
-    ])
+    return tf.nest.flatten(
+        [
+            py_utils.WeightedAvg(tf.math.divide_no_nan(value, weight), weight)
+            for value, weight in py_utils.Chunked(metrics)
+        ]
+    )
 
   def PackMetricsValues(self, values) -> None:
     """Packs numpy values into self._metrics, a dict of metrics."""
@@ -398,7 +403,8 @@ class TpuVariableMetrics:
         trainable=False,
         dtype=tf.float32,
         synchronization=tf.VariableSynchronization.ON_READ,
-        aggregation=tf.VariableAggregation.SUM)
+        aggregation=tf.VariableAggregation.SUM,
+    )
 
   @property
   def variables(self) -> List[tf.Variable]:
@@ -410,20 +416,24 @@ class TpuVariableMetrics:
       v.assign(0.0)
 
   def AccumulateStepMetrics(
-      self, metric_dict: Dict[str, Tuple[tf.Tensor, tf.Tensor]]) -> None:
+      self, metric_dict: Dict[str, Tuple[tf.Tensor, tf.Tensor]]
+  ) -> None:
     """Accumulates values in self._vars. Should be called via strategy.run."""
     num_metrics = len(metric_dict)
-    assert num_metrics <= self._max_metrics, ('Increase max_metrics to >= %d' %
-                                              num_metrics)
+    assert num_metrics <= self._max_metrics, (
+        'Increase max_metrics to >= %d' % num_metrics
+    )
     for (_, (value, weight)), (vw_acc, w_acc) in zip(
-        sorted(metric_dict.items()), py_utils.Chunked(self._vars)):
+        sorted(metric_dict.items()), py_utils.Chunked(self._vars)
+    ):
       vw_acc.assign_add(
-          tf.cast(weight, tf.float32) * tf.cast(value, tf.float32))
+          tf.cast(weight, tf.float32) * tf.cast(value, tf.float32)
+      )
       w_acc.assign_add(tf.cast(weight, tf.float32))
 
   def FinalizeMetricsWithStructure(
-      self, structure: Dict[str, Tuple[tf.Tensor,
-                                       tf.Tensor]]) -> List[tf.Tensor]:
+      self, structure: Dict[str, Tuple[tf.Tensor, tf.Tensor]]
+  ) -> List[tf.Tensor]:
     """Compute final average of the metrics using the accumulator variables.
 
     To be called outside a strategy.run context, so that the tf.Variables'
@@ -439,8 +449,13 @@ class TpuVariableMetrics:
 
     return tf.nest.pack_sequence_as(
         structure,
-        tf.nest.flatten([[tf.math.divide_no_nan(vw, w), w]
-                         for vw, w in py_utils.Chunked(self._vars)]))
+        tf.nest.flatten(
+            [
+                [tf.math.divide_no_nan(vw, w), w]
+                for vw, w in py_utils.Chunked(self._vars)
+            ]
+        ),
+    )
 
 
 class AUCMetric(BaseMetric):

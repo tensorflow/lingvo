@@ -792,15 +792,6 @@ class HostDrivenExecutor(base_runner.BaseRunner):
   def _GetSession(self, **kwargs):
     raise RuntimeError('Eager mode does not support _GetSession.')
 
-  def RunSave(self, global_step, programs, saver):
-    # Save program state first, so it's recoverable after we restore
-    # from checkpoint.
-    for program in programs:
-      program.SaveProgramState(None, global_step)
-    # Save the checkpoints asynchronously.
-    saver: checkpointer_lib.EagerCheckpointerV2
-    saver.Save(None, global_step, sync=False)
-
   def _LoadCheckpoint(self):
     if self._checkpoint_to_load:
       return self._checkpointer.RestoreFromPath(
@@ -842,7 +833,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
           ckpt_timer = py_utils.Timer()
           if self._checkpointer.ShouldSave(global_step):
             with ckpt_timer:
-              self.RunSave(global_step, self._programs, self._checkpointer)
+              self._checkpointer.Save(None, global_step, sync=False)
 
           tf.logging.info('Single task mode: %s', self._model_task_name)
           program_schedule = self._program_schedule_dict[self._model_task_name]
@@ -881,7 +872,8 @@ class HostDrivenExecutor(base_runner.BaseRunner):
 
         if self._ShouldStop(None, global_step):
           tf.logging.info('Training finished.')
-          self.RunSave(global_step, self._programs, self._checkpointer)
+          self._checkpointer.Save(None, global_step, sync=False)
+
           tf.logging.info(
               'Program finished after %f seconds. Waiting for threads to end.',
               program_timer.duration,
