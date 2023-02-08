@@ -46,7 +46,11 @@ from tensorflow.python.tpu import tpu
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.tpu import training_loop as tpu_training_loop
 from tensorflow.python.tpu.ops import tpu_ops
+from tensorflow.python.util import nest
 # pylint:enable=g-direct-tensorflow-import
+
+NestedMap = pytypes.NestedMap
+
 
 FLAGS = tf.flags.FLAGS
 # According to the Runtime team, by default (set to True), even if we use
@@ -828,11 +832,14 @@ class HostDrivenTrainProgram(BaseProgram):
       self._summary_writer.flush()
 
   def BuildTpuSubgraph(self, strategy=None):
+    """Initializes the model, training loop, and metrics tracking object."""
     tf.logging.info('HostDrivenTrainProgram BuildTpuSubGraph')
 
     self._metrics_mgr = metrics_lib.TpuVariableMetrics(
-        max_metrics=self.params.max_metrics, strategy=strategy)
-
+        max_metrics=self.params.max_metrics,
+        strategy=strategy,
+    )
+    tf.logging.info('Instantiating task model in BuildTpuSubgraph')
     self._model = self._InstantiateTaskModel(self._task_params)
     self._task = self._model.GetTask()
 
@@ -841,17 +848,45 @@ class HostDrivenTrainProgram(BaseProgram):
 
     # Write model analysis.
     self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
-        self._model)
+        self._model
+    )
     tf.logging.info('Total params=%d', self._total_num_params)
     analysis_file = epath.Path(self._program_dir) / 'model_analysis.txt'
     analysis_file.write_text(self._model_analysis)
 
   def _GetHostTrainLoop(
-      self, strategy: tf.distribute.TPUStrategy) -> Callable[..., Any]:
+      self, strategy: tf.distribute.TPUStrategy
+  ) -> Callable[..., Any]:
     """Provides the host-driven loop to `Run`, using the given strategy."""
+    replicas_per_host = strategy.extended.num_replicas_per_host
 
-    @tf.function
-    def _Step(batch):
+    def Split(batch, replicas_per_host, axis=0):
+      """Splits a NestedMap into replicas_per_host pieces."""
+      split = batch.Transform(lambda t: tf.split(t, replicas_per_host, axis))
+      return [
+          nest.map_structure_up_to(batch, lambda t: t[i], split)  # pylint: disable=cell-var-from-loop
+          for i in range(replicas_per_host)
+      ]
+
+    def _GetShardedBatch() -> tf.types.experimental.distributed.PerReplica:
+      """Fetch and shard one batch per attached device."""
+      per_host_batches: List[NestedMap] = []
+      # Note: `available_devices` omits the executor host; just those with TPUs.
+      for host_device in py_utils.Flatten(
+          cluster_factory.Current().available_devices.tolist()
+      ):
+        with tf.device(host_device):
+          batch = self.task.input.GetPreprocessedInputBatch()
+
+        # Remove bucket_keys; this relates to GenericInput pipelines.
+        batch = batch.FilterKeyVal(lambda k, _: not k.endswith('bucket_keys'))
+        per_host_batches.extend(Split(batch, replicas_per_host))
+
+      return strategy.experimental_distribute_values_from_function(
+          lambda ctx: per_host_batches[ctx.replica_id_in_sync_group]
+      )
+
+    def _Step(batch: py_utils.NestedMap):
       """A single forward/backward step.
 
       Processes the given input batch and updates the distributed metrics
@@ -864,7 +899,7 @@ class HostDrivenTrainProgram(BaseProgram):
       """
       with tf.name_scope('tpu_train'):
         with py_utils.GradientTape(persistent=True):
-          metrics_dict, _ = self.task.FPropDefaultTheta(input_batch=batch)
+          metrics_dict, _ = self.task.FPropDefaultTheta(batch)
         self.task.BProp()
 
         self._metrics_dict_structure = metrics_dict
@@ -872,15 +907,16 @@ class HostDrivenTrainProgram(BaseProgram):
 
     @tf.function
     def _TpuFunction():
-      """Runs a single training step, and returns flattened metrics list."""
+      """Runs several training steps and returns a flattened metrics list."""
       self._metrics_mgr.ResetState()
 
       for _ in tf.range(self._steps_per_loop):
-        batch = self.task.input.GetPreprocessedInputBatch()
+        batch = _GetShardedBatch()
         strategy.run(_Step, args=(batch,))
 
       return self._metrics_mgr.FinalizeMetricsWithStructure(
-          self._metrics_dict_structure)
+          self._metrics_dict_structure
+      )
 
     return _TpuFunction
 
@@ -2538,7 +2574,9 @@ def SimpleProgramScheduleForTask(train_dataset_name,
       spmd=spmd,
       train_max_metrics=train_max_metrics)
   if issubclass(train_program_cls, TrainProgram):
-    program_schedule_params.train_program.summary_interval_steps = train_summary_interval_steps
+    program_schedule_params.train_program.summary_interval_steps = (
+        train_summary_interval_steps
+    )
 
   program_schedule_params.dataset_names = []
   program_schedule_params.async_postprocess = (
