@@ -2597,11 +2597,14 @@ def _MaybeWarnAboutPotentiallyIncorrectEvaluations():
       _WARNED_STACKS.add(tuple(trace))
 
 
-def _ShouldUseTF2GlobalStep():
+def _IsHostDrivenExecutor():
   cluster = cluster_factory.Current()
+  return cluster.params.job == 'host_driven_executor_tpu'
+
+
+def _ShouldUseTF2GlobalStep():
   return tf.executing_eagerly_outside_functions() and (
-      FLAGS.xla_device == 'gpu'
-      or cluster.params.job == 'host_driven_executor_tpu'
+      FLAGS.xla_device == 'gpu' or _IsHostDrivenExecutor()
   )
 
 
@@ -2971,6 +2974,11 @@ def _ComputeGradientsTpu(loss_or_activations,
         'Gradient computation for tpu embedding activations requires proper '
         'loss scaling, and so is not compatible with skip_zero_gradients and '
         'is_activations.')
+    assert not _IsHostDrivenExecutor(), (
+        'Host driven executor currently relies on TPU Strategy to reduce the '
+        'gradients across all replicas, so is incompatible with '
+        'skip_zero_gradients and is_activations'
+    )
 
   # Computes the gradients.
   # Sum the grads so that we can compute statistics across the whole batch.
@@ -3009,7 +3017,16 @@ def _ComputeGradientsTpu(loss_or_activations,
     with tf.ops.colocate_with(g):
       if skip_zero_gradients is None:
         # loss is already scaled by 1/shards.
-        if defer_crs_to_apply_grad:
+        if _IsHostDrivenExecutor():
+          assert not defer_crs_to_apply_grad, (
+              'Host driven executor is not compatible with'
+              ' defer_crs_to_apply_grad at the moment.'
+          )
+          # TPU strategy will reduce the gradients automatically before update.
+          # TODO(laigd): aggregation was set to NONE when creating variables,
+          # figure out why TPU strategy still runs the reduce_sum.
+          normalized_g = g
+        elif defer_crs_to_apply_grad:
           normalized_g = tf.convert_to_tensor(g)
         else:
           normalized_g = tf.tpu.cross_replica_sum(g)
