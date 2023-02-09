@@ -140,6 +140,7 @@ lingvo_cc_library(
         ":rope",
         ":versioned_file_set_proto_cc",
         # Implicit absl.strings dependency.
+        # Implicit str_format dependency.
         # Implicit absl.synchronization dependency.
     ],
 )

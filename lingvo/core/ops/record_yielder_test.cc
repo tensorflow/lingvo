@@ -580,5 +580,23 @@ TEST(RecordIterator, GetFilePatternPrefix) {
   EXPECT_EQ("/foo/bar/*", file_pattern);
 }
 
+TEST(RecordYielder, StringifyOptions) {
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = "iota:100";
+  opts.bufsize = 100;
+  opts.parallelism = 1;
+
+  EXPECT_EQ(Stringify(opts), R"({
+  file_pattern: "iota:100"
+  seed: 0
+  bufsize: 100
+  bufsize_in_seconds: 0
+  parallelism: 1
+  source_id: 0
+  num_input_replicas: 1
+  input_replica_id: 0
+})");
+}
+
 }  // namespace lingvo
 }  // namespace tensorflow

@@ -170,6 +170,11 @@ Status GetFilePatternsFromCkptFile(const string& fileset_file,
   return Status();
 }
 
+struct StringifySink {
+  void Append(const std::string& s) { str.append(s); }
+  std::string str;
+};
+
 }  // end namespace
 
 bool RecordIterator::Register(const string& type_name, FactoryMethod method) {
@@ -403,7 +408,8 @@ BasicRecordYielder::BasicRecordYielder(const Options& opts)
       buf_empty_(this, &ME::BufEmpty),
       buf_not_full_(this, &ME::BufNotFull),
       buf_enough_(this, &ME::BufEnough) {
-  LOG(INFO) << this << " Record yielder start";
+  LOG(INFO) << this << " Record yielder start. "
+            << "BasicRecordYielder::Options: " << Stringify(opts);
   if (opts_.seed == 0) {
     LOG(INFO) << "Randomly seed RecordYielder.";
     rnd_.seed(std::random_device{}());
@@ -632,6 +638,12 @@ void BasicRecordYielder::ShardLoop(Shard* shard) {
     Add(&values);
   }
   shard->done.Notify();
+}
+
+std::string Stringify(const BasicRecordYielder::Options& opts) {
+  StringifySink sink;
+  AbslStringify(sink, opts);
+  return sink.str;
 }
 
 }  // namespace lingvo

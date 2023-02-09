@@ -24,6 +24,7 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
+#include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
 #include "lingvo/core/ops/rope.h"
@@ -194,6 +195,29 @@ class BasicRecordYielder : public RecordYielder {
 
     int num_input_replicas = 1;
     int input_replica_id = 0;
+
+    // Make Options loggable, using https://abseil.io/tips/215.
+    template <typename Sink>
+    friend void AbslStringify(Sink& sink, const Options& opts) {
+      std::string result;
+
+      absl::StrAppendFormat(&result, "{\n");
+      absl::StrAppendFormat(&result, "  file_pattern: \"%s\"\n",
+                            opts.file_pattern);
+      absl::StrAppendFormat(&result, "  seed: %d\n", opts.seed);
+      absl::StrAppendFormat(&result, "  bufsize: %d\n", opts.bufsize);
+      absl::StrAppendFormat(&result, "  bufsize_in_seconds: %d\n",
+                            opts.bufsize_in_seconds);
+      absl::StrAppendFormat(&result, "  parallelism: %d\n", opts.parallelism);
+      absl::StrAppendFormat(&result, "  source_id: %d\n", opts.source_id);
+      absl::StrAppendFormat(&result, "  num_input_replicas: %d\n",
+                            opts.num_input_replicas);
+      absl::StrAppendFormat(&result, "  input_replica_id: %d\n",
+                            opts.input_replica_id);
+      absl::StrAppendFormat(&result, "}");
+
+      sink.Append(result);
+    }
   };
 
   // Returns a record yielder according to 'opts'. A caller is responsible for
@@ -324,6 +348,8 @@ class BasicRecordYielder : public RecordYielder {
 
   TF_DISALLOW_COPY_AND_ASSIGN(BasicRecordYielder);
 };
+
+std::string Stringify(const BasicRecordYielder::Options& opts);
 
 }  // namespace lingvo
 }  // namespace tensorflow
