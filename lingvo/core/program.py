@@ -37,6 +37,7 @@ from lingvo.core import program_utils
 from lingvo.core import py_utils
 from lingvo.core import pytypes
 from lingvo.core import summary_utils
+from lingvo.core import tpu_embedding_layers_v2
 
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.core.protobuf.tpu import compilation_result_pb2 as tpu_compilation_result
@@ -765,6 +766,9 @@ class TrainProgram(BaseProgram):
     return False
 
 
+_TPU_EMBEDDING_V2 = tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER
+
+
 class HostDrivenTrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
 
@@ -876,6 +880,14 @@ class HostDrivenTrainProgram(BaseProgram):
 
         # Remove bucket_keys; this relates to GenericInput pipelines.
         batch = batch.FilterKeyVal(lambda k, _: not k.endswith('bucket_keys'))
+
+        # Add a dummy dimension to indicate these are for sequence embeddings.
+        batch.Update(
+            batch.GetSlice(_TPU_EMBEDDING_V2.sequence_features).Transform(
+                lambda t: tf.expand_dims(t, -1)
+            )
+        )
+
         per_host_batches.extend(Split(batch, replicas_per_host))
 
       return strategy.experimental_distribute_values_from_function(
@@ -894,7 +906,11 @@ class HostDrivenTrainProgram(BaseProgram):
         batch: NestedMap of input batch data.
       """
       with tf.name_scope('tpu_train'):
+        _TPU_EMBEDDING_V2.Enqueue(
+            batch.GetSlice(_TPU_EMBEDDING_V2.feature_names)
+        )
         with py_utils.GradientTape(persistent=True):
+          batch.Update(_TPU_EMBEDDING_V2.Dequeue())
           metrics_dict, _ = self.task.FPropDefaultTheta(batch)
         self.task.BProp()
 

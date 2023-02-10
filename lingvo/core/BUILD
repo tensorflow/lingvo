@@ -964,6 +964,7 @@ py_library(
         ":py_utils",
         ":schedule",
         ":summary_utils",
+        ":tpu_embedding_layers_v2",
         "//lingvo:compat",
     ],
 )
@@ -2345,6 +2346,7 @@ py_library(
         ":py_utils",
         ":pytypes",
         ":summary_utils",
+        ":tpu_embedding_layers_v2",
         # Implicit etils (/epath) dependency.
         "//lingvo:base_trial",
         "//lingvo:compat",
@@ -2515,6 +2517,20 @@ py_library(
         ":py_utils",
         ":schedule",
         "//lingvo:compat",
+    ],
+)
+
+pytype_strict_library(
+    name = "tpu_embedding_layers_v2",
+    srcs = ["tpu_embedding_layers_v2.py"],
+    deps = [
+        ":base_layer",
+        ":hyperparams",
+        ":py_utils",
+        ":schedule",
+        "//lingvo:compat",
+        # Implicit tensorflow tpu emb dependency.
+        # Implicit tensorflow tpu emb util dependency.
     ],
 )
 

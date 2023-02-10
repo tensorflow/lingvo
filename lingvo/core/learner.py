@@ -25,6 +25,7 @@ from lingvo.core import optimizer
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
+from lingvo.core import tpu_embedding_layers_v2
 
 
 class Learner(base_layer.BaseLayer):
@@ -197,15 +198,20 @@ class Learner(base_layer.BaseLayer):
     losses, var_grads, grads_weight, eval_metrics = (
         self._ComputeLossesAndGradients(metrics, vmap))
     if 'tpu_embedding_var_grads' in var_grads:
-      tpu_embedding_var_grads = var_grads.tpu_embedding_var_grads
+      tpu_embedding_grads = var_grads.tpu_embedding_var_grads.Transform(
+          lambda var_grad: var_grad.grad
+      )
       del var_grads.tpu_embedding_var_grads
 
-      tpu_embedding_collection = py_utils.GetTpuEmbeddingGraphCollection()[0]
-      assert tpu_embedding_collection
-      tpu_emb_update_op, stats = tpu_embedding_collection.ApplyGradients(
-          py_utils.GetTaskCallScope(),
-          tpu_embedding_var_grads.Transform(lambda var_grad: var_grad.grad))
-      eval_metrics.update(stats)
+      if tpu_emb_manager := tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER:
+        tpu_emb_manager.ApplyGradients(tpu_embedding_grads)
+        tpu_emb_update_op = tf.no_op()
+      else:
+        tpu_embedding_collection = py_utils.GetTpuEmbeddingGraphCollection()[0]
+        tpu_emb_update_op, stats = tpu_embedding_collection.ApplyGradients(
+            py_utils.GetTaskCallScope(), tpu_embedding_grads
+        )
+        eval_metrics.update(stats)
     else:
       tpu_emb_update_op = tf.no_op()
 
@@ -263,10 +269,13 @@ class Learner(base_layer.BaseLayer):
     p = self.params
     vmap = self.GetTrainableVariables(vmap)
 
-    # Get tpu embedding activations to compute the gradients for.
     tpu_embedding_activations = py_utils.NestedMap()
     tpu_embedding_graph_collection = py_utils.GetTpuEmbeddingGraphCollection()
-    if tpu_embedding_graph_collection:
+    if tpu_emb_manager := tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER:
+      # Get TPU embedding activations through the TPUEmbedding v2 API.
+      tpu_embedding_activations.Update(tpu_emb_manager.Lookup())
+    elif tpu_embedding_graph_collection:
+      # Get TPU embedding activations through the TPUEmbedding v1 API.
       tpu_embedding_collection = tpu_embedding_graph_collection[0]
       task_call_scope = py_utils.GetTaskCallScope()
       tpu_embedding_activations = py_utils.NestedMap(

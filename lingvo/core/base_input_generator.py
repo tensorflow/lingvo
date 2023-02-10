@@ -241,6 +241,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
             'do_eval is False, otherwise fallback to "inference" mode; }.'
         ),
     )
+    p.Define(
+        'use_tpu_embedding_v2',
+        False,
+        'When set, use the newer TF2 TPUEmbedding API instead.',
+    )
     p.Define('cpu_passthrough_keys', [],
              'A list of keys in the input batch to not send to TPU device.')
     p.Define(
@@ -284,7 +289,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     if self._tpu_embedding_mode == 'train' and self.do_eval:
       self._tpu_embedding_mode = 'inference'  # Always disable backprop in eval.
 
-    if self.parent:
+    if self.parent and not params.use_tpu_embedding_v2:
       # Set the TPU embedding mode for the task. This need to happen in __init__
       # so that the mode is available when the BProp graph is built (note that
       # CreateTpuEmbeddingEnqueueOps() is called *after* building BProp graph).
@@ -442,6 +447,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """Create the host-side enqueue ops.
 
     This should be called in an outer non-TPU context.
+
+    Note: This is only used for the TF1 infeed based training loop.
 
     Args:
       job_name: the name of the job on which the enqueue operations run.
@@ -680,6 +687,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
   def CreateTpuEmbeddingEnqueueOps(self):
     """Creates the TpuEmbedding enqueue ops on all hosts.
 
+    Note: This is only used for the V1 TPUEmbedding API.
+
     Note that this must be called after the instantiation of the monolithic
     TPUEmbeddingLayer.
     """
@@ -796,6 +805,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
       num_splits: int,
   ) -> List[Dict[str, tpu_embedding_lib.EnqueueData]]:
     """Get a list of per-core TPU embedding enqueue data.
+
+    Note: This is only used for the V1 TPUEmbedding API.
 
     Args:
       tpu_embedding: The monolithic TpuEmbedding object.
