@@ -357,6 +357,36 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     out_shape = tf.concat([tf.shape(dense_ids), [p.embedding_dim]], 0)
     return tf.reshape(embs, out_shape)
 
+  def _CombinerEmbLookup(
+      self, sparse_ids: tf.SparseTensor, partition_strategy: str
+  ) -> tf.Tensor:
+    """Combiner embedding lookup.
+
+    Args:
+      sparse_ids: An int SparseTensor of shape [batch, ...].
+      partition_strategy: See TPUEmbeddingLayer partition_strategy param.
+
+    Returns:
+      A float32 activations Tensor of shape [batch, 1, embedding_dim].
+    """
+    p = self.params
+    embs = tf.nn.embedding_lookup_sparse(
+        self.theta.wm,
+        sp_ids=sparse_ids,
+        sp_weights=None,
+        combiner=p.combiner,
+        partition_strategy=partition_strategy,
+    )
+    batch_size = sparse_ids.dense_shape[0]
+    # For tf.nn.embedding_lookup_sparse, output.dim0 might be different from
+    # sparse_ids.dense_shape.dim0.
+    # Explicitly pad results to maintain dim0=batch.
+    dim0_padlen = tf.cast(batch_size, tf.int32) - tf.shape(embs)[0]
+    embs = tf.pad(embs, [[0, dim0_padlen], [0, 0]])
+    # [batch, 1, embedding_dim]
+    embs = py_utils.HasShape(embs, [batch_size], ndims=1)
+    return tf.expand_dims(embs, 1)
+
   def CpuEmbLookup(
       self, ids_map: py_utils.NestedMap, partition_strategy: str
   ) -> py_utils.NestedMap:
@@ -378,7 +408,22 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
       return ids_map.Transform(
           lambda ids: self._SequenceEmbLookup(ids, partition_strategy)
       )
-    raise NotImplementedError('The v2 API currently does not support combiners')
+
+    # Non-"Sequence embedding", combiner case
+    def _Lookup(ids):
+      # Dense to sparse.
+      dense_shape = tf.shape(ids, out_type=tf.int64)
+      sample_indices = tf.cast(tf.where(tf.not_equal(ids, -1)), tf.int64)
+      embedding_indices = tf.cast(tf.gather_nd(ids, sample_indices), tf.int64)
+      # [?, embedding_dim]
+      sparse_ids = tf.SparseTensor(
+          indices=sample_indices,
+          values=embedding_indices,
+          dense_shape=dense_shape,
+      )
+      return self._CombinerEmbLookup(sparse_ids, partition_strategy)
+
+    return ids_map.Transform(_Lookup)
 
 
 class _TPUEmbeddingManager:
