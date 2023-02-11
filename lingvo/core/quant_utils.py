@@ -1768,6 +1768,13 @@ class PassiveAsymQDomain(FakeQDomain):
     with tf.variable_scope(py_utils.GetGlobalVariableScope()):
       v = py_utils.CreateVariable(var_name, params, trainable=False)
     self._qvars[name] = v
+    # Track the qvars so that in TF2 mode the variables can be loaded properly
+    # from a checkpoint.
+    # We cannot use `_private_vars` because it will be compared against the
+    # model's `theta` variables.
+    # TODO(b/268716487): find a more systemic solution. Otherwise we need to
+    # track these variables case by case.
+    self._other_vars_to_track_tf2[name] = v
     return v
 
   def _GetQStateVar(self, act_name, suffix):
