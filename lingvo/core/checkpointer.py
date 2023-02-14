@@ -434,8 +434,20 @@ def _GetSaveableVariablesDict(models):
     RuntimeError: if there are variables with shared name.
   """
   res = {}
+  res['global_step:0'] = py_utils.GetGlobalStep()
   for model in models:
     res = py_utils.MergeDictsWithValueCheck(res, model.GetVariablesDict())
+
+    if tf.executing_eagerly_outside_functions():
+      for var in model.variables:
+        if var.name not in res:
+          tf.logging.warning(
+              f'Adding {var.name} to the variables being loaded '
+              f'from the checkpoint. Consider adding {var.name} '
+              'to `_private_vars` or `_other_vars_to_track_tf2`,'
+              'which is more conventional in Lingvo.'
+          )
+        res[var.name] = var
 
   res_updated = {}
   for k in res:
@@ -446,7 +458,6 @@ def _GetSaveableVariablesDict(models):
       k_new = k[:-2]
     res_updated[k_new] = res[k]
 
-  res_updated['global_step'] = py_utils.GetGlobalStep()
   return res_updated
 
 

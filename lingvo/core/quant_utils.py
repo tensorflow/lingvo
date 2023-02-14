@@ -1772,8 +1772,6 @@ class PassiveAsymQDomain(FakeQDomain):
     # from a checkpoint.
     # We cannot use `_private_vars` because it will be compared against the
     # model's `theta` variables.
-    # TODO(b/268716487): find a more systemic solution. Otherwise we need to
-    # track these variables case by case.
     self._other_vars_to_track_tf2[name] = v
     return v
 
