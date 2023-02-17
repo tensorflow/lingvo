@@ -35,6 +35,7 @@ from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 from lingvo.core import tpu_embedding_layers
+from lingvo.core import tpu_embedding_layers_v2
 from lingvo.core import decoder_lib
 from lingvo.core import input_policy
 from model_pruning.python import pruning
@@ -802,6 +803,15 @@ class BaseTask(base_layer.BaseLayer):
             increment_global_steps = tf.group(
                 increment_global_steps, tf.assign_add(self._global_step_var, 1))
         train_ops['global_step'] = increment_global_steps
+
+    if add_summary:
+      if manager := tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER:
+        summaries = manager.summary_tensors
+      elif manager := tpu_embedding_layers.TpuEmbeddingCollection.Get():
+        summaries = manager.summary_tensors
+
+      for name, value, weight in summaries:
+        self.AddEvalMetric(name, value, weight, raise_if_already_added=False)
 
     if not py_utils.IsEagerMode():
       # Some values could be a tf.no_op(), which returns None in eager mode, so

@@ -290,8 +290,9 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     self.CreateChild('schedule', p.lr_schedule)
 
     def _LearningRateFn():
-      # TODO(jlipschultz): add eval metric to report lr.
-      return self.schedule.Value() * p.learning_rate
+      lr = self.schedule.Value() * p.learning_rate
+      TPU_EMBEDDING_MANAGER.AddSummaryTensor(f'tpu_embedding_lr/{p.name}', lr)
+      return lr
 
     self._table_name = f'{p.name}_table'
     # This is the actual TPUEmbedding API object that TPUEmbeddingTable wraps.
@@ -483,6 +484,9 @@ class _TPUEmbeddingManager:
   @gradient_multiplier_schedule.setter
   def gradient_multiplier_schedule(self, schedule: schedule_lib.BaseSchedule):
     self._gradient_multiplier_schedule = schedule
+
+  def AddSummaryTensor(self, name: str, value: tf.Tensor, weight: float = 1.0):
+    self._summary_tensors.append((name, value, tf.convert_to_tensor(weight)))
 
   @property
   def summary_tensors(self) -> List[Tuple[str, tf.Tensor, tf.Tensor]]:
