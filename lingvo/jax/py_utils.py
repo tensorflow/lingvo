@@ -220,8 +220,9 @@ def create_gda(host_arrays: np.ndarray, global_shapes: jax.ShapeDtypeStruct,
   device_buffers = jax.tree_map(_put_to_devices, host_arrays)
 
   def _gda(global_shape, pspec, dbs):
-    return gda_lib.GlobalDeviceArray(global_shape.shape, global_mesh, pspec,
-                                     dbs)
+    return jax.make_array_from_single_device_arrays(
+        global_shape.shape, jax.sharding.NamedSharding(global_mesh, pspec), dbs
+    )
 
   return jax.tree_map(_gda, global_shapes, pspecs, device_buffers)
 
