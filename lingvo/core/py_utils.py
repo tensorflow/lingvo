@@ -311,8 +311,11 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
     if match:
       caller_var = match.groups()[0]
     if more:
-      more_vars = re.compile(r'more=\[(.*?)\].*$').search(
-          caller.code_context[0]).groups()[0]
+      more_vars = (
+          re.compile(r'more=\[(.*?)\].*$')
+          .search(caller.code_context[0])
+          .groups()[0]  # pytype: disable=attribute-error  # re-none
+      )
       if more_vars:
         caller_more_vars = more_vars.split(',')
 

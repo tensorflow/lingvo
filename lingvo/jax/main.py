@@ -192,7 +192,7 @@ if __name__ == '__main__':
   # Only dump from Borg task 0.
   if 'BORG_TASK_HANDLE' in os.environ:
     handle = os.getenv('BORG_TASK_HANDLE')
-    task_id, _, _ = _TASK_HANDLE_RE.match(handle).groups()
+    task_id, _, _ = _TASK_HANDLE_RE.match(handle).groups()  # pytype: disable=attribute-error  # re-none
     if int(task_id) == 0:
       dump_dir = os.getenv('XLA_DUMP_TO')
       if dump_dir:
