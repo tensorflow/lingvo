@@ -58,7 +58,7 @@ def maybe_ema(model_states):
     if 'ema' in model_states.opt_states[0][i]:
       return TrainState(
           step=model_states.step,
-          mdl_vars=model_states.opt_states[0][i].ema,
+          mdl_vars=model_states.opt_states[0][i].ema,  # pytype: disable=attribute-error  # jax-ndarray
           opt_states={})
   return model_states
 
@@ -412,12 +412,12 @@ def _get_dir_names(input_p: Sequence[InstantiableParams]) -> Sequence[str]:
 
 def _get_step(step: base_layer.JTensorOrPartitionSpec) -> int:
   """Returns an int for the current global step."""
-  if step.ndim == 0:
+  if step.ndim == 0:  # pytype: disable=attribute-error  # jax-ndarray
     return jax.device_get(step)
-  if step.ndim == 1:
+  if step.ndim == 1:  # pytype: disable=attribute-error  # jax-ndarray
     return jax.device_get(step[0])
   raise ValueError(
-      f'Expecting a replicated 1D global step (got ndim=`{step.ndim}`).')
+      f'Expecting a replicated 1D global step (got ndim=`{step.ndim}`).')  # pytype: disable=attribute-error  # jax-ndarray
 
 
 def _get_filename(step: base_layer.JTensorOrPartitionSpec) -> str:

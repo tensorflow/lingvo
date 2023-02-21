@@ -99,7 +99,7 @@ class RNNCell(base_layer.BaseLayer):
       state_modified = self._reset_state(state.DeepCopy(), inputs)
     else:
       state_modified = state
-    return state_modified
+    return state_modified  # pytype: disable=bad-return-type  # jax-ndarray
 
   def fprop(self, state0: NestedMap,
             inputs: NestedMap) -> Tuple[NestedMap, NestedMap]:
@@ -131,7 +131,7 @@ class RNNCell(base_layer.BaseLayer):
 
     state0 = self._maybe_reset_state(state0, inputs)
 
-    concat = jnp.concatenate(inputs.act + [state0.m], 1)
+    concat = jnp.concatenate(inputs.act + [state0.m], 1)  # pytype: disable=attribute-error  # jax-ndarray
     wm = self.local_theta().wm
     xmw = jnp.einsum('bd,dc->bc', concat, wm)
 
@@ -278,7 +278,7 @@ class LSTMCellSimple(RNNCell):
     state.c = inputs.reset_mask * state.c
     return state
 
-  def get_output(self, state: NestedMap) -> JTensor:
+  def get_output(self, state: NestedMap) -> JTensor:  # pytype: disable=signature-mismatch  # jax-ndarray
     return state.m
 
   def get_adjustment(self) -> JTensor:
@@ -383,7 +383,7 @@ class CIFGLSTMCellSimple(LSTMCellSimple):
   def _split_gate(self,
                   xmw: JTensor) -> Tuple[JTensor, JTensor, JTensor, JTensor]:
     div = xmw.shape[1] // self.num_gates
-    return xmw[:, :div], None, xmw[:, div:2 * div], xmw[:, 2 * div:]
+    return xmw[:, :div], None, xmw[:, div:2 * div], xmw[:, 2 * div:]  # pytype: disable=bad-return-type  # jax-ndarray
 
   def _compute_new_c(self, state0: NestedMap, i_i: JTensor, i_g: JTensor,
                      f_g: JTensor) -> JTensor:

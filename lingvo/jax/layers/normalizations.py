@@ -123,7 +123,7 @@ class BatchNorm(base_layer.BaseLayer):
     self._decay = p.decay
 
   def _get_weight_shape(self) -> JTensor:
-    return [self.params.dim]
+    return [self.params.dim]  # pytype: disable=bad-return-type  # jax-ndarray
 
   def create_layer_variables(self) -> None:
     """Creates batch normalization layer variables."""
@@ -172,7 +172,7 @@ class BatchNorm(base_layer.BaseLayer):
     else:
       beta = theta.beta
       gamma = theta.gamma + 1.0
-    return beta, gamma
+    return beta, gamma  # pytype: disable=bad-return-type  # jax-ndarray
 
   def compute_and_update_moments(
       self, inputs: JTensor,
@@ -519,4 +519,4 @@ class GroupNorm(base_layer.BaseLayer):
     if paddings is None:
       return outputs
     else:
-      return outputs, paddings
+      return outputs, paddings  # pytype: disable=bad-return-type  # jax-ndarray

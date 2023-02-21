@@ -189,7 +189,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
     # Handle microbatching.
     needs_microbatching = False
     if p.num_microbatches is None:
-      num_microbatches = inputs.shape[0]
+      num_microbatches = inputs.shape[0]  # pytype: disable=attribute-error  # jax-ndarray
       if p.microbatch_size is not None:
         batch_size = num_microbatches
         assert batch_size % p.microbatch_size == 0

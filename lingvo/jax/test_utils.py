@@ -84,7 +84,7 @@ def unshard_input_nmap(x_nmap: NestedMap) -> NestedMap:
   def unshard(x: JTensor) -> JTensor:
     num_devices = x.shape[0]
     batch_size = x.shape[1]
-    new_shape = [num_devices * batch_size] + x.shape[2:]
+    new_shape = [num_devices * batch_size] + x.shape[2:]  # pytype: disable=unsupported-operands  # jax-ndarray
     return tf.reshape(x, new_shape)
 
   return tf.nest.map_structure(unshard, x_nmap)
@@ -107,7 +107,7 @@ def to_tf_nmap(x_nmap: NestedMap) -> NestedMap:
     elif x.dtype == np.uint32:
       return tf.constant(np.asarray(x, x.dtype), tf.uint32)
     else:
-      assert 'dtype not supported yet'
+      assert 'dtype not supported yet'  # pytype: disable=bad-return-type  # jax-ndarray
 
   return tf.nest.map_structure(to_tf, x_nmap)
 

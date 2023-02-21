@@ -176,7 +176,7 @@ def train_step_single_learner(
   context_p = base_layer.JaxContext.Params().Set(do_eval=False)
   # Fold in global_step as part of the random seed key, so that random
   # numbers depends on global step.
-  prng_key = jax.random.fold_in(prng_key, states.step)
+  prng_key = jax.random.fold_in(prng_key, states.step)  # pytype: disable=wrong-arg-types  # jax-ndarray
 
   if data_parallel_axis_name:
     in_pmap = True
@@ -396,7 +396,7 @@ def eval_step_single_learner(
   context_p = base_layer.JaxContext.Params().Set(do_eval=True)
   # Fold in global_step as part of the random seed key, so that random
   # numbers depends on global step.
-  prng_key = jax.random.fold_in(prng_key, states.step)
+  prng_key = jax.random.fold_in(prng_key, states.step)  # pytype: disable=wrong-arg-types  # jax-ndarray
   model = jax_task.model
   mdl_vars = states.mdl_vars
   assert not states.opt_states
@@ -493,7 +493,7 @@ def decode_step(
   context_p = base_layer.JaxContext.Params().Set(do_eval=True)
   # Fold in global_step as part of the random seed key, so that random
   # numbers depends on global step.
-  prng_key = jax.random.fold_in(prng_key, states.step)
+  prng_key = jax.random.fold_in(prng_key, states.step)  # pytype: disable=wrong-arg-types  # jax-ndarray
   mdl_vars = states.mdl_vars
   assert not states.opt_states
 

@@ -1107,7 +1107,7 @@ class DotProductAttention(base_layer.BaseLayer):
     # Compute the attention context.
     encoded = jnp.einsum('BNS,SBNH->BNH', probs, value)
     encoded = self._shard_bnh(encoded)
-    return encoded, probs
+    return encoded, probs  # pytype: disable=bad-return-type  # jax-ndarray
 
   def fprop(
       self,
@@ -1361,7 +1361,7 @@ class DotProductAttention(base_layer.BaseLayer):
     # Post projection.
     encoded = self.post.fprop(encoded)
     encoded = self._shard_bd(encoded)
-    return updated_state, encoded
+    return updated_state, encoded  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 class CausalDepthwiseConv1D(base_layer.BaseLayer):

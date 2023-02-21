@@ -81,7 +81,7 @@ class Dropout(base_layer.BaseLayer):
         for dim in p.noise_shape_broadcast_dims:
           if dim >= len(noise_shape):
             raise ValueError('Invalid broadcasted dim {}'.format(dim))
-          noise_shape[dim] = 1
+          noise_shape[dim] = 1  # pytype: disable=unsupported-operands  # jax-ndarray
       else:
         noise_shape = p.noise_shape
       ret = self._dropout(inputs, noise_shape)

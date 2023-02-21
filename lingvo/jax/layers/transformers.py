@@ -642,7 +642,7 @@ class TransformerFeedForwardMoe(base_layer.BaseLayer):
     for ii in range(p.expert_weight_shards):
       self.create_variable('wo_%d' % ii, wo_pc)
 
-  def fprop(self, inputs: JTensor, paddings: JTensor = None) -> JTensor:
+  def fprop(self, inputs: JTensor, paddings: JTensor = None) -> JTensor:  # pytype: disable=annotation-type-mismatch  # jax-ndarray
     """Layer-norm, route, feed-forward, combine, residual.
 
     Args:
@@ -1049,7 +1049,7 @@ class Transformer(base_layer.BaseLayer):
 
     # Apply FFN layer
     output = self.ff_layer.fprop(atten_output, paddings=paddings)
-    return output, atten_probs
+    return output, atten_probs  # pytype: disable=bad-return-type  # jax-ndarray
 
   def extend_step(
       self,
@@ -1474,7 +1474,7 @@ class StackedTransformer(base_layer.BaseLayer):
           cross_attention_mask=cross_attention_mask)
       updated_states.x_layers.append(updated_layer_states)
       decoder_input = decoder_output
-    return updated_states, decoder_output
+    return updated_states, decoder_output  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 class StackedTransformerRepeated(base_layer.BaseLayer):

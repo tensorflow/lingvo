@@ -351,7 +351,7 @@ class ClassificationMLPModel(BaseModel):
         class_ids=input_batch.ids[:, :, jnp.newaxis])
     return predictions
 
-  def compute_loss(self, predictions: NestedMap,
+  def compute_loss(self, predictions: NestedMap,  # pytype: disable=signature-mismatch  # jax-ndarray
                    input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     labels = input_batch.labels
     weights = input_batch.weights
@@ -433,7 +433,7 @@ class LanguageModel(BaseModel):
         labels=labels,
         **packed_input_kwargs)
 
-  def compute_loss(self, predictions: NestedMap,
+  def compute_loss(self, predictions: NestedMap,  # pytype: disable=signature-mismatch  # jax-ndarray
                    input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Computes the loss and other metrics for the given predictions.
 
@@ -766,7 +766,7 @@ class ClassificationModel(BaseModel):
         softmax_output=softmax_output,
         example_weights=example_weights)
 
-  def compute_loss(self, predictions: NestedMap,
+  def compute_loss(self, predictions: NestedMap,  # pytype: disable=signature-mismatch  # jax-ndarray
                    input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Computes the loss and other metrics for the given predictions.
 
@@ -877,7 +877,7 @@ class BertModel(BaseModel):
     lm_out.augmented_pos = augmented_pos
     return lm_out
 
-  def compute_loss(self, predictions: NestedMap,
+  def compute_loss(self, predictions: NestedMap,  # pytype: disable=signature-mismatch  # jax-ndarray
                    input_batch: NestedMap) -> Tuple[Metrics, Dict[str, Any]]:
     """Computes the loss and other metrics for the given predictions.
 

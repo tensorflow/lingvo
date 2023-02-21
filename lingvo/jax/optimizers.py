@@ -1327,7 +1327,7 @@ class _ShardedAdafactorHelper:
 
   def to_state(self, count, result_tree):
     """Maps from a tree of (factored) values to separate trees of values."""
-    return ShardedAdafactorState(
+    return ShardedAdafactorState(  # pytype: disable=wrong-arg-types  # jax-ndarray
         count=count,
         m=jax.tree_map(lambda o: o.m, result_tree),
         m_scale=jax.tree_map(lambda o: o.m_scale, result_tree),

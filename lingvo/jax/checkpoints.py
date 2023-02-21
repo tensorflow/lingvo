@@ -144,13 +144,13 @@ def save_checkpoint(
     _save_checkpoint_gda(train_state, checkpoint_dir, overwrite, step)
     return
 
-  if train_state.step.ndim == 0:
+  if train_state.step.ndim == 0:  # pytype: disable=attribute-error  # jax-ndarray
     step = jax.device_get(train_state.step)
-  elif train_state.step.ndim == 1:
+  elif train_state.step.ndim == 1:  # pytype: disable=attribute-error  # jax-ndarray
     step = jax.device_get(train_state.step[0])
   else:
     raise ValueError(
-        f'Expecting a replicated 1D global step (got `{train_state.step.ndim}`).'
+        f'Expecting a replicated 1D global step (got `{train_state.step.ndim}`).'  # pytype: disable=attribute-error  # jax-ndarray
     )
 
   if checkpoint_type in {
@@ -221,9 +221,9 @@ def restore_checkpoint(
     return _restore_checkpoint_gda(train_state, checkpoint_dir, global_mesh,
                                    state_specs, step)
 
-  if train_state is not None and train_state.step.ndim != 0:
+  if train_state is not None and train_state.step.ndim != 0:  # pytype: disable=attribute-error  # jax-ndarray
     raise ValueError('Expecting an unreplicated scalar global step (got '
-                     f'`{train_state.step.ndim}`).')
+                     f'`{train_state.step.ndim}`).')  # pytype: disable=attribute-error  # jax-ndarray
 
   if checkpoint_type in {
       CheckpointType.CHECKPOINT_FLAX, CheckpointType.CHECKPOINT_MULTI_HOST_FLAX

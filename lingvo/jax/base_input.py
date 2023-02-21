@@ -304,7 +304,7 @@ class LingvoInputAdaptorNewBatchSize(LingvoInputAdaptor):
   def __init__(self, p):
     super().__init__(p)
     self._current_batch = super().get_next()
-    self._inner_batch_size = next(iter(self._current_batch.values())).shape[0]
+    self._inner_batch_size = next(iter(self._current_batch.values())).shape[0]  # pytype: disable=attribute-error  # jax-ndarray
     logging.info(
         'The wrapped Lingvo input has batch size %d, the actual input '
         'has batch size %d.', self._inner_batch_size, p.batch_size)

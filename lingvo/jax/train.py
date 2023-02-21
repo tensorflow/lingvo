@@ -647,7 +647,7 @@ def train_and_evaluate_spmd_model(
         logging.debug('  Completed train_step().')
 
         logging.debug('  Writing summaries (attempt).')
-        if summary_utils.write_summary_every_n_steps(
+        if summary_utils.write_summary_every_n_steps(  # pytype: disable=wrong-arg-types  # jax-ndarray
             partitioned_train_state,
             train_summary_writer,
             step_i,

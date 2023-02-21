@@ -146,7 +146,7 @@ def aggregate_per_replica_summaries(summary_tensors: NestedJTensor,
   """Aggregates summaries from different replicas in pmap."""
   scalar_summaries = {}
   image_summaries = {}
-  for k, v in summary_tensors.items():
+  for k, v in summary_tensors.items():  # pytype: disable=attribute-error  # jax-ndarray
     summary_type = base_layer.get_summary_type_from_key(k)
     if summary_type == SummaryType.SCALAR:
       scalar_summaries[k] = v
@@ -165,7 +165,7 @@ def aggregate_per_replica_summaries(summary_tensors: NestedJTensor,
       lambda x: jnp.reshape(x, [-1] + list(x.shape)[-3:])[:max_entries],
       image_summaries)
 
-  summary_tensors = summary_tensors.copy()
+  summary_tensors = summary_tensors.copy()  # pytype: disable=attribute-error  # jax-ndarray
   for k, v in scalar_summaries.items():
     summary_tensors[k] = v
   for k, v in image_summaries.items():
@@ -250,7 +250,7 @@ def write_summary_entry(summary_writer: SummaryWriter,
   with summary_writer.as_default():
     write_summary_tensor(step_i, 'loss', mean_loss, SummaryType.SCALAR)
     if steps_per_sec is not None:
-      write_summary_tensor(step_i, 'Steps/sec', steps_per_sec,
+      write_summary_tensor(step_i, 'Steps/sec', steps_per_sec,  # pytype: disable=wrong-arg-types  # jax-ndarray
                            SummaryType.SCALAR)
     logging.info('Metrics values at step %d:', step_i)
     logging.info('  loss=%f', mean_loss)
