@@ -117,8 +117,12 @@ def run_eval_loop_over_test_splits(
               eval_inputs_shape,
               tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
                                     eval_inputs))
-          eval_inputs = py_utils.create_gda(eval_inputs, eval_inputs_shape,  # pytype: disable=wrong-arg-types  # jax-ndarray
-                                            global_mesh, eval_inputs_pspecs)
+          eval_inputs = py_utils.make_array(
+              eval_inputs,
+              eval_inputs_shape,  # pytype: disable=wrong-arg-types  # jax-ndarray
+              global_mesh,
+              eval_inputs_pspecs,
+          )
         eval_loss, eval_metrics, eval_summary_tensors = run_eval_one_step(
             eval_inputs, eval_step, reshard_inputs=reshard_inputs)
         eval_loss = py_utils.maybe_unreplicate_gda(eval_loss)

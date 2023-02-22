@@ -189,10 +189,13 @@ def sync_global_devices(name: str) -> None:
                name, global_device_count)
 
 
-def create_gda(host_arrays: np.ndarray, global_shapes: jax.ShapeDtypeStruct,
-               global_mesh: jax.sharding.Mesh,
-               pspecs: Any) -> gda_lib.GlobalDeviceArray:
-  """Create GDA from host array.
+def make_array(
+    host_arrays: np.ndarray,
+    global_shapes: jax.ShapeDtypeStruct,
+    global_mesh: jax.sharding.Mesh,
+    pspecs: Any,
+) -> gda_lib.GlobalDeviceArray:
+  """Makes a Jax Array from host array.
 
   Evenly partitioning x along axis 0 and device_put shards to local devices.
 

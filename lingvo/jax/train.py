@@ -631,8 +631,9 @@ def train_and_evaluate_spmd_model(
               inputs_shape,
               tf.nest.map_structure(py_utils.get_global_input_shape_dtype,
                                     model_inputs))
-          model_inputs = py_utils.create_gda(model_inputs, inputs_shape,
-                                             global_mesh, inputs_pspecs)
+          model_inputs = py_utils.make_array(
+              model_inputs, inputs_shape, global_mesh, inputs_pspecs
+          )
           if step_i <= _N_STEPS_WARMUP_LOGGING:
             logging.info('GDA train batch input creation time %s',
                          time.time() - start)
@@ -677,8 +678,9 @@ def train_and_evaluate_spmd_model(
           eval_inputs = train_input_pipeline.get_next()
 
           if jax.config.jax_parallel_functions_output_gda:
-            eval_inputs = py_utils.create_gda(eval_inputs, inputs_shape,
-                                              global_mesh, inputs_pspecs)
+            eval_inputs = py_utils.make_array(
+                eval_inputs, inputs_shape, global_mesh, inputs_pspecs
+            )
 
           logging.debug('  Retrieved eval model_inputs.')
           logging.debug('  Performing eval_step() runs on training split.')

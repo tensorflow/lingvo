@@ -738,8 +738,9 @@ def decode_once_spmd_model(
         except (tf.errors.OutOfRangeError, StopIteration):
           break
         if jax.config.jax_parallel_functions_output_gda:
-          batch = py_utils.create_gda(batch, inputs_shape, global_mesh,
-                                      inputs_partition_spec)
+          batch = py_utils.make_array(
+              batch, inputs_shape, global_mesh, inputs_partition_spec
+          )
         _, out = spmd_decode_step_fn(batch)
         # Output is fully replicated now, so it's ok to unreplicate it by
         # retrieving from device 0 only.
