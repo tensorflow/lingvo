@@ -557,8 +557,9 @@ def initialize_partitioned_model_states(
 
   init_fn = pjit.pjit(
       init_model_from_seed,
-      in_axis_resources=(None,),
-      out_axis_resources=train_state_partition_specs)
+      in_shardings=(None,),
+      out_shardings=train_state_partition_specs,
+  )
 
   assert (
       base_layer.global_mesh_defined()
@@ -867,8 +868,9 @@ def get_partitioned_spmd_model_decode_fn(jax_task, init_key,
                                                         decode_out_shapes)
   decode_step_fn = pjit.pjit(
       _decode_step,
-      in_axis_resources=decode_fn_in_partition_specs,
-      out_axis_resources=decode_fn_out_partition_specs)
+      in_shardings=decode_fn_in_partition_specs,
+      out_shardings=decode_fn_out_partition_specs,
+  )
 
   return decode_step_fn, inputs_partition_spec
 
