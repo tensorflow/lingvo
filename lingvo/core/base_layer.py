@@ -188,6 +188,7 @@ class BaseLayerMeta(type):
 
 
 class ABCLayerMeta(BaseLayerMeta, abc.ABCMeta):
+  """Abstract metaclass useful for ABCs that interact with BaseLayer."""
   pass
 
 

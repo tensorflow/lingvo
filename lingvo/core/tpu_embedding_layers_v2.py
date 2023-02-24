@@ -12,7 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""TPU embedding layers."""
+"""A lingvo interface into the Tensorflow TPUEmbedding V2 library.
+
+Overview:
+  The TPUEmbeddingLayer defined below grants Lingvo model authors access to the
+  TensorFlow TPUEmbedding API to train extra-large embedding tables. Similar to
+  other Embedding layers in Lingvo, the interface provided is an `EmbLookup`
+  function, which may be called from an FProp block to fetch embedding
+  activations for particular batches of ids. This library's advantage is that
+  it takes advantage of a TPU coprocessor that permits embeddings to be sharded
+  across the HBM of large TPU topologies, and thus can vastly increase the total
+  size of the embedding tables one can train.
+
+Restrictions:
+  Use of this V2 Layer *requires* TPUStrategy, and thus also the Lingvo
+  HostDrivenExecutor (and associated Programs).
+
+See also:
+  www.tensorflow.org/api_docs/python/tf/tpu/experimental/embedding/TPUEmbedding
+"""
 import collections
 import math
 

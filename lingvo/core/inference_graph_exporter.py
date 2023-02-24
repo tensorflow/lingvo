@@ -436,8 +436,8 @@ class InferenceGraphExporter:
             # inference dtype as bfloat16, the variables in the checkpoint must
             # already be in bfloat16, so we change back to bfloat16 to avoid
             # dtype mismatch.
-            for var_name in (tpu_embedding_layers.TpuEmbeddingCollection.Get()
-                             .inference_with_bfloat16_var_names):
+            tpu_emb_coll = tpu_embedding_layers.TpuEmbeddingCollection.Get()
+            for var_name in tpu_emb_coll.inference_with_bfloat16_var_names:
               saver_var_spec[var_name] = variables_to_restore[var_name]
           else:
             saver_var_spec = variables_to_restore
