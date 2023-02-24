@@ -184,6 +184,99 @@ class BuilderLayerTest(test_utils.TestCase, parameterized.TestCase):
     act = np.maximum(0, np.dot(act, w.baz.w) + w.baz.b)
     self.assertAllClose(act, y_val)
 
+  def testSequentialLayerIntermLayerOutput(self):
+    g = tf.Graph()
+    with g.as_default(), self.SetEval(True):
+      tf.random.set_seed(24332)
+      p = layers.SequentialLayer.Params().Set(
+          name='seq',
+          repeat=4,
+          sub=[
+              lingvo_layers.FCLayer.Params().Set(
+                  name='foo', input_dim=32, output_dim=8
+              ),
+              lingvo_layers.FCLayer.Params().Set(
+                  name='bar', input_dim=8, output_dim=8
+              ),
+              lingvo_layers.FCLayer.Params().Set(
+                  name='baz', input_dim=8, output_dim=32
+              ),
+              lingvo_layers.DropoutLayer.Params().Set(
+                  name='dropout', keep_prob=0.5
+              ),
+          ],
+      )
+      l = p.Instantiate()
+
+      # Save output from layer 001 and 002.
+      l.children.rep[1].params.save_output = True
+      l.children.rep[2].params.save_output = True
+
+      x = tf.random.normal(shape=[2, 32])
+      y = l.FPropDefaultTheta(x)
+      l1_out = l.children.rep[1].output
+      l2_out = l.children.rep[2].output
+      l.vars.Transform(lambda x: x.shape).VLog(0, 'vars: ')
+
+    with self.session(graph=g):
+      self.evaluate(tf.global_variables_initializer())
+      x_val, y_val, w, l1_out_val, l2_out_val = self.evaluate([
+          x,
+          y,
+          l.vars,
+          l1_out,
+          l2_out,
+      ])
+
+    act = x_val
+    # relu(act \dot w + b)
+    for i in range(4):
+      act = np.maximum(0, np.dot(act, w.rep[i].foo.w) + w.rep[i].foo.b)
+      act = np.maximum(0, np.dot(act, w.rep[i].bar.w) + w.rep[i].bar.b)
+      act = np.maximum(0, np.dot(act, w.rep[i].baz.w) + w.rep[i].baz.b)
+      # Check expected output from intermediate layers.
+      if i == 1:
+        self.assertAllClose(act, l1_out_val)
+      if i == 2:
+        self.assertAllClose(act, l2_out_val)
+    self.assertAllClose(act, y_val)
+
+  def testSequentialLayerIntermLayerOutputNotAvailable(self):
+    g = tf.Graph()
+    with g.as_default(), self.SetEval(True):
+      p = layers.SequentialLayer.Params().Set(
+          name='seq',
+          repeat=5,
+          sub=[
+              lingvo_layers.FCLayer.Params().Set(
+                  name='foo', input_dim=32, output_dim=8
+              ),
+              lingvo_layers.FCLayer.Params().Set(
+                  name='bar', input_dim=8, output_dim=32
+              ),
+          ],
+      )
+      l = p.Instantiate()
+      l.children.rep[0].params.save_output = True
+      l.children.rep[2].params.save_output = True
+      l.children.rep[4].params.save_output = True
+      x = tf.random.normal(shape=[2, 32])
+      l.FPropDefaultTheta(x)
+      # Output saved for layers 0, 2 and 4.
+      for layer_index in [0, 2, 4]:
+        self.assertIsNotNone(l.children.rep[layer_index].output)
+      # Output not saved for layers 1 and 3.
+      for layer_index in [1, 3]:
+        with self.assertRaises(tf.errors.UnavailableError) as cm:
+          _ = l.children.rep[layer_index].output
+        self.assertEqual(
+            (
+                f'Output not saved for layer name: 00{layer_index}. save_output'
+                ' parameter value: False.'
+            ),
+            str(cm.exception),
+        )
+
   def testParallelLayer(self):
     g = tf.Graph()
     with g.as_default(), self.SetEval(True):

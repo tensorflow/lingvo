@@ -610,10 +610,13 @@ py_test(
     srcs = ["builder_layers_test.py"],
     deps = [
         ":builder_layers",
+        ":cluster_factory",
+        ":hyperparams",
         ":layers",
         ":py_utils",
         ":test_utils",
         ":tshape",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],

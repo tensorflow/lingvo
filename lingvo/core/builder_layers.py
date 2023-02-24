@@ -466,15 +466,25 @@ class SequentialLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('sub', [], 'A list of layers\' params.')
-    p.Define('repeat', 1, 'Repeat layers specified in \'sub\' '
-             'this many times.')
+    p.Define('sub', [], "A list of layers' params.")
+    p.Define('repeat', 1, "Repeat layers specified in 'sub' this many times.")
+    p.Define(
+        'save_output',
+        False,
+        (
+            'Specifies if the output of this layer should be saved in'
+            ' self._output in addition to being returned from FProp. Can be'
+            ' modified after this layer has been created but must be set before'
+            ' FProp is called to save the output.'
+        ),
+    )
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
     assert p.name
+    self._output = None
     if p.repeat <= 1:
       self._seq = []
       for sub in p.sub:
@@ -507,7 +517,10 @@ class SequentialLayer(base_layer.BaseLayer):
                           len(args), str(args))
           args = ch.FProp(th, *args)
       args = _ToTuple(args)
-      return args[0] if len(args) == 1 else args
+      output = args[0] if len(args) == 1 else args
+      if p.save_output:
+        self._output = output
+      return output
 
   @classmethod
   def FPropMeta(cls, p, *args):
@@ -522,6 +535,20 @@ class SequentialLayer(base_layer.BaseLayer):
         total += meta.flops
         args = meta.out_shapes
     return py_utils.NestedMap(flops=total, out_shapes=args)
+
+  @property
+  def output(self):
+    if self._output is not None:
+      return self._output
+    else:
+      raise tf.errors.UnavailableError(
+          None,
+          None,
+          (
+              f'Output not saved for layer name: {self.params.name}.'
+              f' save_output parameter value: {self.params.save_output}.'
+          ),
+      )
 
 
 class UnarySequentialLayer(base_layer.BaseLayer):
