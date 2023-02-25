@@ -29,7 +29,7 @@ from lingvo.core import cluster_factory
 from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
-from lingvo.core import tpu_embedding_layers
+from lingvo.core import tpu_embedding_layers_v1
 import numpy as np
 
 from lingvo import base_runner
@@ -467,7 +467,8 @@ class TrainerTpu(base_runner.BaseRunner):
           """
           self._model.ConstructFPropBPropGraph()
           tpu_embedding_collection = (
-              tpu_embedding_layers.TpuEmbeddingCollection.Get())
+              tpu_embedding_layers_v1.TpuEmbeddingCollection.Get()
+          )
           self._load_ops = tpu_embedding_collection.load_ops
           self._retrieve_ops = tpu_embedding_collection.retrieve_ops
           self._tpu_embedding = tpu_embedding_collection.tpu_embedding

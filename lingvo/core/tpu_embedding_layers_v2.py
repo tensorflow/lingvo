@@ -31,8 +31,8 @@ Restrictions:
 See also:
   www.tensorflow.org/api_docs/python/tf/tpu/experimental/embedding/TPUEmbedding
 """
+import abc
 import collections
-import math
 
 from typing import Callable, FrozenSet, List, Set, Optional, Tuple, Union
 import lingvo.compat as tf
@@ -40,6 +40,7 @@ from lingvo.core import base_layer
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import schedule as schedule_lib
+from lingvo.core import tpu_embedding_layers
 
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu import tpu_embedding_v2
@@ -47,76 +48,24 @@ from tensorflow.python.tpu import tpu_embedding_v2_utils
 # pylint:enable=g-direct-tensorflow-import
 
 
-class _TPUEmbeddingOptimizer(base_layer.BaseLayer):
-  """Base class for TPUEmbeddingLayer, TPUEmbeddingTable optimizers."""
+class _TPUEmbeddingOptimizerV2Mixin(
+    base_layer.BaseLayer, metaclass=base_layer.ABCLayerMeta
+):
+  """Defines the inferface for optimizers expected by the V2 Layer below."""
 
-  @classmethod
-  def Params(cls) -> hyperparams.InstantiableParams['_TPUEmbeddingOptimizer']:
-    p = super().Params()
-    p.Define(
-        'clip_weight_min',
-        None,
-        'The minimum value to clip the weight by; None means -infinity.',
-    )
-    p.Define(
-        'clip_weight_max',
-        None,
-        'The maximum value to clip the weight by; None means +infinity.',
-    )
-    p.Define(
-        'clip_gradient_min',
-        None,
-        'The minimum value to clip the gradient by; None means -infinity.',
-    )
-    p.Define(
-        'clip_gradient_max',
-        None,
-        'The maximum value to clip the gradient by; None means +infinity.',
-    )
-    p.Define(
-        'weight_decay_factor',
-        None,
-        (
-            'Amount of weight decay to apply; None means that the weights are'
-            ' not decayed.'
-        ),
-    )
-    p.Define(
-        'multiply_weight_decay_factor_by_learning_rate',
-        False,
-        (
-            'If true, weight_decay_factor is multiplied by the current '
-            'learning rate.'
-        ),
-    )
-    return p
-
+  @abc.abstractmethod
   def CreateOptimizerFn(
       self,
       learning_rate: Union[float, Callable[[], float]],
   ) -> tpu_embedding_v2_utils._Optimizer:  # pylint: disable=protected-access
     """Create TPUEmbedding API optimizer parameters."""
-    raise NotImplementedError()
 
 
-class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
-  """Adagrad optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define(
-        'initial_accumulator', 0.1, 'Initial value of Adagrad accumulator.'
-    )
-    p.Define(
-        'use_gradient_accumulation',
-        True,
-        (
-            'Setting this to False makes embedding gradients calculation less '
-            'accurate but faster. See tpu_embedding_lib for more details.'
-        ),
-    )
-    return p
+class TPUEmbeddingAdagradOptimizer(
+    tpu_embedding_layers.TPUEmbeddingAdagradOptimizer,
+    _TPUEmbeddingOptimizerV2Mixin,
+):
+  """Adagrad optimizer for TPUEmbeddingLayer & TPUEmbeddingTable."""
 
   def CreateOptimizerFn(
       self, learning_rate: Union[float, Callable[[], float]]
@@ -137,46 +86,11 @@ class TPUEmbeddingAdagradOptimizer(_TPUEmbeddingOptimizer):
     )
 
 
-class TPUEmbeddingAdamOptimizer(_TPUEmbeddingOptimizer):
-  """Adam optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define(
-        'lazy_adam',
-        True,
-        'Use lazy Adam instead of Adam. Lazy Adam trains faster.',
-    )
-    p.Define(
-        'beta1', 0.9, 'The exponential decay rate for the 1st moment estimates'
-    )
-    p.Define(
-        'beta2',
-        0.999,
-        'The exponential decay rate for the 2nd moment estimates',
-    )
-    p.Define('epsilon', 1e-08, 'A small constant for numerical stability')
-    p.Define(
-        'sum_inside_sqrt',
-        True,
-        (
-            'When this is true, the Adam update formula is changed from '
-            'm / (sqrt(v) + epsilon) to m / sqrt(v + epsilon**2). This option '
-            'improves the performance of TPU training and is not expected to '
-            'harm model quality.'
-        ),
-    )
-    p.Define(
-        'use_gradient_accumulation',
-        True,
-        (
-            'Setting this to False makes embedding gradients calculation less '
-            'accurate but faster'
-        ),
-    )
-
-    return p
+class TPUEmbeddingAdamOptimizer(
+    tpu_embedding_layers.TPUEmbeddingAdamOptimizer,
+    _TPUEmbeddingOptimizerV2Mixin,
+):
+  """Adam optimizer for TPUEmbeddingLayer & TPUEmbeddingTable."""
 
   def CreateOptimizerFn(
       self, learning_rate: Union[float, Callable[[], float]]
@@ -200,13 +114,10 @@ class TPUEmbeddingAdamOptimizer(_TPUEmbeddingOptimizer):
     )
 
 
-class TPUEmbeddingTable(base_layer.BaseLayer):
+class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
   """An embedding table controlled by TPUEmbeddingLayer.
 
-  Note that all input_keys needs to be declared upfront.
-
-  TODO(b/268341201): factor out common functionality between this V2 API and the
-    V1 API.
+  Note that all input_keys need to be declared upfront.
   """
 
   # Note: there are other optimizers implemented by the API, but these two are
@@ -214,105 +125,15 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
   optimizer: Union[TPUEmbeddingAdagradOptimizer, TPUEmbeddingAdamOptimizer]
   schedule: schedule_lib.BaseSchedule
 
-  @classmethod
-  def Params(cls) -> py_utils.InstantiableParams['TPUEmbeddingTable']:
-    p = super().Params()
-    p.Define('vocab_size', 0, 'Depth of the input.')
-    p.Define('embedding_dim', 0, 'Depth of the output.')
-    p.Define('input_keys', None, 'Name of inputs in InputBatch.')
-    p.Define(
-        'combiner',
-        'sum',
-        (
-            'Must be "sum", "sqrtn", "mean". For a sequence embedding, use '
-            '"sum" (it is ignored, however). (The V1 API used None to indicate '
-            'the same.'
-        ),
-    )
-    p.Define(
-        'max_sequence_length',
-        None,
-        (
-            'If not None or 0, embedding lookup will return a '
-            '"sequence embedding" of shape '
-            '`[batch, max_sequence_length, embedding_dim]` without applying a '
-            'sequence  reducing combiner over dim 1.'
-        ),
-    )
-    p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
-    p.Define(
-        'optimizer',
-        None,
-        (
-            'Table optimizer parameters. Will override the optimizer '
-            "parameters defined in this table's TPUEmbeddingLayer."
-        ),
-    )
-    p.Define(
-        'learning_rate', None, "The learning rate for this table's optimizer."
-    )
-    p.Define('lr_schedule', None, "Overrides TPUEmbeddingLayer's lr_schedule.")
-    p.Define(
-        'inference_use_merged_variable',
-        False,
-        (
-            'Whether to use merged embedding table variable during inference. '
-            'If set to True, only one table variable will be created, and '
-            'the user will need to manually merge the sharded table variables '
-            'in the trained checkpoint before generating the inference graph.'
-        ),
-    )
-    p.Define(
-        'inference_variable_dtype',
-        None,
-        (
-            'The dtype of embedding table variables during inference. If None, '
-            'self.params.dtype will be used. Note that the variables in the '
-            'inference checkpoint must be with this dtype, and any conversion '
-            'from float32 (if necessary) needs to be done separately.'
-        ),
-    )
-    p.Define(
-        'inference_auxiliary_variable_specs',
-        None,
-        (
-            'A dict of variable_name -> (dtype, shape) for any auxiliary '
-            'variables that the layer need to create during inference. For '
-            'example, if quantization techniques are used, it may need to '
-            'record the value range (i.e. min/max) of the table variables.'
-        ),
-    )
-    return p
-
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    assert p.vocab_size > 0
-    assert p.embedding_dim > 0
-    assert p.input_keys
-    assert p.name
-    assert p.num_tpu_hosts > 0
-    assert p.optimizer
-    assert p.learning_rate
-    assert p.lr_schedule
-
-    self._ids_per_shard = int(math.ceil(float(p.vocab_size) / p.num_tpu_hosts))
-    self._padded_vocab_size = self._ids_per_shard * p.num_tpu_hosts
-    self._input_keys = p.input_keys
-
-    self._max_sequence_length = 0
-    if p.max_sequence_length:
-      self._max_sequence_length = p.max_sequence_length
-
-    self.CreateChild('optimizer', p.optimizer)
-    self.CreateChild('schedule', p.lr_schedule)
 
     def _LearningRateFn():
       lr = self.schedule.Value() * p.learning_rate
       TPU_EMBEDDING_MANAGER.AddSummaryTensor(f'tpu_embedding_lr/{p.name}', lr)
       return lr
 
-    self._table_name = f'{p.name}_table'
     # This is the actual TPUEmbedding API object that TPUEmbeddingTable wraps.
     self._table_config = tpu_embedding_v2_utils.TableConfig(
         vocabulary_size=self._padded_vocab_size,
@@ -322,6 +143,10 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         combiner=p.combiner,
         name=f'{self._table_name}_config',
     )
+
+  @property
+  def table_config(self) -> tpu_embedding_v2_utils.TableConfig:
+    return self._table_config
 
   def GetDeviceName(self, host_id):
     """Return device to place sharded variables on."""
@@ -335,22 +160,6 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     else:
       worker = self.cluster.params.worker.name
       return f'{worker}/replica:0/task:{host_id}/device:CPU:0'
-
-  @property
-  def table_name(self) -> str:
-    return self._table_name
-
-  @property
-  def input_keys(self) -> List[str]:
-    return self._input_keys
-
-  @property
-  def max_sequence_length(self) -> int:
-    return self._max_sequence_length
-
-  @property
-  def table_config(self) -> tpu_embedding_v2_utils.TableConfig:
-    return self._table_config
 
   def _SequenceEmbLookup(
       self, dense_ids: tf.Tensor, partition_strategy: str
@@ -565,56 +374,19 @@ class _TPUEmbeddingManager:
 TPU_EMBEDDING_MANAGER = _TPUEmbeddingManager()
 
 
-class TPUEmbeddingLayer(base_layer.BaseLayer):
+class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
   """Interface to TPU embedding which uses the TF2 TPUEmbedding API."""
 
   # Type annotations for lingvo child objects
   tables: List[TPUEmbeddingTable]
-  optimizer: _TPUEmbeddingOptimizer
+  optimizer: _TPUEmbeddingOptimizerV2Mixin
   lr_schedule: schedule_lib.BaseSchedule
 
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
-    p.Define('tables', None, 'List[TPUEmbeddingTables]')
-    p.Define(
-        'pipeline_execution_with_tensor_core',
-        False,
-        'Set to True to be faster. See tpu_embedding.py for details.',
-    )
-    p.Define('batch_size', 0, 'Per-core batch size.')
-    p.Define(
-        'optimizer',
-        TPUEmbeddingAdagradOptimizer.Params(),
-        (
-            'Fallback TPUEmbedding optimizer parameters. Will be used for any '
-            'TPUEmbeddingTables with no optimizer parameters set.'
-        ),
-    )
-    p.Define('learning_rate', 0.0, 'Learning rate.')
-    p.Define(
-        'lr_schedule',
-        schedule_lib.ContinuousSchedule.Params(),
-        'Lingvo learning rate schedule. Will be multiplied to learning rate.',
-    )
-    p.Define(
-        'partition_strategy',
-        'div',
-        (
-            'A string, either "mod" or "div", '
-            'specifying how to map the lookup id to the embedding tensor. For '
-            'more information see `tf.nn.embedding_lookup_sparse`.'
-        ),
-    )
-    p.Define(
-        'gradient_multiplier_schedule',
-        schedule_lib.ConstantOne.Params(),
-        (
-            'Values from this schedule will be multiplied to the embedding '
-            'gradients. Gradients from Tensorcore will not be affected.'
-        ),
-    )
+    # We override this parameter so that it has a valid default.
+    p.optimizer = TPUEmbeddingAdagradOptimizer.Params()
     return p
 
   def __init__(self, params):
@@ -627,21 +399,11 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     assert p.gradient_multiplier_schedule
     assert p.partition_strategy in ('mod', 'div')
 
-    if p.num_tpu_hosts > 0:
-      for table_params in p.tables:
-        num_tpu_hosts = table_params.num_tpu_hosts
-        if 0 < num_tpu_hosts != p.num_tpu_hosts:
-          raise ValueError(f'{num_tpu_hosts=} != {p.num_tpu_hosts=}')
-        table_params.num_tpu_hosts = p.num_tpu_hosts
-    else:
-      num_tpu_hosts = p.tables[0].num_tpu_hosts
-      assert all(t.num_tpu_hosts == num_tpu_hosts for t in p.tables)
-
     # Stop if a table has no optimizer related parameters and the layer also
     # has no optimizer parameters
     for param_name in ('optimizer', 'learning_rate', 'lr_schedule'):
       table_param_missing = any(
-          param_name not in table_params for table_params in p.tables
+          table_params.Get(param_name) is None for table_params in p.tables
       )
       if not p.Get(param_name) and table_param_missing:
         raise ValueError(

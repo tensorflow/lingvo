@@ -30,7 +30,7 @@ from lingvo.core import multitask_model
 from lingvo.core import program as lingvo_program
 from lingvo.core import py_utils
 from lingvo.core import task_scheduler
-from lingvo.core import tpu_embedding_layers
+from lingvo.core import tpu_embedding_layers_v1
 import numpy as np
 
 from lingvo import base_runner
@@ -381,7 +381,8 @@ class ExecutorTpu(base_runner.BaseRunner):
         program.SetStatusMessageFn(self._SetStatusMessage)
 
       tpu_embedding_collection = (
-          tpu_embedding_layers.TpuEmbeddingCollection.Get())
+          tpu_embedding_layers_v1.TpuEmbeddingCollection.Get()
+      )
       self._load_ops = tpu_embedding_collection.load_ops
       self._retrieve_ops = tpu_embedding_collection.retrieve_ops
       self._tpu_embedding = tpu_embedding_collection.tpu_embedding

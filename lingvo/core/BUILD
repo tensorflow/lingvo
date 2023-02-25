@@ -277,7 +277,7 @@ py_library(
         ":inspect_utils",
         ":py_utils",
         ":tokenizers",
-        ":tpu_embedding_layers",
+        ":tpu_embedding_layers_v1",
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
@@ -489,7 +489,8 @@ pytype_library(
         ":schedule",
         ":summary_utils",
         ":task_scheduler",
-        ":tpu_embedding_layers",
+        ":tpu_embedding_layers_v1",
+        ":tpu_embedding_layers_v2",
         # Implicit model_pruning.pruning dependency.
         "//lingvo:compat",
         "//lingvo/core:decoder_lib",
@@ -874,7 +875,7 @@ py_library(
         ":bfloat16_variables",
         ":inference_graph_py_pb2",
         ":py_utils",
-        ":tpu_embedding_layers",
+        ":tpu_embedding_layers_v1",
         # Implicit python proto dependency.
         "//lingvo:compat",
         # Implicit six dependency.
@@ -2519,7 +2520,19 @@ py_library(
         ":hyperparams",
         ":py_utils",
         ":schedule",
+    ],
+)
+
+py_library(
+    name = "tpu_embedding_layers_v1",
+    srcs = ["tpu_embedding_layers_v1.py"],
+    deps = [
+        ":base_layer",
+        ":hyperparams",
+        ":py_utils",
+        ":tpu_embedding_layers",
         "//lingvo:compat",
+        # Implicit tensorflow tpu emb dependency.
     ],
 )
 
@@ -2531,8 +2544,9 @@ pytype_strict_library(
         ":hyperparams",
         ":py_utils",
         ":schedule",
+        ":tpu_embedding_layers",
         "//lingvo:compat",
-        # Implicit tensorflow tpu emb dependency.
+        # Implicit tensorflow tpu emb v2 dependency.
         # Implicit tensorflow tpu emb util dependency.
     ],
 )

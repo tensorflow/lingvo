@@ -22,7 +22,7 @@ from lingvo.core import base_model
 from lingvo.core import bfloat16_variables
 from lingvo.core import inference_graph_pb2
 from lingvo.core import py_utils
-from lingvo.core import tpu_embedding_layers
+from lingvo.core import tpu_embedding_layers_v1
 import six
 
 from google.protobuf import text_format
@@ -436,7 +436,7 @@ class InferenceGraphExporter:
             # inference dtype as bfloat16, the variables in the checkpoint must
             # already be in bfloat16, so we change back to bfloat16 to avoid
             # dtype mismatch.
-            tpu_emb_coll = tpu_embedding_layers.TpuEmbeddingCollection.Get()
+            tpu_emb_coll = tpu_embedding_layers_v1.TpuEmbeddingCollection.Get()
             for var_name in tpu_emb_coll.inference_with_bfloat16_var_names:
               saver_var_spec[var_name] = variables_to_restore[var_name]
           else:

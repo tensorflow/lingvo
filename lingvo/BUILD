@@ -181,7 +181,7 @@ py_library(
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         "//lingvo/core:summary_utils",
-        "//lingvo/core:tpu_embedding_layers",
+        "//lingvo/core:tpu_embedding_layers_v1",
         # Implicit numpy dependency.
     ],
 )
@@ -348,7 +348,7 @@ pytype_library(
         "//lingvo/core:program_lib",
         "//lingvo/core:py_utils",
         "//lingvo/core:task_scheduler",
-        "//lingvo/core:tpu_embedding_layers",
+        "//lingvo/core:tpu_embedding_layers_v1",
         # Implicit numpy dependency.
         # Implicit tensorflow grpc dependency.
     ],

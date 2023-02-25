@@ -34,7 +34,7 @@ from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
-from lingvo.core import tpu_embedding_layers
+from lingvo.core import tpu_embedding_layers_v1
 from lingvo.core import tpu_embedding_layers_v2
 from lingvo.core import decoder_lib
 from lingvo.core import input_policy
@@ -84,7 +84,8 @@ def _VariablesForEMA(params, model_var_list):
   # Remove TPU embedding variables since TPU embedding doesn't support EMA.
   disallowed_refs = ref_set([])
   tpu_embedding_vars = (
-      tpu_embedding_layers.TpuEmbeddingCollection.Get().table_variables)
+      tpu_embedding_layers_v1.TpuEmbeddingCollection.Get().table_variables
+  )
   if tpu_embedding_vars.Flatten():
     tf.logging.warning(
         'Detected TPU embedding variables, and EMA does not apply to them. '
@@ -807,7 +808,7 @@ class BaseTask(base_layer.BaseLayer):
     if add_summary:
       if manager := tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER:
         summaries = manager.summary_tensors
-      elif manager := tpu_embedding_layers.TpuEmbeddingCollection.Get():
+      elif manager := tpu_embedding_layers_v1.TpuEmbeddingCollection.Get():
         summaries = manager.summary_tensors
 
       for name, value, weight in summaries:

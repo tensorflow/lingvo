@@ -44,7 +44,7 @@ from lingvo.core import inspect_utils
 from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
-from lingvo.core import tpu_embedding_layers
+from lingvo.core import tpu_embedding_layers_v1
 
 import numpy as np
 
@@ -294,7 +294,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
       # so that the mode is available when the BProp graph is built (note that
       # CreateTpuEmbeddingEnqueueOps() is called *after* building BProp graph).
       tpu_embedding_collection = (
-          tpu_embedding_layers.TpuEmbeddingCollection.Get()
+          tpu_embedding_layers_v1.TpuEmbeddingCollection.Get()
       )
       tpu_embedding_collection.SetTaskMode(
           py_utils.TaskCallScopeName(self.parent), self._tpu_embedding_mode
@@ -696,7 +696,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     if self._tpu_embedding_mode is None:
       return
 
-    tpu_embedding_collection = tpu_embedding_layers.TpuEmbeddingCollection.Get()
+    tpu_embedding_collection = (
+        tpu_embedding_layers_v1.TpuEmbeddingCollection.Get()
+    )
     tpu_embedding = tpu_embedding_collection.tpu_embedding
     if not tpu_embedding:
       return
