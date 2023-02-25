@@ -204,14 +204,14 @@ class Learner(base_layer.BaseLayer):
       del var_grads.tpu_embedding_var_grads
 
       if tpu_emb_manager := tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER:
-        tpu_emb_manager.ApplyGradients(tpu_embedding_grads)
+        stats = tpu_emb_manager.ApplyGradients(tpu_embedding_grads)
         tpu_emb_update_op = tf.no_op()
       else:
         tpu_embedding_collection = py_utils.GetTpuEmbeddingGraphCollection()[0]
         tpu_emb_update_op, stats = tpu_embedding_collection.ApplyGradients(
             py_utils.GetTaskCallScope(), tpu_embedding_grads
         )
-        eval_metrics.update(stats)
+      eval_metrics.update(stats)
     else:
       tpu_emb_update_op = tf.no_op()
 

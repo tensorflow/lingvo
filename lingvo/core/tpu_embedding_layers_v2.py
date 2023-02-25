@@ -35,6 +35,8 @@ import abc
 import collections
 
 from typing import Callable, FrozenSet, List, Set, Optional, Tuple, Union
+from typing import Dict
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
@@ -361,14 +363,35 @@ class _TPUEmbeddingManager:
       )
     return self._activations
 
-  def ApplyGradients(self, gradients: py_utils.NestedMap):
-    """Applies schedule-scaled gradient updates to the embedding variables."""
-    if self.enabled:
-      self.tpu_embedding.apply_gradients(
-          gradients.Transform(
-              lambda g: g * self.gradient_multiplier_schedule.Value()
-          )
-      )
+  def ApplyGradients(
+      self, gradients: py_utils.NestedMap
+  ) -> Dict[str, tf.Tensor]:
+    """Applies schedule-scaled gradient updates to the embedding variables.
+
+    Args:
+      gradients: grads to apply to the embedding variables.
+
+    Returns:
+      An eval_metrics dictionary for reporting.
+    """
+    if not self.enabled:
+      return {}
+
+    multiplier = self.gradient_multiplier_schedule.Value()
+    scaled_grads = gradients.Transform(lambda g: g * multiplier)
+    self.tpu_embedding.apply_gradients(scaled_grads)
+
+    return {
+        'tpu_embedding_activation_norm': (
+            tf.sqrt(py_utils.SumSquared(self.Lookup().Flatten())),
+            tf.constant(1.0),
+        ),
+        'tpu_embedding_grad_norm': (
+            tf.sqrt(py_utils.SumSquared(scaled_grads.Flatten())),
+            tf.constant(1.0),
+        ),
+        'tpu_embedding_gradient_multiplier': (multiplier, tf.constant(1.0)),
+    }
 
 
 TPU_EMBEDDING_MANAGER = _TPUEmbeddingManager()
