@@ -192,13 +192,16 @@ def GenericInput(processor, **kwargs):
   tf.logging.debug('x_ops.generic_input flat_outputs=%s', flat_outputs)
   # Pack flat_outputs to outputs.
   outputs = output_tmpl.Pack(flat_outputs).out_values
-  # GenericInput strips static shape information from tensors.
-  # We add it back here (with the extra batch dim).
-  outputs = tf.nest.map_structure(
-      lambda t, tmpl: tf.ensure_shape(t, [None] + tmpl.shape),
-      outputs,
-      output_tmpl.out_values,
-  )
+
+  def RecoverShape(t, tmpl):
+    # GenericInput strips static shape information from tensors.
+    # We add it back here (with the extra batch dim).
+    # Also keep the original tensor name available for easier debugging.
+    return tf.ensure_shape(
+        t, [None] + tmpl.shape, name=tmpl.op.name + '/ensure_shape'
+    )
+
+  outputs = tf.nest.map_structure(RecoverShape, outputs, output_tmpl.out_values)
   if isinstance(outputs, list):
     outputs = tuple(outputs)  # b/124336469
   tf.logging.debug('x_ops.generic_input outputs=%s', outputs)
