@@ -74,7 +74,7 @@ class LinearModel(base_model.BaseTask):
 
 
 @model_registry.RegisterSingleTaskModel
-class LinearModelParams(base_model_params.SingleTaskModelParams):
+class LinearModelParamsWithV1Adam(base_model_params.SingleTaskModelParams):
 
   def Train(self):
     return SimpleInputGenerator.Params()
@@ -86,6 +86,26 @@ class LinearModelParams(base_model_params.SingleTaskModelParams):
             name='loss', optimizer=optimizer.Adam.Params().Set(name='Adam')),
         learner.Learner.Params().Set(
             name='loss2', optimizer=optimizer.Adam.Params().Set(name='Adam2'))
+    ]
+    p.train.ema_decay = 0.999
+    return p
+
+
+@model_registry.RegisterSingleTaskModel
+class LinearModelParamsWithV2Adam(base_model_params.SingleTaskModelParams):
+
+  def Train(self):
+    return SimpleInputGenerator.Params()
+
+  def Task(self):
+    p = LinearModel.Params()
+    p.train.learner = [
+        learner.Learner.Params().Set(
+            name='loss', optimizer=optimizer.AdamV2.Params().Set(name='Adam')
+        ),
+        learner.Learner.Params().Set(
+            name='loss2', optimizer=optimizer.AdamV2.Params().Set(name='Adam2')
+        ),
     ]
     p.train.ema_decay = 0.999
     return p
@@ -105,15 +125,19 @@ def _GetModelEMAVariablePairs(model, ema):
 
 class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testEagerEMACheckpointCompatibility(self):
+  @parameterized.parameters(
+      'test.LinearModelParamsWithV1Adam', 'test.LinearModelParamsWithV2Adam'
+  )
+  def testEagerEMACheckpointCompatibility(self, model_name):
     self.assertTrue(tf.executing_eagerly())
-    cfg = model_registry.GetParams('test.LinearModelParams', 'Train')
+    cfg = model_registry.GetParams(model_name, 'Train')
     # Use non-zero learning rate so that the weights are updated
     cfg.task.train.learner[0].learning_rate = 0.1
     cfg.task.train.learner[1].learning_rate = 0.1
 
     eager_v1_logdir = os.path.join(self.get_temp_dir(), 'eager_v1')
     eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
+    eager_v2_async_logdir = os.path.join(self.get_temp_dir(), 'eager_v2_async')
     mdl = cfg.Instantiate()
 
     @tf.function(autograph=False)
@@ -144,6 +168,20 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
         k: v.value() for k, v in model_to_ema_map.items()
     }
 
+    # Step 3
+    _Update()
+    # Save V2 checkpoints at step 3.
+    ckpt_v2_async = checkpointer.EagerCheckpointerV2(
+        eager_v2_async_logdir, mdl, experimental_enable_async_checkpoint=True
+    )
+    ckpt_v2_async.Save(gsteps=3)
+
+    model_to_ema_map = _GetModelEMAVariablePairs(mdl, ema)
+    model_to_ema_map_snapshot_step3 = {
+        k: v.value() for k, v in model_to_ema_map.items()
+    }
+    ckpt_v2_async.Sync()
+
     with cluster_factory.SetEval(True):
       # Restores variables to values saved in `eager_v1_logdir`
       ckpt_v1.Restore()
@@ -153,7 +191,6 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
         if v.ref() in model_to_ema_map_snapshot_step1:
           self.assertAllEqual(t, model_to_ema_map_snapshot_step1[v.ref()])
 
-    with cluster_factory.SetEval(True):
       # Restores variables to values saved in `eager_v2_logdir`
       ckpt_v2.Restore()
       # Verify that the EMA variables from V1 checkpoints at step 2 successfully
@@ -162,9 +199,17 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
         if v.ref() in model_to_ema_map_snapshot_step2:
           self.assertAllEqual(t, model_to_ema_map_snapshot_step2[v.ref()])
 
+      # Restores variables to values saved in `eager_v2_async_logdir`
+      ckpt_v2_async.Restore()
+      # Verify that the EMA variables from V1 checkpoints at step 3 successfully
+      # load the model EMA variables to self.theta.
+      for v, t in zip(mdl.vars.Flatten(), mdl.theta.Flatten()):
+        if v.ref() in model_to_ema_map_snapshot_step3:
+          self.assertAllEqual(t, model_to_ema_map_snapshot_step3[v.ref()])
+
   def testEagerMultiLearnerCheckpointCompatibility(self):
     self.assertTrue(tf.executing_eagerly())
-    cfg = model_registry.GetParams('test.LinearModelParams', 'Train')
+    cfg = model_registry.GetParams('test.LinearModelParamsWithV1Adam', 'Train')
     mdl = cfg.Instantiate()
     # Disable async checkpointing.
     cfg.task.train.async_checkpointing = False
@@ -201,7 +246,7 @@ class EagerCheckpointerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testEagerCheckpointConsumptionCheck(self):
     self.assertTrue(tf.executing_eagerly())
-    cfg = model_registry.GetParams('test.LinearModelParams', 'Train')
+    cfg = model_registry.GetParams('test.LinearModelParamsWithV1Adam', 'Train')
 
     eager_v1_logdir = os.path.join(self.get_temp_dir(), 'eager_v1')
     eager_v2_logdir = os.path.join(self.get_temp_dir(), 'eager_v2')
