@@ -239,30 +239,6 @@ def NeighborhoodIndices(points,
   return indices, paddings
 
 
-def MatmulGather(source, indices):
-  """Drop in replacement for tf.gather_nd() optimized for speed on TPU.
-
-  TODO(weihan): tf.gather_nd() is supposed to be implemented in the same way
-  on TPU. Investigate why it's much slower.
-
-  Args:
-    source: tensor of shape [N, P1, C]
-    indices: tensor of shape [N, P2, K]
-
-  Returns:
-    tensor of shape [N, P2, K, C]
-  """
-  source = py_utils.HasRank(source, 3)
-  n, p1, c = py_utils.GetShape(source)
-  indices = py_utils.HasShape(indices, [n, -1, -1])
-  _, p2, k = py_utils.GetShape(indices)
-
-  onehot = tf.one_hot(indices, depth=p1)  # N x P2 x K x P1
-  reshaped = tf.reshape(onehot, [n, -1, p1])  # N x (P2 x K) x P1
-  target = tf.matmul(reshaped, source)  # N x (P2 x K) x C
-  return tf.reshape(target, [n, p2, k, c])
-
-
 def FarthestPointSampler(points,
                          padding,
                          num_sampled_points,

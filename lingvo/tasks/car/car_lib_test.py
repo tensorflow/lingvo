@@ -75,7 +75,7 @@ class CarLibTest(test_utils.TestCase):
                                      minval=0,
                                      maxval=p1,
                                      dtype=tf.int32)
-    neighbor_points = car_lib.MatmulGather(points, neighbor_idx)
+    neighbor_points = tf.gather(points, neighbor_idx, batch_dims=1)
 
     sq_dist_result = car_lib.NeighborSquaredDistanceMatrix(
         points, neighbor_points)

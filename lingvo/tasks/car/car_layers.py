@@ -69,7 +69,9 @@ class SamplingAndGroupingLayer(base_layer.BaseLayer):
     # Sampling
     sampled_idx, _ = car_lib.FarthestPointSampler(
         points, padding, num_sampled_points=p.num_samples)
-    query_points = car_lib.MatmulGather(points, tf.expand_dims(sampled_idx, -1))
+    query_points = tf.gather(
+        points, tf.expand_dims(sampled_idx, -1), batch_dims=1
+    )
     query_points = tf.squeeze(query_points, -2)
 
     # Grouping
@@ -80,10 +82,10 @@ class SamplingAndGroupingLayer(base_layer.BaseLayer):
         points_padding=padding,
         max_distance=p.ball_radius,
         sample_neighbors_uniformly=p.sample_neighbors_uniformly)
-    grouped_points = car_lib.MatmulGather(points, grouped_idx)
+    grouped_points = tf.gather(points, grouped_idx, batch_dims=1)
     # Normalize the grouped points based on the location of the query point.
     grouped_points -= tf.expand_dims(query_points, -2)
-    grouped_features = car_lib.MatmulGather(features, grouped_idx)
+    grouped_features = tf.gather(features, grouped_idx, batch_dims=1)
 
     # Get the padding for the query points.
     query_padding = tf.array_ops.batch_gather(padding, sampled_idx)
