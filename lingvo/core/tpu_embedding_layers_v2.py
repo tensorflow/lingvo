@@ -55,6 +55,19 @@ class _TPUEmbeddingOptimizerV2Mixin(
 ):
   """Defines the inferface for optimizers expected by the V2 Layer below."""
 
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'low_dimensional_packing_status',
+        False,
+        (
+            'Controls whether to optimize 1-, 2-, and 4-dimensional embedding'
+            ' tables.'
+        ),
+    )
+    return p
+
   @abc.abstractmethod
   def CreateOptimizerFn(
       self,
@@ -68,19 +81,6 @@ class TPUEmbeddingSGDOptimizer(
     _TPUEmbeddingOptimizerV2Mixin,
 ):
   """SGD optimizer for TPUEmbeddingLayer & TPUEmbeddingTable."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define(
-        'low_dimensional_packing_status',
-        False,
-        (
-            'Controls whether to optimize 1-, 2-, and 4-dimensional embedding'
-            ' tables.'
-        ),
-    )
-    return p
 
   def CreateOptimizerFn(
       self, learning_rate: Union[float, Callable[[], float]]
@@ -122,6 +122,7 @@ class TPUEmbeddingAdagradOptimizer(
             p.multiply_weight_decay_factor_by_learning_rate
         ),
         clipvalue=(p.clip_gradient_min, p.clip_gradient_max),
+        low_dimensional_packing_status=p.low_dimensional_packing_status,
     )
 
 
@@ -150,6 +151,7 @@ class TPUEmbeddingAdamOptimizer(
             p.multiply_weight_decay_factor_by_learning_rate
         ),
         clipvalue=(p.clip_gradient_min, p.clip_gradient_max),
+        low_dimensional_packing_status=p.low_dimensional_packing_status,
     )
 
 
@@ -158,19 +160,6 @@ class TPUEmbeddingFTRLOptimizer(
     _TPUEmbeddingOptimizerV2Mixin,
 ):
   """FTRL optimizer for TPUEmbeddingLayer & TPUEmbeddingTable."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define(
-        'low_dimensional_packing_status',
-        False,
-        (
-            'Controls whether to optimize 1-, 2-, and 4-dimensional embedding'
-            ' tables.'
-        ),
-    )
-    return p
 
   def CreateOptimizerFn(
       self, learning_rate: Union[float, Callable[[], float]]
