@@ -6811,9 +6811,11 @@ def DecodeRepeatedProtoField(serialized_protos, message_type, field_name,
 class Timer(contextlib.AbstractContextManager):
   """A utility class and context manager to measure time intervals."""
 
-  def __init__(self):
+  def __init__(self, name: Optional[str] = None, dbg_print=False):
     self._start = None
     self._end = None
+    self._name = name
+    self._dbg_print = dbg_print
 
   def _Duration(self) -> float:
     if not self._end:
@@ -6862,3 +6864,5 @@ class Timer(contextlib.AbstractContextManager):
 
   def __exit__(self, *args):
     self.Stop()
+    if self._dbg_print:
+      print(f'\033[92m{self._name} timer: {self.duration:.2f}s\033[0m')
