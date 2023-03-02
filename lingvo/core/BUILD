@@ -1023,7 +1023,6 @@ py_library(
 lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
-    args = ["--noenable_eager_execution"],
     shard_count = 20,
     deps = [":layers_test_lib"],
 )
@@ -1069,6 +1068,41 @@ lingvo_cuda_py_test(
     ],
 )
 
+pytype_strict_test(
+    name = "softmax_layers_test",
+    size = "small",
+    srcs = ["softmax_layers_test.py"],
+    deps = [
+        ":layers",
+        ":layers_test_lib",
+        ":py_utils",
+        ":quant_utils",
+        ":symbolic",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
+pytype_strict_test(
+    name = "softmax_layers_eager_test",
+    srcs = ["softmax_layers_test.py"],
+    args = ["--enable_eager_execution"],
+    main = "softmax_layers_test.py",
+    deps = [
+        ":layers",
+        ":layers_test_lib",
+        ":py_utils",
+        ":quant_utils",
+        ":symbolic",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
 py_library(
     name = "layers_test_lib",
     testonly = 1,
@@ -1078,14 +1112,12 @@ py_library(
         ":cluster_factory",
         ":gpipe",
         ":layers",
-        ":py_utils",
         ":quant_utils",
-        ":symbolic",
         ":test_utils",
         ":tshape",
+        # Implicit absl.flags dependency.
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
-        # Implicit mock dependency.
         # Implicit numpy dependency.
     ],
 )
