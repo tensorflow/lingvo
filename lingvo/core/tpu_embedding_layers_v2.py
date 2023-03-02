@@ -63,6 +63,43 @@ class _TPUEmbeddingOptimizerV2Mixin(
     """Create TPUEmbedding API optimizer parameters."""
 
 
+class TPUEmbeddingSGDOptimizer(
+    tpu_embedding_layers.TPUEmbeddingSGDOptimizer,
+    _TPUEmbeddingOptimizerV2Mixin,
+):
+  """SGD optimizer for TPUEmbeddingLayer & TPUEmbeddingTable."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'low_dimensional_packing_status',
+        False,
+        (
+            'Controls whether to optimize 1-, 2-, and 4-dimensional embedding'
+            ' tables.'
+        ),
+    )
+    return p
+
+  def CreateOptimizerFn(
+      self, learning_rate: Union[float, Callable[[], float]]
+  ) -> tpu_embedding_v2_utils.SGD:
+    p = self.params
+    return tpu_embedding_v2_utils.SGD(
+        learning_rate=learning_rate,
+        use_gradient_accumulation=p.use_gradient_accumulation,
+        clip_weight_min=p.clip_weight_min,
+        clip_weight_max=p.clip_weight_max,
+        weight_decay_factor=p.weight_decay_factor,
+        multiply_weight_decay_factor_by_learning_rate=(
+            p.multiply_weight_decay_factor_by_learning_rate
+        ),
+        clipvalue=(p.clip_gradient_min, p.clip_gradient_max),
+        low_dimensional_packing_status=p.low_dimensional_packing_status,
+    )
+
+
 class TPUEmbeddingAdagradOptimizer(
     tpu_embedding_layers.TPUEmbeddingAdagradOptimizer,
     _TPUEmbeddingOptimizerV2Mixin,
@@ -116,15 +153,63 @@ class TPUEmbeddingAdamOptimizer(
     )
 
 
+class TPUEmbeddingFTRLOptimizer(
+    tpu_embedding_layers.TPUEmbeddingFTRLOptimizer,
+    _TPUEmbeddingOptimizerV2Mixin,
+):
+  """FTRL optimizer for TPUEmbeddingLayer & TPUEmbeddingTable."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'low_dimensional_packing_status',
+        False,
+        (
+            'Controls whether to optimize 1-, 2-, and 4-dimensional embedding'
+            ' tables.'
+        ),
+    )
+    return p
+
+  def CreateOptimizerFn(
+      self, learning_rate: Union[float, Callable[[], float]]
+  ) -> tpu_embedding_v2_utils.FTRL:
+    p = self.params
+    return tpu_embedding_v2_utils.FTRL(
+        learning_rate=learning_rate,
+        learning_rate_power=p.learning_rate_power,
+        l1_regularization_strength=p.l1_regularization_strength,
+        l2_regularization_strength=p.l2_regularization_strength,
+        beta=p.beta,
+        initial_accumulator_value=p.initial_accumulator_value,
+        use_gradient_accumulation=p.use_gradient_accumulation,
+        clip_weight_min=p.clip_weight_min,
+        clip_weight_max=p.clip_weight_max,
+        weight_decay_factor=p.weight_decay_factor,
+        multiply_weight_decay_factor_by_learning_rate=(
+            p.multiply_weight_decay_factor_by_learning_rate
+        ),
+        slot_variable_creation_fn=None,
+        clipvalue=(p.clip_gradient_min, p.clip_gradient_max),
+        multiply_linear_by_learning_rate=p.multiply_linear_by_learning_rate,
+        allow_zero_accumulator=p.allow_zero_accumulator,
+        low_dimensional_packing_status=p.low_dimensional_packing_status,
+    )
+
+
 class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
   """An embedding table controlled by TPUEmbeddingLayer.
 
   Note that all input_keys need to be declared upfront.
   """
 
-  # Note: there are other optimizers implemented by the API, but these two are
-  #   the only ones currently needed for now.
-  optimizer: Union[TPUEmbeddingAdagradOptimizer, TPUEmbeddingAdamOptimizer]
+  optimizer: Union[
+      TPUEmbeddingSGDOptimizer,
+      TPUEmbeddingAdagradOptimizer,
+      TPUEmbeddingAdamOptimizer,
+      TPUEmbeddingFTRLOptimizer,
+  ]
   schedule: schedule_lib.BaseSchedule
 
   def __init__(self, params):

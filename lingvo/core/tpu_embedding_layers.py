@@ -76,6 +76,14 @@ class TPUEmbeddingOptimizerBase(base_layer.BaseLayer):
             ' rate.'
         ),
     )
+    p.Define(
+        'use_gradient_accumulation',
+        True,
+        (
+            'Setting this to False makes embedding gradients calculation less'
+            ' accurate but faster. See tpu_embedding_lib for more details.'
+        ),
+    )
     return p
 
 
@@ -91,14 +99,6 @@ class TPUEmbeddingAdagradOptimizer(TPUEmbeddingOptimizerBase):
     p = super().Params()
     p.Define(
         'initial_accumulator', 0.1, 'Initial value of Adagrad accumulator.'
-    )
-    p.Define(
-        'use_gradient_accumulation',
-        True,
-        (
-            'Setting this to False makes embedding gradients calculation less '
-            'accurate but faster. See tpu_embedding_lib for more details.'
-        ),
     )
     return p
 
@@ -133,15 +133,6 @@ class TPUEmbeddingAdamOptimizer(TPUEmbeddingOptimizerBase):
             ' harm model quality.'
         ),
     )
-    p.Define(
-        'use_gradient_accumulation',
-        True,
-        (
-            'Setting this to False makes embedding gradients calculation less'
-            ' accurate but faster.'
-        ),
-    )
-
     return p
 
 
@@ -194,7 +185,6 @@ class TPUEmbeddingFTRLOptimizer(TPUEmbeddingOptimizerBase):
     p.Define(
         'allow_zero_accumulator', False, 'Whether allowing zeroaccumulator.'
     )
-    p.Define('use_gradient_accumulation', True, 'Use gradient accumulation.')
     p.Define('initial_linear_value', 0.0, 'Initial linear value.')
 
     return p
