@@ -110,7 +110,6 @@ class TPUEmbeddingAdagradOptimizer(
       self, learning_rate: Union[float, Callable[[], float]]
   ) -> tpu_embedding_v2_utils.Adagrad:
     p = self.params
-
     return tpu_embedding_v2_utils.Adagrad(
         learning_rate=learning_rate,
         initial_accumulator_value=p.initial_accumulator,
@@ -193,12 +192,7 @@ class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
   Note that all input_keys need to be declared upfront.
   """
 
-  optimizer: Union[
-      TPUEmbeddingSGDOptimizer,
-      TPUEmbeddingAdagradOptimizer,
-      TPUEmbeddingAdamOptimizer,
-      TPUEmbeddingFTRLOptimizer,
-  ]
+  optimizer: _TPUEmbeddingOptimizerV2Mixin
   schedule: schedule_lib.BaseSchedule
 
   def __init__(self, params):
