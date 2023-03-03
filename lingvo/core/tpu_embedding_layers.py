@@ -448,7 +448,11 @@ class TPUEmbeddingLayer(
     p.Define(
         'pipeline_execution_with_tensor_core',
         False,
-        'Set to True to be faster. See tpu_embedding.py for details.',
+        (
+            'Enabling this option will speed training up at some quality cost.'
+            ' For larger embeddings, the cost is relatively smaller, because it'
+            " is more likely that step n-1's updates don't affect step n's"
+        ),
     )
     p.Define('batch_size', 0, 'Per-core batch size.')
     p.Define(
