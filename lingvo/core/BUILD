@@ -1070,7 +1070,6 @@ lingvo_cuda_py_test(
 
 pytype_strict_test(
     name = "softmax_layers_test",
-    size = "small",
     srcs = ["softmax_layers_test.py"],
     deps = [
         ":layers",
