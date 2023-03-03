@@ -319,7 +319,6 @@ pytype_strict_library(
         # Implicit absl.logging dependency.
         # Implicit flax dependency.
         # Implicit jax dependency.
-        "//third_party/py/jax:global_device_array",
         "//lingvo/core:cluster",
         "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",

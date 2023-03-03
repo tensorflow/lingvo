@@ -21,7 +21,6 @@ from typing import Any
 from absl import logging
 import flax
 import jax
-from jax.experimental import global_device_array as gda_lib
 from jax.experimental import multihost_utils
 import jax.numpy as jnp
 from lingvo.core import cluster
@@ -96,8 +95,10 @@ def maybe_unreplicate_gda(data):
   """
   return jax.tree_map(
       lambda x: x.addressable_data(0)  # pylint: disable=g-long-lambda
-      if isinstance(x, gda_lib.GlobalDeviceArray) else x,
-      data)
+      if isinstance(x, jax.Array)
+      else x,
+      data,
+  )
 
 
 def extract_keys(n, p, key_separator, left_separator, right_separator):
@@ -194,7 +195,7 @@ def make_array(
     global_shapes: jax.ShapeDtypeStruct,
     global_mesh: jax.sharding.Mesh,
     pspecs: Any,
-) -> gda_lib.GlobalDeviceArray:
+) -> jax.Array:
   """Makes a Jax Array from host array.
 
   Evenly partitioning x along axis 0 and device_put shards to local devices.
