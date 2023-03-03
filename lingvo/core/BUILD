@@ -2559,7 +2559,6 @@ py_library(
     srcs = ["tpu_embedding_layers_v1.py"],
     deps = [
         ":base_layer",
-        ":hyperparams",
         ":py_utils",
         ":tpu_embedding_layers",
         "//lingvo:compat",
@@ -2572,7 +2571,6 @@ pytype_strict_library(
     srcs = ["tpu_embedding_layers_v2.py"],
     deps = [
         ":base_layer",
-        ":hyperparams",
         ":py_utils",
         ":schedule",
         ":tpu_embedding_layers",

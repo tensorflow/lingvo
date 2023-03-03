@@ -509,6 +509,29 @@ class TPUEmbeddingLayer(
       num_tpu_hosts = p.tables[0].num_tpu_hosts
       assert all(t.num_tpu_hosts == num_tpu_hosts for t in p.tables)
 
+    # Stop if both a table and the layer have no optimizer related parameters.
+    for param_name in ('optimizer', 'learning_rate', 'lr_schedule'):
+      table_param_missing = any(
+          table_params.Get(param_name) is None for table_params in p.tables
+      )
+      if not p.Get(param_name) and table_param_missing:
+        raise ValueError(
+            f'A table is missing {param_name} parameters, and no layer-level '
+            f'{param_name} parameters were given.'
+        )
+      elif table_param_missing:
+        for table_params in p.tables:
+          if table_params.Get(param_name) is None:
+            value = p.Get(param_name)
+            if isinstance(value, hyperparams.Params):
+              value = value.Copy()  # Avoid mutating the original copy.
+            table_params.Set(**{param_name: value})
+
+    self.CreateChildren('tables', p.tables)
+    self.CreateChild(
+        'gradient_multiplier_schedule', p.gradient_multiplier_schedule
+    )
+
   @abc.abstractmethod
   def _TpuEmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """Use the TPU Embedding API to perform the lookup. Varies by API."""
