@@ -26,7 +26,7 @@ implementations, so that clients may more freely switch between the APIs.
 """
 import abc
 import math
-from typing import List, Union
+from typing import Callable, List, Union
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
@@ -509,6 +509,10 @@ class TPUEmbeddingLayer(
       num_tpu_hosts = p.tables[0].num_tpu_hosts
       assert all(t.num_tpu_hosts == num_tpu_hosts for t in p.tables)
 
+  @abc.abstractmethod
+  def _TpuEmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
+    """Use the TPU Embedding API to perform the lookup. Varies by API."""
+
   def _CheckIdsMap(self, ids_map: py_utils.NestedMap) -> None:
     """Check that the keys in `ids_map` is valid for embedding lookup."""
     assert isinstance(ids_map, py_utils.NestedMap)
@@ -522,28 +526,23 @@ class TPUEmbeddingLayer(
           f'Invalid input keys: {invalid_keys}. (Valid keys: {valid_keys})'
       )
 
-  @abc.abstractmethod
-  def _TpuEmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
-    """Use the TPU Embedding API to look up activations. Varies by API."""
-
-  def EmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
-    """Looks up embedding vectors for each entry in dense Tensor ids_map.
-
-    Since the TPUEmbedding is monolithic and consulted once per FProp/BProp, we
-    must centralize the lookup. Thus, for multiple features, we contain them
-    into a single-lookup rather than allowing the caller to call Lookup multiple
-    times.
+  def _LookupImpl(
+      self,
+      ids_map: py_utils.NestedMap,
+      method_selector: Callable[
+          [TPUEmbeddingTable],
+          Callable[[py_utils.NestedMap, str], py_utils.NestedMap],
+      ],
+  ) -> py_utils.NestedMap:
+    """Implementation of common lookup logic; dispatches between CPU/TPU.
 
     Args:
-      ids_map: A NestedMap of nested `input_key` string -> [batch, sequence] int
-        Tensor. For sequence embeddings, -1 is used as a padding id.
-        Non-sequence embeddings do not support padded ids.
+      ids_map: The ids to fetch activations for.
+      method_selector: a callable that takes a table and returns the method to
+        be used for the lookup.
 
     Returns:
-      Activations NestedMap of nested string ->
-      For non-sequence embeddings:  [batch, 1, embedding_dim],
-      For sequence embeddings: [batch, max_sequence_length, embedding_dim]
-      float32 Tensor.
+      A NestedMap of activations either computed on CPU or fetched from the TPU.
     """
     self._CheckIdsMap(ids_map)
     p = self.params
@@ -556,12 +555,33 @@ class TPUEmbeddingLayer(
     ret = py_utils.NestedMap()
     for table in self.tables:
       ret.Update(
-          table.CpuEmbLookup(
+          method_selector(table)(
               ids_map.GetSlice({*table.input_keys} & {*ids_map.Keys()}),
               p.partition_strategy,
           )
       )
     return ret
+
+  def EmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
+    """Looks up embedding vectors for each entry in dense Tensor ids_map.
+
+    Since the TPUEmbedding is monolithic, and consulted once per FProp/BProp, we
+    must centralize the lookup. Thus, for multiple features, we contain them
+    into a single-lookup rather than allowing the caller to call Lookup multiple
+    times.
+
+    Args:
+      ids_map: A NestedMap of nested `input_key` string -> [batch, sequence] int
+        Tensor. For sequence embeddings, -1 is used as a padding id.
+        Non-sequence embeddings do not support padded ids.
+
+    Returns:
+      Activations NestedMap of nested string ->
+        For non-sequence embeddings:  [batch, 1, embedding_dim],
+        For sequence embeddings: [batch, max_sequence_length, embedding_dim]
+        float32 Tensor.
+    """
+    return self._LookupImpl(ids_map, lambda table: table.CpuEmbLookup)
 
   def EmbLookupSparse(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """Looks up embedding vectors for each entry in SparseTensor ids_map.
@@ -577,30 +597,8 @@ class TPUEmbeddingLayer(
 
     Returns:
       Activations NestedMap of nested string ->
-      For non-sequence embeddings:  [batch, 1, embedding_dim],
-      For sequence embeddings: [batch, max_sequence_length, embedding_dim]
-      float32 Tensor.
+        For non-sequence embeddings:  [batch, 1, embedding_dim],
+        For sequence embeddings: [batch, max_sequence_length, embedding_dim]
+        float32 Tensor.
     """
-    self._CheckIdsMap(ids_map)
-    p = self.params
-
-    def CpuEmbLookupSparse(ids_map):
-      """CPU evaluation embedding lookup."""
-      rets = py_utils.NestedMap()
-      for table in self.tables:
-        table_id_map = py_utils.NestedMap()
-        for key in table.input_keys:
-          if ids_map.Get(key) is not None:
-            table_id_map.Set(key, ids_map.GetItem(key))
-        table_rets = table.CpuEmbLookupSparse(
-            table_id_map, p.partition_strategy
-        )
-        # Merge table_rets with rets
-        for key in table.input_keys:
-          if ids_map.Get(key) is not None:
-            rets.Set(key, table_rets.GetItem(key))
-      return rets
-
-    if py_utils.IsTpuTraining(p):
-      return self._TpuEmbLookup(ids_map)
-    return CpuEmbLookupSparse(ids_map)
+    return self._LookupImpl(ids_map, lambda table: table.CpuEmbLookupSparse)
