@@ -3826,6 +3826,116 @@ class RecurrentDenseBuilderParallelDecode(DenseBuilder):
     return self._Graph(name, ['i'], ['o'], *stack)
 
 
+class MoEHashBuilder(DenseBuilder):
+  """Mixture-of-Experts Builder.
+
+  Uses Hash ID instead of gatings.
+  """
+
+  @classmethod
+  def Params(cls):
+    return super().Params()
+
+  @property
+  def _EncoderLayerInMapKeys(self):
+    return ['vec', 'segment_id', 'segment_pos', 'expert_id']
+
+  @property
+  def _DecoderLayerInMapKeys(self):
+    del self  # Self is unused.
+    return [
+        'vec',
+        'segment_id',
+        'segment_pos',
+        'expert_id',
+        'encoder_output',
+        'encoder_segment_id',
+        'encoder_segment_pos',
+    ]
+
+  def MoE(self, name, decoder=False):
+    if decoder:
+      input_endpoints = self._DecoderLayerInMapKeys
+    else:
+      input_endpoints = self._EncoderLayerInMapKeys
+
+    return self._Graph(
+        name,
+        input_endpoints,
+        ['outputs', 'aux_loss'],
+        ('vec->input_split', self.Split('input_split')),
+        ('segment_id->segment_id_split', self.Split('segment_id_split')),
+        ('expert_id->expert_id_split', self.Split('expert_id_split')),
+        ('->wi,wo', self._ShardedFeedForwardNetworksWeights(name)),
+        (
+            'input_split,segment_id_split,expert_id_split,wi,wo->outputs_pre_split,aux_loss',
+            self._ShardedMoEPositionWiseFeedForwardNetworks('ffw'),
+        ),
+        ('outputs_pre_split->outputs', self.Split('outputs_split')),
+    )
+
+  def _ComputeGating(self, name):
+    p = self.params
+
+    def _Compute(w, inputs, paddings, expert_id):
+      return gshard_layers.HashGating(
+          w,  # Explicitly match to task_embedding
+          inputs,
+          paddings,
+          p.num_devices,
+          p.e_dim,
+          p.c_dim,
+          True,
+          py_utils.FPropDtype(p),
+          use_xla_sharding=True,
+          expert_id=expert_id,
+      )
+
+    return self._Fn(name, _Compute)
+
+  def _ShardedMoEPositionWiseFeedForwardNetworks(self, name):
+    """Simple MoE FFN with xla_sharding."""
+    p = self.params
+    num_groups = p.num_groups or p.num_devices
+
+    def _ReshapeInputs(inputs, segment_id, expert_id):
+      """Prepare inputs and paddings for the gating layer."""
+      paddings = tf.cast(tf.equal(segment_id, 0), inputs.dtype)
+      orig_inputs = inputs
+      inputs = tf.reshape(
+          orig_inputs,
+          [
+              num_groups,
+              (orig_inputs.shape[0] * orig_inputs.shape[1]) // num_groups,
+              orig_inputs.shape[-1],
+          ],
+      )
+      inputs = gshard_utils.Split(inputs, 0, p.num_devices)
+      paddings = tf.reshape(paddings, inputs.shape[:2])
+      segment_id = tf.reshape(segment_id, inputs.shape[:2])
+      reshaped_expert_id = tf.reshape(expert_id, [inputs.shape[0], -1])
+      return inputs, paddings, segment_id, reshaped_expert_id
+
+    return self._Graph(
+        name,
+        ['inputs', 'segment_id', 'expert_id', 'wi', 'wo'],
+        ['outputs', 'aux_loss'],
+        (
+            'inputs,segment_id,expert_id->reshaped_inputs,paddings,reshaped_segment_id,reshaped_expert_id',
+            self._Fn('reshape_inputs', _ReshapeInputs),
+        ),
+        ('->gw', self._Top2GatingWeights('top_2_gating')),
+        (
+            'gw,reshaped_inputs,paddings,reshaped_expert_id->gating',
+            self._ComputeGating('compute_gating'),
+        ),
+        (
+            'gating,inputs,reshaped_inputs,wi,wo->outputs,aux_loss',
+            self._FeedForwardNetworksApplyGating('process_gating'),
+        ),
+    )
+
+
 class UniTransformer(base_model.BaseTask):
   """LM TransformerModel with z-loss."""
 

@@ -444,13 +444,19 @@ def _AttenCtxIsSet(atten_context):
   return atten_context is not None and atten_context >= 0
 
 
-def GShardMoELayerParams(num_devices,
-                         num_groups,
-                         num_experts,
-                         per_expert_capacity_dim,
-                         use_densebuilder=False):
+def GShardMoELayerParams(
+    num_devices,
+    num_groups,
+    num_experts,
+    per_expert_capacity_dim,
+    use_densebuilder=False,
+    use_hashbuilder=False,
+):
+  """Config for MoE layer."""
   if use_densebuilder:
     moe_cls = gshard_builder.DenseBuilder
+  elif use_hashbuilder:
+    moe_cls = gshard_builder.MoEHashBuilder
   else:
     moe_cls = gshard_builder.MoEBuilder
   return moe_cls.Params().Set(
@@ -528,6 +534,11 @@ class ConformerLayer(base_layer.BaseLayer):
         'the variable data type will be set by the corresponding dtype.')
     p.Define('allow_attention_summaries', False,
              'Allow plotting attention histogram and plot summaries.')
+    p.Define(
+        'moe_expert_id_field_name',
+        'language_id',
+        'The name of the field in input map to extract expert ids.',
+    )
     return p
 
   @classmethod
@@ -612,7 +623,9 @@ class ConformerLayer(base_layer.BaseLayer):
         return cls.ConfigFFLayer(
             tpl=layers_with_attention.TransformerFeedForwardLayer.Params(),
             **config_kwargs)
-      elif issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
+      elif issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder) or issubclass(
+          fflayer_tpl.cls, gshard_builder.MoEHashBuilder
+      ):
         # TODO(rpang): make users call ConfigMoEParams directly.
         return cls.ConfigMoEParams(tpl=fflayer_tpl, **config_kwargs)
       elif fflayer_tpl.use_block_diagonal_matmul_pl:
@@ -889,17 +902,20 @@ class ConformerLayer(base_layer.BaseLayer):
     inputs, paddings = self.lconv.FProp(theta.lconv, inputs, paddings)
     return inputs, paddings
 
-  def _MoeOrFFLayer(self, theta, fflayer_name, features, paddings, aux_loss):
+  def _MoeOrFFLayer(
+      self, theta, fflayer_name, features, paddings, aux_loss, expert_ids=None
+  ):
     """FProp for MoE or Feed forward layer.
 
     Args:
       theta: Layer theta: A NestedMap of Tensors.
-      fflayer_name: Child FFLayer name as created in __init__.
-        For example: 'fflayer_end'. This assumes the moe_layer if created would
-        have the convention as (`fflayer_name` + `_moe`).
+      fflayer_name: Child FFLayer name as created in __init__. For example:
+        'fflayer_end'. This assumes the moe_layer if created would have the
+        convention as (`fflayer_name` + `_moe`).
       features: [batch, seqlen, dim0].
       paddings: [batch, seqlen].
       aux_loss: [], can be None.
+      expert_ids: [batch], ids of experts corresponding to each batch example.
 
     Returns:
       features: [batch, seqlen, dim0].
@@ -923,6 +939,17 @@ class ConformerLayer(base_layer.BaseLayer):
       segment_pos = tf.zeros_like(segment_ids)  # not used but required by MoE.
       moe_in = py_utils.NestedMap(
           vec=features, segment_id=segment_ids, segment_pos=segment_pos)
+      # Add expert ids for MoEHashBuilder.
+      if (
+          self.has_fflayer_start
+          and issubclass(
+              self.params.fflayer_start_tpl.cls, gshard_builder.MoEHashBuilder
+          )
+          or issubclass(
+              self.params.fflayer_end_tpl.cls, gshard_builder.MoEHashBuilder
+          )
+      ):
+        moe_in.expert_id = expert_ids
       moe_out = self.children[moe_fflayer_name].FProp(
           theta.GetItem(moe_fflayer_name), moe_in)
       moe_aux_loss = moe_out.aux_loss
@@ -942,11 +969,28 @@ class ConformerLayer(base_layer.BaseLayer):
 
     with tf.name_scope(p.name):
       features, paddings = in_nmap.features, in_nmap.paddings
+      if (
+          self.has_fflayer_start
+          and issubclass(
+              self.params.fflayer_start_tpl.cls, gshard_builder.MoEHashBuilder
+          )
+          or issubclass(
+              self.params.fflayer_end_tpl.cls, gshard_builder.MoEHashBuilder
+          )
+      ):
+        expert_ids = in_nmap.Get(p.moe_expert_id_field_name)
+        # Assign same language ids to all frames
+        expert_ids = tf.tile(
+            expert_ids, [1, py_utils.GetShape(features, 2)[-1]]
+        )
+      else:
+        expert_ids = None
       aux_loss = in_nmap.Get('aux_loss')
       features, paddings = self._CastToFPropDtype((features, paddings))
       if self.has_fflayer_start:
         features, paddings, aux_loss = self._MoeOrFFLayer(
-            theta, 'fflayer_start', features, paddings, aux_loss)
+            theta, 'fflayer_start', features, paddings, aux_loss, expert_ids
+        )
       atten_probs = None
       if p.layer_order == 'mhsa':
         features, paddings, atten_probs = self._SelfAtten(
@@ -962,9 +1006,9 @@ class ConformerLayer(base_layer.BaseLayer):
         features, paddings = self._LConv(theta, features, paddings)
         features, paddings, atten_probs = self._SelfAtten(
             theta, features, paddings)
-      features, paddings, aux_loss = self._MoeOrFFLayer(theta, 'fflayer_end',
-                                                        features, paddings,
-                                                        aux_loss)
+      features, paddings, aux_loss = self._MoeOrFFLayer(
+          theta, 'fflayer_end', features, paddings, aux_loss, expert_ids
+      )
       features = self.final_ln.FProp(theta.final_ln, features)
 
       out_nmap = in_nmap.DeepCopy()
