@@ -20,16 +20,16 @@ from typing import (
     Any,
     Callable,
     Dict,
+    Iterable,
     List,
+    Literal,
     Mapping,
     Optional,
     Sequence,
     Tuple,
     TypeVar,
-    Iterable,
 )
 import lingvo.compat as tf
-from typing_extensions import Literal
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.training.tracking import data_structures
 # pylint: enable=g-direct-tensorflow-import

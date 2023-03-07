@@ -24,14 +24,27 @@ import pickle
 import re
 import sys
 import typing
-from typing import (Any, Callable, Dict, List, Generator, Generic, Mapping,
-                    Optional, Sequence, Tuple, Type, TypeVar, Union)
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Generator,
+    Generic,
+    List,
+    Literal,
+    Mapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    TypeVar,
+    Union,
+)
 
 import lingvo.compat as tf
 from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
 import numpy as np
-from typing_extensions import Literal
 
 from google.protobuf import message
 from google.protobuf import text_format

@@ -840,7 +840,6 @@ pytype_library(
         # Implicit python proto dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit typing_extensions dependency.
     ],
 )
 
@@ -2622,7 +2621,6 @@ pytype_library(
     srcs = ["nested_map.py"],
     deps = [
         "//lingvo:compat",
-        # Implicit typing_extensions dependency.
     ],
 )
 
