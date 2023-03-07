@@ -17,12 +17,12 @@
 import contextlib
 import functools
 import inspect
-import os
 import re
 import sys
 import typing
-from typing import Callable, Optional, List, overload
+from typing import Callable, Optional, List, overload, Sequence
 
+from etils import epath
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
@@ -313,28 +313,33 @@ class TestCase(tf.test.TestCase):
   def SetEval(self, mode):
     return cluster_factory.SetEval(mode=mode)
 
-  def GetScalarSummaryValues(self, logdir, names, is_tf2_writer=False):
+  def GetScalarSummaryValues(
+      self,
+      logdir: epath.PathLike,
+      tags: Sequence[str],
+      is_tf2_writer: bool = False,
+  ):
     """Get scalar TF summary values from TF event files.
 
     Args:
       logdir: The directory where the TF event files are stored.
-      names: Names of the scalar summaries to get.
+      tags: Names of the scalar summaries to get.
       is_tf2_writer: Whether the summary was written using tf2 summary writer.
 
     Returns:
       A dict like name -> value_dict, where value_dict is a dict of
       step_number -> value.
     """
-    event_files = tf.io.gfile.glob(
-        os.path.join(logdir, 'events.out.tfevents.*'))
+    event_files = epath.Path(logdir).glob('events.out.tfevents.*')
     name_to_step_values = {}
     for event_file in event_files:
       event_generator = event_file_inspector.generator_from_event_file(
-          event_file)
+          event_file.as_posix()
+      )
       for event in event_generator:
         step = int(event.step)
         for value_proto in event.summary.value:
-          if value_proto.tag in names:
+          if value_proto.tag in tags:
             if value_proto.tag not in name_to_step_values:
               name_to_step_values[value_proto.tag] = {}
             if is_tf2_writer:
@@ -346,8 +351,8 @@ class TestCase(tf.test.TestCase):
             else:
               value = float(value_proto.simple_value)
             name_to_step_values[value_proto.tag][step] = value
-    for name in names:
-      self.assertIn(name, name_to_step_values)
+    for tag in tags:
+      self.assertIn(tag, name_to_step_values)
     return name_to_step_values
 
 

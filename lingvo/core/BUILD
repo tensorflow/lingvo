@@ -1850,6 +1850,7 @@ pytype_strict_library(
         ":cluster_factory",
         ":py_utils",
         ":pytypes",
+        # Implicit etils (/epath) dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit tensorboard/backend/event_processing:event_file_inspector dependency.
