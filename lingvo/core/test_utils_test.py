@@ -117,6 +117,21 @@ class TestUtilsTest(test_utils.TestCase):
           py_utils.NestedMap(x=3, y=4),
           sess.run(func, feed_dict=dict(zip(py_utils.Flatten(nmap), (2, 3)))))
 
+  @test_utils.SkipIfNonEager
+  def testGetScalarSummaryValuesTF2(self):
+    logdir = self.create_tempdir()
+    writer = tf.summary.create_file_writer(logdir.full_path)
+
+    with writer.as_default():
+      for step in range(100):
+        tf.summary.scalar('dummy_metric', step * 2, step=step)
+        writer.flush()
+
+    summaries = self.GetScalarSummaryValuesTF2(logdir.full_path)
+    self.assertEqual(
+        summaries, {'dummy_metric': {s: s * 2 for s in range(100)}}
+    )
+
 
 if __name__ == '__main__':
   test_utils.main()

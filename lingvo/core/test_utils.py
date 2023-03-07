@@ -20,7 +20,7 @@ import inspect
 import re
 import sys
 import typing
-from typing import Callable, Optional, List, overload, Sequence
+from typing import Callable, List, Optional, overload, Sequence
 
 from etils import epath
 import lingvo.compat as tf
@@ -28,7 +28,7 @@ from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import pytypes
 import numpy as np
-
+from tensorboard.backend.event_processing import event_accumulator as ea
 from tensorboard.backend.event_processing import event_file_inspector
 
 tf.flags.DEFINE_bool('enable_eager_execution', False,
@@ -313,6 +313,33 @@ class TestCase(tf.test.TestCase):
   def SetEval(self, mode):
     return cluster_factory.SetEval(mode=mode)
 
+  def GetScalarSummaryValuesTF2(
+      self, logdir: epath.PathLike, tags: Optional[Sequence[str]] = None
+  ):
+    """Parse scalar TF summary values into a nested tag -> (step -> value) dict.
+
+    Args:
+      logdir: The directory containing serialized TF event protos.
+      tags: If given, filter to only the requested tags.
+
+    Returns:
+      A dict of the form {name -> {step_number -> value}}.
+    """
+    accumulator = ea.EventAccumulator(
+        logdir, size_guidance=ea.STORE_EVERYTHING_SIZE_GUIDANCE
+    )
+    accumulator.Reload()
+
+    summaries = {}
+    for tag in accumulator.Tags()[ea.TENSORS]:
+      if tags and tag not in tags:
+        continue
+      summaries[tag] = {
+          tensor_event.step: tf.make_ndarray(tensor_event.tensor_proto).item()
+          for tensor_event in accumulator.Tensors(tag)
+      }
+    return summaries
+
   def GetScalarSummaryValues(
       self,
       logdir: epath.PathLike,
@@ -331,6 +358,8 @@ class TestCase(tf.test.TestCase):
       step_number -> value.
     """
     event_files = epath.Path(logdir).glob('events.out.tfevents.*')
+    if is_tf2_writer:
+      return self.GetScalarSummaryValuesTF2(logdir, tags=tags)
     name_to_step_values = {}
     for event_file in event_files:
       event_generator = event_file_inspector.generator_from_event_file(
@@ -342,14 +371,7 @@ class TestCase(tf.test.TestCase):
           if value_proto.tag in tags:
             if value_proto.tag not in name_to_step_values:
               name_to_step_values[value_proto.tag] = {}
-            if is_tf2_writer:
-              # TF2 summary writer writes scalar summary values as a
-              # TensorProto, and we need to read it as a Tensor here.
-              value = tf.io.parse_tensor(
-                  value_proto.tensor.SerializeToString(),
-                  out_type=tf.float32).numpy()
-            else:
-              value = float(value_proto.simple_value)
+            value = float(value_proto.simple_value)
             name_to_step_values[value_proto.tag][step] = value
     for tag in tags:
       self.assertIn(tag, name_to_step_values)

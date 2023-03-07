@@ -1853,6 +1853,7 @@ pytype_strict_library(
         # Implicit etils (/epath) dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
+        # Implicit tensorboard/backend/event_processing:event_accumulator dependency.
         # Implicit tensorboard/backend/event_processing:event_file_inspector dependency.
     ],
 )
