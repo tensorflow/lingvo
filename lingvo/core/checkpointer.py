@@ -631,7 +631,7 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     self._UpdateNextSaveTime()
 
   def Sync(self):
-    # Async checkpointing is not implemented in eager mode.
+    # Async checkpointing is not implemented in eager mode for CheckpointerV1.
     pass
 
 
@@ -743,7 +743,10 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     self._UpdateNextSaveTime()
 
   def Sync(self):
-    # Async checkpointing is not implemented in eager mode.
+    # TODO(b/270578155) The sync method is not publicly available yet.
+    if getattr(self._saver, '_async_checkpointer_impl', None):
+      self._saver._async_checkpointer_impl.sync()  # pylint: disable=protected-access
+
     pass
 
 
