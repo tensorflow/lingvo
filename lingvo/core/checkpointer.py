@@ -603,7 +603,6 @@ class EagerCheckpointerV1(_EagerCheckpointer):
     if not self._restorer:
       self._restorer = self._GetRestorer()
 
-    assert not self._save_only
     tf.logging.info('Load from checkpoint (V1) %s.', checkpoint_path)
 
     try:
@@ -717,7 +716,6 @@ class EagerCheckpointerV2(_EagerCheckpointer):
     if not self._saver:
       self._saver = self._GetSaver()
 
-    assert not self._save_only
     tf.logging.info('Load from checkpoint (V2) %s.', checkpoint_path)
     load_status = self._saver.restore(checkpoint_path)
     tf.logging.info('Load checkpoint done.')
