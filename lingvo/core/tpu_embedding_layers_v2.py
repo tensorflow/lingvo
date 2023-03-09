@@ -231,7 +231,7 @@ class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
       return f'{worker}/replica:0/task:{host_id}/device:CPU:0'
 
 
-class _TPUEmbeddingManager:
+class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
   """Manages a global singleton instance of tpu_embedding_v2.TPUEmbedding."""
 
   def __init__(self):
