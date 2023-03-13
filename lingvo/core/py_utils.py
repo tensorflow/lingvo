@@ -1527,6 +1527,10 @@ def VariableListDtypeRegexScope(list_regex_dtypes):
   Yields:
     scope in which the list of (regex, dtype) is applied.
   """
+  if not list_regex_dtypes:
+    yield
+    return
+
   _LIST_REGEX_DTYPE.stack.append(list_regex_dtypes)
   try:
     yield

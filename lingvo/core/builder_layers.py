@@ -1178,6 +1178,12 @@ class LinearLayer(quant_utils.QuantizableLayer):
           2)
       inputs, w = self.ToAqtInputs(
           'w', act=inputs, weight=theta.w, w_feature_axis=-1)
+      fprop_dtype = py_utils.FPropDtype(p)
+      if w.dtype != fprop_dtype:
+        w = tf.cast(w, fprop_dtype)
+      if inputs.dtype != fprop_dtype:
+        inputs = tf.cast(inputs, fprop_dtype)
+
       ret = py_utils.ProjectLastDim(inputs, w, p.input_dims, p.output_dims)
       ret = self.FromAqtMatmul('w', ret)
       return ret
@@ -1228,8 +1234,15 @@ class BiasLayer(base_layer.BaseLayer):
     Returns:
       Inputs plus bias.
     """
+    p = self.params
+    fprop_dtype = py_utils.FPropDtype(p)
     with tf.name_scope(self.params.name):
-      return inputs + theta.b
+      b = theta.b
+      if b.dtype != fprop_dtype:
+        b = tf.cast(b, fprop_dtype)
+      if inputs.dtype != fprop_dtype:
+        inputs = tf.cast(inputs, fprop_dtype)
+      return inputs + b
 
   @classmethod
   def FPropMeta(cls, p, inputs):
