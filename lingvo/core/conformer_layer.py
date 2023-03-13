@@ -522,6 +522,17 @@ class ConformerLayer(base_layer.BaseLayer):
         'adapter_tpl', None, 'If set, runs an adapter layer in the end. '
         'This is expected to be an OnlineLayer, whose FProp signature is '
         'FProp(self, theta, in_nmap, state0=None) -> (out_nmap, state1).')
+    p.Define(
+        'adapter_pos',
+        'block_sequential',
+        (
+            'Choose from one of the following four options: '
+            'block_sequential - adapter layer after conformer block; '
+            'block_parallel - adapter layer in paralle with conformer block; '
+            'ff_sequential - adapter layer after each fflayer; '
+            'ff_parallel - adapter layer in paralle with each fflayer.'
+        ),
+    )
     # https://b/167460492#comment16
     p.Define(
         'remat', False, 'If to rematerialize the layer. If true, '
@@ -542,37 +553,41 @@ class ConformerLayer(base_layer.BaseLayer):
     return p
 
   @classmethod
-  def CommonParams(cls,
-                   *,
-                   input_dim=None,
-                   is_causal=False,
-                   atten_num_heads=None,
-                   atten_local_context=None,
-                   atten_left_context=None,
-                   atten_right_context=None,
-                   atten_chunk_size=None,
-                   atten_logit_cap=0.0,
-                   use_relative_atten=True,
-                   query_stride=1,
-                   kernel_size=None,
-                   fflayer_hidden_dim=None,
-                   fflayer_activation='SWISH',
-                   fflayer_residual_weight=0.5,
-                   layer_order='mhsa_before_conv',
-                   dropout_prob=0.,
-                   conv_norm_layer_tpl=None,
-                   fprop_dtype=None,
-                   use_moe_in_fflayer_start=False,
-                   use_moe_in_fflayer_end=False,
-                   moe_num_partitions=None,
-                   moe_num_experts=None,
-                   moe_num_groups=None,
-                   moe_per_capacity_dim=None,
-                   fflayer_start_tpl=None,
-                   fflayer_end_tpl=None,
-                   trans_atten_tpl=None,
-                   lconv_tpl=None,
-                   list_regex_dtypes=None):
+  def CommonParams(
+      cls,
+      *,
+      input_dim=None,
+      is_causal=False,
+      atten_num_heads=None,
+      atten_local_context=None,
+      atten_left_context=None,
+      atten_right_context=None,
+      atten_chunk_size=None,
+      atten_logit_cap=0.0,
+      use_relative_atten=True,
+      query_stride=1,
+      kernel_size=None,
+      fflayer_hidden_dim=None,
+      fflayer_activation='SWISH',
+      fflayer_residual_weight=0.5,
+      layer_order='mhsa_before_conv',
+      dropout_prob=0.0,
+      conv_norm_layer_tpl=None,
+      fprop_dtype=None,
+      use_moe_in_fflayer_start=False,
+      use_moe_in_fflayer_end=False,
+      moe_num_partitions=None,
+      moe_num_experts=None,
+      moe_num_groups=None,
+      moe_per_capacity_dim=None,
+      fflayer_start_tpl=None,
+      fflayer_end_tpl=None,
+      trans_atten_tpl=None,
+      lconv_tpl=None,
+      list_regex_dtypes=None,
+      adapter_tpl=None,
+      adapter_pos='block_sequential',
+  ):
     assert all([input_dim])
     if layer_order != 'conv':
       assert atten_num_heads or trans_atten_tpl
@@ -683,6 +698,10 @@ class ConformerLayer(base_layer.BaseLayer):
       p.list_regex_dtypes = list_regex_dtypes
     if layer_order == 'mhsa':
       p.lconv_tpl = None
+    # Set the adapters.
+    if adapter_tpl is not None:
+      p.adapter_tpl = adapter_tpl
+      p.adapter_pos = adapter_pos
     return p
 
   @classmethod
@@ -848,7 +867,24 @@ class ConformerLayer(base_layer.BaseLayer):
 
       if p.adapter_tpl:
         p.adapter_tpl.cls.SetNumInputNodes(p.adapter_tpl, p.input_dim)
-        self.CreateChild('adapter', p.adapter_tpl)
+        if p.adapter_pos in ['block_sequential', 'block_parallel']:
+          self.CreateChild('adapter', p.adapter_tpl.Copy())
+        elif p.adapter_pos in ['ff_sequential', 'ff_parallel']:
+          if fflayer_start_p:
+            self.CreateChild(
+                'fflayer_start_adapter',
+                p.adapter_tpl.Copy().Set(name='fflayer_start_adapter'),
+            )
+          if fflayer_end_p:
+            self.CreateChild(
+                'fflayer_end_adapter',
+                p.adapter_tpl.Copy().Set(name='fflayer_end_adapter'),
+            )
+        else:
+          raise ValueError(
+              f'Wrong adapter_pos: {p.adapter_pos}. Valid options are '
+              '[block_sequential, block_parallel, ff_sequential, ff_parallel].'
+          )
 
   # lconv and fflayer_start have the special treatment, which can be absent,
   # because Transformer doesn't have those.
@@ -877,30 +913,62 @@ class ConformerLayer(base_layer.BaseLayer):
     name = name_prefix + '_moe'
     # TODO(rpang): find a way to configure residual weight.
     moe_p = moe_builder.EncoderLayer(
-        name, moe_builder.MoE(name), residual_weight=0.5)
+        name, moe_builder.MoE(name), residual_weight=0.5
+    )
     return moe_p
 
   def _SelfAtten(self, theta, inputs, paddings):
-    if isinstance(self.trans_atten,
-                  attention_lib.FunnelTransformerAttentionLayer):
+    if isinstance(
+        self.trans_atten, attention_lib.FunnelTransformerAttentionLayer
+    ):
       inputs, paddings, atten_probs = self.trans_atten.FProp(
           theta.trans_atten,
           query_vec=inputs,
           source_vecs=None,
-          paddings=paddings)
+          paddings=paddings,
+      )
     else:
       inputs, atten_probs = self.trans_atten.FProp(
           theta.trans_atten,
           query_vec=inputs,
           source_vecs=None,
-          paddings=paddings)
+          paddings=paddings,
+      )
     return inputs, paddings, atten_probs
 
   def _LConv(self, theta, inputs, paddings):
-    assert self.has_lconv and self.params.layer_order != 'mhsa', (
-        'mhsa does not have a lconv block.')
+    assert (
+        self.has_lconv and self.params.layer_order != 'mhsa'
+    ), 'mhsa does not have a lconv block.'
     inputs, paddings = self.lconv.FProp(theta.lconv, inputs, paddings)
     return inputs, paddings
+
+  def _MaybeFFLayerAdapter(self, theta, fflayer_name, in_nmap, features):
+    p = self.params
+    if p.adapter_tpl is None or p.adapter_pos not in [
+        'ff_sequential',
+        'ff_parallel',
+    ]:
+      return features
+
+    assert fflayer_name in self.children
+    fflayer = self.children[fflayer_name]
+    assert (
+        fflayer.params.residual_droppath_prob == 0.0
+    ), 'residual droppath prob is not supported by adapter.'
+    adapter = self.children[fflayer_name + '_adapter']
+    adapter_theta = theta.GetItem(fflayer_name + '_adapter')
+    # revert residual connection
+    if fflayer.params.add_skip_connection:
+      features = (features - in_nmap.features) / fflayer.params.residual_weight
+    if p.adapter_pos == 'ff_sequential':
+      in_nmap.features = features
+    out_nmap, _ = adapter.FProp(adapter_theta, in_nmap)
+    features += out_nmap.features
+    # reapply residual connection
+    if fflayer.params.add_skip_connection:
+      features = in_nmap.features + features * fflayer.params.residual_weight
+    return features
 
   def _MoeOrFFLayer(
       self, theta, fflayer_name, features, paddings, aux_loss, expert_ids=None
@@ -988,8 +1056,13 @@ class ConformerLayer(base_layer.BaseLayer):
       aux_loss = in_nmap.Get('aux_loss')
       features, paddings = self._CastToFPropDtype((features, paddings))
       if self.has_fflayer_start:
+        adapter_in_nmap = in_nmap.DeepCopy()
+        adapter_in_nmap.features = features
         features, paddings, aux_loss = self._MoeOrFFLayer(
             theta, 'fflayer_start', features, paddings, aux_loss, expert_ids
+        )
+        features = self._MaybeFFLayerAdapter(
+            theta, 'fflayer_start', adapter_in_nmap, features
         )
       atten_probs = None
       if p.layer_order == 'mhsa':
@@ -1006,17 +1079,26 @@ class ConformerLayer(base_layer.BaseLayer):
         features, paddings = self._LConv(theta, features, paddings)
         features, paddings, atten_probs = self._SelfAtten(
             theta, features, paddings)
+      adapter_in_nmap = in_nmap.DeepCopy()
+      adapter_in_nmap.features = features
       features, paddings, aux_loss = self._MoeOrFFLayer(
           theta, 'fflayer_end', features, paddings, aux_loss, expert_ids
+      )
+      features = self._MaybeFFLayerAdapter(
+          theta, 'fflayer_end', adapter_in_nmap, features
       )
       features = self.final_ln.FProp(theta.final_ln, features)
 
       out_nmap = in_nmap.DeepCopy()
-      if p.adapter_tpl:
-        adapter_in_map = in_nmap.DeepCopy()
-        adapter_in_map.features, adapter_in_map.padding = features, paddings
-        adapter_out_nmap, _ = self.adapter.FProp(theta.adapter, adapter_in_map)
-        features, paddings = adapter_out_nmap.features, adapter_out_nmap.paddings
+      if p.adapter_tpl and p.adapter_pos in [
+          'block_sequential',
+          'block_parallel',
+      ]:
+        adapter_in_nmap = in_nmap.DeepCopy()
+        if p.adapter_pos == 'block_sequential':
+          adapter_in_nmap.features = features
+        adapter_out_nmap, _ = self.adapter.FProp(theta.adapter, adapter_in_nmap)
+        features += adapter_out_nmap.features
 
       features, paddings = self._CastToFPropDtype((features, paddings))
       out_nmap.features, out_nmap.paddings = features, paddings
@@ -1083,8 +1165,13 @@ class ConformerLayer(base_layer.BaseLayer):
       features, paddings, aux_loss = in_nmap.features, in_nmap.paddings, None
 
       if self.has_fflayer_start:
+        adapter_in_nmap = in_nmap.DeepCopy()
+        adapter_in_nmap.features = features
         features, paddings, aux_loss = self._MoeOrFFLayer(
             theta, 'fflayer_start', features, paddings, aux_loss)
+        features = self._MaybeFFLayerAdapter(
+            theta, 'fflayer_start', adapter_in_nmap, features
+        )
 
       if p.layer_order == 'mhsa':
         features, paddings, atten_state1 = self.trans_atten.StreamStep(
@@ -1108,19 +1195,29 @@ class ConformerLayer(base_layer.BaseLayer):
       if not self.has_mhsa:
         atten_state1 = py_utils.NestedMap()
 
-      features, paddings, _ = self._MoeOrFFLayer(theta, 'fflayer_end', features,
-                                                 paddings, aux_loss)
-      outputs = self.final_ln.FProp(theta.final_ln, features)
+      adapter_in_nmap = in_nmap.DeepCopy()
+      adapter_in_nmap.features = features
+      features, paddings, _ = self._MoeOrFFLayer(
+          theta, 'fflayer_end', features, paddings, aux_loss
+      )
+      features = self._MaybeFFLayerAdapter(
+          theta, 'fflayer_end', adapter_in_nmap, features
+      )
+      features = self.final_ln.FProp(theta.final_ln, features)
 
-      if p.adapter_tpl:
-        adapter_in_map = in_nmap.DeepCopy()
-        adapter_in_map.features, adapter_in_map.padding = outputs, paddings
-        adapter_out_nmap, _ = self.adapter.FProp(theta.adapter, adapter_in_map)
-        outputs, paddings = adapter_out_nmap.features, adapter_out_nmap.paddings
+      if p.adapter_tpl and p.adapter_pos in [
+          'block_sequential',
+          'block_parallel',
+      ]:
+        adapter_in_nmap = in_nmap.DeepCopy()
+        if p.adapter_pos == 'block_sequential':
+          adapter_in_nmap.features = features
+        adapter_out_nmap, _ = self.adapter.FProp(theta.adapter, adapter_in_nmap)
+        features += adapter_out_nmap.features
 
       state1 = py_utils.NestedMap(
           lconv_state=lconv_state1, atten_state=atten_state1)
-      return outputs, paddings, state1
+      return features, paddings, state1
 
   def _AddAttentionSummaries(self, name, atten_probs):
     # Plots attention prob summaries for joint network.
