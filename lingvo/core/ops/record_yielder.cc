@@ -630,8 +630,16 @@ void BasicRecordYielder::ShardLoop(Shard* shard) {
         break;
       }
     }
-    LOG(INFO) << "Emitted " << shard_record_count << " records from "
-              << absl::CEscape(filename);
+    if (shard_record_count == 0) {
+      LOG(ERROR) << "Found no records in " << absl::CEscape(filename)
+                 << ". This can cause poor performance in the input generator. "
+                    "In the worst case, it can result in total failure due to "
+                    "idle TPUs. Consider omitting this data source if the "
+                    "amount of data is small or zero.";
+    } else {
+      LOG(INFO) << "Emitted " << shard_record_count << " records from "
+                << absl::CEscape(filename);
+    }
   }
   // Adds the remaining values of this shard to buf_.
   while (!values.empty()) {
