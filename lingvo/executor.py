@@ -17,7 +17,7 @@
 import contextlib
 import multiprocessing.dummy
 import os
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from etils import epath
 from lingvo import compat as tf
@@ -44,10 +44,14 @@ _DISABLE_META_OPTIMIZER = tf.flags.DEFINE_bool(
     'disable_meta_optimizer_in_executor', False,
     'Disabling the grappler meta_optimizer improves start-up time.')
 _USE_TPU_MIRRORED_VARS = tf.flags.DEFINE_bool(
-    'use_tpu_mirrored_vars', False,
-    'If set, use TPUStrategy / TPU mirrored variables to eliminate weight transfers. '
-    'The trade-off here is that the Graph is larger. Disabling the meta optimizer '
-    'might be needed for larger TPU slice topologies')
+    'use_tpu_mirrored_vars',
+    False,
+    (
+        'If set, use TPUStrategy / TPU mirrored variables to eliminate weight'
+        ' transfers. The trade-off here is that the Graph is larger. Disabling'
+        ' the meta optimizer might be needed for larger TPU slice topologies'
+    ),
+)
 
 FLAGS = tf.flags.FLAGS
 
@@ -673,7 +677,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
 
     # Start constructing the programs
     self._program_schedule_dict = {}
-    self._programs = []
+    self._programs: List[lingvo_program.BaseProgram] = []
     self._ckpt_programs = []
     self._checkpoint_to_load = None
 

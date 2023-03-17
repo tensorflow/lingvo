@@ -34,7 +34,7 @@ See also:
 import abc
 import collections
 
-from typing import Callable, FrozenSet, List, Set, Optional, Tuple, Union
+from typing import Callable, FrozenSet, List, Optional, Set, Tuple, Union
 from typing import Dict
 
 import lingvo.compat as tf
@@ -231,6 +231,16 @@ class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
       return f'{worker}/replica:0/task:{host_id}/device:CPU:0'
 
 
+def _DenseToSparse(dense_tensor: tf.Tensor) -> tf.sparse.SparseTensor:
+  """Like tf.sparse.from_dense but uses -1 as its padding value."""
+  indices = tf.where(tf.not_equal(dense_tensor, -1))
+  return tf.sparse.SparseTensor(
+      indices=tf.cast(indices, tf.int64),
+      values=tf.gather_nd(dense_tensor, indices),
+      dense_shape=dense_tensor.shape,
+  )
+
+
 class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
   """Manages a global singleton instance of tpu_embedding_v2.TPUEmbedding."""
 
@@ -244,7 +254,7 @@ class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
     self._feature_names: FrozenSet[str] = frozenset()
     self._gradient_multiplier_schedule: schedule_lib.BaseSchedule = None
     self._summary_tensors: List[Tuple[str, tf.Tensor, tf.Tensor]] = []
-    self._sequence_features: Set[str] = set()
+    self._sequence_features: FrozenSet[str] = frozenset()
 
     # Used to cache activations upon each Dequeue, for later Lookup calls.
     self._activations: py_utils.NestedMap = py_utils.NestedMap()
@@ -270,16 +280,24 @@ class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
     return self._feature_names
 
   @feature_names.setter
-  def feature_names(self, feature_names: FrozenSet[str]):
-    self._feature_names = feature_names
+  def feature_names(self, feature_names: Set[str]):
+    """Sets `feature_names`, the set of all features with embeddings."""
+    self._feature_names = frozenset(feature_names)
 
   @property
-  def sequence_features(self) -> Set[str]:
+  def sequence_features(self) -> FrozenSet[str]:
+    """Set of all features with sequence embeddings."""
     return self._sequence_features
+
+  @property
+  def non_sequence_features(self) -> FrozenSet[str]:
+    """Set of all features with non-sequence embeddings."""
+    return self._feature_names - self._sequence_features
 
   @sequence_features.setter
   def sequence_features(self, features: Set[str]):
-    self._sequence_features = features
+    """Sets `sequence_features`, the set of all sequence features."""
+    self._sequence_features = frozenset(features)
 
   @property
   def gradient_multiplier_schedule(self) -> schedule_lib.BaseSchedule:
@@ -296,6 +314,49 @@ class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
   def summary_tensors(self) -> List[Tuple[str, tf.Tensor, tf.Tensor]]:
     """Returns a list of (name, value, weight) tuples for summary."""
     return self._summary_tensors
+
+  def ProcessInputFeature(self, key: str, value: tf.Tensor) -> tf.Tensor:
+    """Processes a single NestedMap entry for compatibility with the API.
+
+    This function is meant to be called after GetPreprocessedInputBatch but
+    importantly *before* its tensors are split across accelerator devices, once
+    on each entry in the batch's NestedMap.
+
+    For sequence features, we add an extra dimension of size 1. See
+    documentation below in TPUEmbeddingLayer:_CreateLayerVariables.
+
+    For non-sequence features, we convert the id tensors to SparseTensors when
+    there are multiple ids per example. We do this to match the logic in our V1
+    layers, which always enqueue such ids for lookup as sparse EnqueueData, and
+    in so doing always permit the combiner reduction to occur (since this
+    mirrors tf.nn.embedding_lookup_sparse's API).
+
+    Args:
+      key: the (possibly-nested) key of the NestedMap.
+      value: the tensor we wish to optionally process.
+
+    Returns:
+      A possibly-modified tensor which now conforms to Lingvo's use of the
+      TPUEmbedding API.
+    """
+    if not self.enabled:
+      return value
+
+    # Add an empty dimension to indicate these are for sequence embeddings.
+    if key in self.sequence_features:
+      return tf.expand_dims(value, -1)
+
+    # Update non-sequence features which have multiple ids per example to
+    # sparse tensors, in order to trigger the TPUEmbedding library's
+    # reduction logic. This is how the v1 layers behave.
+    elif key in self.non_sequence_features and value.shape[1] != 1:
+      # Sparse conversion only appears necessary when there are multiple IDs
+      # per example. There is a performance penalty in enqueing a SparseTensor
+      # over a regular dense tensor, so we avoid the conversion when just a
+      # single ID is present per example.
+      return _DenseToSparse(value)
+
+    return value
 
   def Enqueue(self, batch: py_utils.NestedMap) -> None:
     """Enqueues embedding column ids from input batch to TPU coprocessor.
@@ -332,11 +393,21 @@ class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
     Args:
       ids: a NestedMap of ids whose corresponding activations are returned.
     """
-    if ids and self.enabled:
-      return self._activations.GetSlice(
-          {*ids.Keys()} & {*self._activations.Keys()}
+    outputs = self._activations.copy()
+    if self.enabled:
+      if ids:
+        outputs = outputs.GetSlice({*ids.Keys()} & {*outputs.Keys()})
+
+      # The V1 layers automaticlaly add a dummy 'time' dimension to non-sequence
+      # embedding lookup results. While not ideal, we replicate that pattern
+      # here for consistency between V1/V2.
+      outputs.Update(
+          outputs.GetSlice(
+              {*outputs.Keys()} & self.non_sequence_features
+          ).Transform(lambda t: tf.expand_dims(t, axis=1))
       )
-    return self._activations
+
+    return outputs
 
   def ApplyGradients(
       self, gradients: py_utils.NestedMap
@@ -406,8 +477,9 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
     #   Keep inputs as rank 2 sparse tensors and use max_sequence_length -
     #   it may also be useful to call 'embedding.build(per_replica_batch_size)'
     # option 2)  <- We implement this one for now.
-    #   Call expand_dims with axis=-1 on sequence tensors, making them of rank 3
-    #   and manually set output_shape to [batch_size, sequence_length].
+    #   Call expand_dims with axis=-1 on sequence tensors (in
+    #   `TPUEmbeddingManager:ProcessInputBatch`), making them of rank 3 and
+    #    manually set output_shape to [batch_size, sequence_length].
     for table in self.tables:
       for feature in table.input_keys:
         if table.max_sequence_length > 0:
@@ -420,9 +492,18 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
               ),
           )
         else:
+          # We set `output_shape` here for the following reason: When given an
+          # id feature with multiple ids per example/row, we convert it to a
+          # SparseTensor, and in doing so, lose shape information. Adding this
+          # output shape specification appears necessary to have the `combiner`
+          # reduction take place for lookups like that. It had not been
+          # necessary for id columns with just one id per example.
           feature_config.Set(
               feature,
-              tpu_embedding_v2_utils.FeatureConfig(table=table.table_config),
+              tpu_embedding_v2_utils.FeatureConfig(
+                  table=table.table_config,
+                  output_shape=[p.batch_size],
+              ),
           )
 
     if not TPU_EMBEDDING_MANAGER:
@@ -442,7 +523,7 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
       TPU_EMBEDDING_MANAGER.gradient_multiplier_schedule = (
           self.gradient_multiplier_schedule
       )
-      TPU_EMBEDDING_MANAGER.sequence_features = set(sequence_features)
+      TPU_EMBEDDING_MANAGER.sequence_features = frozenset(sequence_features)
 
       feature_names = collections.Counter()
       for table in self.tables:
