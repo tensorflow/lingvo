@@ -128,12 +128,20 @@ class DecoderUtilsComputeWerTest(test_utils.TestCase):
       self.assertAllEqual(wer.shape, [3, 2])
       self.assertAllEqual(wer.eval(), [[0, 0], [2, 0], [3, 3]])
 
-  def testDifferencesInCaseAreCountedAsErrors(self):
+  def testDifferencesInCaseAreNotCountedAsErrors(self):
     with self.session():
       wer = decoder_utils.ComputeWer(
           hyps=["ONE two", "one two"], refs=["one two", "ONE two"])
       self.assertAllEqual(wer.shape, [2, 2])
-      self.assertAllEqual(wer.eval(), [[1, 2], [1, 2]])
+      self.assertAllEqual(wer.eval(), [[0, 2], [0, 2]])
+
+  def testDifferencesInCaseAndPunctAreNotCountedAsErrors(self):
+    with self.session():
+      wer = decoder_utils.ComputeWer(
+          hyps=["ONE two.", "one! two"], refs=["one two?", "ONE, two"]
+      )
+      self.assertAllEqual(wer.shape, [2, 2])
+      self.assertAllEqual(wer.eval(), [[0, 2], [0, 2]])
 
 
 class DecoderUtilsFilterTest(test_utils.TestCase):

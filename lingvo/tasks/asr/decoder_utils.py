@@ -57,6 +57,18 @@ def ComputeWer(hyps, refs):
   def _NormalizeWhitespace(s):
     return tf.strings.regex_replace(tf.strings.strip(s), r'\s+', ' ')
 
+  def _NormalizePunctAndCaptalization(s):
+    lower_string = tf.strings.lower(s)
+    # remove punctuation: . , ! ?
+    remove_punct_string = tf.strings.regex_replace(
+        lower_string, r'[.,!?]+', ' '
+    )
+    return remove_punct_string
+
+  # remove punctuation and capitalization as its not needed for WER computation.
+  hyps = _NormalizePunctAndCaptalization(hyps)
+  refs = _NormalizePunctAndCaptalization(refs)
+
   hyps = _NormalizeWhitespace(hyps)
   refs = _NormalizeWhitespace(refs)
 
