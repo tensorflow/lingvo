@@ -131,14 +131,18 @@ class DecoderUtilsComputeWerTest(test_utils.TestCase):
   def testDifferencesInCaseAreNotCountedAsErrors(self):
     with self.session():
       wer = decoder_utils.ComputeWer(
-          hyps=["ONE two", "one two"], refs=["one two", "ONE two"])
+          hyps=["ONE two", "one two"],
+          refs=["one two", "ONE two"],
+      )
       self.assertAllEqual(wer.shape, [2, 2])
-      self.assertAllEqual(wer.eval(), [[0, 2], [0, 2]])
+      self.assertAllEqual(wer.eval(), [[1, 2], [1, 2]])
 
   def testDifferencesInCaseAndPunctAreNotCountedAsErrors(self):
     with self.session():
       wer = decoder_utils.ComputeWer(
-          hyps=["ONE two.", "one! two"], refs=["one two?", "ONE, two"]
+          hyps=["ONE two.", "one! two"],
+          refs=["one two?", "ONE, two"],
+          normalize_punct_and_cap=True,
       )
       self.assertAllEqual(wer.shape, [2, 2])
       self.assertAllEqual(wer.eval(), [[0, 2], [0, 2]])

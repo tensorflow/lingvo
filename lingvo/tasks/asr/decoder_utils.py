@@ -41,12 +41,13 @@ def Tokenize(string):
   return string.split()
 
 
-def ComputeWer(hyps, refs):
+def ComputeWer(hyps, refs, normalize_punct_and_cap=False):
   """Computes word errors in hypotheses relative to reference transcripts.
 
   Args:
     hyps: Hypotheses, represented as string tensors of shape [N].
     refs: References, represented as string tensors of shape [N].
+    normalize_punct_and_cap: If set, normalize punctuation and capitalization.
 
   Returns:
     An int64 tensor, word_errs, of size [N, 2] where word_errs[i, 0] corresponds
@@ -65,9 +66,9 @@ def ComputeWer(hyps, refs):
     )
     return remove_punct_string
 
-  # remove punctuation and capitalization as its not needed for WER computation.
-  hyps = _NormalizePunctAndCaptalization(hyps)
-  refs = _NormalizePunctAndCaptalization(refs)
+  if normalize_punct_and_cap:
+    hyps = _NormalizePunctAndCaptalization(hyps)
+    refs = _NormalizePunctAndCaptalization(refs)
 
   hyps = _NormalizeWhitespace(hyps)
   refs = _NormalizeWhitespace(refs)
