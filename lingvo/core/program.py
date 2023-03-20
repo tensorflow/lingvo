@@ -400,7 +400,9 @@ class BaseProgram:
     """
     pass
 
-  def _InstantiateTaskModel(self, task_params):
+  def _InstantiateTaskModel(
+      self, task_params
+  ) -> Union[base_model.SingleTaskModel, base_model.MultiTaskModel]:
     """Instantiates a model object for a particular task.
 
     MultiTaskModels can accept a shared_model parameter, but SingleTaskModels
@@ -783,7 +785,9 @@ class HostDrivenTrainProgram(BaseProgram):
 
   def __init__(self, params, **kwargs):
     super().__init__(params, **kwargs)
-    self._model = None
+    self._model: Optional[
+        Union[base_model.SingleTaskModel, base_model.MultiTaskModel]
+    ] = None
     self._task = None
     self._metrics_mgr = None
     self._total_num_params = None
@@ -832,6 +836,18 @@ class HostDrivenTrainProgram(BaseProgram):
                                            eval_metrics, outfeeds)
       self._summary_writer.flush()
 
+  @property
+  def model(
+      self,
+  ) -> Union[base_model.SingleTaskModel, base_model.MultiTaskModel]:
+    """The instantiated BaseModel object which this program trains."""
+    return self._model
+
+  @property
+  def task(self) -> base_model.BaseTask:
+    """The BaseTask of the model this program trains."""
+    return self._task
+
   def BuildTpuSubgraph(self, strategy=None):
     """Initializes the model, training loop, and metrics tracking object."""
     tf.logging.info('HostDrivenTrainProgram BuildTpuSubGraph')
@@ -862,7 +878,10 @@ class HostDrivenTrainProgram(BaseProgram):
 
     def Split(batch, replicas_per_host, axis=0):
       """Splits a NestedMap into replicas_per_host pieces."""
-      split = batch.Transform(lambda t: tf.split(t, replicas_per_host, axis))
+      def _SplitFn(t):
+        return tf.sparse.split if isinstance(t, tf.SparseTensor) else tf.split
+
+      split = batch.Transform(lambda t: _SplitFn(t)(t, replicas_per_host, axis))
       return [
           nest.map_structure_up_to(batch, lambda t: t[i], split)  # pylint: disable=cell-var-from-loop
           for i in range(replicas_per_host)
@@ -881,12 +900,8 @@ class HostDrivenTrainProgram(BaseProgram):
         # Remove bucket_keys; this relates to GenericInput pipelines.
         batch = batch.FilterKeyVal(lambda k, _: not k.endswith('bucket_keys'))
 
-        # Add a dummy dimension to indicate these are for sequence embeddings.
-        batch.Update(
-            batch.GetSlice(_TPU_EMBEDDING_V2.sequence_features).Transform(
-                lambda t: tf.expand_dims(t, -1)
-            )
-        )
+        # Process embedding ID features according to their specified types.
+        batch = batch.TransformWithKey(_TPU_EMBEDDING_V2.ProcessInputFeature)
 
         per_host_batches.extend(Split(batch, replicas_per_host))
 

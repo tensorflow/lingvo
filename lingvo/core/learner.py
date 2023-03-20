@@ -273,7 +273,9 @@ class Learner(base_layer.BaseLayer):
     tpu_embedding_graph_collection = py_utils.GetTpuEmbeddingGraphCollection()
     if tpu_emb_manager := tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER:
       # Get TPU embedding activations through the TPUEmbedding v2 API.
-      tpu_embedding_activations.Update(tpu_emb_manager.Lookup())
+      tpu_embedding_activations.Update(
+          tpu_emb_manager.Lookup(expand_nonsequence_features=False)
+      )
     elif tpu_embedding_graph_collection:
       # Get TPU embedding activations through the TPUEmbedding v1 API.
       tpu_embedding_collection = tpu_embedding_graph_collection[0]

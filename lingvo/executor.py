@@ -655,7 +655,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     # The global step variable needs to be created inside the TPU strategy
     # scope below, so we don't create it in the base class.
     super().__init__(train_cfg, *args, create_global_step=False, **kwargs)
-    self.tpu_strategy = self._CreateTpuStrategy(resolver, train_cfg)
+    self._tpu_strategy = self._CreateTpuStrategy(resolver, train_cfg)
 
     data_parallelism = self._cluster.num_splits_per_client
     assert data_parallelism
@@ -757,6 +757,29 @@ class HostDrivenExecutor(base_runner.BaseRunner):
   @property
   def logdir(self) -> epath.Path:
     return epath.Path(self._logdir)
+
+  @property
+  def model(self) -> base_model.SingleTaskModel:
+    """The train program's SingleTaskModel (invalid for multitask)."""
+    for program in self._programs:
+      if isinstance(program, lingvo_program.HostDrivenTrainProgram):
+        return program.model
+    raise ValueError('No TrainProgram present in _programs.')
+
+  @property
+  def task(self) -> base_model.BaseTask:
+    """The train program's BaseTask (invalid for multitask)."""
+    assert len(self.model.tasks) == 1, (
+        'Only meant to be used when the executor is managing a single task'
+        ' model. In that case, the tasks property will only have a single'
+        ' value.'
+    )
+    return self.model.tasks[0]
+
+  @property
+  def tpu_strategy(self) -> tf.distribute.TPUStrategy:
+    """The HostDrivenExecutor's TPUStrategy singleton."""
+    return self._tpu_strategy
 
   @py_utils.RetryOnTransientTfError()
   def _CreateTpuStrategy(
