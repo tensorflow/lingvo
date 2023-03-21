@@ -781,6 +781,10 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     """The HostDrivenExecutor's TPUStrategy singleton."""
     return self._tpu_strategy
 
+  @property
+  def cluster(self):
+    return self._cluster
+
   @py_utils.RetryOnTransientTfError()
   def _CreateTpuStrategy(
       self, resolver, train_cfg
