@@ -407,7 +407,10 @@ class _Cluster:
     if self.synchronous and self.job == 'trainer_client':
       # One client drives all the workers.
       return self.num_splits_per_replica * self.num_replicas
-    elif self.synchronous and self.job == 'executor_tpu':
+    elif self.synchronous and self.job in (
+        'executor_tpu',
+        'host_driven_executor_tpu',
+    ):
       # One client drives all the workers.
       return self.num_splits_per_replica * self.num_replicas
     else:
