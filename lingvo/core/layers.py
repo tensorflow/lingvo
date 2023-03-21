@@ -1376,6 +1376,167 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
 
+class MultitaskProjectionEinsumLayer(base_layer.BaseLayer):
+  """Multitask projection layer implemented based on einsum."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('input_dim', 0, 'Depth of the input.')
+    p.Define('output_dim', 0, 'Depth of the output.')
+    p.Define('num_tasks', 0, 'Number of tasks.')
+    p.Define(
+        'activation',
+        'RELU',
+        (
+            'Activation function to use. Options are RELU, RELU6, SIGMOID, '
+            'TANH, NONE.'
+        ),
+    )
+    p.Define(
+        'has_bias',
+        False,
+        'Whether or not to introduce the bias params to the layer.',
+    )
+    p.Define('bias_init', 0.0, 'Initial value for the bias')
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+    assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.input_dim) > 0
+    assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.output_dim) > 0
+    assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.num_tasks) > 0
+    assert p.activation == 'NONE' or activations.IsSupported(p.activation)
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+
+    act_multiplier = activations.DimMultiplier(p.activation)
+    self._internal_output_dim = p.output_dim * act_multiplier
+
+    w_pc = py_utils.WeightParams(
+        shape=[p.num_tasks, p.input_dim, self._internal_output_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'],
+    )
+
+    if p.has_bias:
+      b_pc = py_utils.WeightParams(
+          shape=[p.num_tasks, self._internal_output_dim],
+          init=py_utils.WeightInit.Constant(scale=p.bias_init),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'],
+      )
+
+    self.CreateVariable('w', w_pc)
+    if p.has_bias:
+      self.CreateVariable('b', b_pc)
+
+  @classmethod
+  def NumOutputNodes(cls, p):
+    return p.output_dim
+
+  def FProp(self, theta, inputs, tasks, paddings=None):
+    """Apply projection to inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [batch, ..., input_dim].
+      tasks: An int32 tensor containing the task ID for each input. [batch].
+      paddings: The paddings tensor.  Shaped [batch, ..., 1], where all but the
+        last dimension match.
+
+    Returns:
+      Output after applying projection and relu non-linearity.
+    """
+    assert tasks is not None, 'tasks tensor must be provided.'
+    assert (
+        py_utils.GetShape(inputs)[0] == py_utils.GetShape(tasks)[0]
+    ), 'The batch (first) dimension of inputs and tasks must match.'
+    p = self.params
+    with tf.name_scope(p.name):
+      inputs, paddings, tasks = self._CastToFPropDtype(
+          (inputs, paddings, tasks)
+      )
+      w, b = self._GetWeights(theta, inputs, tasks)
+      out = self._ApplyProjectionKernel(w, b, inputs)
+      out = self._ApplyActivationFunction(out)
+      return out
+
+  def FPropFullSequence(self, theta, inputs, tasks, paddings):
+    return self.FProp(theta, inputs, tasks, paddings)
+
+  def _GetWeights(self, theta, inputs, tasks):
+    """Gets the weights for the computation.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [batch, ..., input_dim].
+      tasks: An int32 tensor containing the task ID for each input. [batch].
+
+    Returns:
+      Tuple of (w, b) to use for the forward pass. b may be None if bias is
+      disabled.
+    """
+    p = self.params
+    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=theta.w.dtype)
+    w = tf.einsum('bk,kio->bio', tasks_onehot, theta.w)
+    if p.has_bias:
+      b = tf.einsum('bk,ko->bo', tasks_onehot, theta.b)
+    else:
+      b = None
+    # Cast to fprop_dtype.
+    fprop_dtype = py_utils.FPropDtype(p)
+    if w.dtype != fprop_dtype:
+      w = tf.cast(w, fprop_dtype)
+    if b is not None and b.dtype != fprop_dtype:
+      b = tf.cast(b, fprop_dtype)
+    return w, b
+
+  def _ApplyProjectionKernel(self, w, b, inputs):
+    """Applies projection.
+
+    Args:
+      w: Weight matrix.
+      b: Bias vector (or None).
+      inputs: FProp inputs.
+
+    Returns:
+      Output tensor with projection applied.
+    """
+    out = tf.einsum('b...y,byz->b...z', inputs, w)
+    if b is not None:
+      if py_utils.GetRank(inputs) == 2:
+        out += b
+      elif py_utils.GetRank(inputs) == 3:
+        out += b[:, tf.newaxis, :]
+      else:
+        raise ValueError('the inputs must has rank 2 or 3.')
+    return out
+
+  def _ApplyActivationFunction(self, out):
+    """Applies the activation function in one step.
+
+    Args:
+      out: The result of applying the weight matrix (and bias) to the inputs.
+
+    Returns:
+      Output tensor with activation applied.
+    """
+    p = self.params
+    if p.activation != 'NONE':
+      if not p.is_inference:
+        out = py_utils.CheckNumerics(out)
+      out = activations.GetFn(p.activation)(out)
+    return out
+
+
 class FCLayer(ProjectionLayer):
   """Fully-connected layer (matmul + bias + optional activation)."""
 
@@ -1638,6 +1799,162 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
 
     out_shape = tshape.Shape(inputs[:-1] + [p.hidden_layer_dims[-1]])
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
+
+
+class MultitaskFeedForwardNet(base_layer.BaseLayer):
+  """A simple multiple layer feedforward network.
+
+  This class represents a stack of fully connected feedforward network. Each
+  layer in the network can be configured for whether or not to have batch-norm
+  applied to its output, its activation function, whether or not to apply
+  dropout to post-activation output.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('input_dim', 0, 'Depth of the input to the network.')
+    p.Define('num_tasks', 0, 'Number of tasks.')
+    p.Define('hidden_layer_dims', [], 'Depth of the hidden layer outputs.')
+    p.Define(
+        'projection',
+        MultitaskProjectionEinsumLayer.Params(),
+        (
+            'Projection layer params. A single parameter that will be shared by'
+            'all layers, or a list of params matching the number of layers.'
+        ),
+    )
+    p.Define(
+        'dropout',
+        DropoutLayer.Params(),
+        (
+            'Dropout layer params. Can be a single params or a tuple/list of'
+            ' params having the same length as the number of layers.'
+        ),
+    )
+    p.Define(
+        'activation',
+        'RELU',
+        (
+            'The activation function to use. Can be a single string, or a'
+            ' tuple/list of strings having the same length as the number'
+            ' of layers.'
+        ),
+    )
+    p.Define(
+        'has_bias',
+        True,
+        (
+            'Whether or not to use bias for projection layers.This can be a'
+            ' None, single bool or a tuple/list of bools having the same length'
+            ' as the number of layers. If None, the has_bias is set to True.'
+        ),
+    )
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.name
+    assert symbolic.ToStatic(p.input_dim) > 0
+    assert symbolic.ToStatic(p.num_tasks) > 0
+    assert all(symbolic.ToStatic(x) > 0 for x in p.hidden_layer_dims)
+
+    num_layers = len(p.hidden_layer_dims)
+    activation = p.activation
+    if isinstance(activation, str):
+      activation = [activation] * num_layers
+    else:
+      assert len(activation) == num_layers
+    has_bias = p.has_bias
+    if isinstance(has_bias, (list, tuple)):
+      assert len(has_bias) == num_layers
+    else:
+      has_bias = [has_bias] * num_layers
+
+    params_proj_layers = p.projection
+    if isinstance(params_proj_layers, (list, tuple)):
+      assert len(params_proj_layers) == num_layers
+    else:
+      params_proj_layers = [params_proj_layers] * num_layers
+
+    params_dropout_layers = p.dropout
+    if isinstance(params_dropout_layers, (list, tuple)):
+      assert len(params_dropout_layers) == num_layers
+    else:
+      params_dropout_layers = [params_dropout_layers] * num_layers
+
+    params_fc_layers = []
+    in_dim = p.input_dim
+    for i in range(num_layers):
+      out_dim = p.hidden_layer_dims[i]
+      proj_out_dim = out_dim
+      name = f'{p.name}_{i}'
+      params_i = params_proj_layers[i].Copy()
+      params_i.Set(
+          input_dim=in_dim,
+          output_dim=proj_out_dim,
+          activation=activation[i],
+          num_tasks=p.num_tasks,
+          has_bias=has_bias[i],
+          name=name,
+          params_init=p.params_init,
+      )
+      params_fc_layers.append(params_i)
+      in_dim = out_dim
+
+    self.CreateChildren('fc', params_fc_layers)
+    self.CreateChildren('dropout', params_dropout_layers)
+
+  @property
+  def output_dim(self):
+    """Returns output dimension of the FeedForwardNet."""
+    return self.params.hidden_layer_dims[-1]
+
+  @classmethod
+  def NumOutputNodes(cls, p):
+    return p.hidden_layer_dims[-1]
+
+  def FPropAllLayers(self, theta, inputs, tasks, paddings=None):
+    """FProp, returns all layers including the input and output layers."""
+    p = self.params
+    num_layers = len(self.fc)
+    in_dim, layer_in = p.input_dim, inputs
+    all_layers = [layer_in]
+
+    for i in range(num_layers):
+      layer_in = py_utils.with_dependencies(
+          [
+              py_utils.assert_shape_match(
+                  [tf.shape(layer_in)[-1]], [symbolic.ToStatic(in_dim)]
+              )
+          ],
+          layer_in,
+      )
+      out_dim = p.hidden_layer_dims[i]
+      layer_out = self.fc[i].FProp(theta.fc[i], layer_in, tasks, paddings)
+      layer_out = self.dropout[i].FProp(theta.dropout[i], layer_out)
+      all_layers.append(layer_out)
+      layer_in = layer_out
+      in_dim = out_dim
+    return all_layers
+
+  def FProp(self, theta, inputs, tasks, paddings=None):
+    """Computes the output of the feed-forward network.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [..., input_dim].
+      tasks: The tasks tensor/ Shaped [...] in int 32.
+      paddings: The paddings tensor.  Shaped [..., 1], where all but the last
+        dimension match.
+
+    Returns:
+      Output after applying all layers.  Shaped [..., p.hidden_layer_dims[-1]].
+    """
+    ff_output = self.FPropAllLayers(theta, inputs, tasks, paddings)[-1]
+    return ff_output
 
 
 class StackingOverTime(base_layer.BaseLayer):

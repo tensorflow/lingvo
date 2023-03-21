@@ -544,6 +544,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p.Define('input_dim', 0, 'Dimension of the layer input.')
     p.Define('output_dim', 0, 'Dimension of the layer output.')
     p.Define('hidden_dim', 0, 'Dimension of the hidden layer.')
+    p.Define('num_tasks', 0, 'Number of tasks.')
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define('activation', 'RELU', 'Non-linearity.')
     p.Define(
@@ -608,6 +609,11 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     params.name = 'fflayer'
     params.input_dim = p.input_dim
     params.activation = [p.activation, 'NONE']
+    if p.num_tasks:
+      assert hasattr(
+          params, 'num_tasks'
+      ), 'the fflayer does not support multitask'
+      params.num_tasks = p.num_tasks
     # Set block diagonal params.
     if 'use_block_diagonal_matmul_pl' in params:
       params.use_block_diagonal_matmul_pl = p.use_block_diagonal_matmul_pl
@@ -678,14 +684,15 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
   def NumOutputNodes(cls, p):
     return p.output_dim if p.output_dim else p.input_dim
 
-  def FProp(self, theta, inputs, paddings):
+  def FProp(self, theta, inputs, paddings, tasks=None):
     """Feed-forward, residual and layer-norm.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       inputs: [time, batch, dim].
-      paddings: [time, batch]
+      paddings: [time, batch].
+      tasks: Optional [batch].
 
     Returns:
       tensor of the same shape with inputs
@@ -703,8 +710,17 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
         inputs_normalized = inputs
       if hasattr(self, 'res_proj_layer'):
         inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
-      h = self.fflayer.FProp(theta.fflayer, inputs_normalized,
-                             tf.expand_dims(paddings, -1))
+      if p.num_tasks:
+        h = self.fflayer.FProp(
+            theta.fflayer,
+            inputs_normalized,
+            tasks,
+            tf.expand_dims(paddings, -1),
+        )
+      else:
+        h = self.fflayer.FProp(
+            theta.fflayer, inputs_normalized, tf.expand_dims(paddings, -1)
+        )
       if p.primer_hybrid_norm:
         h = self.post_layer_norm.FProp(theta.post_layer_norm, h)
       if p.memory_augmentation:

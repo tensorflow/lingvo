@@ -328,6 +328,54 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       print([x.shape for x in out_vals])
       print([g.shape for g in grad_vals])
 
+  # pylint: disable=bad-whitespace
+  # pyformat: disable
+  @parameterized.named_parameters(
+      ('Start', 5, 0,
+       [[-8.47203 ,  5.499834,  5.495824, -2.523626],
+        [ 1.174186, -2.449052,  3.556117, -2.281251]]),
+      ('End', 0, 5,
+       [[-4.421609,  5.163039, -1.670242,  0.928811],
+        [ 0.742621,  6.313842, -5.104593, -1.95187 ]]),
+      ('StartAndEnd', 5, 5,
+       [[-8.758249,  6.094139,  5.096718, -2.43261 ],
+        [ 1.269817, -0.706735,  2.876816, -3.439898]]),
+      ('None', 0, 0,
+       [[-5.350441,  5.445635, -0.506597,  0.411401],
+        [ 0.646016,  1.519333, -2.776793,  0.611446]]),
+  )
+  # pyformat: enable
+  # pylint: enable=bad-whitespace
+  def testMultitaskFFLayerFProp(
+      self, fflayer_start_num_tasks, fflayer_end_num_tasks, expected_sum
+  ):
+    kwargs = {}
+    kwargs['fflayer_start_num_tasks'] = fflayer_start_num_tasks
+    kwargs['fflayer_end_num_tasks'] = fflayer_end_num_tasks
+    kwargs['fflayer_task_ids'] = 'client_ids'
+
+    p = self._GetParams(**kwargs)
+    l = p.Instantiate()
+    inputs, paddings = self._GetInputs()
+    inputs = tf.convert_to_tensor(inputs)
+    paddings = tf.convert_to_tensor(paddings)
+    in_nmap = py_utils.NestedMap(features=inputs, paddings=paddings)
+    if fflayer_start_num_tasks or fflayer_end_num_tasks:
+      tasks = tf.random.uniform(
+          [py_utils.GetShape(inputs)[0]],
+          maxval=max(fflayer_start_num_tasks, fflayer_end_num_tasks),
+          dtype=tf.int32,
+      )
+      in_nmap['client_ids'] = tasks
+    in_nmap.aux_loss = tf.convert_to_tensor(0.0, py_utils.FPropDtype(p))
+    out_nmap = l.FPropDefaultTheta(in_nmap)
+    out_sum = tf.reduce_sum(out_nmap.features, axis=1)
+
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      out_sum_vals = sess.run(out_sum)
+      self.assertAllClose(expected_sum, out_sum_vals, rtol=1e-5, atol=1e-5)
+
   def testRemat(self):
     inputs, paddings = self._GetInputs()
     base_p = self._GetParams()

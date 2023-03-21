@@ -2960,6 +2960,280 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected, actual)
 
 
+class MultitaskProjectionEinsumLayerTest(
+    test_utils.TestCase, parameterized.TestCase
+):
+
+  def testMultitaskProjectionEinsumLayerConstruction(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.MultitaskProjectionEinsumLayer.Params()
+      params.name = 'proj'
+      params.input_dim = 2
+      params.output_dim = 3
+      params.num_tasks = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      layers.MultitaskProjectionEinsumLayer(params)
+      proj_vars = tf.get_collection('MultitaskProjectionEinsumLayer_vars')
+      proj_var_names = [x.name for x in proj_vars]
+      self.assertEqual(['proj/w/var:0'], proj_var_names)
+
+  def _evalMultitaskProjectionEinsumLayer(
+      self,
+      activation='RELU',
+      input_dim=3,
+      output_dim=2,
+      num_tasks=2,
+      has_bias=False,
+      is_eval=False,
+      input_dtype=tf.float32,
+      fprop_dtype=None,
+  ):
+    self._ClearCachedSession()
+    tf.reset_default_graph()
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.MultitaskProjectionEinsumLayer.Params()
+      params.name = 'proj'
+      params.input_dim = input_dim
+      params.output_dim = output_dim
+      params.num_tasks = num_tasks
+      params.has_bias = has_bias
+      if has_bias:
+        params.bias_init = 5.0
+      params.activation = activation
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.fprop_dtype = fprop_dtype
+
+      in_padding = tf.zeros([2, 4, 1], dtype=input_dtype)
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, input_dim]), dtype=input_dtype
+      )
+      tasks = tf.constant([0, 1], dtype=tf.int32)
+
+      proj_layer = layers.MultitaskProjectionEinsumLayer(params)
+      self.evaluate(tf.global_variables_initializer())
+
+      output = proj_layer.FPropDefaultTheta(inputs, tasks, in_padding)
+      return self.evaluate(output)
+
+  @parameterized.named_parameters(
+      ('dtype_default', [], 1e-06),
+      ('dtype_float16', [('.*w', tf.float16)], 1e-03),
+  )
+  def testMultitaskProjectionEinsumLayerFProp(self, list_regex_dtype, atol):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output = [
+        [[0.        , 0.0349365 ],
+         [0.0119279 , 0.09175937],
+         [0.01156829, 0.        ],
+         [0.        , 0.00982772]],
+        [[0.02017412, 0.10699084],
+         [0.        , 0.        ],
+         [0.        , 0.        ],
+         [0.08773755, 0.29545194]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    with py_utils.VariableListDtypeRegexScope(list_regex_dtype):
+      actual = self._evalMultitaskProjectionEinsumLayer()
+      tf.logging.info('expected = %s', expected_output)
+      tf.logging.info('actual = %s', np.array_repr(actual))
+      self.assertAllClose(expected_output, actual, atol=atol)
+
+  def testMultitaskProjectionEinsumLayerFPropWithBias(self):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output = [
+        [[4.989876 , 5.0349364],
+         [5.011928 , 5.091759 ],
+         [5.011568 , 4.9974194],
+         [4.968494 , 5.0098276]],
+        [[5.020174 , 5.106991 ],
+         [4.912538 , 4.828174 ],
+         [4.9431014, 4.9729095],
+         [5.0877376, 5.295452 ]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    # Tested without batch_norm because batch_norm will mostly cancel out the
+    # affect of bias.
+    actual = self._evalMultitaskProjectionEinsumLayer(
+        has_bias=True, activation='RELU'
+    )
+    tf.logging.info('expected = %s', expected_output)
+    tf.logging.info('actual = %s', np.array_repr(actual))
+    self.assertAllClose(expected_output, actual)
+
+  @parameterized.parameters(
+      ('RELU', [[0.0, 0.07840855], [0.0, 0.0]]),
+      ('SWISH_GLU', [[0.00181353, -0.00163004], [0.0001252, 0.00019451]]),
+  )
+  def testMultitaskProjectionEinsumLayerActivation(self, activation, expected):
+    with self.session(use_gpu=True):
+      params = layers.MultitaskProjectionEinsumLayer.Params()
+      params.name = 'proj'
+      params.activation = activation
+      params.has_bias = True
+      params.input_dim = 3
+      params.output_dim = 2
+      params.num_tasks = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+
+      proj_layer = layers.MultitaskProjectionEinsumLayer(params)
+      inputs = tf.constant(np.random.normal(0.1, 0.5, [2, 3]), dtype=tf.float32)
+      tasks = tf.constant([0, 1], dtype=tf.int32)
+
+      output = proj_layer.FProp(proj_layer.theta, inputs, tasks)
+      self.evaluate(tf.global_variables_initializer())
+      actual = self.evaluate(output)
+      print(f'actual {activation} = {np.array_repr(actual)}')
+      self.assertAllClose(expected, actual)
+
+  def testMultitaskProjectionEinsumLayerBackProp(self):
+    with self.session(use_gpu=True) as sess:
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.MultitaskProjectionEinsumLayer.Params()
+      params.name = 'proj'
+      params.dtype = tf.float64
+      params.input_dim = 3
+      params.output_dim = 2
+      params.num_tasks = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.01)
+
+      proj_layer = layers.MultitaskProjectionEinsumLayer(params)
+      in_padding1 = tf.zeros([2, 4, 1], dtype=tf.float64)
+      inputs1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float64
+      )
+      tasks1 = tf.constant([0, 1], dtype=tf.int32)
+      output1 = proj_layer.FPropDefaultTheta(inputs1, tasks1, in_padding1)
+      loss = tf.reduce_sum(output1)
+
+      all_vars = _GetTrainableVars(proj_layer)
+      self.assertLen(all_vars, 1)
+
+      self.evaluate(tf.global_variables_initializer())
+
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output1 = proj_layer.FPropDefaultTheta(inputs1, tasks1, in_padding1)
+        loss = tf.reduce_sum(output1)
+        return tf.gradients(loss, all_vars)
+
+      sym_grads = self.evaluate(_Grads)
+      if tf.executing_eagerly():
+        num_grads = []
+        for v in all_vars:
+          x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
+
+          @test_utils.DefineAndTrace(x)
+          def _Loss(x):
+            v.assign(x)  # pylint: disable=cell-var-from-loop
+            output1 = proj_layer.FPropDefaultTheta(inputs1, tasks1, in_padding1)
+            return tf.reduce_sum(output1)
+
+          num_grads.append(
+              test_utils.ComputeNumericGradientEager(_Loss, v, delta=1e-6)
+          )
+      else:
+        num_grads = [
+            test_utils.ComputeNumericGradient(sess, loss, v, 1e-6)
+            for v in all_vars
+        ]
+
+      for sg, ng in zip(sym_grads, num_grads):
+        self.assertAllClose(sg, ng, rtol=1e-04, atol=1e-04)
+
+  def testMultitaskProjectionEinsumLayerBackPropDTypeFloat16(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.MultitaskProjectionEinsumLayer.Params()
+      params.name = 'proj'
+      params.dtype = tf.float64
+      params.input_dim = 3
+      params.output_dim = 2
+      params.num_tasks = 2
+      params.params_init = py_utils.WeightInit.Constant(0.00443641)
+
+      with py_utils.VariableListDtypeRegexScope([('.*w', tf.float16)]):
+        proj_layer = layers.MultitaskProjectionEinsumLayer(params)
+      in_padding1 = tf.zeros([2, 4, 1], dtype=tf.float64)
+      inputs1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float64
+      )
+      tasks1 = tf.constant([0, 1], dtype=tf.int32)
+
+      all_vars = _GetTrainableVars(proj_layer)
+      self.assertLen(all_vars, 1)
+
+      self.evaluate(tf.global_variables_initializer())
+
+      @test_utils.DefineAndTrace()
+      def _Grads():
+        output1 = proj_layer.FPropDefaultTheta(inputs1, tasks1, in_padding1)
+        loss = tf.reduce_sum(output1)
+        return tf.gradients(loss, all_vars)
+
+      sym_grads = self.evaluate(_Grads)
+      print(sym_grads[0])
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_grads = [[[0.6895, 0.6895],
+                         [2.268 , 2.268 ],
+                         [0.573 , 0.573 ]],
+                        [[1.511 , 1.511 ],
+                         [1.819 , 1.819 ],
+                         [0.1959, 0.1959]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(sym_grads[0], expected_grads, rtol=1e-03, atol=1e-03)
+
+  def testMultitaskProjectionEinsumLayerFPropFullSequence(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.MultitaskProjectionEinsumLayer.Params()
+      params.name = 'proj'
+      params.input_dim = 3
+      params.output_dim = 2
+      params.num_tasks = 2
+
+      proj_layer = layers.MultitaskProjectionEinsumLayer(params)
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float32
+      )
+      tasks = tf.constant([0, 1], dtype=tf.int32)
+      padding = tf.zeros([2, 4, 1], dtype=tf.float32)
+
+      output = proj_layer.FPropFullSequence(
+          proj_layer.theta, inputs, tasks, padding
+      )
+      self.evaluate(tf.global_variables_initializer())
+
+      # pylint: disable=bad-whitespace
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[0.        , 0.28554747],
+           [0.71981835, 0.6144666 ],
+           [0.42101634, 0.07145619],
+           [0.03845581, 0.58147556]],
+          [[0.25327817, 0.        ],
+           [0.8075057 , 0.9223126 ],
+           [0.5738765 , 0.6124158 ],
+           [0.        , 0.        ]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      actual = self.evaluate(output)
+      print(['actual = ', np.array_repr(actual)])
+      self.assertAllClose(expected_output, actual)
+
+
 class StackingOverTimeLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testInvalidInputShape(self):
@@ -4360,6 +4634,149 @@ class FeedForwardNetTest(test_utils.TestCase):
         5 * 2 * (10 * 20 + 20 * 30) + 5 * 20 + (20 + 30))
     self.assertEqual(meta.out_shapes[0].ToTensorShape().as_list(),
                      [5, p.hidden_layer_dims[-1]])
+
+
+class MultitaskFeedForwardNetTest(test_utils.TestCase):
+
+  def testMultitaskFeedForwardNetConstruction(self):
+    with self.session(use_gpu=False):
+      p = layers.MultitaskFeedForwardNet.Params().Set(
+          name='ffn',
+          input_dim=10,
+          hidden_layer_dims=[20, 30],
+          num_tasks=5,
+          activation='TANH',
+          params_init=py_utils.WeightInit.Uniform(1.0),
+      )
+      p.dropout.keep_prob = 0.5
+      proj_l = p.Instantiate()
+      a = tf.constant(1.0, shape=[20, 10])
+      t = tf.random.uniform([20], maxval=5, dtype=tf.int32)
+      proj_l.FPropDefaultTheta(a, t)
+      # check output_dim equals last hidden layer dim.
+      self.assertEqual(p.hidden_layer_dims[-1], proj_l.output_dim)
+
+      p = layers.MultitaskFeedForwardNet.Params().Set(
+          name='ffn2',
+          input_dim=10,
+          hidden_layer_dims=[20, 30],
+          num_tasks=5,
+          activation='TANH',
+          params_init=py_utils.WeightInit.Uniform(1.0),
+      )
+      p.dropout = [
+          layers.DropoutLayer.Params().Set(keep_prob=0.5),
+          layers.DropoutLayer.Params().Set(keep_prob=0.9),
+      ]
+      proj_l = p.Instantiate()
+      a = tf.constant(1.0, shape=[20, 10])
+      t = tf.random.uniform([20], maxval=5, dtype=tf.int32)
+      proj_l.FPropDefaultTheta(a, t)
+
+      p = layers.MultitaskFeedForwardNet.Params().Set(
+          name='ffn3',
+          input_dim=10,
+          hidden_layer_dims=[20, 30],
+          num_tasks=5,
+          activation=['TANH', 'RELU'],
+          params_init=py_utils.WeightInit.Uniform(1.0),
+      )
+      p.dropout = [
+          layers.DropoutLayer.Params().Set(keep_prob=0.5),
+          layers.DropoutLayer.Params().Set(keep_prob=0.9),
+      ]
+      proj_l = p.Instantiate()
+      a = tf.constant(1.0, shape=[20, 10])
+      t = tf.random.uniform([20], maxval=5, dtype=tf.int32)
+      proj_l.FPropDefaultTheta(a, t)
+
+  def testMultitaskFeedForwardNet(self):
+    with self.session(use_gpu=False):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.MultitaskFeedForwardNet.Params().Set(
+          name='ffn',
+          input_dim=10,
+          hidden_layer_dims=[20, 30],
+          num_tasks=5,
+          activation=['RELU', 'NONE'],
+      )
+      params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
+      p.params_init = params_init
+      feedforward_net = p.Instantiate()
+
+      p1 = layers.MultitaskProjectionEinsumLayer.Params().Set(
+          name='p1', input_dim=10, output_dim=20, num_tasks=5, activation='RELU'
+      )
+      p1.params_init = params_init
+      p1_l = p1.Instantiate()
+
+      p2 = layers.MultitaskProjectionEinsumLayer.Params().Set(
+          name='p2', input_dim=20, output_dim=30, num_tasks=5, activation='NONE'
+      )
+      p2.params_init = params_init
+      p2_l = p2.Instantiate()
+
+      a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
+      t = tf.random.uniform([5], maxval=5, dtype=tf.int32)
+      out1 = feedforward_net.FPropAllLayers(feedforward_net.theta, a, t)
+
+      out2 = [a, p1_l.FPropDefaultTheta(a, t)]
+      out2.append(p2_l.FPropDefaultTheta(out2[-1], t))
+
+      self.evaluate(tf.global_variables_initializer())
+      out1_v, out2_v = self.evaluate([out1, out2])
+      self.assertAllClose(out1_v, out2_v)
+
+  def testMultitaskFeedForwardNetSmokeTest(self):
+    with self.session(use_gpu=False):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.MultitaskFeedForwardNet.Params().Set(
+          name='ffn',
+          input_dim=10,
+          hidden_layer_dims=[20, 30],
+          num_tasks=3,
+          activation=['RELU', 'NONE'],
+      )
+      params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
+      p.params_init = params_init
+      feedforward_net = p.Instantiate()
+      a = tf.constant(np.random.rand(5, 10), dtype=tf.float32)
+      t = tf.constant(np.random.randint(0, 3, 5), dtype=tf.int32)
+      out = tf.reduce_sum(feedforward_net.FPropDefaultTheta(a, t))
+      out_abs = tf.reduce_sum(tf.abs(feedforward_net.FPropDefaultTheta(a, t)))
+
+      self.evaluate(tf.global_variables_initializer())
+      test_utils.CompareToGoldenSingleFloat(
+          self, -0.767882, self.evaluate(out), atol=1e-5, rtol=1e-5
+      )
+      test_utils.CompareToGoldenSingleFloat(
+          self, 14.995118, self.evaluate(out_abs), atol=1e-5, rtol=1e-5
+      )
+
+  def testDeterministicSerialize(self):
+    p = layers.MultitaskFeedForwardNet.Params().Set(
+        input_dim=4,
+        projection=layers.MultitaskProjectionEinsumLayer.Params().Set(
+            has_bias=True,
+            num_tasks=5,
+            params_init=py_utils.WeightInit.KaimingUniformFanInRelu(),
+        ),
+        activation='TANH',
+        hidden_layer_dims=[5, 5, 1],
+        num_tasks=5,
+    )
+    base_serialized = p.ToTextWithTypes()
+    for _ in range(10):
+      serialized = p.ToTextWithTypes()
+      serialized_copy = p.Copy().ToTextWithTypes()
+      self.assertEqual(serialized, base_serialized)
+      self.assertEqual(serialized_copy, base_serialized)
+      for x in [serialized, serialized_copy]:
+        deserialized = layers.MultitaskFeedForwardNet.Params()
+        deserialized.FromTextWithTypes(x)
+        self.assertEqual(p, deserialized)
 
 
 class AddingAccumulatorTest(test_utils.TestCase):

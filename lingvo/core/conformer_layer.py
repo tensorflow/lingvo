@@ -517,6 +517,17 @@ class ConformerLayer(base_layer.BaseLayer):
         'fflayer_weight_sharing', False,
         'If True, will ignore `fflayer_end_tpl`, and will make the fflayer_end '
         'layer as a weight-shared copy of the fflayer_start layer.')
+    p.Define('fflayer_start_num_tasks', 0, 'Number of tasks for fflayers.')
+    p.Define('fflayer_end_num_tasks', 0, 'Number of tasks for fflayers.')
+    p.Define(
+        'fflayer_task_ids',
+        '',
+        (
+            'The in_nmap field of an int32 tensor containing the task ID. '
+            'This should be provided if either fflayer_start_num_tasks '
+            'or fflayer_end_num_tasks is positive.'
+        ),
+    )
     p.Define('final_ln_tpl', layers.LayerNorm.Params(), 'Final layer norm.')
     p.Define(
         'adapter_tpl', None, 'If set, runs an adapter layer in the end. '
@@ -583,6 +594,9 @@ class ConformerLayer(base_layer.BaseLayer):
       fflayer_start_tpl=None,
       fflayer_end_tpl=None,
       trans_atten_tpl=None,
+      fflayer_start_num_tasks=0,
+      fflayer_end_num_tasks=0,
+      fflayer_task_ids='',
       lconv_tpl=None,
       list_regex_dtypes=None,
       adapter_tpl=None,
@@ -614,7 +628,12 @@ class ConformerLayer(base_layer.BaseLayer):
         input_dim=input_dim,
         is_causal=is_causal,
         layer_order=layer_order,
-        dropout_prob=dropout_prob)
+        dropout_prob=dropout_prob,
+        fflayer_task_ids=fflayer_task_ids,
+    )
+
+    if fflayer_start_num_tasks or fflayer_end_num_tasks:
+      assert fflayer_task_ids is not None, 'Must provide fflayer_task_ids'
 
     if use_moe_in_fflayer_start:
       assert fflayer_start_tpl is None
@@ -627,7 +646,7 @@ class ConformerLayer(base_layer.BaseLayer):
                                              moe_num_experts, moe_num_groups,
                                              moe_per_capacity_dim)
 
-    def _ConfigureFF(fflayer_tpl):
+    def _ConfigureFF(fflayer_tpl, num_tasks):
       config_kwargs = dict(
           input_dim=input_dim,
           hidden_dim=fflayer_hidden_dim,
@@ -635,9 +654,21 @@ class ConformerLayer(base_layer.BaseLayer):
           residual_weight=fflayer_residual_weight,
           dropout_prob=dropout_prob)
       if fflayer_tpl is None:
+        if num_tasks > 0:
+          fflayer_tpl = layers.MultitaskFeedForwardNet.Params().Set(
+              num_tasks=num_tasks,
+              activation=['RELU', 'NONE'],
+          )
+        else:
+          fflayer_tpl = layers.FeedForwardNet.Params().Set(
+              activation=['RELU', 'NONE'],
+          )
         return cls.ConfigFFLayer(
-            tpl=layers_with_attention.TransformerFeedForwardLayer.Params(),
-            **config_kwargs)
+            tpl=layers_with_attention.TransformerFeedForwardLayer.Params().Set(
+                fflayer_tpl=fflayer_tpl, num_tasks=num_tasks
+            ),
+            **config_kwargs,
+        )
       elif issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder) or issubclass(
           fflayer_tpl.cls, gshard_builder.MoEHashBuilder
       ):
@@ -651,9 +682,12 @@ class ConformerLayer(base_layer.BaseLayer):
         assert fflayer_activation is None, fflayer_activation
         assert fflayer_residual_weight is None, fflayer_residual_weight
         return fflayer_tpl
+
     # Set the two feed forward modules.
-    p.fflayer_start_tpl = _ConfigureFF(fflayer_start_tpl)
-    p.fflayer_end_tpl = _ConfigureFF(fflayer_end_tpl)
+    p.fflayer_start_tpl = _ConfigureFF(
+        fflayer_start_tpl, fflayer_start_num_tasks
+    )
+    p.fflayer_end_tpl = _ConfigureFF(fflayer_end_tpl, fflayer_end_num_tasks)
     # Set the MHSA module.
     if trans_atten_tpl is not None:
       assert atten_left_context is None
@@ -826,15 +860,17 @@ class ConformerLayer(base_layer.BaseLayer):
     with py_utils.VariableListDtypeRegexScope(self.params.list_regex_dtypes):
       if self.has_fflayer_start:
         fflayer_start_p = self._ConfigFFLayerOrMoEParams(
-            p.fflayer_start_tpl, 'fflayer_start')
+            p.fflayer_start_tpl, 'fflayer_start', p.fflayer_start_num_tasks
+        )
         if fflayer_start_p.name:
           assert fflayer_start_p.name == 'fflayer_start_moe'
         else:
           fflayer_start_p.name = 'fflayer_start'
         self.CreateChild(fflayer_start_p.name, fflayer_start_p)
 
-      fflayer_end_p = self._ConfigFFLayerOrMoEParams(p.fflayer_end_tpl,
-                                                     'fflayer_end')
+      fflayer_end_p = self._ConfigFFLayerOrMoEParams(
+          p.fflayer_end_tpl, 'fflayer_end', p.fflayer_end_num_tasks
+      )
       if fflayer_end_p.name:
         assert fflayer_end_p.name == 'fflayer_end_moe'
       else:
@@ -900,12 +936,14 @@ class ConformerLayer(base_layer.BaseLayer):
   def has_fflayer_start(self):
     return bool(self.params.fflayer_start_tpl)
 
-  def _ConfigFFLayerOrMoEParams(self, fflayer_tpl, name_prefix):
+  def _ConfigFFLayerOrMoEParams(self, fflayer_tpl, name_prefix, num_tasks):
     p = self.params
     fflayer_tpl = fflayer_tpl.Copy()
     if not issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
       if hasattr(fflayer_tpl, 'input_dim'):
         fflayer_tpl.Set(input_dim=p.input_dim)
+      if num_tasks > 0 and hasattr(fflayer_tpl, 'num_tasks'):
+        fflayer_tpl.Set(num_tasks=num_tasks)
       return fflayer_tpl
     # TODO(rpang): migrate clients to TransformerShardedMoeLayer.
     fflayer_tpl.model_dim = p.input_dim
@@ -971,7 +1009,14 @@ class ConformerLayer(base_layer.BaseLayer):
     return features
 
   def _MoeOrFFLayer(
-      self, theta, fflayer_name, features, paddings, aux_loss, expert_ids=None
+      self,
+      theta,
+      fflayer_name,
+      features,
+      paddings,
+      aux_loss,
+      expert_ids=None,
+      task_ids=None,
   ):
     """FProp for MoE or Feed forward layer.
 
@@ -984,6 +1029,7 @@ class ConformerLayer(base_layer.BaseLayer):
       paddings: [batch, seqlen].
       aux_loss: [], can be None.
       expert_ids: [batch], ids of experts corresponding to each batch example.
+      task_ids: [batch], task ids corresponding to each batch example.
 
     Returns:
       features: [batch, seqlen, dim0].
@@ -991,10 +1037,19 @@ class ConformerLayer(base_layer.BaseLayer):
       aux_loss: [], is None if input aux_loss is None.
     """
     if fflayer_name in self.children:
-      outputs = self.children[fflayer_name].FProp(
-          theta.GetItem(fflayer_name), features, paddings)
+      fflayer = self.children[fflayer_name]
+      if fflayer.params.num_tasks:
+        assert (
+            task_ids is not None
+        ), 'task_ids should not be None when using multitask FFN layers.'
+        outputs = fflayer.FProp(
+            theta.GetItem(fflayer_name), features, paddings, task_ids
+        )
+      else:
+        outputs = fflayer.FProp(theta.GetItem(fflayer_name), features, paddings)
       return outputs, paddings, aux_loss
     else:
+      assert task_ids is None, 'MoE layer does not support multitask yet.'
       moe_fflayer_name = fflayer_name + '_moe'
       if moe_fflayer_name not in self.children:
         raise AssertionError(
@@ -1054,12 +1109,19 @@ class ConformerLayer(base_layer.BaseLayer):
       else:
         expert_ids = None
       aux_loss = in_nmap.Get('aux_loss')
+      task_ids = in_nmap.Get(p.fflayer_task_ids, None)
       features, paddings = self._CastToFPropDtype((features, paddings))
       if self.has_fflayer_start:
         adapter_in_nmap = in_nmap.DeepCopy()
         adapter_in_nmap.features = features
         features, paddings, aux_loss = self._MoeOrFFLayer(
-            theta, 'fflayer_start', features, paddings, aux_loss, expert_ids
+            theta,
+            'fflayer_start',
+            features,
+            paddings,
+            aux_loss,
+            expert_ids,
+            task_ids,
         )
         features = self._MaybeFFLayerAdapter(
             theta, 'fflayer_start', adapter_in_nmap, features
@@ -1067,22 +1129,31 @@ class ConformerLayer(base_layer.BaseLayer):
       atten_probs = None
       if p.layer_order == 'mhsa':
         features, paddings, atten_probs = self._SelfAtten(
-            theta, features, paddings)
+            theta, features, paddings
+        )
       elif p.layer_order == 'conv':
         features, paddings = self._LConv(theta, features, paddings)
       elif p.layer_order == 'mhsa_before_conv':
         features, paddings, atten_probs = self._SelfAtten(
-            theta, features, paddings)
+            theta, features, paddings
+        )
         features, paddings = self._LConv(theta, features, paddings)
       else:
         assert p.layer_order == 'conv_before_mhsa'
         features, paddings = self._LConv(theta, features, paddings)
         features, paddings, atten_probs = self._SelfAtten(
-            theta, features, paddings)
+            theta, features, paddings
+        )
       adapter_in_nmap = in_nmap.DeepCopy()
       adapter_in_nmap.features = features
       features, paddings, aux_loss = self._MoeOrFFLayer(
-          theta, 'fflayer_end', features, paddings, aux_loss, expert_ids
+          theta,
+          'fflayer_end',
+          features,
+          paddings,
+          aux_loss,
+          expert_ids,
+          task_ids,
       )
       features = self._MaybeFFLayerAdapter(
           theta, 'fflayer_end', adapter_in_nmap, features
@@ -1163,33 +1234,46 @@ class ConformerLayer(base_layer.BaseLayer):
 
     with tf.name_scope(f'{p.name}/StreamStep'):
       features, paddings, aux_loss = in_nmap.features, in_nmap.paddings, None
+      task_ids = in_nmap.Get(p.fflayer_task_ids, None)
 
       if self.has_fflayer_start:
         adapter_in_nmap = in_nmap.DeepCopy()
         adapter_in_nmap.features = features
         features, paddings, aux_loss = self._MoeOrFFLayer(
-            theta, 'fflayer_start', features, paddings, aux_loss)
+            theta,
+            'fflayer_start',
+            features,
+            paddings,
+            aux_loss,
+            task_ids=task_ids,
+        )
         features = self._MaybeFFLayerAdapter(
             theta, 'fflayer_start', adapter_in_nmap, features
         )
 
       if p.layer_order == 'mhsa':
         features, paddings, atten_state1 = self.trans_atten.StreamStep(
-            theta.trans_atten, features, paddings, state0.atten_state)
+            theta.trans_atten, features, paddings, state0.atten_state
+        )
       elif p.layer_order == 'conv':
         features, paddings, lconv_state1 = self.lconv.StreamStep(
-            theta.lconv, features, paddings, state0.lconv_state)
+            theta.lconv, features, paddings, state0.lconv_state
+        )
       elif p.layer_order == 'mhsa_before_conv':
         features, paddings, atten_state1 = self.trans_atten.StreamStep(
-            theta.trans_atten, features, paddings, state0.atten_state)
+            theta.trans_atten, features, paddings, state0.atten_state
+        )
         features, paddings, lconv_state1 = self.lconv.StreamStep(
-            theta.lconv, features, paddings, state0.lconv_state)
+            theta.lconv, features, paddings, state0.lconv_state
+        )
       else:
         assert p.layer_order == 'conv_before_mhsa'
         features, paddings, lconv_state1 = self.lconv.StreamStep(
-            theta.lconv, features, paddings, state0.lconv_state)
+            theta.lconv, features, paddings, state0.lconv_state
+        )
         features, paddings, atten_state1 = self.trans_atten.StreamStep(
-            theta.trans_atten, features, paddings, state0.atten_state)
+            theta.trans_atten, features, paddings, state0.atten_state
+        )
       if not self.has_lconv:
         lconv_state1 = py_utils.NestedMap()
       if not self.has_mhsa:
@@ -1198,7 +1282,7 @@ class ConformerLayer(base_layer.BaseLayer):
       adapter_in_nmap = in_nmap.DeepCopy()
       adapter_in_nmap.features = features
       features, paddings, _ = self._MoeOrFFLayer(
-          theta, 'fflayer_end', features, paddings, aux_loss
+          theta, 'fflayer_end', features, paddings, aux_loss, task_ids=task_ids
       )
       features = self._MaybeFFLayerAdapter(
           theta, 'fflayer_end', adapter_in_nmap, features

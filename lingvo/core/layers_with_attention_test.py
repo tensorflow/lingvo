@@ -76,6 +76,43 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testTransformerFeedForwardMultitaskAdapterLayer(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      tasks = tf.constant([0, 1, 2, 1, 0], dtype=tf.int32)
+      p = layers_with_attention.TransformerFeedForwardLayer.Params()
+      p.name = 'transformer_fflayer'
+      p.input_dim = 3
+      p.num_tasks = 3
+      p.hidden_dim = 7
+      p.fflayer_tpl = layers.MultitaskFeedForwardNet.Params().Set(
+          activation=['RELU', 'NONE']
+      )
+      transformer_fflayer = layers_with_attention.TransformerFeedForwardLayer(p)
+
+      h = transformer_fflayer.FPropDefaultTheta(inputs, paddings, tasks)
+      self.evaluate(tf.global_variables_initializer())
+      actual_layer_output = self.evaluate(h)
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[-0.4174034 , -0.27198428,  0.25977305],
+           [ 0.25985372,  1.5712698 ,  2.5542035 ]],
+          [[-0.7723979 , -0.67010224,  0.64649516],
+           [ 1.6079813 ,  0.35202998,  0.94373894]],
+          [[-0.25567997, -0.54271996, -1.1821363 ],
+           [ 0.37292558,  0.43260416,  0.21641873]],
+          [[ 0.18067911,  0.2259363 , -0.38680494],
+           [-0.8372372 , -0.51717603, -0.49827954]],
+          [[-0.6939008 , -0.00839856, -0.55827034],
+           [-1.5387989 ,  0.02641508,  0.89989966]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
   @parameterized.named_parameters(('_3D', 3), ('_4D', 4))
   def testReshapedTransformerFeedForwardLayer(self, rank):
     with self.session(use_gpu=True):
