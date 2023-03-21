@@ -164,7 +164,6 @@ lingvo_cc_test(
         ":record",
         ":yielder_test_helper",
         # Implicit absl.flags:flag dependency.
-        "//third_party/absl/status",
     ],
 )
 
