@@ -156,6 +156,13 @@ def use_tpu():  # pylint: disable=invalid-name
   return res
 
 
+def use_gpu():  # pylint: disable=invalid-name
+  res = _FromGlobal('xla_device', allow_override_from_cluster=True) == 'gpu'
+  if res:
+    assert not enable_asserts()  # asserts have not been fully tested on gpu
+  return res
+
+
 def testonly_skip_norm_layers():  # pylint: disable=invalid-name
   return _FromGlobal('testonly_skip_norm_layers')
 

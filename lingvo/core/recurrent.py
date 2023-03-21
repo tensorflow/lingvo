@@ -1064,7 +1064,8 @@ def Recurrent(theta,
       cell_grad = _WrapCellGradFnWithSymbolValues(cell_grad, cell_fn,
                                                   symbol_to_tensor_map)
 
-  inputs = _TransformDType(inputs)
+  if py_utils.use_gpu():
+    inputs = _TransformDType(inputs)
   if cell_grad is not None:
     allow_implicit_capture = False
     allowed_tensor_captures = None

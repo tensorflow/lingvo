@@ -72,6 +72,7 @@ _FromGlobal = py_utils_flags._FromGlobal
 # pylint: enable=protected-access
 use_xla = py_utils_flags.use_xla
 use_tpu = py_utils_flags.use_tpu
+use_gpu = py_utils_flags.use_gpu
 testonly_skip_norm_layers = py_utils_flags.testonly_skip_norm_layers
 tpu_compat = py_utils_flags.tpu_compat
 use_stateless_vars_init = py_utils_flags.use_stateless_vars_init
