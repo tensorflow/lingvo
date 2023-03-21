@@ -20,6 +20,7 @@ limitations under the License.
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "absl/flags/flag.h"
+#include "absl/status/status.h"
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/record_yielder.h"
 #include "lingvo/core/ops/yielder_test_helper.h"
@@ -200,7 +201,10 @@ TEST(RecordYielderTest, RecordYielderRetryLoop) {
       .WillRepeatedly(testing::Return(Status()));
   EXPECT_CALL(yielder2, Yield(testing::_))
       .Times(3)
-      .WillRepeatedly(testing::Return(Status(error::DEADLINE_EXCEEDED, "")))
+      .WillRepeatedly(
+          testing::Return(Status(static_cast<tensorflow::errors::Code>(
+                                     absl::StatusCode::kDeadlineExceeded),
+                                 "")))
       .RetiresOnSaturation();
 
   WeightedMixRecordYielder* yielder =
