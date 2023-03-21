@@ -300,10 +300,10 @@ class _Cluster:
       assert 0 <= p.task and p.task < p.evaler.replicas
     elif p.mode == 'sync' and p.job == 'decoder':
       assert 0 <= p.task and p.task < p.decoder.replicas
-    elif p.mode == 'sync' and p.job in [
+    elif p.mode == 'sync' and p.job in (
         'executor_tpu',
         'host_driven_executor_tpu',
-    ]:
+    ):
       assert p.worker.replicas >= 1
     elif p.job == 'train_summaries':
       # There is only 1 train_summaries.
@@ -334,7 +334,7 @@ class _Cluster:
 
   @property
   def is_executor_tpu(self):
-    return self.params.job in ['executor_tpu', 'host_driven_executor_tpu']
+    return self.params.job in ('executor_tpu', 'host_driven_executor_tpu')
 
   @property
   def job_spec(self):
@@ -350,7 +350,7 @@ class _Cluster:
       return p.evaler
     elif p.job == 'decoder':
       return p.decoder
-    elif p.job in ['executor_tpu', 'host_driven_executor_tpu']:
+    elif p.job in ('executor_tpu', 'host_driven_executor_tpu'):
       return p.worker
 
   @property
