@@ -56,7 +56,10 @@ def ComputeMoments(inputs,
       py_utils.assert_greater_equal(mask, tf.zeros_like(mask)),
   ], inputs)
   sum_v = tf.reduce_sum(
-      inputs * tf.cast(mask, inputs.dtype), reduce_over_dims, keepdims=keepdims)
+      py_utils.ApplyPadding(padding, inputs),
+      reduce_over_dims,
+      keepdims=keepdims,
+  )
   count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=keepdims)
 
   if cumulative_axis is not None:
@@ -78,9 +81,10 @@ def ComputeMoments(inputs,
   count_v = tf.maximum(count_v, 1.0)
   mean = sum_v / count_v
   sum_vv = tf.reduce_sum(
-      (inputs - mean) * (inputs - mean) * mask,
+      py_utils.ApplyPadding(padding, tf.math.squared_difference(inputs, mean)),
       reduce_over_dims,
-      keepdims=keepdims)
+      keepdims=keepdims,
+  )
   if cumulative_axis is not None:
     sum_vv = tf.math.cumsum(sum_vv, axis=cumulative_axis)
 
