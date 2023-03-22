@@ -200,7 +200,8 @@ TEST(RecordYielderTest, RecordYielderRetryLoop) {
       .WillRepeatedly(testing::Return(Status()));
   EXPECT_CALL(yielder2, Yield(testing::_))
       .Times(3)
-      .WillRepeatedly(testing::Return(Status(error::DEADLINE_EXCEEDED, "")))
+      .WillRepeatedly(testing::Return(Status(
+          static_cast<tensorflow::errors::Code>(error::DEADLINE_EXCEEDED), "")))
       .RetiresOnSaturation();
 
   WeightedMixRecordYielder* yielder =
