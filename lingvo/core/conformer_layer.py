@@ -1029,7 +1029,8 @@ class ConformerLayer(base_layer.BaseLayer):
       paddings: [batch, seqlen].
       aux_loss: [], can be None.
       expert_ids: [batch], ids of experts corresponding to each batch example.
-      task_ids: [batch], task ids corresponding to each batch example.
+      task_ids: [batch] or [batch, 1], task ids corresponding to each batch
+        example.
 
     Returns:
       features: [batch, seqlen, dim0].
@@ -1042,6 +1043,17 @@ class ConformerLayer(base_layer.BaseLayer):
         assert (
             task_ids is not None
         ), 'task_ids should not be None when using multitask FFN layers.'
+
+        task_ids_shape = py_utils.GetShape(task_ids)
+        assert (
+            task_ids_shape[0] == py_utils.GetShape(features)[0]
+        ), 'the first dimension of task_ids must be the same as input features.'
+        if len(task_ids_shape) > 1:
+          assert (
+              len(task_ids_shape) == 2 and task_ids_shape[1] == 1
+          ), 'task_ids must have shape [batch] or [batch, 1].'
+          task_ids = tf.squeeze(task_ids)
+
         outputs = fflayer.FProp(
             theta.GetItem(fflayer_name), features, paddings, task_ids
         )
