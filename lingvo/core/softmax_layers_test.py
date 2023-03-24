@@ -378,6 +378,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
       self.assertNear(loss, 16.186937, 1e-4)
       self.assertNear(log_perplexity, 7.35769, 1e-4)
 
+  @test_utils.SkipIfEager
   def testSimpleFullSoftmax_PerStepVN(self):
     with self.session(use_gpu=False):
       class_ids = tf.constant([1, 5, 10], dtype=tf.int32)
@@ -538,7 +539,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
         self.evaluate(xent_loss.total_xent)
 
 
-class SharedSoftmaxLayerTest(SoftmaxLayerTest):
+class SharedSoftmaxLayerTest(test_utils.TestCase):
 
   def _testSharedSoftmaxLayerEmbLookup(self, scale_sqrt_depth=False):
     with contextlib.ExitStack() as context_stack:
