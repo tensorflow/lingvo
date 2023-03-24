@@ -994,17 +994,8 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
     Returns:
       A py_utils.NestedMap containing the embedding id tensors.
     """
-    valid_keys = set().union(*[table.input_keys for table in self.tables])
-    ids_map = py_utils.NestedMap()
-    for key in valid_keys:
-      item = input_batch.Get(key)
-      if item is None:
-        raise ValueError(
-            f'Input key {key} not found. All keys in input_batch: '
-            f'{input_batch.keys()}'
-        )
-      ids_map.Set(key, item)
-    return ids_map
+    keys = set().union(*[table.input_keys for table in self.tables])
+    return input_batch.GetSlice(keys)
 
   def GetAuxiliaryVariables(self, input_key) -> py_utils.NestedMap:
     """Returns the auxiliary variables associated with the given table.
