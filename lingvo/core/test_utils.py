@@ -266,14 +266,24 @@ def DisableEagerAdapter():
   _EAGER_ADAPTER_ENABLED = False
 
 
+# Whether to create variable store for TF2 variable reuse.
+_CREATE_TEST_LEVEL_VARIABLE_STORE = True
+
+
+def DisableTestLevelVariableStore():
+  global _CREATE_TEST_LEVEL_VARIABLE_STORE
+  _CREATE_TEST_LEVEL_VARIABLE_STORE = False
+
+
 class TestCase(tf.test.TestCase):
   """TestCase that performs Lingvo-specific setup."""
 
   def setUp(self):
     super().setUp()
-    with contextlib.ExitStack() as stack:
-      stack.enter_context(py_utils.VariableStore())
-      self.addCleanup(stack.pop_all().close)
+    if _CREATE_TEST_LEVEL_VARIABLE_STORE:
+      with contextlib.ExitStack() as stack:
+        stack.enter_context(py_utils.VariableStore())
+        self.addCleanup(stack.pop_all().close)
     # Ensure the global_step variable is created in the default graph.
     py_utils.GetOrCreateGlobalStepVar()
     cluster = cluster_factory.SetRequireSequentialInputOrder(True)

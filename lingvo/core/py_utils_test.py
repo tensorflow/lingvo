@@ -327,6 +327,8 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
           var_values)
 
   def testCreateVariableException(self):
+    # TODO(laigd): this test relies on py_utils.VariableStore(), but it
+    # shouldn't if it's run in TF1/Graph mode. Fix it.
     with self.session(use_gpu=False):
       tf.random.set_seed(832124)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
@@ -1820,9 +1822,9 @@ class ShiftLeftTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
 
-class CreateIdsAndLablesTest(test_utils.TestCase):
+class CreateIdsAndLabelsTest(test_utils.TestCase):
 
-  def testCreateIdsAndLables(self):
+  def testCreateIdsAndLabels(self):
     with self.session(use_gpu=False):
       ids = tf.range(4, 10, dtype=tf.int32)
       ids = tf.tile(tf.expand_dims(ids, 0), [4, 1])
@@ -1830,7 +1832,7 @@ class CreateIdsAndLablesTest(test_utils.TestCase):
           [0, 1, 6, 4], maxlen=6, dtype=tf.float32)
       targets = self.evaluate(py_utils.CreateIdsAndLabels(ids, paddings))
       self.assertAllEqual(np.sum(1.0 - targets.paddings, -1), [1, 2, 7, 5])
-# pyformat: disable
+      # pyformat: disable
       self.assertAllEqual(
           targets.ids,
           [[1, 2, 2, 2, 2, 2, 2],
@@ -1854,9 +1856,10 @@ class CreateIdsAndLablesTest(test_utils.TestCase):
           [[1, 0, 0, 0, 0, 0, 0],
            [1, 1, 0, 0, 0, 0, 0],
            [1, 1, 1, 1, 1, 1, 1],
-           [1, 1, 1, 1, 1, 0, 0]])      # pyformat: enable
+           [1, 1, 1, 1, 1, 0, 0]])
+      # pyformat: enable
 
-  def testCreateIdsAndLables_Trim(self):
+  def testCreateIdsAndLabels_Trim(self):
     with self.session(use_gpu=False):
       ids = tf.range(4, 10, dtype=tf.int32)
       ids = tf.tile(tf.expand_dims(ids, 0), [2, 1])
@@ -1864,7 +1867,7 @@ class CreateIdsAndLablesTest(test_utils.TestCase):
       targets = self.evaluate(
           py_utils.CreateIdsAndLabels(ids, paddings, trim=True))
       self.assertAllEqual(np.sum(1.0 - targets.paddings, -1), [6, 5])
-# pyformat: disable
+      # pyformat: disable
       self.assertAllEqual(
           targets.ids,
           [[1, 4, 5, 6, 7, 8],
@@ -1880,7 +1883,8 @@ class CreateIdsAndLablesTest(test_utils.TestCase):
       self.assertAllEqual(
           targets.weights,
           [[1, 1, 1, 1, 1, 1],
-           [1, 1, 1, 1, 1, 0]])      # pyformat: enable
+           [1, 1, 1, 1, 1, 0]])
+      # pyformat: enable
 
 
 class PadOrTrimToTest(test_utils.TestCase):
@@ -2266,12 +2270,9 @@ class ReversePaddedSequenceTest(test_utils.TestCase):
 
 class ConcatenatePaddedSequencesTest(test_utils.TestCase):
 
-  def _ComputeFloatOutputAndVerify(self,
-                                   input0,
-                                   input1,
-                                   seq_lens0,
-                                   seq_lens1,
-                                   tranpose_input=False):
+  def _ComputeFloatOutputAndVerify(
+      self, input0, input1, seq_lens0, seq_lens1, transpose_input=False
+  ):
     with self.session(use_gpu=False):
       expected_output_seq_lens = seq_lens0 + seq_lens1
       batch_size, input0_seq_dim = input0.shape
@@ -2281,7 +2282,7 @@ class ConcatenatePaddedSequencesTest(test_utils.TestCase):
       padding1 = 1.0 - tf.sequence_mask(
           seq_lens1, maxlen=input1_seq_dim, dtype=tf.float32)
 
-      if tranpose_input:
+      if transpose_input:
         seq_dim = 0
         tf_input0 = tf.constant(np.transpose(input0))
         tf_input1 = tf.constant(np.transpose(input1))
@@ -2302,7 +2303,7 @@ class ConcatenatePaddedSequencesTest(test_utils.TestCase):
               padding1=tf_padding1,
               seq_dim=seq_dim))
 
-      if tranpose_input:
+      if transpose_input:
         actual_outputs = (np.transpose(actual_outputs[0]),
                           np.transpose(actual_outputs[1]))
 
