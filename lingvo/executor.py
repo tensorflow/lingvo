@@ -645,6 +645,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
     """
     assert py_utils.IsEagerMode()
     tf.logging.info('FLAGS.tf_master: %s', FLAGS.tf_master)
+
     # Connect to TPU cluster first, so it can initialize the devices correctly
     # in super().__init__.
     resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
@@ -859,13 +860,11 @@ class HostDrivenExecutor(base_runner.BaseRunner):
 
       # The training loop
       while True:
+        global_step = _GetGlobalStep()
         with py_utils.Timer() as cycle_timer:
-          global_step = _GetGlobalStep()
 
-          ckpt_timer = py_utils.Timer()
-          if self._checkpointer.ShouldSave(global_step):
-            with ckpt_timer:
-              self._checkpointer.Save(None, global_step, sync=False)
+          with py_utils.Timer() as ckpt_timer:
+            self._checkpointer.MaybeSave(None, global_step, sync=False)
 
           tf.logging.info('Single task mode: %s', self._model_task_name)
           program_schedule = self._program_schedule_dict[self._model_task_name]
@@ -875,8 +874,7 @@ class HostDrivenExecutor(base_runner.BaseRunner):
               strategy=self.tpu_strategy
           )
 
-          global_step = _GetGlobalStep()
-
+        global_step = _GetGlobalStep()
         self._ExportMetrics(
             global_step=global_step,
             executor_cycle_secs=cycle_timer.duration,
