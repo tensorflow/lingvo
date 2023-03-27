@@ -202,11 +202,29 @@ class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
       TPU_EMBEDDING_MANAGER.AddSummaryTensor(f'tpu_embedding_lr/{p.name}', lr)
       return lr
 
+    # pylint: disable=protected-access
+    # Create the variable initializer for tpu embedding table.
+    create_initializer_fn = (
+        py_utils._CreateVarInitStateless
+        if py_utils.use_stateless_vars_init()
+        else py_utils._CreateVarInitStateful
+    )
+    initializer = create_initializer_fn(
+        name='tpu_embedding_v2',
+        method=p.params_init.method,
+        shape=[self._padded_vocab_size, p.embedding_dim],
+        dim0=self._padded_vocab_size,
+        seed=p.params_init.seed,
+        scale=p.params_init.scale,
+        init_dtype=tf.float32,
+    )
+    # pylint: enable=protected-access
+
     # This is the actual TPUEmbedding API object that TPUEmbeddingTable wraps.
     self._table_config = tpu_embedding_v2_utils.TableConfig(
         vocabulary_size=self._padded_vocab_size,
         dim=p.embedding_dim,
-        initializer=None,
+        initializer=initializer,
         optimizer=self.optimizer.CreateOptimizerFn(_LearningRateFn),
         combiner=p.combiner,
         name=f'{self._table_name}_config',
