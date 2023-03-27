@@ -164,7 +164,7 @@ class NoConstGuaranteeScopeTest(test_utils.TestCase):
       with inference_graph_exporter.NoConstGuaranteeScope():
         with tf.variable_scope('', reuse=True):
           v = py_utils.CreateVariable('v', wp)
-        self.assertIsInstance(v, tf.Variable)
+        self.assertIsInstance(v, tf.tf2.Variable)
 
 
 class LinearModel(base_model.BaseTask):
@@ -373,8 +373,10 @@ class GetOutputNamesTest(test_utils.TestCase):
     graph, inference_graph = self._TestGraph()
     output_op_names = inference_graph_exporter.GetOutputOpNames(
         graph, inference_graph)
-    self.assertEqual(output_op_names, [
-        # pyformat: disable
+    self.assertEqual(
+        output_op_names,
+        [
+            # pyformat: disable
         'inference/add_2',
         'inference/input',
         'testing/b/var',
@@ -391,19 +393,23 @@ class GetOutputNamesTest(test_utils.TestCase):
         'testing/w/var/Initializer/random_normal/mul',
         'testing/w/var/Initializer/random_normal/shape',
         'testing/w/var/Initializer/random_normal/stddev',
-        # pyformat: enable
-    ])
+            # pyformat: enable
+        ],
+    )
 
   def testNoPreserveColocationNodes(self):
     graph, inference_graph = self._TestGraph()
     output_op_names = inference_graph_exporter.GetOutputOpNames(
         graph, inference_graph, preserve_colocation_nodes=False)
-    self.assertEqual(output_op_names, [
-        # pyformat: disable
+    self.assertEqual(
+        output_op_names,
+        [
+            # pyformat: disable
         'inference/add_2',
         'inference/input',
-        # pyformat: enable
-    ])
+            # pyformat: enable
+        ],
+    )
 
   def testPreserveSaverRestoreNodes(self):
     graph, inference_graph = self._TestGraph()
@@ -412,14 +418,17 @@ class GetOutputNamesTest(test_utils.TestCase):
         inference_graph,
         preserve_colocation_nodes=False,
         preserve_saver_restore_nodes=True)
-    self.assertEqual(output_op_names, [
-        # pyformat: disable
+    self.assertEqual(
+        output_op_names,
+        [
+            # pyformat: disable
         'inference/add_2',
         'inference/input',
         'save/Const',
         'save/restore_all',
-        # pyformat: enable
-    ])
+            # pyformat: enable
+        ],
+    )
 
   def testPreserveExtraOps(self):
     graph, inference_graph = self._TestGraph()
@@ -430,14 +439,17 @@ class GetOutputNamesTest(test_utils.TestCase):
         preserve_extra_ops=[
             'init_all_tables', 'init_all_variables', 'tpu_init_op'
         ])
-    self.assertEqual(output_op_names, [
-        # pyformat: disable
+    self.assertEqual(
+        output_op_names,
+        [
+            # pyformat: disable
         'inference/add_2',
         'inference/input',
         'init_all_tables',
         'init_all_variables',
-        # pyformat: enable
-    ])
+            # pyformat: enable
+        ],
+    )
 
   def testPreserveSaverNodesAndExtraOps(self):
     graph, inference_graph = self._TestGraph()
@@ -449,16 +461,19 @@ class GetOutputNamesTest(test_utils.TestCase):
         preserve_extra_ops=[
             'init_all_tables', 'init_all_variables', 'tpu_init_op'
         ])
-    self.assertEqual(output_op_names, [
-        # pyformat: disable
+    self.assertEqual(
+        output_op_names,
+        [
+            # pyformat: disable
         'inference/add_2',
         'inference/input',
         'init_all_tables',
         'init_all_variables',
         'save/Const',
         'save/restore_all',
-        # pyformat: enable
-    ])
+            # pyformat: enable
+        ],
+    )
 
 
 if __name__ == '__main__':

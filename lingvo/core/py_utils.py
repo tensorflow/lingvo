@@ -803,7 +803,7 @@ def CreateEMAForModel(model_params, global_step, ema_decay):
   tp = p.train
   if tp.ema_decay > 0 or tp.ema_schedule:
     if tp.ema_schedule:
-      assert isinstance(ema_decay, tf.Variable)
+      assert isinstance(ema_decay, tf.tf2.Variable)
       # ema_decay takes all control. Otherwise, global_step affects ema_decay.
       global_step = None
     else:
@@ -2718,7 +2718,7 @@ def CreateLocalTheta(theta, device_list=None, label=None):
       self._index = 0
 
     def __call__(self, x):
-      if isinstance(x, tf.Variable):
+      if isinstance(x, tf.tf2.Variable):
         return x
       with tf.device(self._list[self._index % len(self._list)]):
         self._index += 1
@@ -3186,7 +3186,7 @@ def ComputeGradients(
   # Skip non-trainable variables. Otherwise, tf.Optimizer.apply_gradients throws
   # up an exception instead of skipping the update.
   def Needed(v):
-    if isinstance(v, tf.Variable):
+    if isinstance(v, tf.tf2.Variable):
       return v.trainable
     return True
 

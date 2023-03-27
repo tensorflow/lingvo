@@ -95,7 +95,7 @@ class VarLayer(base_layer.BaseLayer):
         var_value = self._get_var_from_collection(vp)
       if var_value is None:
         var_value = theta[k]
-      if isinstance(var_value, tf.Variable):
+      if isinstance(var_value, tf.tf2.Variable):
         var_value = var_value.read_value()
       retval.append(MaybeCastToFPropDtype(var_value))
     return retval[0] if len(retval) == 1 else retval
@@ -155,7 +155,7 @@ class ShardedVarLayer(VarLayer):
     # TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.
     def MaybeWeightSplitAndCastToFPropDtype(k, v):
       x = theta[k]
-      if isinstance(x, tf.Variable):
+      if isinstance(x, tf.tf2.Variable):
         x = x.read_value()
       if x is None:
         return None
@@ -589,7 +589,7 @@ class LayerwiseShardablePipelinedLayer(base_layer.BaseLayer):
       seeds = gshard_utils.Replicate(seeds)
 
       def _ToManual(x, var=None):
-        if not isinstance(x, (tf.Operation, tf.Tensor, tf.Variable)):
+        if not isinstance(x, (tf.Operation, tf.Tensor, tf.tf2.Variable)):
           return x
         if var is None:
           sharding = gshard_utils.GetMeshSplitSharding(

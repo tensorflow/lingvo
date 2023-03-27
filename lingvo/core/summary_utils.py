@@ -457,8 +457,9 @@ def ModelAnalysis(model, topn=0, part_pattern=None):
       self.variable_size_table = {}
 
     def __call__(self, v):
-      assert isinstance(v, (tf.Variable, tpu_values_lib.TPUDistributedVariable
-                           )), 'v is of type: %s' % type(v).__name__
+      assert isinstance(
+          v, (tf.tf2.Variable, tpu_values_lib.TPUDistributedVariable)
+      ), ('v is of type: %s' % type(v).__name__)
       # pylint: disable=protected-access
       if not v.shape.is_fully_defined():
         # Only Cudnn RNN params lack static shapes.

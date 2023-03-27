@@ -703,9 +703,13 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
         collections=[self.__class__.__name__ + '_vars'])
     self.CreateVariable('means', means, trainable=p.trainable)
     if p.use_ema:
-      init_value_op = getattr(self.vars.means, 'initialized_value', None)
-      if callable(init_value_op):
-        initial_value = self.vars.means.initialized_value()
+      read_value_op = getattr(self.vars.means, 'read_value', None)
+      if callable(read_value_op):
+        initial_value = tf.cond(
+            tf.tf1.is_variable_initialized(self.vars.means),
+            self.vars.means.read_value,
+            lambda: self.vars.means.initial_value,
+        )
       else:
         initial_value = self.vars.means
       ema_means = py_utils.WeightParams(

@@ -657,8 +657,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     if self.do_eval and self.ema and not self.params.is_inference:
       def MaybeUseEmaVar(x):
-        if not isinstance(x,
-                          (tf.Variable, tpu_values_lib.TPUDistributedVariable)):
+        if not isinstance(
+            x, (tf.tf2.Variable, tpu_values_lib.TPUDistributedVariable)
+        ):
           raise ValueError('EMA is used but self._private_theta contains '
                            f'non-variables: {x}.')
         ema_x = self.ema.average(x)

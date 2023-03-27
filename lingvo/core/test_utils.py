@@ -499,7 +499,7 @@ def ComputeNumericGradient(sess,
   # pointing to the handle rather than its value.
   feed_dict = extra_feed_dict or {}
   ph = tf.placeholder(x_data.dtype, x_shape)
-  x_assign = x.assign(ph) if isinstance(x, tf.Variable) else None
+  x_assign = x.assign(ph) if isinstance(x, tf.tf2.Variable) else None
 
   for i in range(0, x_size, step):
     x_pos = x_data.copy()
