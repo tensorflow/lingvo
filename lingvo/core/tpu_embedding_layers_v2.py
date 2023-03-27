@@ -262,6 +262,9 @@ class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
   """Manages a global singleton instance of tpu_embedding_v2.TPUEmbedding."""
 
   def __init__(self):
+    self.reset()
+
+  def reset(self):
     # True when a TPUEmbeddingLayer has initialized this class. Otherwise, all
     # operations pass through. This eliminates the need to conditionally check
     # everywhere in the host driven executor code whether the client model is
@@ -512,7 +515,7 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
     # option 2)  <- We implement this one for now.
     #   Call expand_dims with axis=-1 on sequence tensors (in
     #   `TPUEmbeddingManager:ProcessInputBatch`), making them of rank 3 and
-    #    manually set output_shape to [batch_size, sequence_length].
+    #    manually set output_shape to [batch_size, max_sequence_length].
     for table in self.tables:
       for feature in table.input_keys:
         if table.max_sequence_length > 0:
