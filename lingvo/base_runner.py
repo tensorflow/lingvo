@@ -395,7 +395,7 @@ class BaseRunner:
 
     return RetryLoop()
 
-  @py_utils.Retry()
+  @py_utils.Retry(max_retries=20)
   def _RunLoop(self, job_name, loop_func, loop_args=(), cleanup_func=None):
     """Runs `loop_func`, retrying on expected errors.
 
