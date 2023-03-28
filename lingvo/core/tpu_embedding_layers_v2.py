@@ -265,6 +265,11 @@ class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
     self.reset()
 
   def reset(self):
+    """Resets object state.
+
+    In particular, removes the reference to the TPUEmbedding object, if present,
+    necessary for re-running unit tests with a fresh API object.
+    """
     # True when a TPUEmbeddingLayer has initialized this class. Otherwise, all
     # operations pass through. This eliminates the need to conditionally check
     # everywhere in the host driven executor code whether the client model is
@@ -567,6 +572,11 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
       if any(v > 1 for v in feature_names.values()):
         raise ValueError(f'Key used by multiple tables ({feature_names=})')
       TPU_EMBEDDING_MANAGER.feature_names = frozenset(feature_names)
+
+      # Build can be done here solely because all output shapes are fully
+      # defined in our configuration. This is needed to ensure variables are
+      # properly initialized in advance of e.g. checkpoint loading.
+      TPU_EMBEDDING_MANAGER.tpu_embedding.build()
 
       # Keep the manager as an attribute to ensure the underlying API object is
       #   included in model serialization.
