@@ -24,7 +24,7 @@ import numpy as np
 
 # pylint: disable=g-import-not-at-top,bare-except
 try:
-  from waymo_open_dataset.camera.ops import py_camera_model_ops
+  from waymo_open_dataset.wdl_limited.camera.ops import py_camera_model_ops
 except:
   tf.logging.error('Install waymo_open_dataset.')
 # pylint: enable=g-import-not-at-top,bare-except
