@@ -1006,11 +1006,11 @@ class ShardedDistributedShampoo(DistributedShampoo):
     result = super()._get_raw_grad_transformation(lr)
     # TODO(rohananil): Refactor after PartitionSpec layering is finalized in
     # the JAX ecosystem.
-    fns = result.init(None)
+    fns = result.init(None)  # pytype: disable=wrong-arg-types  # numpy-scalars
 
     def _wrapped_update_fn(grads, state, params):
       new_params, new_state = result.update(grads, state, params)
-      local_stats = new_state.stats.local_stats
+      local_stats = new_state.stats.local_stats  # pytype: disable=attribute-error  # numpy-scalars
       var_keys, _ = jax.tree_flatten(
           py_utils.extract_prefixed_keys_from_nested_map(local_stats))
       var_keys = [x for x in var_keys if 'inverse_pth_root_errors' in x]
@@ -1528,7 +1528,7 @@ class _ShardedAdafactorHelper:
     old_val = param
 
     if self._multiply_by_parameter_scale:
-      update_scale *= self.parameter_scale(old_val).astype(update_scale.dtype)
+      update_scale *= self.parameter_scale(old_val).astype(update_scale.dtype)  # pytype: disable=attribute-error  # numpy-scalars
 
     # Q(yonghui): Can we remove the hack now?
     # HACK: Make things dependent on grad.

@@ -369,7 +369,7 @@ def init_var(var_full_name: str, var_p: ParamsT, prng_key: PRNGKey) -> JTensor:
       scale *= math.sqrt(2.0 / (fan_in + fan_out))
 
   name_hash = generate_seed_from_name(var_full_name)
-  prng_key = jax.random.fold_in(prng_key, name_hash)
+  prng_key = jax.random.fold_in(prng_key, name_hash)  # pytype: disable=wrong-arg-types  # numpy-scalars
 
   if method in ['delta_orthogonal']:
     if len(shape) <= 2:
