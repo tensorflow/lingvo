@@ -1147,7 +1147,7 @@ class BaseLayer(metaclass=BaseLayerMeta):
     if self._path is None:
       # Compute and cache the path.
       if self.parent:
-        self._path = self.parent.path + '.' + self.params.name
+        self._path = self.parent.path + '.' + self.params.name  # pytype: disable=attribute-error  # always-use-return-annotations
       else:
         self._path = self.params.name
     return self._path

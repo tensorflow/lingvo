@@ -111,7 +111,7 @@ def _decode_sharding_dim(d: str) -> Optional[Union[str, Sequence[str], int]]:
   if len(d) == 1:
     return ()
   tuple_elements = [_decode_sharding_dim(e) for e in d[1:].split(',')]
-  return tuple(tuple_elements)
+  return tuple(tuple_elements)  # pytype: disable=bad-return-type  # always-use-return-annotations
 
 
 def _get_var_param_repeat_prefix_key(var_param: InstantiableParams) -> str:
@@ -137,7 +137,7 @@ def _parse_var_param_repeat_prefix_key(
   _, shape_str, sharding_str = prefix.split('#')
   shape_prefix = [int(d) for d in shape_str.split('.')]
   sharding_prefix = [_decode_sharding_dim(d) for d in sharding_str.split('.')]
-  return shape_prefix, sharding_prefix
+  return shape_prefix, sharding_prefix  # pytype: disable=bad-return-type  # always-use-return-annotations
 
 
 def group_by_repeat_prefix(variables: NestedMap,

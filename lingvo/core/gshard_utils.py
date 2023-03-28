@@ -397,7 +397,7 @@ class TensorShardingSpec:
     if self.device_mesh is None or self.split_dims_mapping is None:
       return True
     for mesh_dim in self.split_dims_mapping:
-      if mesh_dim >= 0 and self.device_mesh.shape[mesh_dim] > 1:
+      if mesh_dim >= 0 and self.device_mesh.shape[mesh_dim] > 1:  # pytype: disable=attribute-error  # always-use-return-annotations
         return False
     return True
 

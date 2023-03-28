@@ -492,7 +492,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def path(self) -> str:
     """Returns a '.'-separated string with all layer names from the root."""
     if self.parent:
-      return self.parent.path + '.' + self.params.name
+      return self.parent.path + '.' + self.params.name  # pytype: disable=attribute-error  # always-use-return-annotations
     else:
       return self.params.name
 
