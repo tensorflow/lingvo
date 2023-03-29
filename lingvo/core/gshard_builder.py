@@ -4444,15 +4444,21 @@ class UniTransformer(base_model.BaseTask):
       eval_metrics = {
           'num_packed_examples': (num_items_in_batch, 1.0),
           'batch_utilized_ratio': (num_nonpadding / batch_capacity, 1.0),
-          'acc1':
-              (tf.reduce_sum(acc1 * non_padding) / tf.reduce_sum(non_padding),
-               tf.reduce_sum(non_padding)),
-          'whole_tgt_accuracy':
-              (tf.reduce_sum(whole_tgt_correct) /
-               tf.cast(whole_tgt_correct.shape[0], whole_tgt_correct.dtype), 1.0
+          'acc1': (
+              py_utils.DivideNoNan(
+                  tf.reduce_sum(acc1 * non_padding), tf.reduce_sum(non_padding)
               ),
-          'mean_xent': (tf.reduce_sum(entropy * non_padding) /
-                        tf.reduce_sum(non_padding), tf.reduce_sum(non_padding)),
+              tf.reduce_sum(non_padding),
+          ),
+          'whole_tgt_accuracy': (
+              tf.reduce_sum(whole_tgt_correct)
+              / tf.cast(whole_tgt_correct.shape[0], whole_tgt_correct.dtype),
+              1.0,
+          ),
+          'mean_xent': (
+              tf.reduce_sum(entropy * non_padding) / tf.reduce_sum(non_padding),
+              tf.reduce_sum(non_padding),
+          ),
           'soft_labels_xent': (soft_labels_entropy, tf.reduce_sum(non_padding)),
           'weight': (tf.reduce_sum(non_padding), 1.0),
           'loss': (avg_loss, 1.0),
