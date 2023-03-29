@@ -468,6 +468,23 @@ class Params:
     except KeyError:
       raise AttributeError(self._KeyErrorString(name))
 
+  def ParamIsSet(self, key: str) -> bool:
+    """Determines if the params have a non-None value for the given key.
+
+    Note: differs from __contains__ in that it handles nested keys. The
+    convention here is for titlecase functions to use these semantics.
+
+    Args:
+      key: the string key whose presence is to be checked.
+
+    Returns:
+      True if the object has a non-None value for the key. False otherwise.
+
+    Raises:
+      AttributeError: if the parameter does not exist in this params.
+    """
+    return self.Get(key) is not None
+
   def Delete(self: ParamsT, *args) -> ParamsT:
     """Deletes multiple parameters.
 

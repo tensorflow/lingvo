@@ -219,6 +219,22 @@ class ParamsTest(test_utils.TestCase):
     self.assertRaisesRegex(AttributeError, 'foo', lambda: p.foo)
     self.assertRaisesRegex(AttributeError, 'foo', p.Get, 'foo')
 
+  def testContains(self):
+    p = hyperparams.Params()
+    p.Define('foo', None, '')
+    p.Define('bar', 'A Value', '')
+    # __contains__ behaves differently than ParamIsSet
+    self.assertIn('foo', p)
+    self.assertIn('bar', p)
+    self.assertNotIn('baz', p)
+    self.assertFalse(p.ParamIsSet('foo'))
+    p.foo = 'a string'
+    self.assertTrue(p.ParamIsSet('foo'))
+    self.assertTrue(p.ParamIsSet('bar'))
+    self.assertRaises(AttributeError, p.ParamIsSet, 'baz')
+    p.Delete('foo')
+    self.assertRaises(AttributeError, p.ParamIsSet, 'foo')
+
   def testSetAndGetNestedParam(self):
     innermost = hyperparams.Params()
     innermost.Define('delta', 22, '')
