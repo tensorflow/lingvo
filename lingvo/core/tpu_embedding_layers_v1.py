@@ -15,7 +15,7 @@
 """TPU embedding layers."""
 import abc
 
-from typing import Dict
+from typing import AbstractSet, Dict, Mapping, Sequence, Tuple
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
@@ -148,7 +148,7 @@ class TpuEmbeddingCollection:
           'under a py_utils.TaskCallScope() context.'
       )
 
-  def AddActivations(self, task_call_scope: str) -> Dict[str, tf.Tensor]:
+  def AddActivations(self, task_call_scope: str) -> Mapping[str, tf.Tensor]:
     self._ValidateTaskScope(task_call_scope)
     tf.logging.info(
         f'Adding TPU embedding activations for task {task_call_scope}.'
@@ -158,7 +158,7 @@ class TpuEmbeddingCollection:
       self._activations_by_task[task_call_scope] = activations
     return self._activations_by_task[task_call_scope]
 
-  def GetActivations(self, task_call_scope: str) -> Dict[str, tf.Tensor]:
+  def GetActivations(self, task_call_scope: str) -> Mapping[str, tf.Tensor]:
     tf.logging.info(
         f'Getting TPU embedding activations for task {task_call_scope}.'
     )
@@ -170,15 +170,15 @@ class TpuEmbeddingCollection:
     self._summary_tensors.append((name, value, tf.convert_to_tensor(weight)))
 
   @property
-  def summary_tensors(self):
+  def summary_tensors(self) -> Sequence[Tuple[str, tf.Tensor, tf.Tensor]]:
     return self._summary_tensors
 
   @property
-  def feature_names(self):
+  def feature_names(self) -> AbstractSet[str]:
     return self._feature_names
 
   @feature_names.setter
-  def feature_names(self, feature_names):
+  def feature_names(self, feature_names: AbstractSet[str]):
     if self._feature_names and self._feature_names != feature_names:
       raise ValueError(
           'feature_names already exists. '
@@ -275,11 +275,13 @@ class _TPUEmbeddingOptimizerV1Mixin(
     self._slot_var_dict = {}
 
   @abc.abstractmethod
-  def CreateOptimizerParameters(self, learning_rate):
+  def CreateOptimizerParameters(self, learning_rate: float):
     """Create TPUEmbedding API optimizer parameters."""
 
   @abc.abstractmethod
-  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+  def CreateSlotVariablesAndOps(
+      self, table_vars: tf.Tensor, tpu_embedding_table: 'TPUEmbeddingTable'
+  ):
     """Create slot variables and load/retrieve ops.
 
     Args:
@@ -302,7 +304,7 @@ class TPUEmbeddingSGDOptimizer(
 ):
   """SGD optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
 
-  def CreateOptimizerParameters(self, learning_rate):
+  def CreateOptimizerParameters(self, learning_rate: float):
     p = self.params
     return tpu_embedding_lib.StochasticGradientDescentParameters(
         learning_rate=learning_rate,
@@ -316,7 +318,9 @@ class TPUEmbeddingSGDOptimizer(
         clip_gradient_max=p.clip_gradient_max,
     )
 
-  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+  def CreateSlotVariablesAndOps(
+      self, table_vars: tf.Tensor, tpu_embedding_table: 'TPUEmbeddingTable'
+  ):
     load_op_list = []
     retrieve_op_list = []
 
@@ -359,7 +363,7 @@ class TPUEmbeddingAdagradOptimizer(
 ):
   """Adagrad optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
 
-  def CreateOptimizerParameters(self, learning_rate):
+  def CreateOptimizerParameters(self, learning_rate: float):
     p = self.params
     return tpu_embedding_lib.AdagradParameters(
         learning_rate=learning_rate,
@@ -375,7 +379,9 @@ class TPUEmbeddingAdagradOptimizer(
         clip_gradient_max=p.clip_gradient_max,
     )
 
-  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+  def CreateSlotVariablesAndOps(
+      self, table_vars: tf.Tensor, tpu_embedding_table: 'TPUEmbeddingTable'
+  ):
     p = self.params
 
     load_op_list = []
@@ -442,7 +448,7 @@ class TPUEmbeddingAdamOptimizer(
 ):
   """Adam optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
 
-  def CreateOptimizerParameters(self, learning_rate):
+  def CreateOptimizerParameters(self, learning_rate: float):
     p = self.params
     return tpu_embedding_lib.AdamParameters(
         learning_rate=learning_rate,
@@ -462,7 +468,9 @@ class TPUEmbeddingAdamOptimizer(
         clip_gradient_max=p.clip_gradient_max,
     )
 
-  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+  def CreateSlotVariablesAndOps(
+      self, table_vars: tf.Tensor, tpu_embedding_table: 'TPUEmbeddingTable'
+  ):
     p = self.params
 
     load_op_list = []
@@ -543,7 +551,7 @@ class TPUEmbeddingFTRLOptimizer(
 ):
   """FTRL optimizer for TPUEmbeddingLayer, TPUEmbeddingTable."""
 
-  def CreateOptimizerParameters(self, learning_rate):
+  def CreateOptimizerParameters(self, learning_rate: float):
     p = self.params
     return tpu_embedding_lib.FtrlParameters(
         learning_rate=learning_rate,
@@ -565,7 +573,9 @@ class TPUEmbeddingFTRLOptimizer(
         clip_gradient_max=p.clip_gradient_max,
     )
 
-  def CreateSlotVariablesAndOps(self, table_vars, tpu_embedding_table):
+  def CreateSlotVariablesAndOps(
+      self, table_vars: tf.Tensor, tpu_embedding_table: 'TPUEmbeddingTable'
+  ):
     p = self.params
 
     load_op_list = []
@@ -794,7 +804,7 @@ class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
             self.table_name, load_ops, retrieve_ops
         )
 
-  def _GetSelfVariablesDict(self):
+  def _GetSelfVariablesDict(self) -> Mapping[str, tf.Tensor]:
     """Returns a dict of variables for checkpointing purposes."""
     all_table_vars = self._tpu_embedding_collection.table_variables
     assert self.table_name in all_table_vars
@@ -859,10 +869,10 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
 
   def _CheckTPUEmbeddingConfig(
       self,
-      tpu_embedding,
-      table_to_config_dict,
-      feature_to_config_dict,
-      global_batch_size,
+      tpu_embedding: tpu_embedding_lib.TPUEmbedding,
+      table_to_config_dict: Mapping[str, tpu_embedding_lib.TableConfig],
+      feature_to_config_dict: Mapping[str, tpu_embedding_lib.FeatureConfig],
+      global_batch_size: int,
   ):
     """Check that the existing tpu_embedding config matches the given ones."""
 
@@ -985,7 +995,7 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
             ret.Set(k, tf.expand_dims(v, axis=1))
     return ret
 
-  def GetIdsMap(self, input_batch):
+  def GetIdsMap(self, input_batch: py_utils.NestedMap) -> py_utils.NestedMap:
     """Returns a NestedMap containing the embedding ids to lookup.
 
     Args:
@@ -997,7 +1007,7 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
     keys = set().union(*[table.input_keys for table in self.tables])
     return input_batch.GetSlice(keys)
 
-  def GetAuxiliaryVariables(self, input_key) -> py_utils.NestedMap:
+  def GetAuxiliaryVariables(self, input_key: str) -> py_utils.NestedMap:
     """Returns the auxiliary variables associated with the given table.
 
     Args:

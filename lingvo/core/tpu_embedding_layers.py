@@ -26,7 +26,7 @@ implementations, so that clients may more freely switch between the APIs.
 """
 import abc
 import math
-from typing import Callable, List, Union
+from typing import Callable, Sequence
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import hyperparams
@@ -196,12 +196,15 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
   """An embedding table controlled by TPUEmbeddingLayer.
 
   Note that all input_keys need to be declared upfront.
+
+  Attributes:
+    optimizer: An optimizer wrapper class around the API object.
+    schedule: A Lingvo schedule object used for scaling the learning rate.
   """
 
-  # Note: there are other optimizers implemented by the API, but these two are
-  #   the only ones currently needed for now.
-  optimizer: Union[TPUEmbeddingAdagradOptimizer, TPUEmbeddingAdamOptimizer]
-  schedule: schedule_lib.BaseSchedule
+  # Type annotations for Lingvo child layers  # TODO(b/275392925) restore these.
+  # optimizer: TPUEmbeddingOptimizerBase
+  # schedule: schedule_lib.BaseSchedule
 
   @classmethod
   def Params(cls) -> py_utils.InstantiableParams['TPUEmbeddingTable']:
@@ -302,7 +305,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     return self._table_name
 
   @property
-  def input_keys(self) -> List[str]:
+  def input_keys(self) -> Sequence[str]:
     return self._input_keys
 
   @property
@@ -438,13 +441,23 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 class TPUEmbeddingLayer(
     base_layer.BaseLayer, metaclass=base_layer.ABCLayerMeta
 ):
-  """Lingvo interface to TF's TPUEmbedding API."""
+  """Lingvo interface to TF's TPUEmbedding API.
+
+  Attributes:
+    tables: The TPUEmbeddingTables this layer manages.
+    gradient_multiplier_schedule: A Lingvo schedule object used for scaling the
+      gradients applied to the embedding variables.
+  """
+
+  # Type annotations for Lingvo child layers  # TODO(b/275392925) restore these.
+  # tables: Sequence[TPUEmbeddingTable]
+  # gradient_multiplier_schedule: schedule_lib.BaseSchedule
 
   @classmethod
   def Params(cls):
     p = super().Params()
     p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
-    p.Define('tables', None, 'List[TPUEmbeddingTable]')
+    p.Define('tables', None, 'Sequence[TPUEmbeddingTable]')
     p.Define(
         'pipeline_execution_with_tensor_core',
         False,

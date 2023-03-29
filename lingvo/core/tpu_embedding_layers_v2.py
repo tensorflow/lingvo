@@ -234,7 +234,7 @@ class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
   def table_config(self) -> tpu_embedding_v2_utils.TableConfig:
     return self._table_config
 
-  def GetDeviceName(self, host_id):
+  def GetDeviceName(self, host_id: int) -> Optional[str]:
     """Return device to place sharded variables on."""
     if self.params.is_inference:
       # This is to place variables on the same device as other variables.
@@ -490,7 +490,6 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
   # Type annotations for lingvo child objects
   tables: Sequence[TPUEmbeddingTable]
   optimizer: _TPUEmbeddingOptimizerV2Mixin
-  lr_schedule: schedule_lib.BaseSchedule
 
   @classmethod
   def Params(cls):
@@ -523,29 +522,22 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
     #    manually set output_shape to [batch_size, max_sequence_length].
     for table in self.tables:
       for feature in table.input_keys:
+        # We manually set the output shape here for two reasons:
+        #  1. To ensure that sequence features are correctly not reduced, and
+        #  2. To ensure that enqueued sparse tensors (for non-sequence features
+        #     with >1 id per example) are reduced correctly.
         if table.max_sequence_length > 0:
+          output_shape = [p.batch_size, table.max_sequence_length]
           sequence_features.append(feature)
-          feature_config.Set(
-              feature,
-              tpu_embedding_v2_utils.FeatureConfig(
-                  table=table.table_config,
-                  output_shape=[p.batch_size, table.max_sequence_length],
-              ),
-          )
         else:
-          # We set `output_shape` here for the following reason: When given an
-          # id feature with multiple ids per example/row, we convert it to a
-          # SparseTensor, and in doing so, lose shape information. Adding this
-          # output shape specification appears necessary to have the `combiner`
-          # reduction take place for lookups like that. It had not been
-          # necessary for id columns with just one id per example.
-          feature_config.Set(
-              feature,
-              tpu_embedding_v2_utils.FeatureConfig(
-                  table=table.table_config,
-                  output_shape=[p.batch_size],
-              ),
-          )
+          output_shape = [p.batch_size]
+
+        feature_config.Set(
+            feature,
+            tpu_embedding_v2_utils.FeatureConfig(
+                table=table.table_config, output_shape=output_shape
+            ),
+        )
 
     if not TPU_EMBEDDING_MANAGER:
       TPU_EMBEDDING_MANAGER.enabled = True

@@ -22,7 +22,7 @@ from recommonmark.parser import CommonMarkParser
 sys.path.insert(0, os.path.abspath('.'))
 
 project = 'Lingvo'
-copyright = '2020'  # pylint: disable=redefined-builtin
+copyright = '2023'  # pylint: disable=redefined-builtin
 author = ''
 extensions = [
     'sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.mathjax',
@@ -35,7 +35,7 @@ autodoc_member_order = 'bysource'
 napoleon_google_docstring = True
 default_role = 'py:obj'
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3.7', None),
+    'python': ('https://docs.python.org/3.8', None),
     'numpy': ('http://numpy.org/doc/stable/', None),
 }
 templates_path = ['_templates']
@@ -49,3 +49,4 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = []
 html_theme_options = {'nosidebar': True}
 todo_include_todos = True
+keep_warnings = True
