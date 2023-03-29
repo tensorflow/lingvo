@@ -358,13 +358,15 @@ class TFDatasetSource(DataSource):
 
   @property
   def num_hosts(self):
+    """Only available within an InfeedContextScope."""
     if (self._input_generator and
         self._input_generator.params.use_per_host_infeed):
-      return max(self.cluster.num_tpu_hosts, 1)
+      return max(cluster.GetInfeedContext().num_infeed_hosts, 1)
     return 1
 
   @property
   def host_id(self):
+    """Only available within an InfeedContextScope."""
     if self.num_hosts > 1:
       return cluster.GetInfeedContext().infeed_host_index
     return 0
@@ -853,7 +855,11 @@ class TFDataServiceSource(TFDatasetTransform):
 
   def SetInputGenerator(self, input_generator):
     super().SetInputGenerator(input_generator)
-    if self.params.bucket_upper_bound and self.num_hosts > 1:
+    if (
+        self.params.bucket_upper_bound
+        and self._input_generator.params.use_per_host_infeed
+        and self.cluster.num_tpu_hosts > 1
+    ):
       if self._input_generator.params.tpu_infeed_parallelism != 1:
         tf.logging.warning('Bucket-synchronized input from the tf.data service '
                            'requires setting tpu_infeed_parallelism to 1.')
