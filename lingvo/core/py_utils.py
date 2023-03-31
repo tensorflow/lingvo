@@ -3299,9 +3299,11 @@ def ApplyGradMultiplier(vs_gs, grad_scale=None):
   def ScaleOrZero(var: tf.Tensor, grad: tf.Tensor,
                   scale: tf.Tensor) -> tf.Tensor:
     grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
-    return tf.where(
-        tf.equal(scale, 0.), tf.zeros_like(grad),
-        tf.cast(scale, grad.dtype) * grad)
+    return tf.where_v2(
+        tf.equal(scale, 0.0),
+        tf.zeros([], dtype=grad.dtype),
+        tf.cast(scale, grad.dtype) * grad,
+    )
 
   def Scale(item: VarGrad) -> VarGrad:
     """Scales the gradient."""
@@ -4056,8 +4058,9 @@ def UpdateBatchNormVars(batch_norm_var, batch_norm_stats, decay):
       has_nan_or_inf = tf.reduce_any(
           tf.math.logical_or(
               tf.math.is_nan(update_delta), tf.math.is_inf(update_delta)))
-      update_delta = tf.where(has_nan_or_inf, tf.zeros_like(update_delta),
-                              update_delta)
+      update_delta = tf.where_v2(
+          has_nan_or_inf, tf.zeros([], dtype=update_delta.dtype), update_delta
+      )
       bn_update = tf.assign_sub(batch_norm_var, update_delta, name=scope)
   tf.add_to_collection(BATCH_NORM_UPDATES, bn_update)
   if not tf.executing_eagerly_outside_functions():
@@ -4430,8 +4433,9 @@ def LengthsFromPaddings(paddings, dtype=None):
   # element, so the number that differ would be zero, and thus the
   # unpadded_length value would be 1 (which is incorrect). We thus set it to 0.
   all_zero_mask = tf.equal(tf.reduce_sum(mask, axis=1), 0)
-  result = tf.where(all_zero_mask, tf.zeros_like(unpadded_length),
-                    unpadded_length)
+  result = tf.where_v2(
+      all_zero_mask, tf.zeros([], dtype=unpadded_length.dtype), unpadded_length
+  )
   if dtype and result.dtype != dtype:
     result = tf.cast(result, dtype)
   return result
@@ -4646,8 +4650,10 @@ def CreateIdsAndLabels(ids, paddings, sos_id=1, eos_id=2, trim=False):
     - paddings: float Tensor of shape [batch, maxlen'].
     - weights: float Tensor of shape [batch, maxlen'].
   """
-  ids = tf.where(
-      tf.equal(paddings, 0.0), ids, tf.broadcast_to([[eos_id]], GetShape(ids)))
+  # Use tf.zeros([], dtype=..) to avoid implicit casting to double
+  ids = tf.where_v2(
+      tf.equal(paddings, tf.zeros([], dtype=paddings.dtype)), ids, eos_id
+  )
   targets = NestedMap()
   targets.ids = tf.pad(ids, [[0, 0], [1, 0]], constant_values=sos_id)
   targets.labels = tf.pad(ids, [[0, 0], [0, 1]], constant_values=eos_id)
@@ -4990,10 +4996,13 @@ def RematerializeFn(fn, *xs):
     del fwd_ys
     always_true = tf.random.uniform([]) < 2.0
     # Alternatively, can do this:
-    # tf.where(tf.math.is_nan(x),
-    #          tf.constant(float('nan'), dtype=x.dtype) * tf.ones_like(x),
-    #          x)
-    bak_xs = [tf.where(always_true, x, tf.zeros_like(x)) for x in fwd_xs.xs]
+    # tf.where_v2(tf.math.is_nan(x),
+    #             tf.constant(float('nan'), dtype=x.dtype)
+    #             x)
+    bak_xs = [
+        tf.where_v2(always_true, x, tf.zeros([], dtype=x.dtype))
+        for x in fwd_xs.xs
+    ]
     for dst, src in zip(bak_xs, xs):
       dst.set_shape(src.shape)
     ResetStepSeed(initial_step_seed)
@@ -6451,8 +6460,15 @@ def GetSoftmaxProbsBySeqIndices(logits, indices, keepdims=False):
 
 def DivideNoNan(x, y):
   """Equivalent to tf.math.divide_no_nan but supports bfloat16."""
-  safe_y = tf.where(tf.equal(y, 0.), tf.ones_like(y), y)
-  return tf.where(tf.equal(y, 0.0), tf.zeros_like(x), x / safe_y)
+  # Use tf.zeros([], dtype=..) or tf.ones to avoid implicit casting to double
+  safe_y = tf.where_v2(
+      tf.equal(y, tf.zeros([], dtype=y.dtype)), tf.ones([], dtype=y.dtype), y
+  )
+  return tf.where_v2(
+      tf.equal(y, tf.zeros([], dtype=y.dtype)),
+      tf.zeros([], dtype=x.dtype),
+      x / safe_y,
+  )
 
 
 def SequencePaddings(seqlen, maxlen=None):
