@@ -2893,13 +2893,56 @@ class LocalSelfAttentionXL(LocalSelfAttention):
     return term_ac + term_bd
 
   def _StreamAttenLogits(self, theta, query, key):
-    # BQNH -> BUQNH
-    query = tf.expand_dims(query, 1)
-    # BTNH -> BUTNH
-    key = tf.expand_dims(key, 1)
-    logits = self._AttenLogits(theta, query, key)
-    # BNUQT -> BNQT -> BQNT
-    return tf.transpose(tf.squeeze(logits, 2), [0, 2, 1, 3])
+    b, w, _, _ = py_utils.GetShape(query)
+    _, c, _, _ = py_utils.GetShape(key)
+    n = self.params.num_heads
+    l = self.params.left_context
+    r = self.params.right_context
+    f = l + r
+    # term a and c
+    term_ac = tf.einsum('BWNH,BCNH->BNWC', query + theta.u, key)
+
+    # term b and d
+    # [1, F]
+    pos = tf.expand_dims(tf.range(l - 1, -r - 1, -1), 0)
+    sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, pos)
+    # [1, F, N, H]
+    sin_emb = self.pos_proj.FProp(theta.pos_proj, sin_emb)
+    # [F, N, H]
+    sin_emb = tf.squeeze(sin_emb, 0)
+
+    p = self.params
+    if not p.skip_term_b:
+      # [B, N, W, F]
+      term_bd = tf.einsum('BWNH,FNH->BNWF', query + theta.v, sin_emb)
+
+      # Perform relative shift in order to get [B, N, W, C]
+      # Pads the input to [B, N, C, C+1]
+      term_bd = tf.pad(term_bd, ((0, 0), (0, 0), (0, c - w), (0, c + 1 - f)))
+
+      # Reshapes to [B, N, C+1, C]. Note the output last dim is 1-smaller
+      # than the input, which "pushses" one element off to the next row for each
+      # row. The accumulated effect is row_i is right-shifted i steps (i>=0).
+      term_bd = tf.reshape(term_bd, [b, n, c + 1, c])
+
+      # Keeps useful slices. [B, N, W, C]
+      term_bd = tf.slice(term_bd, [0, 0, 0, 0], [-1, -1, w, -1])
+    else:
+      # [N, F]
+      term_d = tf.einsum('NH,FNH->NF', theta.v, sin_emb)
+      # [N, W, F]
+      term_d = tf.tile(tf.expand_dims(term_d, 1), [1, w, 1])
+      # [N, C, C+1]
+      term_d = tf.pad(term_d, ((0, 0), (0, c - w), (0, c + 1 - f)))
+      # [N, C+1, C]
+      term_d = tf.reshape(term_d, [n, c + 1, c])
+      # Keeps useful slices. [N, W, C]
+      term_d = tf.slice(term_d, [0, 0, 0], [-1, w, -1])
+      term_bd = tf.reshape(term_d, [1, n, w, c])
+    logits = term_ac + term_bd
+
+    # BNQT -> BQNT
+    return tf.transpose(logits, [0, 2, 1, 3])
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
     """Attention logits for one single target (query) step.
