@@ -1455,9 +1455,7 @@ class MultitaskProjectionEinsumLayer(base_layer.BaseLayer):
       Output after applying projection and relu non-linearity.
     """
     assert tasks is not None, 'tasks tensor must be provided.'
-    assert (
-        py_utils.GetShape(inputs)[0] == py_utils.GetShape(tasks)[0]
-    ), 'The batch (first) dimension of inputs and tasks must match.'
+    tasks = py_utils.HasShape(tasks, py_utils.GetShape(inputs, 1))
     p = self.params
     with tf.name_scope(p.name):
       inputs, paddings, tasks = self._CastToFPropDtype(
