@@ -1908,8 +1908,8 @@ class LocalSelfAttention(MultiHeadedAttention):
 
   def _StreamAttenLogits(self, theta, query_proj, key):
     """Compute the dot products of a set of queries and a set of keys."""
-    # [B, Q, N, T]
-    return tf.einsum('BQNH,BTNH->BQNT', query_proj, key)
+    # [B, N, Q, T]
+    return tf.einsum('BQNH,BTNH->BNQT', query_proj, key)
 
   def AttenProbs(self,
                  theta,
@@ -2607,7 +2607,7 @@ class LocalSelfAttention(MultiHeadedAttention):
             theta, query_proj, stride=p.query_stride, time_step=time_step)
         state1.rope_step = time_step
 
-      # [B, Q, N, T]
+      # [B, N, Q, T]
       logits = self._StreamAttenLogits(theta, query_proj, key)
 
       with tf.name_scope('compute_padding'):
@@ -2643,17 +2643,17 @@ class LocalSelfAttention(MultiHeadedAttention):
         # [B, Q, S]
         final_masks = tf.logical_and(expanded_state_masks,
                                      local_atten_per_step_masks)
-        # [B, Q, 1, S]
-        final_masks = tf.expand_dims(final_masks, axis=2)
+        # [B, 1, Q, S]
+        final_masks = tf.expand_dims(final_masks, axis=1)
 
-      # [B, Q, N, S]
+      # [B, N, Q, S]
       logits = py_utils.ApplyPadding(
           tf.logical_not(final_masks), logits, GetDtypeMin(logits.dtype))
-      # [B, Q, N, S]
+      # [B, N, Q, S]
       posteriors = py_utils.Softmax(
           logits, axis=-1, extra_logit=p.atten_extra_logit)
       # [B, Q, N, H]
-      output = tf.einsum('BQNS,BSNH->BQNH', posteriors, value)
+      output = tf.einsum('BNQS,BSNH->BQNH', posteriors, value)
 
       # Post projection.
       # [B, Q, D]
@@ -2720,7 +2720,7 @@ class LocalSelfAttention(MultiHeadedAttention):
                               axis=1,
                               name='concat_masks')
 
-      # [B, Q, N, T]
+      # [B, N, Q, T]
       logits = self._StreamAttenLogits(theta, query, key)
 
       with tf.name_scope('compute_padding'):
@@ -2748,18 +2748,18 @@ class LocalSelfAttention(MultiHeadedAttention):
         # [B, Q, T]
         final_masks = tf.logical_and(expanded_state_masks,
                                      local_atten_per_step_masks)
-        # [B, Q, 1, T]
-        final_masks = tf.expand_dims(final_masks, axis=2)
+        # [B, 1, Q, T]
+        final_masks = tf.expand_dims(final_masks, axis=1)
 
-      # [B, Q, N, T]
+      # [B, N, Q, T]
       logits = py_utils.ApplyPadding(
           tf.logical_not(final_masks), logits, GetDtypeMin(logits.dtype))
 
-      # [B, Q, N, T]
+      # [B, N, Q, T]
       posteriors = py_utils.Softmax(
           logits, axis=-1, extra_logit=p.atten_extra_logit)
       # [B, Q, N, H]
-      output = tf.einsum('BQNT,BTNH->BQNH', posteriors, value)
+      output = tf.einsum('BNQT,BTNH->BQNH', posteriors, value)
 
       # Post projection.
       # [B, Q, D]
@@ -2939,10 +2939,8 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       # Keeps useful slices. [N, W, C]
       term_d = tf.slice(term_d, [0, 0, 0], [-1, w, -1])
       term_bd = tf.reshape(term_d, [1, n, w, c])
-    logits = term_ac + term_bd
-
-    # BNQT -> BQNT
-    return tf.transpose(logits, [0, 2, 1, 3])
+    # BNQT
+    return term_ac + term_bd
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
     """Attention logits for one single target (query) step.
