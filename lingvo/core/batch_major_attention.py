@@ -6717,8 +6717,6 @@ class FunnelPoolingLayer(StrideLayer):
           strides=[p.stride],
           padding=p.padding_algorithm)
       # Divide by non-padding ratios to eliminate the effect of padded values.
-      non_padding_ratio = tf.broadcast_to(non_padding_ratio,
-                                          tf.shape(pooled_tensor))
       pooled_tensor = py_utils.DivideNoNan(pooled_tensor, non_padding_ratio)
 
     pooled_paddings = (
