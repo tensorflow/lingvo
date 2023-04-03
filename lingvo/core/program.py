@@ -927,7 +927,9 @@ class HostDrivenTrainProgram(BaseProgram):
         with py_utils.GradientTape(persistent=True):
           batch.Update(_TPU_EMBEDDING_V2.Dequeue())
           metrics_dict, _ = self.task.FPropDefaultTheta(batch)
-        self.task.BProp()
+          # py_utils.ComputeGradientsSimple() needs to access the tape, so BProp
+          # needs to be within the GradientTape context.
+          self.task.BProp()
 
         self._metrics_dict_structure = metrics_dict
         self._metrics_mgr.AccumulateStepMetrics(metrics_dict)
@@ -945,7 +947,9 @@ class HostDrivenTrainProgram(BaseProgram):
           self._metrics_dict_structure
       )
 
-    return _TpuFunction
+    # Trace the train function so it can create the optimizer slot vars and save
+    # them at step 0.
+    return _TpuFunction.get_concrete_function()
 
   def _ShouldStop(self, task_global_step):
     """Simpler version of _ShouldStop without early stopping."""
