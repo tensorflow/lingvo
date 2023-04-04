@@ -222,8 +222,8 @@ def _GetClusterSpecDict():
 class RunnerManager:
   """Helper class for managing runners."""
 
-  # This is a hack so these classes can be overridded with internal
-  # non-public implementations.
+  # This is a hack so these classes can be overridden with internal non-public
+  # implementations.
   # pylint: disable=invalid-name
   inference_graph_exporter = inference_graph_exporter
   model_registry = model_registry
