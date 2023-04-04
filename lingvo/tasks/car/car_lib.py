@@ -196,9 +196,11 @@ def NeighborhoodIndices(points,
   #   if k < valid_num[i]: distance between points[i, k] and query_points[i, j]
   #   otherwise:           a large scalar added to dist_mat[i, j, k]
   if points_padding is not None:
-    points_padding = tf.cast(tf.expand_dims(points_padding, 1), tf.float32)
-    points_padding = py_utils.HasShape(points_padding, [n, 1, p1])
     large_scalar = tf.reduce_max(dist_mat) + 1
+    points_padding = tf.cast(
+        tf.expand_dims(points_padding, 1), large_scalar.dtype
+    )
+    points_padding = py_utils.HasShape(points_padding, [n, 1, p1])
     dist_mat += points_padding * large_scalar
 
   # To perform sampling neighbors uniformly efficiently, we set all neighbors
@@ -305,17 +307,21 @@ def FarthestPointSampler(points,
         dtype=tf.float32,
         seed=random_seed)
   else:
-    points += tf.random.uniform((batch_size, num_points, dims),
-                                minval=1e-6,
-                                maxval=1e-5,
-                                dtype=tf.float32,
-                                seed=random_seed)
+    points += tf.random.uniform(
+        (batch_size, num_points, dims),
+        minval=1e-6,
+        maxval=1e-5,
+        dtype=points.dtype,
+        seed=random_seed,
+    )
 
   # TensorArray to store the sampled indices in the loop.
   sampled_idx = tf.TensorArray(tf.int32, num_sampled_points)
 
   # Initialize distance_to_selected to inf for all points.
-  distance_to_selected = float('inf') * tf.ones((batch_size, num_points))
+  distance_to_selected = tf.cast(
+      float('inf') * tf.ones((batch_size, num_points)), points.dtype
+  )
 
   # For tracking the index to the closest selected point.
   closest_idx = tf.zeros((batch_size, num_points), dtype=tf.int32)
@@ -325,8 +331,10 @@ def FarthestPointSampler(points,
 
   # Get number of valid points (1 is padded, so num_points - num_padded).
   num_valid_points = tf.cast(
-      tf.cast(num_points, dtype=tf.float32) - tf.reduce_sum(padding, axis=1),
-      dtype=tf.int32)
+      tf.cast(num_points, dtype=tf.float32)
+      - tf.reduce_sum(tf.cast(padding, tf.float32), axis=1),
+      dtype=tf.int32,
+  )
 
   def _BodyFn(curr_idx, distance_to_selected, sampled_idx, closest_idx):
     """Loop body for farthest point sampler."""
@@ -343,11 +351,13 @@ def FarthestPointSampler(points,
         Tensor containing the index of a random point selected for each example
         in the batch.
       """
-      random_values = tf.random.uniform((batch_size, num_points),
-                                        minval=0,
-                                        maxval=1,
-                                        dtype=tf.float32,
-                                        seed=random_seed)
+      random_values = tf.random.uniform(
+          (batch_size, num_points),
+          minval=0,
+          maxval=1,
+          dtype=padding.dtype,
+          seed=random_seed,
+      )
       random_values = tf.where(
           tf.equal(padding, 0.0), random_values, padding * 10)
       return tf.argmin(random_values, axis=1, output_type=tf.int32)
@@ -364,8 +374,11 @@ def FarthestPointSampler(points,
       """
       # Set padded points distance to negative so they aren't selected.
       padding_masked_distance_to_selected = tf.where(
-          tf.equal(padding, 0.0), distance_to_selected, -1.0 * tf.ones(
-              (batch_size, num_points), dtype=tf.float32))
+          tf.equal(padding, 0.0),
+          distance_to_selected,
+          -1.0
+          * tf.ones((batch_size, num_points), dtype=distance_to_selected.dtype),
+      )
       # But only do this when we still have valid points left.
       padding_masked_distance_to_selected = tf.where(
           tf.less(curr_idx, num_valid_points),

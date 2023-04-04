@@ -266,6 +266,20 @@ class CarLibTest(test_utils.TestCase):
       selected_idx = self.evaluate(selected_idx)
       self.assertAllEqual(selected_idx, [[0], [0]])
 
+  def testFarthestPointSamplerOnePointBfloat16(self):
+    points = tf.constant(
+        [
+            [[1, 1, 1, 1]],
+            [[2, 2, 2, 2]],
+        ],
+        dtype=tf.bfloat16,
+    )
+    padding = tf.zeros((2, 1), dtype=tf.bfloat16)
+    selected_idx, _ = car_lib.FarthestPointSampler(points, padding, 1)
+    with self.session():
+      selected_idx = self.evaluate(selected_idx)
+      self.assertAllEqual(selected_idx, [[0], [0]])
+
   def testFarthestPointSamplerInsufficientPoints(self):
     points = tf.constant([
         [[0, 1, 1]],

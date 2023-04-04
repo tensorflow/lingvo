@@ -209,9 +209,9 @@ py_library(
     name = "car_lib",
     srcs = ["car_lib.py"],
     deps = [
+        ":geometry",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
-        "//lingvo/tasks/car:geometry",
         # Implicit numpy dependency.
     ],
 )
