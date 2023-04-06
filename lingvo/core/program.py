@@ -921,9 +921,6 @@ class HostDrivenTrainProgram(BaseProgram):
         batch: NestedMap of input batch data.
       """
       with tf.name_scope('tpu_train'):
-        _TPU_EMBEDDING_V2.Enqueue(
-            batch.GetSlice(_TPU_EMBEDDING_V2.feature_names)
-        )
         with py_utils.GradientTape(persistent=True):
           batch.Update(_TPU_EMBEDDING_V2.Dequeue())
           metrics_dict, _ = self.task.FPropDefaultTheta(batch)
@@ -941,6 +938,11 @@ class HostDrivenTrainProgram(BaseProgram):
 
       for _ in tf.range(self._steps_per_loop):
         batch = _GetShardedBatch()
+        # Note: running the enqueue in strategy.run() could potentially cause
+        # deadlock and cause the job to hang. Here we run it outside.
+        _TPU_EMBEDDING_V2.Enqueue(
+            batch.GetSlice(_TPU_EMBEDDING_V2.feature_names)
+        )
         strategy.run(_Step, args=(batch,))
 
       return self._metrics_mgr.FinalizeMetricsWithStructure(
