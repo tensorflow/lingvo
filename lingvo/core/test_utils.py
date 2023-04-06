@@ -286,6 +286,7 @@ class TestCase(tf.test.TestCase):
         self.addCleanup(stack.pop_all().close)
     # Ensure the global_step variable is created in the default graph.
     py_utils.GetOrCreateGlobalStepVar()
+    py_utils.ResetStepSeed()
     cluster = cluster_factory.SetRequireSequentialInputOrder(True)
     cluster.params.in_unit_test = True
     cluster.__enter__()
