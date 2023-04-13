@@ -349,9 +349,23 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
   def testMultitaskFFLayerFProp(
       self, fflayer_start_num_tasks, fflayer_end_num_tasks, expected_sum
   ):
+    if fflayer_start_num_tasks:
+      fflayer_start_tpl = lingvo_layers.MultitaskFeedForwardNet.Params().Set(
+          num_tasks=fflayer_start_num_tasks,
+          activation=['RELU', 'NONE'],
+      )
+    else:
+      fflayer_start_tpl = None
+    if fflayer_end_num_tasks:
+      fflayer_end_tpl = lingvo_layers.MultitaskFeedForwardNet.Params().Set(
+          num_tasks=fflayer_end_num_tasks,
+          activation=['RELU', 'NONE'],
+      )
+    else:
+      fflayer_end_tpl = None
     kwargs = {}
-    kwargs['fflayer_start_num_tasks'] = fflayer_start_num_tasks
-    kwargs['fflayer_end_num_tasks'] = fflayer_end_num_tasks
+    kwargs['fflayer_start_tpl'] = fflayer_start_tpl
+    kwargs['fflayer_end_tpl'] = fflayer_end_tpl
     kwargs['fflayer_task_ids'] = 'client_ids'
 
     p = self._GetParams(**kwargs)

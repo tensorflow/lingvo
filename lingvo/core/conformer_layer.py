@@ -517,15 +517,12 @@ class ConformerLayer(base_layer.BaseLayer):
         'fflayer_weight_sharing', False,
         'If True, will ignore `fflayer_end_tpl`, and will make the fflayer_end '
         'layer as a weight-shared copy of the fflayer_start layer.')
-    p.Define('fflayer_start_num_tasks', 0, 'Number of tasks for fflayers.')
-    p.Define('fflayer_end_num_tasks', 0, 'Number of tasks for fflayers.')
     p.Define(
         'fflayer_task_ids',
         '',
         (
             'The in_nmap field of an int32 tensor containing the task ID. '
-            'This should be provided if either fflayer_start_num_tasks '
-            'or fflayer_end_num_tasks is positive.'
+            'This should be provided if multitask FFNs are used.'
         ),
     )
     p.Define('final_ln_tpl', layers.LayerNorm.Params(), 'Final layer norm.')
@@ -594,8 +591,6 @@ class ConformerLayer(base_layer.BaseLayer):
       fflayer_start_tpl=None,
       fflayer_end_tpl=None,
       trans_atten_tpl=None,
-      fflayer_start_num_tasks=0,
-      fflayer_end_num_tasks=0,
       fflayer_task_ids='',
       lconv_tpl=None,
       list_regex_dtypes=None,
@@ -632,9 +627,6 @@ class ConformerLayer(base_layer.BaseLayer):
         fflayer_task_ids=fflayer_task_ids,
     )
 
-    if fflayer_start_num_tasks or fflayer_end_num_tasks:
-      assert fflayer_task_ids is not None, 'Must provide fflayer_task_ids'
-
     if use_moe_in_fflayer_start:
       assert fflayer_start_tpl is None
       fflayer_start_tpl = GShardMoELayerParams(moe_num_partitions,
@@ -646,7 +638,7 @@ class ConformerLayer(base_layer.BaseLayer):
                                              moe_num_experts, moe_num_groups,
                                              moe_per_capacity_dim)
 
-    def _ConfigureFF(fflayer_tpl, num_tasks):
+    def _ConfigureFF(fflayer_tpl):
       config_kwargs = dict(
           input_dim=input_dim,
           hidden_dim=fflayer_hidden_dim,
@@ -654,18 +646,14 @@ class ConformerLayer(base_layer.BaseLayer):
           residual_weight=fflayer_residual_weight,
           dropout_prob=dropout_prob)
       if fflayer_tpl is None:
-        if num_tasks > 0:
-          fflayer_tpl = layers.MultitaskFeedForwardNet.Params().Set(
-              num_tasks=num_tasks,
-              activation=['RELU', 'NONE'],
-          )
-        else:
-          fflayer_tpl = layers.FeedForwardNet.Params().Set(
-              activation=['RELU', 'NONE'],
-          )
+        return cls.ConfigFFLayer(
+            tpl=layers_with_attention.TransformerFeedForwardLayer.Params(),
+            **config_kwargs,
+        )
+      elif issubclass(fflayer_tpl.cls, layers.MultitaskFeedForwardNet):
         return cls.ConfigFFLayer(
             tpl=layers_with_attention.TransformerFeedForwardLayer.Params().Set(
-                fflayer_tpl=fflayer_tpl, num_tasks=num_tasks
+                fflayer_tpl=fflayer_tpl, num_tasks=fflayer_tpl.num_tasks
             ),
             **config_kwargs,
         )
@@ -684,10 +672,8 @@ class ConformerLayer(base_layer.BaseLayer):
         return fflayer_tpl
 
     # Set the two feed forward modules.
-    p.fflayer_start_tpl = _ConfigureFF(
-        fflayer_start_tpl, fflayer_start_num_tasks
-    )
-    p.fflayer_end_tpl = _ConfigureFF(fflayer_end_tpl, fflayer_end_num_tasks)
+    p.fflayer_start_tpl = _ConfigureFF(fflayer_start_tpl)
+    p.fflayer_end_tpl = _ConfigureFF(fflayer_end_tpl)
     # Set the MHSA module.
     if trans_atten_tpl is not None:
       assert atten_left_context is None
@@ -860,7 +846,7 @@ class ConformerLayer(base_layer.BaseLayer):
     with py_utils.VariableListDtypeRegexScope(self.params.list_regex_dtypes):
       if self.has_fflayer_start:
         fflayer_start_p = self._ConfigFFLayerOrMoEParams(
-            p.fflayer_start_tpl, 'fflayer_start', p.fflayer_start_num_tasks
+            p.fflayer_start_tpl, 'fflayer_start'
         )
         if fflayer_start_p.name:
           assert fflayer_start_p.name == 'fflayer_start_moe'
@@ -869,7 +855,7 @@ class ConformerLayer(base_layer.BaseLayer):
         self.CreateChild(fflayer_start_p.name, fflayer_start_p)
 
       fflayer_end_p = self._ConfigFFLayerOrMoEParams(
-          p.fflayer_end_tpl, 'fflayer_end', p.fflayer_end_num_tasks
+          p.fflayer_end_tpl, 'fflayer_end'
       )
       if fflayer_end_p.name:
         assert fflayer_end_p.name == 'fflayer_end_moe'
@@ -936,14 +922,16 @@ class ConformerLayer(base_layer.BaseLayer):
   def has_fflayer_start(self):
     return bool(self.params.fflayer_start_tpl)
 
-  def _ConfigFFLayerOrMoEParams(self, fflayer_tpl, name_prefix, num_tasks):
+  def _ConfigFFLayerOrMoEParams(self, fflayer_tpl, name_prefix):
     p = self.params
     fflayer_tpl = fflayer_tpl.Copy()
     if not issubclass(fflayer_tpl.cls, gshard_builder.MoEBuilder):
       if hasattr(fflayer_tpl, 'input_dim'):
         fflayer_tpl.Set(input_dim=p.input_dim)
-      if num_tasks > 0 and hasattr(fflayer_tpl, 'num_tasks'):
-        fflayer_tpl.Set(num_tasks=num_tasks)
+      if hasattr(fflayer_tpl, 'num_tasks') and fflayer_tpl.num_tasks > 0:
+        assert (
+            p.fflayer_task_ids
+        ), 'fflayer_task_ids must be provided for multitask FFNs.'
       return fflayer_tpl
     # TODO(rpang): migrate clients to TransformerShardedMoeLayer.
     fflayer_tpl.model_dim = p.input_dim
