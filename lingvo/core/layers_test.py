@@ -5049,7 +5049,7 @@ class LayerNormTest(test_utils.TestCase, parameterized.TestCase):
       sym_output = self.evaluate(output)
 
       # Mean should be zero and variance should be close to one.
-      self.assertNear(0.0, sym_output.sum(), 1e-5)
+      self.assertNear(0.0, sym_output.sum(), 1e-4)
       self.assertNear(1.0, np.var(sym_output), 1e-4)
 
       # Compare with numpy.

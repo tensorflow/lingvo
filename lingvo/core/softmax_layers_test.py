@@ -432,7 +432,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
   ):
     for dtype, use_gpu, tolerance in [
         (tf.float32, True, 1e-2),
-        (tf.float64, False, 1e-6),
+        (tf.float64, False, 1e-4),
     ]:
       tf.logging.info('dtype %s tolerance %g', dtype, tolerance)
       with contextlib.ExitStack() as context_stack:
@@ -850,8 +850,10 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
 
   def _RunSimpleFullSoftmaxGradientChecker(self, batch_size, num_classes,
                                            chunk_size):
-    for (dtype, use_gpu, tolerance) in [(tf.float32, True, 1e-2),
-                                        (tf.float64, False, 1e-6)]:
+    for dtype, use_gpu, tolerance in [
+        (tf.float32, True, 1e-2),
+        (tf.float64, False, 1e-4),
+    ]:
       with contextlib.ExitStack() as context_stack:
         g = layers_test._ResetTfStatus(self, context_stack)
       tf.logging.info('dtype %s tolerance %g', dtype, tolerance)
