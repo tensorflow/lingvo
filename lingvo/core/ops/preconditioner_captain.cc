@@ -100,7 +100,7 @@ void PreconditionerCaptain::InsertGradientStatistics(const std::string& key,
                                                 &outputs);
         LOG(INFO) << "DONE: Inverse pth root for " << key << " @ "
                   << global_step << " " << statistics.shape().DebugString();
-        LOG(INFO) << status;
+        LOG(INFO) << status.error_message();
       } while (!status.ok());
 
       // Certain matrices cause SVD to have less precision with its calculation

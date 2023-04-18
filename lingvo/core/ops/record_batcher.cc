@@ -359,7 +359,7 @@ void RecordBatcher::ProcessorLoop() {
         }
       } else {
         for (const auto& msg : opts_.fatal_errors) {
-          if (absl::StrContains(s.message(), msg)) {
+          if (absl::StrContains(s.error_message(), msg)) {
             // The error is in the list of fatal errors.
             LOG(FATAL) << s;
           }
