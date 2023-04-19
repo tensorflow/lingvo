@@ -347,6 +347,50 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [27.417763, 31.783672, 19.99568, 23.907103, 21.078259, 28.429199],
           np.sum(context_vec_out, axis=1))
 
+  def testScaleInvariantAtten(self):
+    def UnscaledAndScaledFProp(p):
+      input_vecs, input_padding, _, _ = self._AttentionInputs()
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+      ctx_vec, _ = l.FProp(
+          l.theta, input_vecs, input_vecs, input_vecs, input_padding
+      )
+      scaled_input_vecs = input_vecs * 64
+      scaled_ctx_vec, _ = l.FProp(
+          l.theta, scaled_input_vecs, input_vecs, input_vecs, input_padding
+      )
+      ctx_vec_out, scaled_ctx_vec_out = sess.run([ctx_vec, scaled_ctx_vec])
+      return ctx_vec_out, scaled_ctx_vec_out
+
+    with tf.Graph().as_default():
+      with self.session(use_gpu=True) as sess:
+        p = attention.MultiHeadedAttention.Params().Set(
+            name='self_atten',
+            num_heads=2,
+            input_dim=4,
+            hidden_dim=4,
+            use_scale_invariant_atten=False,
+        )
+        ctx_vec_out, scaled_ctx_vec_out = UnscaledAndScaledFProp(p)
+
+    with tf.Graph().as_default():
+      with self.session(use_gpu=True) as sess:
+        p = attention.MultiHeadedAttention.Params().Set(
+            name='self_atten',
+            num_heads=2,
+            input_dim=4,
+            hidden_dim=4,
+            use_scale_invariant_atten=True,
+        )
+        si_ctx_vec_out, si_scaled_ctx_vec_out = UnscaledAndScaledFProp(p)
+
+    self.assertNotAlmostEqual(
+        np.linalg.norm(ctx_vec_out), np.linalg.norm(scaled_ctx_vec_out)
+    )
+    self.assertAlmostEqual(
+        np.linalg.norm(si_ctx_vec_out), np.linalg.norm(si_scaled_ctx_vec_out)
+    )
+
 
 class MultiHeadedAttentionXLOracle:
   """Oracle layer used for computing ground truths for MultiHeadedAttention.

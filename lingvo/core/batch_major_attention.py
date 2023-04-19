@@ -519,6 +519,18 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         'atten_logit_cap', 0.0, 'Cap the absolute values of logits by '
         'tanh. Enabled when a positive value is specified. May not be '
         'supported by a subclass.')
+    p.Define(
+        'use_scale_invariant_atten',
+        False,
+        (
+            'Whether to use scale invariant attention'
+            ' https://proceedings.mlr.press/v162/li22b.html. May not be'
+            ' supported by a subclass. Only one of enable_scaling_code_motion '
+            'and use_scale_invariant_atten can be true. '
+            'If use_scale_invariant_atten is set to true, then '
+            'enable_scaling_code_motion is ignored.'
+        ),
+    )
     # Memory related params.
     p.Define('attn_add_memory', False,
              'Whether to add sketch memory to attention.')
@@ -624,6 +636,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
               input_dim=self.dim_per_head,
               output_dim=self.dim_per_head,
               name='attn_lsh_mem'))
+    if p.use_scale_invariant_atten:
+      assert not (p.enable_scaling_code_motion or p.atten_extra_logit)
 
   @property
   def dim_per_head(self):
@@ -752,20 +766,32 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       padded_logits = py_utils.ApplyPadding(paddings, logits,
                                             GetDtypeMin(logits.dtype))
 
-    if self.params.enable_scaling_code_motion:
-      # Split the softmax into two parts. Do the 1st part here; the 2nd part
-      # (scaling) is moved after _AttenContext for better performance.
-      probs = padded_logits - tf.stop_gradient(
-          tf.reduce_max(padded_logits, -1, True))
-      probs = tf.exp(probs)
-      probs_sum = tf.reduce_sum(probs, -1, True)
-      probs = tf.cast(probs, key.dtype)
-      probs_sum = tf.cast(probs_sum, key.dtype)
-    else:
+    if p.use_scale_invariant_atten:
+      probs = tf.nn.relu(padded_logits)
       probs = tf.cast(
-          py_utils.Softmax(padded_logits, extra_logit=p.atten_extra_logit),
-          key.dtype)
+          tf.math.divide_no_nan(
+              probs, tf.norm(probs, ord=1, axis=-1, keepdims=True)
+          ),
+          key.dtype,
+      )
       probs_sum = None
+    else:
+      if self.params.enable_scaling_code_motion:
+        # Split the softmax into two parts. Do the 1st part here; the 2nd part
+        # (scaling) is moved after _AttenContext for better performance.
+        probs = padded_logits - tf.stop_gradient(
+            tf.reduce_max(padded_logits, -1, True)
+        )
+        probs = tf.exp(probs)
+        probs_sum = tf.reduce_sum(probs, -1, True)
+        probs = tf.cast(probs, key.dtype)
+        probs_sum = tf.cast(probs_sum, key.dtype)
+      else:
+        probs = tf.cast(
+            py_utils.Softmax(padded_logits, extra_logit=p.atten_extra_logit),
+            key.dtype,
+        )
+        probs_sum = None
 
     probs = py_utils.HasShape(probs, [b, n, t, s])
     return probs, probs_sum
@@ -912,9 +938,18 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       logits = self._AttenLogitsOneStep(theta, query, key, time_step)
       padded_logits = py_utils.ApplyPadding(pad, logits,
                                             GetDtypeMin(logits.dtype))
-      probs = py_utils.Softmax(
-          padded_logits, axis=0, extra_logit=p.atten_extra_logit)
-
+      if p.use_scale_invariant_atten:
+        probs = tf.nn.relu(padded_logits)
+        probs = tf.cast(
+            tf.math.divide_no_nan(
+                probs, tf.norm(probs, ord=1, axis=0, keepdims=True)
+            ),
+            key.dtype,
+        )
+      else:
+        probs = py_utils.Softmax(
+            padded_logits, axis=0, extra_logit=p.atten_extra_logit
+        )
       encoded = self._AttenContextOneStep(theta, probs, value, time_step, h)
       return tf.expand_dims(encoded, 1)
 
@@ -955,8 +990,18 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       reshaped_pad = tf.reshape(pad, [s, -1])
       padded_logits = py_utils.ApplyPadding(reshaped_pad, logits,
                                             GetDtypeMin(logits.dtype))
-      probs = py_utils.Softmax(
-          padded_logits, axis=0, extra_logit=p.atten_extra_logit)
+      if p.use_scale_invariant_atten:
+        probs = tf.nn.relu(padded_logits)
+        probs = tf.cast(
+            tf.math.divide_no_nan(
+                probs, tf.norm(probs, ord=1, axis=0, keepdims=True)
+            ),
+            key.dtype,
+        )
+      else:
+        probs = py_utils.Softmax(
+            padded_logits, axis=0, extra_logit=p.atten_extra_logit
+        )
 
       def _DotStep(o, p, v, ts):
         """Computes encoded activation.
