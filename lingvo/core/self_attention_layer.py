@@ -41,12 +41,21 @@ class Builder(batch_major_attention.Builder):
 
     sub_list = [
         ('i.vec->after_ln', self._DefaultLN('LN')),
-        ('{}->after_att,unused_prob'.format(attention_inputs),
-         self._MultiHeadedAtten('atten')),
-        ('after_att->after_dropout',
-         self._Dropout('dropout', p.residual_dropout_prob)),
-        ('{},after_dropout->o.vec'.format(input_to_add),
-         self._Add('add', apply_residual=p.atten_apply_residual)),
+        (
+            '{}->after_att,unused_prob'.format(attention_inputs),
+            self._MultiHeadedAtten(
+                'atten',
+                enable_qkv_proj_in_onestep=p.default_enable_qkv_proj_in_onestep,
+            ),
+        ),
+        (
+            'after_att->after_dropout',
+            self._Dropout('dropout', p.residual_dropout_prob),
+        ),
+        (
+            '{},after_dropout->o.vec'.format(input_to_add),
+            self._Add('add', apply_residual=p.atten_apply_residual),
+        ),
         ('i.paddings->o.paddings', self._Id('id')),
     ]
 

@@ -207,7 +207,12 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertEqual(result_np.shape, tuple(batch_sizes + [model_dims]))
 
-  def testMultiHeadedAttentionDotProductOutputDim(self):
+  @parameterized.named_parameters(
+      ('qkv_one_step_false', False), ('qkv_one_step_true', True)
+  )
+  def testMultiHeadedAttentionDotProductOutputDim(
+      self, enable_qkv_proj_in_onestep=False
+  ):
     # input_batch:6, seq_len:6. Test n = 2 case.
     bsz, slen = 6, 6
     input_dim = 2
@@ -222,7 +227,9 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           num_heads=num_heads,
           input_dim=input_dim,
           hidden_dim=hidden_dim,
-          output_dim=output_dim)
+          output_dim=output_dim,
+          enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
+      )
 
       l = p.Instantiate()
       tf.global_variables_initializer().run()
@@ -236,6 +243,80 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       context_vec_np, attn_prob_np = sess.run([ctx_vec, attn_prob])
       self.assertEqual(context_vec_np.shape, (bsz, slen, output_dim))
       self.assertEqual(attn_prob_np.shape, (bsz, num_heads, slen, slen))
+
+  @parameterized.named_parameters(
+      ('qkv_one_step_false', False), ('qkv_one_step_true', True)
+  )
+  def testMultiHeadedAttentionVariableDim(
+      self, enable_qkv_proj_in_onestep=False
+  ):
+    # input_batch:6, seq_len:6. Test n = 2 case.
+    input_dim = 2
+    hidden_dim = 4
+    output_dim = 4
+    num_heads = 2
+
+    p = attention.MultiHeadedAttention.Params().Set(
+        name='self_atten',
+        num_heads=num_heads,
+        input_dim=input_dim,
+        hidden_dim=hidden_dim,
+        output_dim=output_dim,
+        enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
+    )
+
+    l = p.Instantiate()
+    print(l.vars)
+
+    if enable_qkv_proj_in_onestep:
+      self.assertIn('qkv', l.vars)
+      self.assertEqual(
+          l.qkv.theta.w.get_shape(),
+          tf.TensorShape([input_dim, num_heads, hidden_dim // num_heads * 3]),
+      )
+
+      self.assertNotIn('query', l.vars)
+      self.assertNotIn('key', l.vars)
+      self.assertNotIn('value', l.vars)
+    else:
+      self.assertNotIn('qkv', l.vars)
+      self.assertIn('query', l.vars)
+      self.assertIn('key', l.vars)
+      self.assertIn('value', l.vars)
+      self.assertEqual(
+          l.query.theta.w.get_shape(),
+          tf.TensorShape([input_dim, num_heads, hidden_dim // num_heads]),
+      )
+
+  def testMultiHeadedCrossAttentionDotProductQKVOneStep(self):
+    with self.session(use_gpu=True) as sess:
+      input_vecs, input_padding, _, _ = self._AttentionInputs()
+      p = attention.MultiHeadedAttention.Params().Set(
+          name='self_atten',
+          num_heads=2,
+          input_dim=4,
+          hidden_dim=4,
+          enable_qkv_proj_in_onestep=True,
+      )
+
+      p.params_init = py_utils.WeightInit.Gaussian(0.1)
+
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+      ctx_vec, _ = l.FProp(
+          l.theta,
+          input_vecs,
+          input_vecs,
+          input_vecs,
+          input_padding,
+          segment_mask=None,
+      )
+      context_vec_out = sess.run(ctx_vec)
+      context_vec_out = np.reshape(context_vec_out, (6, 24))
+      self.assertAllClose(
+          [-0.175183, -0.230946, -0.138429, -0.180381, -0.138859, -0.173186],
+          np.sum(context_vec_out, axis=1),
+      )
 
   @parameterized.named_parameters(
       # Use the default data types.
