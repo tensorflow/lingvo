@@ -60,9 +60,10 @@ def ComputeWer(hyps, refs, normalize_punct_and_cap=False):
 
   def _NormalizePunctAndCaptalization(s):
     lower_string = tf.strings.lower(s)
-    # remove punctuation: . , ! ?
+    # Remove i18n punctuation (\p{P}), but ignoring "-", "'".
+    # (\P{P} is anything not in \p{P}).
     remove_punct_string = tf.strings.regex_replace(
-        lower_string, r'[.,!?]+', ' '
+        lower_string, r'[^\P{P}\-\']', ''
     )
     return remove_punct_string
 
