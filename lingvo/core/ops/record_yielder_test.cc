@@ -284,8 +284,7 @@ TEST(RecordYielderDeathTest, Error) {
   record.source_id = kDefaultSourceId;
   auto status = yielder->Yield(&record);
   EXPECT_FALSE(status.ok());
-  EXPECT_THAT(status.error_message(),
-              ::testing::HasSubstr("Found no files at"));
+  EXPECT_THAT(status.ToString(), ::testing::HasSubstr("Found no files at"));
   yielder->Close();
 }
 
