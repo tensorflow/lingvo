@@ -6317,6 +6317,14 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
   def Params(cls):
     p = super().Params()
     p.data_format = 'BTC'
+    p.Define(
+        'down_projection_params_init',
+        None,
+        'Init method for down projection layer.',
+    )
+    p.Define(
+        'up_projection_params_init', None, 'Init method for up projectionlayer.'
+    )
     return p
 
   def __init__(self, params):
@@ -6337,27 +6345,35 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
       proj_params_init = p.params_init
     down_w_pc = py_utils.WeightParams(
         shape=[p.num_tasks, p.input_dim, p.bottleneck_dim],
-        init=proj_params_init,
+        init=proj_params_init
+        if p.down_projection_params_init is None
+        else p.down_projection_params_init,
         dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     self.CreateVariable('down_w', down_w_pc)
     down_b_pc = py_utils.WeightParams(
         shape=[p.num_tasks, p.bottleneck_dim],
-        init=py_utils.WeightInit.Constant(0.),
+        init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     self.CreateVariable('down_b', down_b_pc)
     up_w_pc = py_utils.WeightParams(
         shape=[p.num_tasks, p.bottleneck_dim, p.input_dim],
-        init=proj_params_init,
+        init=proj_params_init
+        if p.up_projection_params_init is None
+        else p.up_projection_params_init,
         dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     self.CreateVariable('up_w', up_w_pc)
     up_b_pc = py_utils.WeightParams(
         shape=[p.num_tasks, p.input_dim],
-        init=py_utils.WeightInit.Constant(0.),
+        init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     self.CreateVariable('up_b', up_b_pc)
 
   def FProp(self, theta, inputs, tasks):
