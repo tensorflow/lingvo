@@ -92,8 +92,7 @@ def infinite_repeat(body_fn, infeed_queue):
 
 def daemon(closure):
   """Runs the closure in a background thread."""
-  thread = threading.Thread(target=closure)
-  thread.daemon = True
+  thread = threading.Thread(target=closure, daemon=True)
   thread.start()
   return thread
 
