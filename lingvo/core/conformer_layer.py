@@ -889,6 +889,11 @@ class ConformerLayer(base_layer.BaseLayer):
 
       if p.adapter_tpl:
         p.adapter_tpl.cls.SetNumInputNodes(p.adapter_tpl, p.input_dim)
+        if p.adapter_tpl.sub.apply_residual:
+          raise ValueError(
+              'Please set apply_residual to False for the adapter as the '
+              'residual connection will be applied within the Conformer layer.'
+          )
         if p.adapter_pos in ['block_sequential', 'block_parallel']:
           self.CreateChild('adapter', p.adapter_tpl.Copy())
         elif p.adapter_pos in ['ff_sequential', 'ff_parallel']:
