@@ -17,6 +17,8 @@
 import collections
 import contextlib
 import re
+from typing import Optional
+
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import bfloat16_variables
@@ -141,13 +143,16 @@ def ConvertSubgraphDictToProto(subgraphs_dict):
   return inference_graph_proto
 
 
-def GetOutputOpNames(graph,
-                     inference_graph_proto,
-                     subgraphs=None,
-                     preserve_colocation_nodes=True,
-                     preserve_saver_restore_nodes=False,
-                     preserve_extra_ops=None):
-  """Gets output op names from an inference graph.
+def GetOutputOpNames(
+    graph,
+    inference_graph_proto,
+    subgraphs=None,
+    preserve_colocation_nodes=True,
+    preserve_saver_restore_nodes=False,
+    preserve_extra_ops=None,
+    return_name_with_op=False,
+):
+  """Gets output op names and/or ops from an inference graph.
 
   Args:
     graph: The tf graph.
@@ -160,14 +165,16 @@ def GetOutputOpNames(graph,
       nodes for restoring according to inference_graph_proto.saver_def.
     preserve_extra_ops: an optional list of extra op names to preserve as long
       as they present in the graph.
+    return_name_with_op: If true, return list of (op name, op). If false, return
+      list of op names.
 
   Returns:
-    Array of tf op names that should be preserved in the graph.
+    List of (op name, op) or (op name) that should be preserved in the graph.
   """
-  output_op_names = set()
+  name_op_tuples = set()
 
   def _GetOpName(tensor_or_op_name):
-    """Returns the op name of the given node name."""
+    """Returns (op name, op) of the given node name."""
     # Tensor names have format <op_name>:<output_index>. Some inference
     # graphs put tensors and others put ops in the feeds/fetches (depends
     # on how it is used). We differentiate here. We still do the lookup in
@@ -177,10 +184,16 @@ def GetOutputOpNames(graph,
     if re.search(r':[0-9]+$', tensor_or_op_name):
       # Tensor-name.
       t = graph.get_tensor_by_name(tensor_or_op_name)
-      return t.op.name
+      return (t.op.name, t.op)
     else:
       op = graph.get_operation_by_name(tensor_or_op_name)
-      return op.name
+      return (op.name, op)
+
+  def _PostProcess(name_op_tuples):
+    if return_name_with_op:
+      return sorted(list(name_op_tuples), key=lambda tup: tup[0])
+    else:
+      return sorted([name for name, _ in name_op_tuples])
 
   for subgraph_name, subgraph in inference_graph_proto.subgraphs.items():
     if subgraphs and subgraph_name not in subgraphs:
@@ -190,7 +203,7 @@ def GetOutputOpNames(graph,
     # anyways to avoid errors.
     for tensor_or_op_name in (list(subgraph.feeds.values()) +
                               list(subgraph.fetches.values())):
-      output_op_names.add(_GetOpName(tensor_or_op_name))
+      name_op_tuples.add(_GetOpName(tensor_or_op_name))
 
   if preserve_saver_restore_nodes:
     # Only nodes for restoring is preserved. saver_def.save_tensor_name is
@@ -198,12 +211,12 @@ def GetOutputOpNames(graph,
     saver_def = inference_graph_proto.saver_def
     for op_name in [saver_def.filename_tensor_name, saver_def.restore_op_name]:
       try:
-        output_op_names.add(_GetOpName(op_name))
+        name_op_tuples.add(_GetOpName(op_name))
       except KeyError:
         tf.logging.info('Op/tensor %s not in the graph. Ignoring.' % op_name)
 
   if not preserve_colocation_nodes and not preserve_extra_ops:
-    return sorted(list(output_op_names))
+    return _PostProcess(name_op_tuples)
 
   # We also need to preserve any nodes that are used for colocation.
   # E.g., a node may have this attr:
@@ -221,13 +234,14 @@ def GetOutputOpNames(graph,
   #
   # TODO(zhifengc): It's possible that it's better to fix in
   # tf.compat.v1.graph_util.extract_sub_graph.
-  graph_def = tf.compat.v1.graph_util.extract_sub_graph(graph.as_graph_def(),
-                                                        list(output_op_names))
+  graph_def = tf.compat.v1.graph_util.extract_sub_graph(
+      graph.as_graph_def(), [name for (name, _) in name_op_tuples]
+  )
   reachable_vars = [node.name for node in graph_def.node]
 
   for node in graph.get_operations():
     if preserve_extra_ops and node.name in preserve_extra_ops:
-      output_op_names.add(node.name)
+      name_op_tuples.add((node.name, node))
     elif preserve_colocation_nodes and '_class' in node.node_def.attr:
       for loc in node.node_def.attr['_class'].list.s:
         loc = six.ensure_text(loc, 'utf-8')
@@ -236,9 +250,68 @@ def GetOutputOpNames(graph,
           if loc_name not in reachable_vars:
             # Skip nodes that cannot be reached from the pruned graph.
             continue
-          output_op_names.add(node.name)
+          name_op_tuples.add((node.name, node))
 
-  return sorted(list(output_op_names))
+  return _PostProcess(name_op_tuples)
+
+
+def _GetEmaVarToNameDict(mdl: base_model.BaseModel) -> dict[tf.Variable, str]:
+  """Return EMA variables to names dictionary."""
+  ema_vars_name_dict = {}
+  if mdl.ema:
+    # tf.Variable can't be key of dict. Need to use ref().
+    ema_vars_name_dict = {
+        v.ref(): k
+        for k, v in mdl.ema.variables_to_restore(mdl.variables_for_ema).items()
+    }
+  return ema_vars_name_dict
+
+
+def _GetReachableVarsToRestore(
+    ema_vars_name_dict: dict[tf.Variable, str],
+    name_op_tuples: list[tuple[str, tf.Operation]],
+    graph: tf.Graph,
+) -> dict[str, tf.Variable]:
+  """Get reachable variables to restore dictionary."""
+  with graph.as_default():
+    vars_to_restore_set = set()
+    for name, op in name_op_tuples:
+      if op.type == 'VarHandleOp':
+        vars_to_restore_set.add(name)
+    variables_to_restore = {}
+    # Can't get tf.Variables that are not created by tf.get_variable().
+    for var in tf.global_variables():
+      if var.op.name in vars_to_restore_set:
+        if var.ref() in ema_vars_name_dict:
+          variables_to_restore[ema_vars_name_dict[var.ref()]] = var
+        else:
+          variables_to_restore[var.op.name] = var
+    return variables_to_restore
+
+
+def _MaybeCreateSaver(
+    variables_to_restore: dict[str, tf.Variable], bfloat16_override: bool
+) -> Optional[tf.train.Saver]:
+  """Create tf.train.Saver if there's variable to restore."""
+  if not variables_to_restore:
+    return None
+  if bfloat16_override:
+    saver_var_spec = (
+        bfloat16_variables.get_saver_spec_for_variables_with_bf16_overrides(
+            variables_to_restore
+        )
+    )
+    # For TPU embedding layers, if the table explicitly specifies the
+    # inference dtype as bfloat16, the variables in the checkpoint
+    # must already be in bfloat16, so we change back to bfloat16 to
+    # avoid dtype mismatch.
+    tpu_emb_coll = tpu_embedding_layers_v1.TpuEmbeddingCollection.Get()
+    for var_name in tpu_emb_coll.inference_with_bfloat16_var_names:
+      saver_var_spec[var_name] = variables_to_restore[var_name]
+  else:
+    saver_var_spec = variables_to_restore
+  tf.logging.info('Saving variables %r', saver_var_spec)
+  return tf.train.Saver(saver_var_spec)
 
 
 def _ParamExists(param_obj, param_name):
@@ -423,26 +496,6 @@ class InferenceGraphExporter:
           mdl = model_cfg.Instantiate()
           task = mdl.GetTask(model_task_name)
 
-          variables_to_restore = (
-              _MakeVariableDictionary(tf.global_variables()) if not mdl.ema else
-              mdl.ema.variables_to_restore(mdl.variables_for_ema))
-
-          if bfloat16_override:
-            saver_var_spec = (
-                bfloat16_variables
-                .get_saver_spec_for_variables_with_bf16_overrides(
-                    variables_to_restore))
-            # For TPU embedding layers, if the table explicitly specifies the
-            # inference dtype as bfloat16, the variables in the checkpoint must
-            # already be in bfloat16, so we change back to bfloat16 to avoid
-            # dtype mismatch.
-            tpu_emb_coll = tpu_embedding_layers_v1.TpuEmbeddingCollection.Get()
-            for var_name in tpu_emb_coll.inference_with_bfloat16_var_names:
-              saver_var_spec[var_name] = variables_to_restore[var_name]
-          else:
-            saver_var_spec = variables_to_restore
-
-          saver = tf.train.Saver(saver_var_spec)
           tf.variables_initializer(
               tf.global_variables(), name='init_all_variables')
           if IsTpu(device_options) and device_options.gen_init_op:
@@ -478,6 +531,15 @@ class InferenceGraphExporter:
                 f'Subgraph filters {subgraph_filter} filtered out all '
                 'subgraphs. Defined subgraphs: '
                 f'{list(subgraphs_proto.subgraphs.keys())}')
+
+          ema_vars_name_dict = _GetEmaVarToNameDict(mdl)
+          name_op_tuples = GetOutputOpNames(
+              graph, inference_graph_proto, return_name_with_op=True
+          )
+          variables_to_restore = _GetReachableVarsToRestore(
+              ema_vars_name_dict, name_op_tuples, graph
+          )
+          saver = _MaybeCreateSaver(variables_to_restore, bfloat16_override)
 
           assets_collection = py_utils.GetSavedModelAssets()
           for asset in assets_collection:
@@ -517,34 +579,46 @@ class InferenceGraphExporter:
 
     # Freezing.
     if freeze_defaults or freeze_checkpoint:
-      output_op_names = GetOutputOpNames(
-          graph,
-          inference_graph_proto,
-          preserve_colocation_nodes=False,
-          preserve_saver_restore_nodes=False)
-      if cls._DeviceSupportsFreezing(device_options):
-        raise ValueError('freeze_checkpoint cannot be used with device ' +
-                         device_options.device)
-      if freeze_checkpoint:
-        tf.logging.info('Freezing graph from checkpoint: %s', freeze_checkpoint)
-        graph_def = _FreezeGraphFromCheckpoint(graph, saver, freeze_checkpoint,
-                                               output_op_names)
-      elif freeze_defaults:
-        tf.logging.info('Default initializing graph and freezing.')
-        graph_def = _FreezeDefaults(graph, output_op_names)
+      if saver is None:
+        tf.logging.info('No variables to restore.')
+        graph_def = graph.as_graph_def()
+      else:
+        output_op_names = GetOutputOpNames(
+            graph,
+            inference_graph_proto,
+            preserve_colocation_nodes=False,
+            preserve_saver_restore_nodes=False,
+        )
+        if cls._DeviceSupportsFreezing(device_options):
+          raise ValueError(
+              'freeze_checkpoint cannot be used with device '
+              + device_options.device
+          )
+        if freeze_checkpoint:
+          tf.logging.info(
+              'Freezing graph from checkpoint: %s', freeze_checkpoint
+          )
+          graph_def = _FreezeGraphFromCheckpoint(
+              graph, saver, freeze_checkpoint, output_op_names
+          )
+        elif freeze_defaults:
+          tf.logging.info('Default initializing graph and freezing.')
+          graph_def = _FreezeDefaults(graph, output_op_names)
     else:
-      inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
+      if saver is not None:
+        inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
       graph_def = graph.as_graph_def()
 
       if prune_graph:
-        output_op_names = GetOutputOpNames(graph, inference_graph_proto)
+        output_op_names = [name for name, _ in name_op_tuples]
 
         # Prune the graph to just the parts we need.
         # To support restoring, we have to not prune out the restore node.
         output_op_names.append('init_all_tables')
         output_op_names.append('init_all_variables')
-        output_op_names.append('save/control_dependency')
-        output_op_names.append('save/restore_all')
+        if saver is not None:
+          output_op_names.append('save/control_dependency')
+          output_op_names.append('save/restore_all')
         if IsTpu(device_options) and device_options.gen_init_op:
           output_op_names.append('tpu_init_op')
 
