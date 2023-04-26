@@ -365,8 +365,11 @@ class TextInput(base_input.BaseInput):
     num_global_batches = (self.num_samples + n - 1) // n
     return num_global_batches * n
 
-  def ids_to_strings(self, ids: pytypes.NpTensor,
-                     lengths: pytypes.NpTensor) -> List[str]:
+  def ids_to_strings(  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+      self,
+      ids: pytypes.NpTensor,
+      lengths: pytypes.NpTensor,
+  ) -> List[str]:
     bytes_list = self.tokenizer.IdsToStrings(ids, lengths).numpy()
     return [b.decode('utf-8') for b in bytes_list]
 

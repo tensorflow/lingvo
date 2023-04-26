@@ -485,9 +485,11 @@ class RotaryPositionalEmbedding(PositionalEmbedding):
   The Rotary position embedding is described in https://arxiv.org/abs/2104.09864
   """
 
-  def fprop(self,
-            inputs: JTensor,
-            position: Optional[JTensor] = None) -> JTensor:
+  def fprop(  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+      self,
+      inputs: JTensor,
+      position: Optional[JTensor] = None,
+  ) -> JTensor:
     """Generates a JTensor of sinusoids with different frequencies.
 
     Args:
