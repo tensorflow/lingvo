@@ -336,7 +336,7 @@ class NestedMap(Dict[str, Any]):
     current = self
     for k in key.split('.'):
       k, idx = self.SquareBracketIndex(k)
-      if k not in self.keys():
+      if k not in current.keys():
         return False
       current = current[k]
       if idx is not None:

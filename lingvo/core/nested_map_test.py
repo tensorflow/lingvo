@@ -158,6 +158,14 @@ class NestedMapTest(test_utils.TestCase):
         ),
     )
 
+  def testHas(self):
+    nm = nested_map.NestedMap.FromNestedDict(
+        {'a': {'b': 0, 'c': [{'d': 0}, {'e': 1}]}}
+    )
+    self.assertTrue(nm.Has('a.b'))
+    self.assertTrue(nm.Has('a.c[1].e'))
+    self.assertFalse(nm.Has('a.f'))
+
   def testUnion(self):
     x = nested_map.NestedMap(a=123, b=345, c=nested_map.NestedMap(d=654))
     y = nested_map.NestedMap(aa=987, bb=654, c=nested_map.NestedMap(dd=354))
