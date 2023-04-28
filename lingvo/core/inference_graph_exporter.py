@@ -290,15 +290,30 @@ def _GetReachableVarsToRestore(
 
 
 def _MaybeCreateSaver(
-    variables_to_restore: dict[str, tf.Variable], bfloat16_override: bool
+    variables_to_restore: dict[str, tf.Variable],
+    bfloat16_override: bool,
+    bfloat16_ckpt: bool,
 ) -> Optional[tf.train.Saver]:
-  """Create tf.train.Saver if there's variable to restore."""
+  """Create tf.train.Saver if there's variable to restore.
+
+  Args:
+    variables_to_restore: A dictionary specifying variables to be restored. The
+      keys are variables names and the values are variables.
+    bfloat16_override: Whether to overrides float32 variables' dtype to
+      bfloat16.
+    bfloat16_ckpt: Whether the floating-type variables in the checkpoint are
+      bfloat16.
+
+  Returns:
+    A saver that will save and restore the variables specified in
+    `variables_to_restore`.
+  """
   if not variables_to_restore:
     return None
   if bfloat16_override:
     saver_var_spec = (
         bfloat16_variables.get_saver_spec_for_variables_with_bf16_overrides(
-            variables_to_restore
+            variables_to_restore, bfloat16_ckpt
         )
     )
     # For TPU embedding layers, if the table explicitly specifies the
@@ -362,26 +377,30 @@ class InferenceGraphExporter:
   """Class for exporting inference graphs."""
 
   @classmethod
-  def Export(cls,
-             model_cfg,
-             model_task_name=None,
-             inference_fn_name='Inference',
-             inference_fn_kwargs=None,
-             device_options=InferenceDeviceOptions(
-                 device='',
-                 retain_device_placement=False,
-                 var_options=None,
-                 gen_init_op=True,
-                 dtype_override=None,
-                 fprop_dtype_override=None),
-             freeze_checkpoint=None,
-             freeze_defaults=False,
-             export_path=None,
-             subgraph_filter=None,
-             random_seed=None,
-             disable_packed_input=True,
-             prune_graph=True,
-             export_graph_collections=False):
+  def Export(
+      cls,
+      model_cfg,
+      model_task_name=None,
+      inference_fn_name='Inference',
+      inference_fn_kwargs=None,
+      device_options=InferenceDeviceOptions(
+          device='',
+          retain_device_placement=False,
+          var_options=None,
+          gen_init_op=True,
+          dtype_override=None,
+          fprop_dtype_override=None,
+      ),
+      freeze_checkpoint=None,
+      freeze_defaults=False,
+      export_path=None,
+      subgraph_filter=None,
+      random_seed=None,
+      disable_packed_input=True,
+      prune_graph=True,
+      export_graph_collections=False,
+      bfloat16_ckpt=False,
+  ):
     """Exports a InferenceGraph proto with piecewise subgraphs.
 
     Sets FLAGS.enable_asserts to False unless user explicitly sets it to True.
@@ -410,6 +429,7 @@ class InferenceGraphExporter:
       prune_graph: If true, prune the graph to just the parts we need.
       export_graph_collections: If true, export graph collections to the
         InferenceGraph proto.
+      bfloat16_ckpt: Whether the checkpoint is of type bfloat16.
 
     Returns:
       InferenceGraph proto.
@@ -539,7 +559,9 @@ class InferenceGraphExporter:
           variables_to_restore = _GetReachableVarsToRestore(
               ema_vars_name_dict, name_op_tuples, graph
           )
-          saver = _MaybeCreateSaver(variables_to_restore, bfloat16_override)
+          saver = _MaybeCreateSaver(
+              variables_to_restore, bfloat16_override, bfloat16_ckpt
+          )
 
           assets_collection = py_utils.GetSavedModelAssets()
           for asset in assets_collection:

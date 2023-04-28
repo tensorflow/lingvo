@@ -70,19 +70,25 @@ class Bfloat16VariableSaveable(saver.BaseSaverBuilder.SaveableObject):
         self.op.get_shape().is_fully_defined())
 
 
-def get_saver_spec_for_variables_with_bf16_overrides(variables_to_restore):
+def get_saver_spec_for_variables_with_bf16_overrides(
+    variables_to_restore: dict[str, tf.Variable], bf16_ckpt: bool = False
+) -> dict[str, tf.Variable]:
   """Returns a dictionary containing overrides to load variables as bf16.
 
   Args:
     variables_to_restore: A mapping from variable to name (on checkpoint) to the
       Variable object.
+    bf16_ckpt: Whether the checkpoint is of type bfloat16.
 
   Returns:
     A saver dictionary which can be used to load from checkpoints.
   """
   saver_dict = {}
   for var_name, v in variables_to_restore.items():
-    if v.dtype == tf.bfloat16:
+    # If the ckpt is of type bfloat16, the variables dtype should be bfloat16.
+    # We don't need Bfloat16VariableSaveable to cast the float32 ckpt value to
+    # bfloat16.
+    if v.dtype == tf.bfloat16 and not bf16_ckpt:
       # TODO(rohananil): Add support for PartitionedVariables if there is
       # demand.
       savable = Bfloat16VariableSaveable(v, tf.float32, '', var_name)
