@@ -686,14 +686,19 @@ def _ReflectOnCellFn(cell_fn,
   state0 = _AugmentState(
       state0.DeepCopy(), accumulator_layer, allow_overwrite=True)
 
-  fwd_sig = [theta, state0, inputs]
+  theta_specs, state0_specs, inputs_specs = py_utils.TensorSpecs(
+      [theta, state0, inputs]
+  )
 
-  @py_utils.Function(
-      # Remove shape information since it may be incompatible with cell_fn.
-      fwd_sig=py_utils.TensorSpecs(fwd_sig, keep_shape=False))
+  # Don't keep the following shapes, as cell_fn may inadvertently depend on
+  # them, e.g. after using state.Flatten().
+  state0_specs['_step_seed'] = py_utils.TensorSpecs(
+      state0['_step_seed'], keep_shape=False
+  )
+
+  @py_utils.Function(fwd_sig=[theta_specs, state0_specs, inputs_specs])
   def Fwd(args):
     theta, state0, inputs = args
-    py_utils.SetShapes(theta, fwd_sig[0])
     state1, extras = cell_fn(theta, state0, inputs)
     return py_utils.Flatten([state1, extras])
 
@@ -1080,11 +1085,17 @@ def Recurrent(theta,
   if accumulator_layer:
     accumulator_layer.accumulators.Transform(lambda x: x.Disable())
 
-  cell_grad, implicit_captures = _GetCellGrad(cell_fn, cell_grad, theta, state0,
-                                              inputs, accumulator_layer,
-                                              check_stateful_ops,
-                                              allow_implicit_capture,
-                                              allowed_tensor_captures)
+  cell_grad, implicit_captures = _GetCellGrad(
+      cell_fn,
+      cell_grad,
+      theta,
+      state0,
+      inputs.Transform(lambda x: x[0]),
+      accumulator_layer,
+      check_stateful_ops,
+      allow_implicit_capture,
+      allowed_tensor_captures,
+  )
 
   if extras is None:
     with tf.name_scope('recurrent_cellfn_extras'):
@@ -1172,9 +1183,10 @@ class _Input:
         cell_grad,
         theta,
         state0,
-        inputs,
+        inputs.Transform(lambda x: x[0]),
         accumulator_layer,
-        allow_implicit_capture=True)
+        allow_implicit_capture=True,
+    )
     self._cell_out_grad = cell_out_grad
     self._theta = theta
     self._state0 = state0
