@@ -96,6 +96,7 @@ py_test(
     name = "decoder_test",
     srcs = ["decoder_test.py"],
     shard_count = 20,
+    tags = ["not_run:arm"],
     deps = [":decoder_test_lib"],
 )
 
@@ -203,6 +204,7 @@ py_test(
     size = "large",
     srcs = ["model_test.py"],
     shard_count = 20,
+    tags = ["not_run:arm"],
     deps = [":model_test_lib"],
 )
 
