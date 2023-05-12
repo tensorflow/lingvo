@@ -27,7 +27,7 @@ from flax.training import checkpoints
 import jax
 from jax import sharding
 from jax.experimental import multihost_utils
-from jax.experimental.gda_serialization import serialization as gda_serialization
+from jax.experimental.array_serialization import serialization as array_serialization
 # Internal import
 from lingvo.jax import asserts
 from lingvo.jax import checkpoint_pb2
@@ -417,28 +417,42 @@ def _save_checkpoint_gda(train_state: train_states.TrainState,
 
   with futures.ThreadPoolExecutor() as executor:
     ckpt_paths = list(
-        executor.map(_mkdir_path, flattened_nested_names,
-                     [checkpoint_step_tmp_dir] * len(flattened_nested_names)))
-  py_utils.sync_global_devices('Wait for checkpoint tmp dir and subdirs '
-                               f'creation {checkpoint_step_tmp_dir} to finish.')
+        executor.map(
+            _mkdir_path,
+            flattened_nested_names,
+            [checkpoint_step_tmp_dir] * len(flattened_nested_names),
+        )
+    )
+  py_utils.sync_global_devices(
+      'Wait for checkpoint tmp dir and subdirs '
+      f'creation {checkpoint_step_tmp_dir} to finish.'
+  )
 
-  tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
+  tspecs = jax.tree_map(
+      array_serialization.get_tensorstore_spec, ckpt_paths
+  )
   leaves, _ = jax.tree_util.tree_flatten(train_state)
 
-  gda_serialization.run_serialization(leaves, tspecs)
+  array_serialization.run_serialization(leaves, tspecs)
 
   # Note we must barrier across all processes before the directory rename.
-  py_utils.sync_global_devices('Wait for checkpoint chunk writes to '
-                               f'{checkpoint_step_tmp_dir} to finish.')
+  py_utils.sync_global_devices(
+      'Wait for checkpoint chunk writes to '
+      f'{checkpoint_step_tmp_dir} to finish.'
+  )
 
   if jax.process_index() == 0:
     # Rename temporary checkpoint directory to its final location.
-    logging.info('Renaming %s to %s', checkpoint_step_tmp_dir,
-                 checkpoint_step_dir)
+    logging.info(
+        'Renaming %s to %s', checkpoint_step_tmp_dir, checkpoint_step_dir
+    )
     tf.io.gfile.rename(checkpoint_step_tmp_dir, checkpoint_step_dir)
 
-  logging.info('Finished saving GDA checkpoint for step `%s` to `%s`.', step,
-               checkpoint_step_dir)
+  logging.info(
+      'Finished saving GDA checkpoint for step `%s` to `%s`.',
+      step,
+      checkpoint_step_dir,
+  )
 
 
 @functools.lru_cache()
@@ -504,18 +518,23 @@ def _restore_checkpoint_gda(
       os.path.join(checkpoint_step_dir, x).rstrip('/')
       for x in flattened_nested_names
   ]
-  tspecs = jax.tree_map(gda_serialization.get_tensorstore_spec, ckpt_paths)
+  tspecs = jax.tree_map(
+      array_serialization.get_tensorstore_spec, ckpt_paths
+  )
 
   shardings = [
       _cached_mesh_pspec_sharding(global_mesh, s) for s in partition_spec_leaves
   ]
-  train_state_gda = gda_serialization.run_deserialization(
-      shardings, tspecs, global_shapes=global_shapes)
+  train_state_gda = array_serialization.run_deserialization(
+      shardings, tspecs, global_shapes=global_shapes
+  )
 
   restored_train_state = jax.tree_util.tree_unflatten(treedef, train_state_gda)
   # Barrier across all processes to ensure all restore finish.
-  py_utils.sync_global_devices('Wait for checkpoint restore from '
-                               f'{checkpoint_step_dir} to finish.')
-  logging.info('Successfully restored GDA checkpoint at %s!',
-               checkpoint_step_dir)
+  py_utils.sync_global_devices(
+      f'Wait for checkpoint restore from {checkpoint_step_dir} to finish.'
+  )
+  logging.info(
+      'Successfully restored GDA checkpoint at %s!', checkpoint_step_dir
+  )
   return restored_train_state
