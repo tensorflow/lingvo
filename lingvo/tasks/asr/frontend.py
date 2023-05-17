@@ -221,7 +221,7 @@ class MelAsrFrontend(BaseAsrFrontend):
     self._frame_size = (int(round(p.sample_rate * p.frame_size_ms / 1000.0)) + 1
                        )  # +1 for the preemph
 
-    self._fft_size = int(max(512, _NextPowerOfTwo(self._frame_size)))
+    self._fft_size = int(max(512, _NextPowerOfTwo(self._frame_size - 1)))
     if p.fft_overdrive:
       self._fft_size *= 2
 
