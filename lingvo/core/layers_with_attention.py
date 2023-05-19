@@ -387,13 +387,11 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     # that we want to mask out receive padding weight 1.0.
     query_batch_size = py_utils.GetShape(query_vec)[0]
     source_seq_len = py_utils.GetShape(extended_packed_src.source_vecs)[0]
-    zero_padding = tf.fill([source_seq_len],
-                           tf.constant(0.0, dtype=query_vec.dtype))
-    ones_padding = tf.ones_like(zero_padding, dtype=query_vec.dtype)
     if t is not None:
-      per_step_source_padding = tf.where(
-          tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], t + 1)),
-          zero_padding, ones_padding)
+      per_step_source_padding = tf.cast(
+          tf.greater_equal(tf.range(source_seq_len), t + 1),
+          dtype=query_vec.dtype,
+      )
       per_step_source_padding = tf.tile(
           tf.expand_dims(per_step_source_padding, axis=0),
           [query_batch_size, 1])
@@ -406,9 +404,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     elif p.is_masked and p.mask_type == 'ngram':
       assert p.mask_ngram_order
       idx = tf.maximum(0, source_seq_len - p.mask_ngram_order)
-      per_step_source_padding = tf.where(
-          tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], idx)),
-          ones_padding, zero_padding)
+      per_step_source_padding = tf.cast(
+          tf.less(tf.range(source_seq_len), idx), dtype=query_vec.dtype
+      )
       per_step_source_padding = tf.tile(
           tf.expand_dims(per_step_source_padding, axis=0),
           [query_batch_size, 1])
@@ -1204,7 +1202,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       return out
 
 
-# TODO(shibow/wangtao) remove this after b/174094694 is done.
+# TODO(shibow,wangtao): remove this after b/174094694 is done.
 class ReshapedTransformerFeedForwardLayer(TransformerFeedForwardLayer):
   """TransformerFeedForward with model dim D reshaped as Md."""
 
@@ -2511,11 +2509,10 @@ class CCTAttentionLayer(base_layer.BaseLayer):
 
     if t is not None:
       source_seq_len = tf.shape(extended_packed_src.source_vecs)[0]
-      zero_padding = tf.fill([source_seq_len],
-                             tf.constant(0.0, dtype=query_vec.dtype))
-      per_step_source_padding = tf.where(
-          tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], t + 1)),
-          zero_padding, tf.ones_like(zero_padding, dtype=query_vec.dtype))
+      per_step_source_padding = tf.cast(
+          tf.greater_equal(tf.range(source_seq_len), t + 1),
+          dtype=query_vec.dtype,
+      )
       query_batch_size = tf.shape(query_vec)[0]
       per_step_source_padding = tf.tile(
           tf.expand_dims(per_step_source_padding, axis=0),
