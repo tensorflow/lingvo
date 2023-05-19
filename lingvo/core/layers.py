@@ -3148,27 +3148,29 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
       a Tensor of shape [bs, seq_length, embedding_dim].
     """
     p = self.params
-    seq_length = py_utils.GetShape(position)[1]
     num_timescales = p.embedding_dim // 2
     log_timescale_increment = (
         math.log(float(p.max_timescale) / float(p.min_timescale)) / tf.maximum(
             tf.cast(1.0, py_utils.FPropDtype(p)),
             tf.cast(num_timescales, py_utils.FPropDtype(p)) - 1))
 
+    # [embedding_dim // 2]
     inv_timescales = p.min_timescale * tf.exp(
         tf.cast(tf.range(num_timescales), py_utils.FPropDtype(p)) *
         -log_timescale_increment)
 
+    # [bs, seq_length, embedding_dim // 2]
     scaled_time = tf.expand_dims(position, 2) * tf.reshape(
         inv_timescales, [1, 1, -1])
 
     if p.frequency_scaling:
       scaled_time *= (1.0 + theta.freq_scale)
 
+    # [bs, seq_length, embedding_dim // 2 * 2]
     signal = tf.concat([tf.sin(scaled_time), tf.cos(scaled_time)], axis=2)
-    signal = tf.pad(
-        signal, [[0, 0], [0, 0], [0, tf.math.floormod(p.embedding_dim, -1)]])
-    signal = tf.reshape(signal, [-1, seq_length, p.embedding_dim])
+    if p.embedding_dim % 2 != 0:
+      # [bs, seq_length, embedding_dim]
+      signal = tf.pad(signal, [[0, 0], [0, 0], [0, 1]])
     if p.trainable_scaling:
       signal *= (p.trainable_scaling_init + theta.scale)
     return signal
