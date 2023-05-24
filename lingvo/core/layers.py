@@ -2016,7 +2016,7 @@ class StackingOverTime(base_layer.BaseLayer):
     p = self.params
     return self.WindowSize(p)
 
-  def _ApplyStack(self, inputs, pad_value=0.0):
+  def _ApplyStack(self, inputs, pad_value):
     """The core function to apply the stacking to inputs.
 
     Args:
@@ -2107,17 +2107,27 @@ class StackingOverTime(base_layer.BaseLayer):
       return inputs, paddings
 
     with tf.name_scope(p.name):
-      outputs = self._ApplyStack(inputs)
+      outputs = self._ApplyStack(
+          inputs, pad_value=tf.zeros([], dtype=inputs.dtype)
+      )
 
       # Stack the padding values with the same context and stride parameters.
       # Then take the minimum padding values within each stacking window, since
       # an output time step becomes a padded one only if all of the underlying
       # stacked steps are padded ones.
-      out_paddings = self._ApplyStack(paddings, pad_value=1)
+      out_paddings = self._ApplyStack(
+          paddings, pad_value=tf.ones([], dtype=paddings.dtype)
+      )
       if p.padding_reduce_option == 'reduce_min':
-        out_paddings = tf.reduce_min(out_paddings, axis=2, keepdims=True)
+        if out_paddings.dtype == tf.bool:
+          out_paddings = tf.reduce_all(out_paddings, axis=2, keepdims=True)
+        else:
+          out_paddings = tf.reduce_min(out_paddings, axis=2, keepdims=True)
       else:
-        out_paddings = tf.reduce_max(out_paddings, axis=2, keepdims=True)
+        if out_paddings.dtype == tf.bool:
+          out_paddings = tf.reduce_any(out_paddings, axis=2, keepdims=True)
+        else:
+          out_paddings = tf.reduce_max(out_paddings, axis=2, keepdims=True)
 
       return outputs, out_paddings
 
