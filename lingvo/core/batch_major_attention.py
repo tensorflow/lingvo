@@ -6799,7 +6799,11 @@ class FunnelPoolingLayer(StrideLayer):
     if (paddings is not None and p.pooling_type == 'AVG' and
         p.exclude_pad_effect):
       # Count the fraction of non-padding elements inside each pooling window.
-      in_mask = tf.cast(1.0 - paddings, dtype=pooled_tensor.dtype)
+      in_mask = py_utils.ApplyPadding(
+          paddings,
+          tf.ones([], dtype=pooled_tensor.dtype),
+          ensure_shape=False,
+      )
       non_padding_ratio = tf.nn.pool(
           in_mask[:, :, tf.newaxis],
           window_shape=[p.pool_window],
@@ -6824,8 +6828,9 @@ class FunnelPoolingLayer(StrideLayer):
     # Set padding values to 0. If not set, in the case of max pooling, padded
     # values will be dtype.min, which can cause numerical instability.
     if pooled_paddings is not None:
-      pooled_tensor *= tf.cast(
-          tf.expand_dims(1.0 - pooled_paddings, -1), pooled_tensor.dtype)
+      pooled_tensor = py_utils.ApplyPadding(
+          tf.expand_dims(pooled_paddings, -1), pooled_tensor
+      )
       return pooled_tensor, pooled_paddings
     return pooled_tensor
 
