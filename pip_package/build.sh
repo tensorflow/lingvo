@@ -100,3 +100,4 @@ find "$DST_DIR" -name "*cp3${PYTHON_MINOR_VERSION}*.whl" |\
   xargs -n1 ./third_party/auditwheel.sh repair --plat manylinux2014_x86_64 -w "$DST_DIR"
 
 rm .bazelrc
+
