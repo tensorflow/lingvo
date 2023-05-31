@@ -2035,7 +2035,7 @@ class StackingOverTime(base_layer.BaseLayer):
     # tensor is transposed to [t, b, f] and we stride over the first dimension.
     # [batch, time, feature] -> [time, batch, feature]
     inputs = tf.transpose(inputs, [1, 0, 2])
-    inputs_max_len = py_utils.GetShape(inputs, 3)[0]
+    inputs_max_len = py_utils.GetShape(inputs, 1)[0]
     left_to_pad = p.left_context
     right_to_pad = p.right_context
     if p.pad_with_left_frame and left_to_pad > 0:
