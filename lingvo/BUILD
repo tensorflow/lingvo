@@ -222,6 +222,8 @@ pytype_library(
         "//lingvo/core:inference_graph_exporter",
         "//lingvo/core:py_utils",
         "//lingvo/core:summary_utils",
+        "//lingvo/core:tpu_embedding_layers_v2",
+        "//lingvo/core:tpu_embedding_manager",
         # Implicit tensorflow grpc dependency.
     ],
 )

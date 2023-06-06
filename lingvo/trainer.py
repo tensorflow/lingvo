@@ -46,6 +46,8 @@ from lingvo.core import cluster_factory
 from lingvo.core import inference_graph_exporter
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
+from lingvo.core import tpu_embedding_layers_v2
+from lingvo.core import tpu_embedding_manager
 
 from google.protobuf import text_format
 
@@ -921,6 +923,13 @@ class RunnerManager:
 
 
 def main(unused_argv):
+  # For now, initialize the TPUEmbeddingManager here because TPUEmbeddingLayer
+  # initialization is too late. This is temporary.
+  # Note that we're not initializing the actual TPUEmbedding midlevel API object
+  # here - that is done when initializing a TPUEmbeddingLayer (V2).
+  tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER = (
+      tpu_embedding_manager.TPUEmbeddingManager()
+  )
   RunnerManager(FLAGS.model).Start()
 
 

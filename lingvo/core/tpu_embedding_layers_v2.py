@@ -34,18 +34,24 @@ See also:
 import abc
 import collections
 
-from typing import Callable, AbstractSet, Optional, Tuple, Union, Mapping, MutableSequence, Sequence
+from typing import Callable, Optional, Union, Sequence
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import schedule as schedule_lib
 from lingvo.core import tpu_embedding_layers
+from lingvo.core import tpu_embedding_manager
 
 # pylint:disable=g-direct-tensorflow-import
-from tensorflow.python.tpu import tpu_embedding_v2
 from tensorflow.python.tpu import tpu_embedding_v2_utils
 # pylint:enable=g-direct-tensorflow-import
+
+TPU_EMBEDDING_MANAGER: tpu_embedding_manager.TPUEmbeddingManager = None
+"""The global singleton TPUEmbeddingManager instance.
+
+This is used by the host driven executor and its associated TrainProgram.
+"""
 
 
 class _TPUEmbeddingOptimizerV2Mixin(
@@ -248,242 +254,6 @@ class TPUEmbeddingTable(tpu_embedding_layers.TPUEmbeddingTable):
       return f'{worker}/replica:0/task:{host_id}/device:CPU:0'
 
 
-def _DenseToSparse(dense_tensor: tf.Tensor) -> tf.sparse.SparseTensor:
-  """Like tf.sparse.from_dense but uses -1 as its padding value."""
-  indices = tf.where(tf.not_equal(dense_tensor, -1))
-  return tf.sparse.SparseTensor(
-      indices=tf.cast(indices, tf.int64),
-      values=tf.gather_nd(dense_tensor, indices),
-      dense_shape=dense_tensor.shape,
-  )
-
-
-class _TPUEmbeddingManager(tf.autotrackable.AutoTrackable):
-  """Manages a global singleton instance of tpu_embedding_v2.TPUEmbedding."""
-
-  def __init__(self):
-    self.reset()
-
-  def reset(self):
-    """Resets object state.
-
-    In particular, removes the reference to the TPUEmbedding object, if present,
-    necessary for re-running unit tests with a fresh API object.
-    """
-    # True when a TPUEmbeddingLayer has initialized this class. Otherwise, all
-    # operations pass through. This eliminates the need to conditionally check
-    # everywhere in the host driven executor code whether the client model is
-    # using this API.
-    self.enabled = False
-    self._tpu_embedding: tpu_embedding_v2.TPUEmbedding = None
-    self._feature_names: AbstractSet[str] = frozenset()
-    self._gradient_multiplier_schedule: schedule_lib.BaseSchedule = None
-    self._summary_tensors: MutableSequence[Tuple[str, tf.Tensor, tf.Tensor]] = (
-        []
-    )
-    self._sequence_features: AbstractSet[str] = frozenset()
-
-    # Used to cache activations upon each Dequeue, for later Lookup calls.
-    self._activations: py_utils.NestedMap = py_utils.NestedMap()
-
-  def __bool__(self):
-    """Passes through the indicator expressing whether the v2 API is enabled."""
-    return self.enabled
-
-  @property
-  def tpu_embedding(self) -> tpu_embedding_v2.TPUEmbedding:
-    """The global singleton TPUEmbedding object used by all TPUEmbeddingLayerV2s."""
-    return self._tpu_embedding
-
-  @tpu_embedding.setter
-  def tpu_embedding(self, tpu_embedding: tpu_embedding_v2.TPUEmbedding):
-    if self._tpu_embedding is not None:
-      raise ValueError('TPUEmbedding has already been set.')
-    self._tpu_embedding = tpu_embedding
-
-  @property
-  def feature_names(self) -> AbstractSet[str]:
-    """Global singleton set of feature names used across the embedding tables."""
-    return self._feature_names
-
-  @feature_names.setter
-  def feature_names(self, feature_names: AbstractSet[str]):
-    """Sets `feature_names`, the set of all features with embeddings."""
-    self._feature_names = frozenset(feature_names)
-
-  @property
-  def sequence_features(self) -> AbstractSet[str]:
-    """Set of all features with sequence embeddings."""
-    return self._sequence_features
-
-  @property
-  def non_sequence_features(self) -> AbstractSet[str]:
-    """Set of all features with non-sequence embeddings."""
-    return self._feature_names - self._sequence_features
-
-  @sequence_features.setter
-  def sequence_features(self, features: AbstractSet[str]):
-    """Sets `sequence_features`, the set of all sequence features."""
-    self._sequence_features = frozenset(features)
-
-  @property
-  def gradient_multiplier_schedule(self) -> schedule_lib.BaseSchedule:
-    return self._gradient_multiplier_schedule
-
-  @gradient_multiplier_schedule.setter
-  def gradient_multiplier_schedule(self, schedule: schedule_lib.BaseSchedule):
-    self._gradient_multiplier_schedule = schedule
-
-  def AddSummaryTensor(self, name: str, value: tf.Tensor, weight: float = 1.0):
-    self._summary_tensors.append((name, value, tf.convert_to_tensor(weight)))
-
-  @property
-  def summary_tensors(self) -> Sequence[Tuple[str, tf.Tensor, tf.Tensor]]:
-    """Returns a list of (name, value, weight) tuples for summary."""
-    return self._summary_tensors
-
-  def ProcessInputFeature(self, key: str, tensor: tf.Tensor) -> tf.Tensor:
-    """Processes a single NestedMap entry for compatibility with the API.
-
-    This function is meant to be called after GetPreprocessedInputBatch but
-    importantly *before* its tensors are split across accelerator devices, once
-    on each entry in the batch's NestedMap.
-
-    For sequence features, we add an extra dimension of size 1. See
-    documentation below in TPUEmbeddingLayer:_CreateLayerVariables.
-
-    For non-sequence features, we convert the id tensors to SparseTensors when
-    there are multiple ids per example. We do this to match the logic in our V1
-    layers, which always enqueue such ids for lookup as sparse EnqueueData, and
-    in so doing always permit the combiner reduction to occur (since this
-    mirrors tf.nn.embedding_lookup_sparse's API).
-
-    Args:
-      key: the (possibly-nested) key of the NestedMap.
-      tensor: the tensor we wish to optionally process.
-
-    Returns:
-      A possibly-modified tensor which now conforms to Lingvo's use of the
-      TPUEmbedding API. If unmodified, returns the tensor which was passed in.
-    """
-    if not self.enabled:
-      return tensor
-
-    # Add an empty dimension to indicate these are for sequence embeddings.
-    if key in self.sequence_features:
-      return tf.expand_dims(tensor, -1)
-
-    # Update non-sequence features which have multiple ids per example to
-    # sparse tensors, in order to trigger the TPUEmbedding library's
-    # reduction logic. This is how the v1 layers behave.
-    elif key in self.non_sequence_features and tensor.shape[1] != 1:
-      # Sparse conversion only appears necessary when there are multiple IDs
-      # per example. There is a performance penalty in enqueing a SparseTensor
-      # over a regular dense tensor, so we avoid the conversion when just a
-      # single ID is present per example.
-      return _DenseToSparse(tensor)
-
-    return tensor
-
-  def _NonSequenceExpandDims(self, key, tensor):
-    # The V1 layers automatically add an extra 'time' dimension to non-sequence
-    # embedding lookup results. While not ideal, we replicate that pattern
-    # here for consistency between V1/V2.
-    if key in self.non_sequence_features:
-      return tf.expand_dims(tensor, 1)
-    return tensor
-
-  def Enqueue(self, batch: py_utils.NestedMap) -> None:
-    """Enqueues embedding column ids from input batch to TPU coprocessor.
-
-    Args:
-      batch: the input batch containing the id features to enqueue.
-    """
-    self._activations = py_utils.NestedMap()
-    if self.enabled:
-      self.tpu_embedding.enqueue(batch)
-
-  def Dequeue(self) -> py_utils.NestedMap:
-    """Dequeues embedding column ids from TPU coprocessor.
-
-    This should be called once per training step, and it dequeues all embedding
-    tables. For later table lookups, use Lookup below.
-
-    Returns:
-      A NestedMap of embedding activations.
-    """
-    if self.enabled:
-      self._activations = self.tpu_embedding.dequeue()
-      # Note: we watch the activations as they're dequeued - so without the
-      # expand_dims call applied (see Lookup). Hence, when applying gradient
-      # updates, use expand_nonsequence_features=False to skip that step.
-      py_utils.CurrentGradientTape().watch(self._activations)
-    return self._activations
-
-  def Lookup(
-      self,
-      ids: Optional[py_utils.NestedMap] = None,
-      expand_nonsequence_features: bool = True,
-  ) -> py_utils.NestedMap:
-    """Returns the TPUEmbedding activations corresponding to the requested ids.
-
-    TPUEmbedding v1 only permits all activations to be dequeued at once, so we
-    cache the output from Dequeue and permit sliced lookups here.
-
-    Args:
-      ids: a NestedMap of ids whose corresponding activations are returned.
-      expand_nonsequence_features: if False, skips calling expand_dims on non0-
-        sequence features. Only do this when computing gradients.
-    """
-    if not self.enabled:
-      return self._activations.copy()
-
-    if ids:
-      outputs = self._activations.GetSlice(
-          {*ids.Keys()} & {*self._activations.Keys()}
-      )
-    else:
-      outputs = self._activations.copy()
-
-    if expand_nonsequence_features:
-      return outputs.TransformWithKey(self._NonSequenceExpandDims)
-
-    return outputs
-
-  def ApplyGradients(
-      self, gradients: py_utils.NestedMap
-  ) -> Mapping[str, tf.Tensor]:
-    """Applies schedule-scaled gradient updates to the embedding variables.
-
-    Args:
-      gradients: grads to apply to the embedding variables.
-
-    Returns:
-      An eval_metrics dictionary for reporting.
-    """
-    if not self.enabled:
-      return {}
-
-    multiplier = self.gradient_multiplier_schedule.Value()
-    scaled_grads = gradients.Transform(lambda g: g * multiplier)
-    self.tpu_embedding.apply_gradients(scaled_grads)
-
-    return {
-        'tpu_embedding_activation_norm': (
-            tf.sqrt(py_utils.SumSquared(self.Lookup().Flatten())),
-            tf.constant(1.0),
-        ),
-        'tpu_embedding_grad_norm': (
-            tf.sqrt(py_utils.SumSquared(scaled_grads.Flatten())),
-            tf.constant(1.0),
-        ),
-        'tpu_embedding_gradient_multiplier': (multiplier, tf.constant(1.0)),
-    }
-
-
-TPU_EMBEDDING_MANAGER = _TPUEmbeddingManager()
-
-
 class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
   """Interface to TPU embedding which uses the TF2 TPUEmbedding API."""
 
@@ -500,7 +270,9 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
 
   def __init__(self, params):
     super().__init__(params)
-    self.tpu_embedding_manager: _TPUEmbeddingManager = TPU_EMBEDDING_MANAGER
+    self.tpu_embedding_manager: tpu_embedding_manager.TPUEmbeddingManager = (
+        TPU_EMBEDDING_MANAGER
+    )
 
   def _CreateLayerVariables(self):
     p = self.params
@@ -541,12 +313,13 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
 
     if not TPU_EMBEDDING_MANAGER:
       TPU_EMBEDDING_MANAGER.enabled = True
+
       # Note: this line needs to be in a TPUStrategy scope. (We are in one here,
       #   because this function is called indirectly from
       #   HostDrivenExecutor:__init__.)
       # Note: the dequeued activations are packed in the same structure as the
       #   feature_config we provide here (i.e. a NestedMap in Lingvo).
-      TPU_EMBEDDING_MANAGER.tpu_embedding = tpu_embedding_v2.TPUEmbedding(
+      TPU_EMBEDDING_MANAGER.InitializeMidlevelApi(
           feature_config=feature_config,
           optimizer=None,  # Each table will have its own optimizer.
           pipeline_execution_with_tensor_core=(
@@ -573,6 +346,10 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
       # Keep the manager as an attribute to ensure the underlying API object is
       #   included in model serialization.
       self.tpu_embedding_manager = TPU_EMBEDDING_MANAGER
+      tf.logging.info(
+          'Configured TPUEmbedingManager: %s',
+          TPU_EMBEDDING_MANAGER,
+      )
 
   def _TpuEmbLookup(self, ids_map: py_utils.NestedMap) -> py_utils.NestedMap:
     """See base class."""

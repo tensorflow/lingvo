@@ -768,9 +768,6 @@ class TrainProgram(BaseProgram):
     return False
 
 
-_TPU_EMBEDDING_V2 = tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER
-
-
 class HostDrivenTrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
 
@@ -850,7 +847,9 @@ class HostDrivenTrainProgram(BaseProgram):
 
   def BuildTpuSubgraph(self, strategy=None):
     """Initializes the model, training loop, and metrics tracking object."""
-    tf.logging.info('HostDrivenTrainProgram BuildTpuSubGraph')
+    tf.logging.info('HostDrivenTrainProgram BuildTpuSubgraph')
+    timer = py_utils.Timer()
+    timer.Start()
 
     self._metrics_mgr = metrics_lib.TpuVariableMetrics(
         max_metrics=self.params.max_metrics, strategy=strategy
@@ -869,6 +868,9 @@ class HostDrivenTrainProgram(BaseProgram):
     tf.logging.info('Total params=%d', self._total_num_params)
     analysis_file = epath.Path(self._program_dir) / 'model_analysis.txt'
     analysis_file.write_text(self._model_analysis)
+    tf.logging.info(
+        'HostDrivenTrainProgram BuildTpuSubgraph took %ss', timer.duration
+    )
 
   def _GetHostTrainLoop(
       self, strategy: tf.distribute.TPUStrategy
@@ -901,7 +903,9 @@ class HostDrivenTrainProgram(BaseProgram):
         batch = batch.FilterKeyVal(lambda k, _: not k.endswith('bucket_keys'))
 
         # Process embedding ID features according to their specified types.
-        batch = batch.TransformWithKey(_TPU_EMBEDDING_V2.ProcessInputFeature)
+        batch = batch.TransformWithKey(
+            tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER.ProcessInputFeature
+        )
 
         per_host_batches.extend(Split(batch, replicas_per_host))
 
@@ -922,7 +926,9 @@ class HostDrivenTrainProgram(BaseProgram):
       """
       with tf.name_scope('tpu_train'):
         with py_utils.GradientTape(persistent=True):
-          batch.Update(_TPU_EMBEDDING_V2.Dequeue())
+          batch.Update(
+              tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER.Dequeue(batch)
+          )
           metrics_dict, _ = self.task.FPropDefaultTheta(batch)
           # py_utils.ComputeGradientsSimple() needs to access the tape, so BProp
           # needs to be within the GradientTape context.
@@ -940,9 +946,7 @@ class HostDrivenTrainProgram(BaseProgram):
         batch = _GetShardedBatch()
         # Note: running the enqueue in strategy.run() could potentially cause
         # deadlock and cause the job to hang. Here we run it outside.
-        _TPU_EMBEDDING_V2.Enqueue(
-            batch.GetSlice(_TPU_EMBEDDING_V2.feature_names)
-        )
+        tpu_embedding_layers_v2.TPU_EMBEDDING_MANAGER.Enqueue(batch)
         strategy.run(_Step, args=(batch,))
 
       return self._metrics_mgr.FinalizeMetricsWithStructure(
