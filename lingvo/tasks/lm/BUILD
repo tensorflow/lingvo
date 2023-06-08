@@ -4,9 +4,7 @@ load(
 )
 
 # Language modelling related tasks.
-package(
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 

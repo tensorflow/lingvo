@@ -1,8 +1,6 @@
 load("//lingvo:lingvo.bzl", "pytype_strict_library")
 
-package(
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 

@@ -3,9 +3,7 @@ load(
     "lingvo_cc_binary",
 )
 
-package(
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 

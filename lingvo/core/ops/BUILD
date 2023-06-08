@@ -10,9 +10,7 @@ load(
     "lingvo_proto_py",
 )
 
-package(
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 

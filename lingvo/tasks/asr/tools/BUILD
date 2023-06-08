@@ -1,8 +1,6 @@
 # tools for ASR task, including WER computation and breakdown analytics
 
-package(
-    default_visibility = ["//visibility:public"],
-)
+package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
