@@ -252,7 +252,8 @@ class DenseLm175B32x32(DenseLm128B16x16):
   BATCH_DIM_PER_DEVICE = 0.5  # Total batch size 2M tokens
   DEVICE_MESH_SHAPE = [64, 32]
   DEVICE_MESH = np.reshape(
-      np.arange(0, np.product(DEVICE_MESH_SHAPE)), [32, 64]).transpose()
+      np.arange(0, np.prod(DEVICE_MESH_SHAPE)), [32, 64]
+  ).transpose()
 
 
 # On v3-2048:
@@ -279,8 +280,9 @@ class DenseLm175B32x32DP(DenseLm175B32x32):
 class DenseLm175B1K(DenseLm175B32x32):
   """175B model running on v4-2048."""
   DEVICE_MESH_SHAPE = [64, 16]
-  DEVICE_MESH = np.arange(
-      0, np.product(DEVICE_MESH_SHAPE)).reshape(DEVICE_MESH_SHAPE)
+  DEVICE_MESH = np.arange(0, np.prod(DEVICE_MESH_SHAPE)).reshape(
+      DEVICE_MESH_SHAPE
+  )
 
 
 @model_registry.RegisterSingleTaskModel
@@ -349,7 +351,8 @@ class DenseLm128B32x32(DenseLm128B8x8):
   BATCH_DIM_PER_DEVICE = 0.25  # Total batch size 512
   DEVICE_MESH_SHAPE = [32, 64]
   DEVICE_MESH = np.reshape(
-      np.arange(0, np.product(DEVICE_MESH_SHAPE)), DEVICE_MESH_SHAPE)
+      np.arange(0, np.prod(DEVICE_MESH_SHAPE)), DEVICE_MESH_SHAPE
+  )
 
 
 class ShardedAdamOptimizer(tf.train.AdamOptimizer):
@@ -483,4 +486,5 @@ class DenseLm12kWide162BAdam32x32(DenseLm12kWide162BAdam16x16):
   # NUM_HEADS is 96, so we shard it 32 ways.
   DEVICE_MESH_SHAPE = [64, 32]
   DEVICE_MESH = np.reshape(
-      np.arange(0, np.product(DEVICE_MESH_SHAPE)), [32, 64]).transpose()
+      np.arange(0, np.prod(DEVICE_MESH_SHAPE)), [32, 64]
+  ).transpose()

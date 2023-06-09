@@ -217,8 +217,9 @@ class MLPerfTrainBertDense2B(MLPerfTrainTemplate):
   ATTENTION_KEY_VALUE_DIM = 256
 
   DEVICE_MESH_SHAPE = [16, 4]
-  DEVICE_MESH = np.arange(
-      0, np.product(DEVICE_MESH_SHAPE)).reshape(DEVICE_MESH_SHAPE)
+  DEVICE_MESH = np.arange(0, np.prod(DEVICE_MESH_SHAPE)).reshape(
+      DEVICE_MESH_SHAPE
+  )
   MODEL_DIM_RESHAPE_SEGMENTS = [4]
 
 
@@ -239,8 +240,9 @@ class MLPerfBertDense1T(MLPerfTrainTemplate):
   NUM_HEADS = 256
 
   DEVICE_MESH_SHAPE = [64, 16]
-  DEVICE_MESH = np.arange(
-      0, np.product(DEVICE_MESH_SHAPE)).reshape(DEVICE_MESH_SHAPE)
+  DEVICE_MESH = np.arange(0, np.prod(DEVICE_MESH_SHAPE)).reshape(
+      DEVICE_MESH_SHAPE
+  )
   HIDDEN_DIM_RESHAPE_SEGMENTS = 16
   MODEL_DIM_RESHAPE_SEGMENTS = [16, 4]
 
@@ -293,8 +295,12 @@ class MLPerfBertDense500B(MLPerfBertDense1T):
 class MLPerfBertDense500B2K(MLPerfBertDense500B):
   """Large Bert model with 481B parameters on 2048 chips."""
   DEVICE_MESH_SHAPE = [256, 8]
-  DEVICE_MESH = np.arange(0, np.product(DEVICE_MESH_SHAPE)).reshape(
-      [8, 16, 16]).transpose([1, 2, 0]).reshape(DEVICE_MESH_SHAPE)
+  DEVICE_MESH = (
+      np.arange(0, np.prod(DEVICE_MESH_SHAPE))
+      .reshape([8, 16, 16])
+      .transpose([1, 2, 0])
+      .reshape(DEVICE_MESH_SHAPE)
+  )
 
   HIDDEN_DIM_RESHAPE_SEGMENTS = 8
   MODEL_DIM_RESHAPE_SEGMENTS = [8]
@@ -319,7 +325,8 @@ class MLPerfBertDense13B32x32(MLPerfBertDense1T):
 
   DEVICE_MESH_SHAPE = [64, 32]
   DEVICE_MESH = np.reshape(
-      np.arange(0, np.product(DEVICE_MESH_SHAPE)), [32, 64]).transpose()
+      np.arange(0, np.prod(DEVICE_MESH_SHAPE)), [32, 64]
+  ).transpose()
 
   HIDDEN_DIM_RESHAPE_SEGMENTS = 8
   MODEL_DIM_RESHAPE_SEGMENTS = [8]

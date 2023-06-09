@@ -201,7 +201,8 @@ def GetNonPod2dMesh(device_mesh_shape, physical_mesh_shape):
         'GetNonPod2dMesh([16, 32], [16, 16, 2]).')
   # Form a ring on inner mesh dim.
   device_mesh = np.reshape(
-      np.arange(0, np.product(device_mesh_shape)), physical_mesh_shape)
+      np.arange(0, np.prod(device_mesh_shape)), physical_mesh_shape
+  )
   device_mesh = np.transpose(device_mesh, [0, 2, 1])
   device_mesh[:, 1, :] = device_mesh[:, 1, ::-1]
   # Next line: reshape back to mesh shape

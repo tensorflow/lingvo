@@ -2425,7 +2425,7 @@ class DenseBuilder(MoEBuilder):
     if device_mesh is None:
       if p.device_mesh_shape is None:
         return None
-      num_devices = np.product(p.device_mesh_shape)
+      num_devices = np.prod(p.device_mesh_shape)
       device_mesh = np.reshape(np.arange(0, num_devices), p.device_mesh_shape)
     elif p.device_mesh_shape is not None:
       assert p.device_mesh_shape == list(
