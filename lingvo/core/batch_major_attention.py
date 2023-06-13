@@ -6523,6 +6523,65 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
     return cur_output, cross_atten_probs, updated_states
 
 
+class ReZeroAddLayer(base_layer.BaseLayer):
+  """A layer to add inputs with a trainable scaler.
+
+  It replaces residual connect x + y with x + alpha * y, where alpha is
+   a trainable scaler.
+  ReZero is All You Need: Fast Convergence at Large Depth.
+  (https://arxiv.org/pdf/2003.04887.pdf).
+  """
+
+  @classmethod
+  def Params(cls):
+    """Params for `ReZeroAddLayer`."""
+    p = super().Params()
+    p.Define(
+        'trainable_scaling_init', 1.0, 'Initial value of the scaling parameter.'
+    )
+    p.Define(
+        'apply_residual',
+        True,
+        'If set False, input is not added, decay to scalable layer.',
+    )
+    return p
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+    pc = py_utils.WeightParams(
+        shape=[1],
+        init=py_utils.WeightInit.Constant(p.trainable_scaling_init),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'],
+    )
+    self.CreateVariable('scale', pc)
+
+  def FProp(self, theta, x, y):
+    """Return combined inputs: x + trainable_scale * y.
+
+    Args:
+      theta: weights defined in this layer.
+      x: input tensor.
+      y: input tensor to apply weight to.
+
+    Returns:
+      Added tensor.
+    """
+    p = self.params
+    scale = tf.cast(theta.scale, y.dtype)
+
+    if p.apply_residual:
+      return x + scale * y
+    else:
+      return scale * y
+
+  @classmethod
+  def FPropMeta(cls, p, x, y):
+    py_utils.CheckShapes((x, y))
+    return py_utils.NestedMap(flops=x.num_elements() * 2, out_shapes=(x,))
+
+
 class ResidualAddLayer(base_layer.BaseLayer):
   """A layer to add inputs with residual weight."""
 
