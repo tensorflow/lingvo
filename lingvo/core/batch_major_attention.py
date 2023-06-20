@@ -6526,8 +6526,8 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
 class ReZeroAddLayer(base_layer.BaseLayer):
   """A layer to add inputs with a trainable scaler.
 
-  It replaces residual connect x + y with x + alpha * y, where alpha is
-   a trainable scaler.
+  It replaces residual connect x + y with x + alpha * y, where alpha is a
+  trainable scaler.
   ReZero is All You Need: Fast Convergence at Large Depth.
   (https://arxiv.org/pdf/2003.04887.pdf).
   """
