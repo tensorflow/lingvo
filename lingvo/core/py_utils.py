@@ -3308,6 +3308,7 @@ def ApplyGradMultiplier(vs_gs, grad_scale=None):
   def Scale(item: VarGrad) -> VarGrad:
     """Scales the gradient."""
     var, grad = item
+    assert var is not None, 'No var found in item'
     assert grad is not None, ('No grad found for ', var.name)
     if grad_scale is None:
       scale = item.scale
