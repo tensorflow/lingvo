@@ -341,6 +341,9 @@ class TPUEmbeddingLayer(tpu_embedding_layers.TPUEmbeddingLayer):
       # Build can be done here solely because all output shapes are fully
       # defined in our configuration. This is needed to ensure variables are
       # properly initialized in advance of e.g. checkpoint loading.
+      tf.logging.info(
+          'Running build() on %s', TPU_EMBEDDING_MANAGER.tpu_embedding
+      )
       TPU_EMBEDDING_MANAGER.tpu_embedding.build()
 
       # Keep the manager as an attribute to ensure the underlying API object is
