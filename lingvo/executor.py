@@ -511,7 +511,9 @@ class ExecutorTpu(base_runner.BaseRunner):
         sess = self._GetSession(
             disable_meta_optimizer=_DISABLE_META_OPTIMIZER.value)
         stack.enter_context(sess)
-        sess.reset(self._tf_master)
+        if self._tf_master:
+          # Only reset the session in distributed environment.
+          sess.reset(self._tf_master)
         config_proto = (
             self._tpu_embedding.config_proto
             if self._tpu_embedding is not None else None)
