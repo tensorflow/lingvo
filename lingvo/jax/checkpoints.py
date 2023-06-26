@@ -28,7 +28,6 @@ import jax
 from jax import sharding
 from jax.experimental import multihost_utils
 from jax.experimental.array_serialization import serialization as array_serialization
-# Internal import
 from lingvo.jax import asserts
 from lingvo.jax import checkpoint_pb2
 from lingvo.jax import py_utils
