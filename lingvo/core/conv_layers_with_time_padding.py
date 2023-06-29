@@ -18,6 +18,7 @@ WARNING: Strided convolutions are buggy. Consider using v2_padding=True.
 """
 
 import copy
+from typing import Optional
 
 import lingvo.compat as tf
 from lingvo.core import activations
@@ -739,7 +740,13 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
         dtype=py_utils.FPropDtype(p))
     return py_utils.NestedMap(context=context)
 
-  def StreamStep(self, theta, inputs, paddings, state0):
+  def StreamStep(
+      self,
+      theta: py_utils.NestedMap,
+      inputs: tf.Tensor,
+      paddings: Optional[tf.Tensor],
+      state0: py_utils.NestedMap,
+  ) -> tuple[tf.Tensor, Optional[tf.Tensor], py_utils.NestedMap]:
     """Apply a single step of convolution to input_tensor.
 
     Only supports 1d causal convolution. Doesn't support dilation.
@@ -747,7 +754,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     Args:
       theta: A NestedMap of layer params.
       inputs: A Tensor of shape [b, t, 1, c]
-      paddings: A 0/1 valued tensor of shape [b, t].
+      paddings: An optional 0/1 valued tensor of shape [b, t].
       state0: A NestedMap of tensors of the same struct as returned by
         zero_state().
 
@@ -765,13 +772,13 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
 
     with tf.name_scope(p.name):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
-      paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
-      q = py_utils.GetShape(paddings)[1]
+      q = py_utils.GetShape(inputs)[1]
 
-      padded_inputs = py_utils.ApplyPadding(
-          py_utils.AppendDims(paddings, 2), inputs)
+      if paddings is not None:
+        paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
+        inputs = py_utils.ApplyPadding(py_utils.AppendDims(paddings, 2), inputs)
 
-      concat_inputs = tf.concat([state0.context, padded_inputs], axis=1)
+      concat_inputs = tf.concat([state0.context, inputs], axis=1)
       outputs = tf.nn.depthwise_conv2d(
           concat_inputs,
           self._GetWeight(theta),
