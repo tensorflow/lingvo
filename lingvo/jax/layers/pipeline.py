@@ -125,6 +125,16 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
       else:
         base_layer.add_summary('{summary_key}', summary_value, summary_type)
 
+  def stage_mesh_axis(self):
+    """Mesh axis for stage or None."""
+    stage_mesh_axis = None
+    p = self.params
+    if p.mesh_axis_names is not None:
+      stage_mesh_axis = base_layer.to_partition_spec(
+          p.weight_split_dims_mapping.stages, p.mesh_axis_names
+      )[0]
+    return stage_mesh_axis
+
   def body_fprop(self, per_stage_inputs: JTensor, *per_stage_args,
                  **per_stage_kwargs) -> NestedJTensor:
     """Runs the fprop function of the stages."""
@@ -158,9 +168,14 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
         summaries = base_layer.all_summaries()
         return res, summaries
 
-    res, summaries = jax.vmap(_wrapped_fn)(self.body.local_theta(),
-                                           per_stage_inputs, *per_stage_args,
-                                           **per_stage_kwargs)
+    res, summaries = jax.vmap(
+        _wrapped_fn, spmd_axis_name=self.stage_mesh_axis()
+    )(
+        self.body.local_theta(),
+        per_stage_inputs,
+        *per_stage_args,
+        **per_stage_kwargs,
+    )
 
     self._forward_summary(summaries)
     return res
@@ -261,8 +276,7 @@ class LayerwiseShardablePipelined(base_layer.BaseLayer):
           # implementation) to make sure it's trivially partitioned on the stage
           # dim and work around some potential optimization problems in XLA.
           # TODO(yuanzx): Use xmap on the whole body fprop.
-          mesh_axis = base_layer.to_partition_spec(
-              p.weight_split_dims_mapping.stages, p.mesh_axis_names)[0]
+          mesh_axis = self.stage_mesh_axis()
           if mesh_axis is not None:
             axis_resources = {'num_stages': mesh_axis}
             return maps.xmap(
