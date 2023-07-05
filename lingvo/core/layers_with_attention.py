@@ -708,17 +708,14 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
         inputs_normalized = inputs
       if hasattr(self, 'res_proj_layer'):
         inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
+      if paddings is not None:
+        paddings = tf.expand_dims(paddings, -1)
       if p.num_tasks:
         h = self.fflayer.FProp(
-            theta.fflayer,
-            inputs_normalized,
-            tasks,
-            tf.expand_dims(paddings, -1),
+            theta.fflayer, inputs_normalized, tasks, paddings
         )
       else:
-        h = self.fflayer.FProp(
-            theta.fflayer, inputs_normalized, tf.expand_dims(paddings, -1)
-        )
+        h = self.fflayer.FProp(theta.fflayer, inputs_normalized, paddings)
       if p.primer_hybrid_norm:
         h = self.post_layer_norm.FProp(theta.post_layer_norm, h)
       if p.memory_augmentation:
