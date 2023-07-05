@@ -942,8 +942,11 @@ class ConvBatchNormLayer(bn_layers.BatchNormLayer):
   paddings layers.
   """
 
-  def FProp(self, theta, inputs, paddings):
-    paddings_expanded = tf.expand_dims(tf.expand_dims(paddings, -1), -1)
+  def FProp(self, theta, inputs, paddings=None):
+    if paddings is not None:
+      paddings_expanded = tf.expand_dims(tf.expand_dims(paddings, -1), -1)
+    else:
+      paddings_expanded = None
     bned = super().FProp(theta, inputs, paddings_expanded)
     return bned, paddings
 

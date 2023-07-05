@@ -986,7 +986,7 @@ py_test(
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "conv_layers_with_time_padding",
     srcs = ["conv_layers_with_time_padding.py"],
     deps = [
