@@ -240,8 +240,8 @@ class QuantizableLayer(base_layer.BaseLayer):
       shape: Shape of the weight.
       feature_axis: axis corresponding to output channel/feature for weights.
       domain: Name of the QDomain to use for quantization.
-      tensor_split_dims_mapping: A list of integers that map each tensor axis
-        to the device mesh axis along which it is sharded.
+      tensor_split_dims_mapping: A list of integers that map each tensor axis to
+        the device mesh axis along which it is sharded.
       device_mesh: A numpy.ndarray describing the topology of a device mesh to
         partition the created variable onto.
       legacy_aqt_weight_name: Used for compatibility with old checkpoints.
@@ -1034,21 +1034,23 @@ class QDomain(base_layer.BaseLayer):
       self.all_names.add(act_name)
       self.act_names.add(act_name)
 
-  def TrackQWeight(self,
-                   weight_name,
-                   shape,
-                   feature_axis,
-                   mesh_split=None,
-                   device_mesh=None,
-                   legacy_aqt_weight_name=None):
+  def TrackQWeight(
+      self,
+      weight_name,
+      shape,
+      feature_axis,
+      tensor_split_dims_mapping=None,
+      device_mesh=None,
+      legacy_aqt_weight_name=None,
+  ):
     """Creates a QWeight with weight_name and given shape.
 
     Args:
       weight_name: Unique name (within layer) for this weight.
       shape: Expected shape of the weight.
       feature_axis: axis corresponding to output channel/feature for weights.
-      mesh_split: A list of integers that map each tensor axis to the device
-        mesh axis along which it is sharded.
+      tensor_split_dims_mapping: A list of integers that map each tensor axis to
+        the device mesh axis along which it is sharded.
       device_mesh: A numpy.ndarray describing the topology of a device mesh to
         partition the created variable onto.
       legacy_aqt_weight_name: Used for compatibility with old checkpoints.
