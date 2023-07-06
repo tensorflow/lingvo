@@ -6919,7 +6919,7 @@ class FunnelPoolingLayer(StrideLayer):
       theta: py_utils.NestedMap,
       inputs: tf.Tensor,
       paddings: Optional[tf.Tensor] = None,
-  ) -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor]]:
+  ) -> Tuple[tf.Tensor, Optional[tf.Tensor]]:
     """Computes the pooled vector given the query of the current step.
 
     This supports only the case query step is a multiple of stride.
@@ -6946,7 +6946,10 @@ class FunnelPoolingLayer(StrideLayer):
     inputs = py_utils.with_dependencies([
         py_utils.assert_even_divide(max_seqlen, p.pool_window),
     ], inputs)
-    return self.FProp(theta, inputs, paddings)
+    outputs = self.FProp(theta, inputs, paddings)
+    if paddings is None:
+      return outputs, None
+    return outputs
 
 
 class FunnelUpsampleLayer(base_layer.BaseLayer):
