@@ -970,7 +970,9 @@ class GraphLayer(base_layer.BaseLayer):
                 p.name, len(p.input_endpoints), len(args)))
       for n, t in zip(p.input_endpoints, args):
         if isinstance(t, py_utils.NestedMap):
-          assert all(isinstance(x, tf.Tensor) for x in t.Flatten()), t
+          assert all(
+              x is None or isinstance(x, tf.Tensor) for x in t.Flatten()
+          ), t
         else:
           assert isinstance(t,
                             tf.Tensor), (n, t, p.name, p.input_endpoints, args)
