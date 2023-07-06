@@ -2782,7 +2782,6 @@ class LocalSelfAttention(MultiHeadedAttention):
         query_proj = self._RoPE(
             theta, query_proj, stride=p.query_stride, time_step=time_step)
 
-      input_masks = tf.logical_not(tf.cast(query_paddings, tf.bool))
       if p.right_context == 0:
         # [B, Q, N, H]
         query = query_proj
@@ -2792,6 +2791,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         concat_query = tf.concat([state0.query, query_proj], axis=1)
         # [B, Q, N, H]
         query = concat_query[:, :q]
+
+        input_masks = tf.logical_not(tf.cast(query_paddings, tf.bool))
         concat_out_masks = tf.concat([state0.out_masks, input_masks], axis=1)
         out_masks = concat_out_masks[:, :q]
         out_paddings = tf.cast(tf.logical_not(out_masks), query_paddings.dtype)
