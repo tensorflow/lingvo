@@ -2607,7 +2607,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     Args:
       theta: The theta NestedMap for this layer.
       inputs: [B, Q, D]: The input for this step, note that Q>=1.
-      paddings: A 0/1 valued tensor of shape [B, Q].
+      paddings: An optional 0/1 valued tensor of shape [B, Q]. None is treated
+        as if it was all 0.
       state0: The recurrent state.
 
     Returns:
@@ -2646,7 +2647,10 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # paddings
     # [B, S]. 1s are masked positions.
-    input_masks = tf.logical_not(tf.cast(paddings, tf.bool))
+    if paddings is None:
+      input_masks = tf.ones(py_utils.GetShape(inputs, 2), dtype=tf.bool)
+    else:
+      input_masks = tf.logical_not(tf.cast(paddings, tf.bool))
     if p.use_3d_recurrent_state:
       new_masks = tf.tensor_scatter_nd_update(state0.masks, indices,
                                               input_masks)
@@ -2792,10 +2796,15 @@ class LocalSelfAttention(MultiHeadedAttention):
         # [B, Q, N, H]
         query = concat_query[:, :q]
 
-        input_masks = tf.logical_not(tf.cast(query_paddings, tf.bool))
+        if query_paddings is None:
+          input_masks = tf.ones([b, q], dtype=tf.bool)
+        else:
+          input_masks = tf.logical_not(tf.cast(query_paddings, tf.bool))
         concat_out_masks = tf.concat([state0.out_masks, input_masks], axis=1)
         out_masks = concat_out_masks[:, :q]
-        out_paddings = tf.cast(tf.logical_not(out_masks), query_paddings.dtype)
+        out_paddings = tf.logical_not(out_masks)
+        if query_paddings is not None:
+          out_paddings = tf.cast(out_paddings, query_paddings.dtype)
 
       # key, value, mask.
       # [B, T, N, H].
@@ -2806,7 +2815,10 @@ class LocalSelfAttention(MultiHeadedAttention):
           axis=1,
           name='concat_value')
       # [B, T]
-      key_masks = tf.logical_not(tf.cast(key_paddings, tf.bool))
+      if key_paddings is None:
+        key_masks = tf.ones([b, k], dtype=tf.bool)
+      else:
+        key_masks = tf.logical_not(tf.cast(key_paddings, tf.bool))
       state_masks = tf.concat([state0.masks, key_masks],
                               axis=1,
                               name='concat_masks')
