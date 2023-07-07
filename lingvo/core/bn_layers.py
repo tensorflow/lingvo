@@ -921,25 +921,25 @@ class GroupNormLayer(base_layer.BaseLayer):
     tf.logging.vlog(1, 'cached_var: %r', cached_var)
 
     input_rank = py_utils.GetRank(inputs)
-    paddings = py_utils.HasRank(paddings, input_rank)
-    cached_sum = py_utils.HasRank(cached_sum, 3)
-    cached_count = py_utils.HasRank(cached_count, 3)
-    cached_var = py_utils.HasRank(cached_var, 3)
-
     input_shape = py_utils.GetShape(inputs)
-    output_shape = input_shape[:]
     if input_rank == 4:
+      b, t, n, g = input_shape
+      paddings = py_utils.HasShape(paddings, [b, t, 1, 1])
       # Skip {B,T,N}. Reduce just G.
       reduce_over_dims = [3]
-      multiplier = input_shape[3]
-      output_shape[3] = 1
+      multiplier = g
+      output_shape = [b, t, n, 1]
     else:
       assert input_rank == 5
+      b, t, f, n, g = input_shape
+      paddings = py_utils.HasShape(paddings, [b, t, 1, 1, 1])
       # Skip {B,T,N}. Reduce {F,G}.
       reduce_over_dims = [2, 4]
-      multiplier = input_shape[2] * input_shape[4]
-      output_shape[2] = 1
-      output_shape[4] = 1
+      multiplier = f * g
+      output_shape = [b, t, 1, n, 1]
+    cached_sum = py_utils.HasShape(cached_sum, [b, 1, n])
+    cached_count = py_utils.HasShape(cached_count, [b, 1, 1])
+    cached_var = py_utils.HasShape(cached_var, [b, 1, n])
 
     # [B, T, N]
     sum_v = tf.reduce_sum(
