@@ -941,32 +941,31 @@ class GroupNormLayer(base_layer.BaseLayer):
     cached_count = py_utils.HasShape(cached_count, [b, 1, 1])
     cached_var = py_utils.HasShape(cached_var, [b, 1, n])
 
+    # [B, T, F, N, G] or [B, T, N, G]
+    sum_v = inputs
+    sum_v = py_utils.ApplyPadding(paddings, sum_v)
     # [B, T, N]
-    sum_v = tf.reduce_sum(
-        py_utils.ApplyPadding(paddings, inputs),
-        reduce_over_dims,
-        keepdims=False)
+    sum_v = tf.reduce_sum(sum_v, reduce_over_dims, keepdims=False)
     sum_v = tf.math.cumsum(sum_v, axis=1)
     sum_v += cached_sum
 
+    # [] (scalar)
+    count_v = tf.cast(multiplier, inputs.dtype)
+    # [B, T, 1, 1, 1] or [B, T, 1, 1]
+    count_v = py_utils.ApplyPadding(paddings, count_v, ensure_shape=False)
     # [B, T, 1]
-    count_v = tf.reduce_sum(
-        py_utils.ApplyPadding(
-            paddings, tf.cast(multiplier, inputs.dtype), ensure_shape=False),
-        reduce_over_dims,
-        keepdims=False)
+    count_v = tf.reduce_sum(count_v, reduce_over_dims, keepdims=False)
     count_v = tf.math.cumsum(count_v, axis=1)
     count_v += cached_count
 
     # [B, T, 1, N, 1] or [B, T, N, 1]
     mean = tf.reshape(sum_v / tf.maximum(count_v, 1.0), output_shape)
 
+    # [B, T, F, N, G] or [B, T, N, G]
+    sum_vv = tf.math.squared_difference(inputs, mean)
+    sum_vv = py_utils.ApplyPadding(paddings, sum_vv)
     # [B, T, N]
-    sum_vv = tf.reduce_sum(
-        py_utils.ApplyPadding(paddings,
-                              tf.math.squared_difference(inputs, mean)),
-        reduce_over_dims,
-        keepdims=False)
+    sum_vv = tf.reduce_sum(sum_vv, reduce_over_dims, keepdims=False)
     sum_vv = tf.math.cumsum(sum_vv, axis=1)
     sum_vv += cached_var
 
