@@ -902,7 +902,8 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     Args:
       inputs: [B, T, F, N, G] or [B, T, N, G]
-      paddings: [B, T, 1, 1, 1] or [B, T, 1, 1] (same rank as inputs)
+      paddings: an optional tensor, shaped [B, T, 1, 1, 1] or [B, T, 1, 1] if
+        not None (same rank as inputs)
       cached_sum: [B, 1, N]
       cached_count: [B, 1, 1]
       cached_var: [B, 1, N]
@@ -924,7 +925,8 @@ class GroupNormLayer(base_layer.BaseLayer):
     input_shape = py_utils.GetShape(inputs)
     if input_rank == 4:
       b, t, n, g = input_shape
-      paddings = py_utils.HasShape(paddings, [b, t, 1, 1])
+      if paddings is not None:
+        paddings = py_utils.HasShape(paddings, [b, t, 1, 1])
       # Skip {B,T,N}. Reduce just G.
       reduce_over_dims = [3]
       multiplier = g
@@ -932,7 +934,8 @@ class GroupNormLayer(base_layer.BaseLayer):
     else:
       assert input_rank == 5
       b, t, f, n, g = input_shape
-      paddings = py_utils.HasShape(paddings, [b, t, 1, 1, 1])
+      if paddings is not None:
+        paddings = py_utils.HasShape(paddings, [b, t, 1, 1, 1])
       # Skip {B,T,N}. Reduce {F,G}.
       reduce_over_dims = [2, 4]
       multiplier = f * g
@@ -943,7 +946,8 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     # [B, T, F, N, G] or [B, T, N, G]
     sum_v = inputs
-    sum_v = py_utils.ApplyPadding(paddings, sum_v)
+    if paddings is not None:
+      sum_v = py_utils.ApplyPadding(paddings, sum_v)
     # [B, T, N]
     sum_v = tf.reduce_sum(sum_v, reduce_over_dims, keepdims=False)
     sum_v = tf.math.cumsum(sum_v, axis=1)
@@ -952,7 +956,14 @@ class GroupNormLayer(base_layer.BaseLayer):
     # [] (scalar)
     count_v = tf.cast(multiplier, inputs.dtype)
     # [B, T, 1, 1, 1] or [B, T, 1, 1]
-    count_v = py_utils.ApplyPadding(paddings, count_v, ensure_shape=False)
+    if paddings is not None:
+      count_v = py_utils.ApplyPadding(paddings, count_v, ensure_shape=False)
+    else:
+      if input_rank == 4:
+        count_v = tf.broadcast_to(count_v, shape=[b, t, 1, 1])
+      else:
+        count_v = tf.broadcast_to(count_v, shape=[b, t, 1, 1, 1])
+
     # [B, T, 1]
     count_v = tf.reduce_sum(count_v, reduce_over_dims, keepdims=False)
     count_v = tf.math.cumsum(count_v, axis=1)
@@ -963,7 +974,8 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     # [B, T, F, N, G] or [B, T, N, G]
     sum_vv = tf.math.squared_difference(inputs, mean)
-    sum_vv = py_utils.ApplyPadding(paddings, sum_vv)
+    if paddings is not None:
+      sum_vv = py_utils.ApplyPadding(paddings, sum_vv)
     # [B, T, N]
     sum_vv = tf.reduce_sum(sum_vv, reduce_over_dims, keepdims=False)
     sum_vv = tf.math.cumsum(sum_vv, axis=1)
@@ -1004,8 +1016,11 @@ class GroupNormLayer(base_layer.BaseLayer):
       expanded_inputs = tf.reshape(inputs,
                                    input_shape[:-1] + [num_groups, group_size])
       expanded_rank = input_rank + 1
-      expanded_paddings = tf.reshape(
-          paddings, input_shape[:2] + [1] * (expanded_rank - 2))
+      expanded_paddings = (
+          tf.reshape(paddings, input_shape[:2] + [1] * (expanded_rank - 2))
+          if paddings is not None
+          else None
+      )
       (group_mean, group_variance, cached_sum, cached_count,
        cached_var) = self._StreamMoments(expanded_inputs, expanded_paddings,
                                          state0.cached_sum, state0.cached_count,
