@@ -951,18 +951,6 @@ class ConvBatchNormLayer(bn_layers.BatchNormLayer):
     return bned, paddings
 
 
-class ConvCategoricalBN(bn_layers.CategoricalBN):
-  """A wrapper around regular CategoricalBN that pass around the ...
-
-  paddings layers.
-  """
-
-  def FProp(self, theta, inputs, paddings, class_emb):
-    paddings_expanded = tf.expand_dims(tf.expand_dims(paddings, -1), -1)
-    bned = super().FProp(theta, inputs, paddings_expanded, class_emb)
-    return bned, paddings
-
-
 class PaddingLayer(base_layer.BaseLayer):
   """Zeros out padded positions."""
 
