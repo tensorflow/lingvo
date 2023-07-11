@@ -14,6 +14,7 @@
 # ==============================================================================
 """NestedMap dict structure."""
 
+import dataclasses
 import re
 import typing
 from typing import (
@@ -162,6 +163,12 @@ class NestedMap(Dict[str, Any]):
   def FromNestedDict(x):
     """Converts every dict in nested structure 'x' to a NestedMap."""
     return _FromNestedDict(x)
+
+  @staticmethod
+  def FromNestedDataclass(x):
+    if not dataclasses.is_dataclass(x):
+      raise ValueError(f'{x} must be a dataclass. Got {type(x)}.')
+    return _FromNestedDict(dataclasses.asdict(x))
 
   def ToNestedDict(self) -> Mapping[str, Any]:
     """Converts every NestedMap in nested structure to a 'dict' instance.
