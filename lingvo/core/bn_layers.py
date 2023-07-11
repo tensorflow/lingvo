@@ -470,7 +470,7 @@ class CategoricalBN(BatchNormLayer):
     gamma = tf.reshape(gamma, to_shape)
     return beta, gamma
 
-  def FProp(self, theta, inputs, paddings, class_emb):
+  def FProp(self, theta, inputs, paddings=None, class_emb=None):
     """Apply batch normalization.
 
     Args:
@@ -487,6 +487,8 @@ class CategoricalBN(BatchNormLayer):
     """
     if py_utils.testonly_skip_norm_layers():
       return inputs
+
+    assert class_emb is not None  # default value only to pass pytype checks
 
     p = self.params
     batch = py_utils.GetShape(inputs)[0]

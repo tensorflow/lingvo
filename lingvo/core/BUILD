@@ -350,7 +350,7 @@ pytype_library(
     ],
 )
 
-py_library(
+pytype_library(
     name = "bn_layers",
     srcs = ["bn_layers.py"],
     deps = [
