@@ -2066,16 +2066,18 @@ class StackingOverTime(base_layer.BaseLayer):
     out = tf.transpose(out, [1, 0, 2])
     return out
 
-  def FProp(self, inputs, paddings=None):
+  def FProp(
+      self, inputs: tf.Tensor, paddings: Optional[tf.Tensor] = None
+  ) -> Tuple[tf.Tensor, Optional[tf.Tensor]]:
     """Apply the stacking to inputs along the time axis.
 
     Args:
       inputs: The inputs tensor. It is expected to be of shape [batch, time,
         feature].
-      paddings: The paddings tensor. It is expected to be of shape [batch, time,
-        1], where all but the last dimension match inputs. Each value is 0 or 1
-        indicating whether a time step of a sequence is padded in the inputs to
-        reach the max length in the batch.
+      paddings: Optional paddings tensor. It is expected to be of shape [batch,
+        time, 1], where all but the last dimension match inputs. Each value is 0
+        or 1 indicating whether a time step of a sequence is padded in the
+        inputs to reach the max length in the batch.
 
     Returns:
       (outputs, out_paddings) pair.
@@ -2084,24 +2086,26 @@ class StackingOverTime(base_layer.BaseLayer):
         will be 0 if any of the corresponding input padding is 0.
     """
     p = self.params
-    if paddings is None:
-      paddings = tf.zeros(
-          tf.concat([py_utils.GetShape(inputs)[:-1], [1]], 0),
-          dtype=inputs.dtype)
     inputs = py_utils.with_dependencies(
         [
             # Checks the inputs shape has 3 dimensions.
-            tf.assert_rank(inputs, 3),
-            # Checks the paddings shape has 3 dimensions, and the last one is 1.
-            tf.assert_rank(paddings, 3),
-            py_utils.assert_shape_match(tf.shape(paddings), [-1, -1, 1]),
-            # Checks the first two dimensions of inputs and paddings match.
-            py_utils.assert_shape_match(
-                tf.shape(inputs)[:-1],
-                tf.shape(paddings)[:-1])
+            tf.assert_rank(inputs, 3)
         ],
-        inputs)
-
+        inputs,
+    )
+    if paddings is not None:
+      paddings = py_utils.with_dependencies(
+          [
+              # Check the paddings shape has 3 dimensions, and the last one is 1
+              tf.assert_rank(paddings, 3),
+              py_utils.assert_shape_match(tf.shape(paddings), [-1, -1, 1]),
+              # Check the first two dimensions of inputs and paddings match.
+              py_utils.assert_shape_match(
+                  tf.shape(inputs)[:-1], tf.shape(paddings)[:-1]
+              ),
+          ],
+          paddings,
+      )
     # Trivia case.
     if 0 == p.left_context == p.right_context and 1 == p.stride:
       return inputs, paddings
@@ -2110,6 +2114,9 @@ class StackingOverTime(base_layer.BaseLayer):
       outputs = self._ApplyStack(
           inputs, pad_value=tf.zeros([], dtype=inputs.dtype)
       )
+
+      if paddings is None:
+        return outputs, None
 
       # Stack the padding values with the same context and stride parameters.
       # Then take the minimum padding values within each stacking window, since
