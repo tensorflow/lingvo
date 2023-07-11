@@ -14,6 +14,8 @@
 # =============================================================================
 """Batch normalization layers."""
 
+from typing import Optional, Tuple
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
@@ -898,30 +900,28 @@ class GroupNormLayer(base_layer.BaseLayer):
       else:
         return outputs, paddings
 
-  def _StreamMoments(self, inputs, paddings, cached_sum, cached_count,
-                     cached_var):
+  def _StreamMoments(
+      self,
+      inputs: tf.Tensor,
+      paddings: Optional[tf.Tensor],
+      state: py_utils.NestedMap,
+  ) -> Tuple[tf.Tensor, tf.Tensor, py_utils.NestedMap]:
     """Computes mean and variance over the valid data points in inputs.
 
     Args:
       inputs: [B, T, F, N, G] or [B, T, N, G]
       paddings: an optional tensor, shaped [B, T, 1, 1, 1] or [B, T, 1, 1] if
         not None (same rank as inputs)
-      cached_sum: [B, 1, N]
-      cached_count: [B, 1, 1]
-      cached_var: [B, 1, N]
+      state: a structure returned by zero_state
 
     Returns:
       mean: [B, T, 1, N, 1] or [B, T, N, 1] (same rank as inputs)
       variance: same shape as mean.
-      cached_sum: same shape as cached_sum.
-      cached_count: same shape as cached_count.
-      cached_var: same shape as cached_var.
+      state: the updated state.
     """
     tf.logging.vlog(1, 'inputs: %r', inputs)
     tf.logging.vlog(1, 'paddings: %r', paddings)
-    tf.logging.vlog(1, 'cached_sum: %r', cached_sum)
-    tf.logging.vlog(1, 'cached_count: %r', cached_count)
-    tf.logging.vlog(1, 'cached_var: %r', cached_var)
+    tf.logging.vlog(1, 'state: %r', state)
 
     input_rank = py_utils.GetRank(inputs)
     input_shape = py_utils.GetShape(inputs)
@@ -942,9 +942,9 @@ class GroupNormLayer(base_layer.BaseLayer):
       reduce_over_dims = [2, 4]
       multiplier = f * g
       output_shape = [b, t, 1, n, 1]
-    cached_sum = py_utils.HasShape(cached_sum, [b, 1, n])
-    cached_count = py_utils.HasShape(cached_count, [b, 1, 1])
-    cached_var = py_utils.HasShape(cached_var, [b, 1, n])
+    cached_sum = py_utils.HasShape(state.cached_sum, [b, 1, n])
+    cached_count = py_utils.HasShape(state.cached_count, [b, 1, 1])
+    cached_var = py_utils.HasShape(state.cached_var, [b, 1, n])
 
     # [B, T, F, N, G] or [B, T, N, G]
     sum_v = inputs
@@ -997,7 +997,15 @@ class GroupNormLayer(base_layer.BaseLayer):
     tf.logging.vlog(1, 'count_v: %r', count_v)
     tf.logging.vlog(1, 'sum_vv: %r', sum_vv)
 
-    return mean, variance, cached_sum, cached_count, cached_var
+    return (
+        mean,
+        variance,
+        py_utils.NestedMap(
+            cached_sum=cached_sum,
+            cached_count=cached_count,
+            cached_var=cached_var,
+        ),
+    )
 
   def StreamStep(self, theta, inputs, paddings, state0):
     if py_utils.testonly_skip_norm_layers():
@@ -1023,19 +1031,15 @@ class GroupNormLayer(base_layer.BaseLayer):
           if paddings is not None
           else None
       )
-      (group_mean, group_variance, cached_sum, cached_count,
-       cached_var) = self._StreamMoments(expanded_inputs, expanded_paddings,
-                                         state0.cached_sum, state0.cached_count,
-                                         state0.cached_var)
+      group_mean, group_variance, state1 = self._StreamMoments(
+          expanded_inputs, expanded_paddings, state0
+      )
       outputs = self._Normalize(expanded_inputs, group_mean, group_variance)
       # Merge the last two dims back.
       outputs = tf.reshape(outputs, tf.shape(inputs))
       outputs = self._ApplyGammaBeta(theta, outputs)
 
-      return outputs, paddings, py_utils.NestedMap(
-          cached_sum=cached_sum,
-          cached_count=cached_count,
-          cached_var=cached_var)
+      return outputs, paddings, state1
 
   @classmethod
   def FPropMeta(cls, p, inputs):
