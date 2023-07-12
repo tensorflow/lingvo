@@ -584,12 +584,13 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
 
     with tf.name_scope(p.name):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
-      paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
-      q = py_utils.GetShape(paddings)[1]
+      q = py_utils.GetShape(inputs)[1]
 
-      concat_inputs = tf.concat(
-          [state0.context, inputs * (1 - py_utils.AppendDims(paddings, 2))],
-          axis=1)
+      if paddings is not None:
+        paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
+        inputs = py_utils.ApplyPadding(py_utils.AppendDims(paddings, 2), inputs)
+
+      concat_inputs = tf.concat([state0.context, inputs], axis=1)
       outputs = tf.nn.conv2d(
           concat_inputs,
           self._GetWeight(theta),
