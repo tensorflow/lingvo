@@ -489,17 +489,18 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
       out = tf.nn.bias_add(out, theta.b)
     return out
 
-  def _EvaluateConvKernel(self, theta, inputs, padding_algorithm):
-    """Apply convolution to inputs."""
+  def _EvaluateConvKernel(self, theta, conv_input, padding_algorithm):
+    """Apply convolution to conv_input."""
     p = self.params
     filter_w = self._GetWeight(theta)
     return tf.nn.conv2d(
-        inputs,
+        conv_input,
         filter_w,
         strides=p.filter_stride,
         dilations=p.dilation_rate,
         data_format='NHWC',
-        padding=padding_algorithm)
+        padding=padding_algorithm,
+    )
 
 
 class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
@@ -687,19 +688,21 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
       out = tf.nn.bias_add(out, theta.b)
     return out
 
-  def _EvaluateConvKernel(self, theta, inputs, padding_algorithm):
-    """Apply convolution to inputs."""
+  def _EvaluateConvKernel(self, theta, conv_input, padding_algorithm):
+    """Apply convolution to conv_input."""
     p = self.params
     filter_w = self._GetWeight(theta)
-    inputs, filter_w = self.ToAqtConv(
-        'w', inputs, filter_w, w_feature_axis=(2, 3))
+    conv_input, filter_w = self.ToAqtConv(
+        'w', conv_input, filter_w, w_feature_axis=(2, 3)
+    )
     output = tf.nn.depthwise_conv2d(
-        inputs,
+        conv_input,
         filter_w,
         strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
         dilations=p.dilation_rate,
         data_format='NHWC',
-        padding=padding_algorithm)
+        padding=padding_algorithm,
+    )
     return self.FromAqtConv('w', output, is_depthwise=True)
 
 
