@@ -790,9 +790,10 @@ def get_partitioned_spmd_model_step_fn(jax_task: base_task.SingleTask,
   # pjit-ed step function.
   step_fn = pjit.pjit(
       _step_fn,
-      in_axis_resources=fn_in_partition_specs,
-      out_axis_resources=fn_out_partition_specs,
-      donate_argnums=() if is_eval else (0,))
+      in_shardings=fn_in_partition_specs,
+      out_shardings=fn_out_partition_specs,
+      donate_argnums=() if is_eval else (0,),
+  )
 
   return step_fn, inputs_partition_spec
 
