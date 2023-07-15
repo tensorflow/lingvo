@@ -1030,7 +1030,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     tf.logging.vlog(1, 'group_size: %s', group_size)
     tf.logging.vlog(1, 'num_groups: %s', num_groups)
 
-    input_shape = py_utils.GetShape(inputs)
+    input_shape = py_utils.GetShape(inputs, optimize_for_reshape=True)
     with tf.name_scope(f'{p.name}/StreamStep'):
       expanded_inputs = tf.reshape(inputs,
                                    input_shape[:-1] + [num_groups, group_size])
@@ -1045,7 +1045,7 @@ class GroupNormLayer(base_layer.BaseLayer):
       )
       outputs = self._Normalize(expanded_inputs, group_mean, group_variance)
       # Merge the last two dims back.
-      outputs = tf.reshape(outputs, tf.shape(inputs))
+      outputs = tf.reshape(outputs, input_shape)
       outputs = self._ApplyGammaBeta(theta, outputs)
 
       return outputs, paddings, state1

@@ -432,7 +432,8 @@ def GetRank(tensor):
 
 def GetShape(
     tensor: Any,  # anything that can be converted to a tf.Tensor
-    ndims: Optional[int] = None
+    ndims: Optional[int] = None,
+    optimize_for_reshape: bool = False,
 ) -> Union[List[Union[int, tf.Tensor]], tf.Tensor]:
   """Returns tensor's shape as a list which can be unpacked, unlike tf.shape.
 
@@ -444,6 +445,10 @@ def GetShape(
   Args:
     tensor: The input tensor.
     ndims: If not None, returns the shapes for the first `ndims` dimensions.
+    optimize_for_reshape: If true, the output for the first dynamic dimension
+      will be set to -1 instead of a tf.Tensor with the dynamic value. This way
+      if all other dimensions are static, the result can be used in tf.reshape
+      without tf.shape + tf.strided_slice + tf.pack.
   """
   tensor = tf.convert_to_tensor(tensor)
   dynamic_shape = tf.shape(tensor)
@@ -463,10 +468,15 @@ def GetShape(
 
   # Return mixture of static and dynamic dims.
   static_shape = tensor.shape.as_list()
-  shapes = [
-      static_shape[x] if static_shape[x] is not None else dynamic_shape[x]
-      for x in range(ndims)
-  ]
+  shapes = []
+  for x in range(ndims):
+    if static_shape[x] is not None:
+      shapes.append(static_shape[x])
+    elif optimize_for_reshape:
+      optimize_for_reshape = False  # only replace the first occurance
+      shapes.append(-1)
+    else:
+      shapes.append(dynamic_shape[x])
   return shapes
 
 
