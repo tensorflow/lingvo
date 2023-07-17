@@ -4355,7 +4355,13 @@ def PadSequenceTo(xs, padding, length, pad_val):
     return tuple(res), padding
 
 
-def ApplyPadding(padding, x, padded=None, use_select=True, ensure_shape=True):
+def ApplyPadding(
+    padding: tf.Tensor,
+    x: tf.Tensor,
+    padded: Optional[tf.Tensor] = None,
+    use_select: bool = True,
+    ensure_shape: bool = True,
+) -> tf.Tensor:
   """Applies padding to a tensor.
 
   This is preferable to using arithmetic means for masking out padded values
