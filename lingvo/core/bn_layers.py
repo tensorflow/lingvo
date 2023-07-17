@@ -52,10 +52,11 @@ def ComputeMoments(inputs,
                    enable_cross_replica_sum_on_tpu=False,
                    keepdims=False):
   """Computes mean and variance over the valid data points in inputs."""
-  mask = 1.0 - padding
+  mask = py_utils.ApplyPadding(
+      padding, tf.ones([], dtype=inputs.dtype), ensure_shape=False
+  )
   inputs = py_utils.with_dependencies([
       py_utils.assert_equal(tf.rank(inputs), tf.rank(mask)),
-      py_utils.assert_greater_equal(mask, tf.zeros_like(mask)),
   ], inputs)
   sum_v = tf.reduce_sum(
       py_utils.ApplyPadding(padding, inputs),
