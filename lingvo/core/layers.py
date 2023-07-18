@@ -2622,11 +2622,10 @@ class EmbeddingLayer(base_layer.BaseLayer):
         py_utils.assert_between(
             ids, 0, p.vocab_size, name='vocab_id_validation')
     ], ids)
-    embs = tf.nn.embedding_lookup(theta.wm, tf.reshape(ids, [-1]))
+    embs = tf.nn.embedding_lookup(theta.wm, ids)
     if p.scale_sqrt_depth:
       embs *= p.embedding_dim**0.5
-    out_shape = tf.concat([tf.shape(ids), [p.embedding_dim]], 0)
-    return tf.reshape(embs, out_shape)
+    return embs
 
 
 class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
