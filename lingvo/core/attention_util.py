@@ -789,10 +789,8 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
       dists += x_norm_sq + means_norm_sq
 
     # For padded positions we update the distances to very large numbers.
-    very_large_dists = tf.ones_like(dists) * tf.constant(
-        0.1 * dists.dtype.max, dtype=dists.dtype)
-    paddings_tiled = tf.tile(paddings_4d, [1, 1, p.num_heads, p.num_clusters])
-    dists = tf.where(paddings_tiled > 0.0, very_large_dists, dists)
+    very_large_dists = tf.constant(0.1 * dists.dtype.max, dtype=dists.dtype)
+    dists = py_utils.ApplyPadding(paddings_4d, dists, very_large_dists)
 
     # Shape [B, L, N, K], the same as 'dists' above.
     nearest_one_hot = tf.one_hot(
@@ -949,7 +947,7 @@ def ComputeSparseAttention(q, k, v, sparsity_indices, paddings=None):
   seq_idx = tf.expand_dims(sparsity_indices, axis=-1)
   # Overwrite the paddings -1 with valid gather indices (zeros). We will
   # fix the logits with -inf in these positions later.
-  seq_idx = tf.where(seq_idx < 0, tf.zeros_like(seq_idx), seq_idx)
+  seq_idx = tf.maximum(seq_idx, tf.zeros([], dtype=seq_idx.dtype))
   batch_idx = tf.reshape(
       tf.range(0, batch_size, dtype=sparsity_indices.dtype),
       [batch_size, 1, 1, 1, 1])
@@ -989,8 +987,7 @@ def ComputeSparseAttention(q, k, v, sparsity_indices, paddings=None):
 
   # [B, T, N, W]
   atten_probs = tf.nn.softmax(padded_logits, name='attention_weights')
-  atten_probs = tf.where(sparsity_indices < 0, tf.zeros_like(logits),
-                         atten_probs)
+  atten_probs = py_utils.ApplyPadding(sparsity_indices < 0, atten_probs)
   output = tf.einsum('BTNW, BTNWH -> BTNH', atten_probs, v)
 
   # Scatter 'atten_probs' back into the original source length.

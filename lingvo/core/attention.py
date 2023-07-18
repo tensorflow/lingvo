@@ -394,11 +394,10 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     assert logits.dtype.is_floating
     assert hasattr(logits.dtype, 'max')
     very_negative_logits = (
-        tf.ones_like(logits) *
         tf.constant(-0.7 * logits.dtype.max, dtype=logits.dtype))
     if self.do_eval:
       very_negative_logits = self.QAct('logits', very_negative_logits)
-    padded_logits = tf.where(padding > 0.0, very_negative_logits, logits)
+    padded_logits = tf.where_v2(padding > 0.0, very_negative_logits, logits)
     # TFLite hardcodes the range of qsoftmax, setting explicitly to avoid
     # incompatible concats.
     return fns.qsoftmax(padded_logits, qdomain='softmax')
@@ -424,9 +423,9 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     query_segment_ids = tf.reshape(
         query_segment_ids,
         [1, -1, py_utils.GetShape(source_segment_ids)[2]])
-    padding = tf.where(
+    padding = tf.where_v2(
         tf.equal(source_segment_ids, query_segment_ids), padding,
-        tf.ones_like(padding))
+        tf.ones([], padding.dtype))
     return padding
 
 
@@ -2671,8 +2670,7 @@ class MonotonicAttention(BaseAttentionLayer):
         # If using a hard sigmoid, just compare against 0
         p_choose_i = tf.cast(tf.greater(logits, 0), logits.dtype)
         # Never choose padded values.
-        p_choose_i = tf.where(merged_source_padding > 0.0,
-                              tf.zeros_like(p_choose_i), p_choose_i)
+        p_choose_i = py_utils.ApplyPadding(merged_source_padding, p_choose_i)
         # Compute probability distribution assuming hard probabilities
         probs = MonotonicAttentionProb(p_choose_i, previous_attention, 'hard')
       else:
@@ -2685,8 +2683,7 @@ class MonotonicAttention(BaseAttentionLayer):
         p_choose_i = tf.nn.sigmoid(logits + self.params.pre_sigmoid_noise *
                                    activation_noise)
         # Never choose padded values.
-        p_choose_i = tf.where(merged_source_padding > 0,
-                              tf.zeros_like(p_choose_i), p_choose_i)
+        p_choose_i = py_utils.ApplyPadding(merged_source_padding, p_choose_i)
         # Compute attention distribution
         probs = MonotonicAttentionProb(p_choose_i, previous_attention,
                                        'parallel')
