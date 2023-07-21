@@ -141,6 +141,29 @@ class Step(base_layer.BaseLayer):
     """
     raise NotImplementedError(type(self))
 
+  def StatelessInference(self, theta, prepared_inputs, step_inputs, padding):
+    """Stateless inference function.
+
+    Should be similar to FProp, but step_inputs should provide all the
+    necessary input for the step.
+
+    step_inputs and step_outputs should each be a `.NestedMap`
+    of tensor values. Each tensor must be of shape [batch_size ...]. The
+    structure of NestedMaps are determined by the implementation.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      prepared_inputs: External inputs returned by PrepareExternalInputs().
+      step_inputs: The inputs for this time step.
+      padding: A 0/1 float tensor of shape [batch_size]; 1.0 means that this
+        batch element is empty in this step.
+
+    Returns:
+      The outputs of this step.
+    """
+    raise NotImplementedError(type(self))
+
 
 class StatelessLayerStep(Step):
   """Allows BaseLayer subclasses to be used as Steps.
