@@ -27,7 +27,7 @@ except ImportError:
 for k, v in gen_x_ops.__dict__.items():
   # We should not override __module__ on objects that don't belong to
   # lingvo. The following list is incomplete but avoids some egregious cases.
-  if k not in ['TypeVar', 'collections']:
+  if k not in ['TypeVar', 'List', 'collections']:
     try:
       v.__module__ = 'lingvo.core.ops'
     except:  # pylint: disable=bare-except

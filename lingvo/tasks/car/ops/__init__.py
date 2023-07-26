@@ -27,7 +27,7 @@ except ImportError:
 for k, v in gen_car_ops.__dict__.items():
   # We should not override __module__ on objects that don't belong to
   # lingvo. The following list is incomplete but avoids some egregious cases.
-  if k not in ['TypeVar']:
+  if k not in ['TypeVar', 'List']:
     try:
       v.__module__ = 'lingvo.tasks.car.ops'
     except:  # pylint: disable=bare-except
