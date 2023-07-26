@@ -265,7 +265,7 @@ class TopDownVisualizationMetric(metrics.BaseMetric):
         difficulty_value = str(difficulty_vector[box_id])
 
         # Draw a rectangle background slightly larger than the text.
-        text_width, text_height = font.getsize(difficulty_value)
+        _, _, text_width, text_height = font.getbbox(difficulty_value)
         draw.rectangle(
             [(center_x - text_width / 1.8, center_y - text_height / 1.8),
              (center_x + text_width / 1.8, center_y + text_height / 1.8)],
