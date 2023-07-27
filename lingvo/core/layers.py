@@ -1376,7 +1376,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
 
-class MultitaskProjectionEinsumLayer(base_layer.BaseLayer):
+class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
   """Multitask projection layer implemented based on einsum."""
 
   @classmethod
@@ -1431,8 +1431,10 @@ class MultitaskProjectionEinsumLayer(base_layer.BaseLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'],
       )
+    w_name = 'w'
+    self.CreateVariable(w_name, w_pc)
+    self.TrackQWeight(w_name, shape=w_pc.shape, feature_axis=-1)
 
-    self.CreateVariable('w', w_pc)
     if p.has_bias:
       self.CreateVariable('b', b_pc)
 
@@ -1484,7 +1486,12 @@ class MultitaskProjectionEinsumLayer(base_layer.BaseLayer):
     """
     p = self.params
     tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=theta.w.dtype)
-    w = tf.einsum('bk,kio->bio', tasks_onehot, theta.w)
+
+    w = self.QWeight(theta.w)
+    w = self.ToAqtWeight('w', w, feature_axis=-1)
+    w = tf.einsum('bk,kio->bio', tasks_onehot, w)
+    w = self.FromAqtWeight('w', w)
+
     if p.has_bias:
       b = tf.einsum('bk,ko->bo', tasks_onehot, theta.b)
     else:
@@ -6144,7 +6151,7 @@ class GluLayer(base_layer.BaseLayer):
     return glu_output
 
 
-class MultitaskAdapterBaseLayer(base_layer.BaseLayer):
+class MultitaskAdapterBaseLayer(quant_utils.QuantizableLayer):
   """Residual adapter layer for multilingual models.
 
   Residual adapters can be used to fine-tune a single model to multiple
@@ -6343,6 +6350,16 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     p.Define(
         'up_projection_params_init', None, 'Init method for up projectionlayer.'
     )
+    # Non-default quantization behavior for multiple weights in a layer.
+    p.qdomain.Define('down_w', None, 'Quantization domain for the down_w.')
+    p.qdomain.Define('up_w', None, 'Quantization domain for the up_w.')
+
+    if p.qdomain.default is not None and (
+        p.qdomain.down_w is None and p.qdomain.up_w is None
+    ):
+      p.qdomain.down_w = p.qdomain.default.Copy()
+      p.qdomain.up_w = p.qdomain.default.Copy()
+
     return p
 
   def __init__(self, params):
@@ -6353,6 +6370,20 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
       params = p.layer_norm_tpl.Copy()
       params.input_dim = p.input_dim
       self.CreateChild('layer_norm', params)
+
+    # Weights quantization:
+    self.TrackQWeight(
+        'down_w',
+        shape=[p.num_tasks, p.input_dim, p.bottleneck_dim],
+        feature_axis=-1,
+        domain='down_w',
+    )
+    self.TrackQWeight(
+        'up_w',
+        shape=[p.num_tasks, p.bottleneck_dim, p.input_dim],
+        feature_axis=-1,
+        domain='up_w',
+    )
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -6416,12 +6447,11 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
       if tasks.shape.ndims > 1:
         tasks = tf.squeeze(tasks, axis=[1])
       assert tasks.shape.ndims == 1, tasks.shape
-      # [batch, num_tasks].
-      tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
     else:
       assert tasks.shape.ndims == 2, tasks.shape
-      # [batch, time, num_tasks].
-      tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
+
+    # [batch, time, num_tasks] if p.per_frame_task_ids else [batch, num_tasks]
+    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
 
     if p.clip_task_ids:
       tasks = tf.clip_by_value(tasks, 0, p.num_tasks - 1)
@@ -6444,12 +6474,19 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
       # Will have a time dimension already; no need to broadcast.
       b_broadcaster = (slice(None), slice(None), slice(None))
 
+    # Weights quantization:
+    down_w = self.QWeight(theta.down_w, domain='down_w')
+    down_w = self.ToAqtWeight('down_w', down_w, feature_axis=-1)
+    up_w = self.QWeight(theta.up_w, domain='up_w')
+    up_w = self.ToAqtWeight('up_w', up_w, feature_axis=-1)
+
     # TODO(sepand): All down and up variables can be created using gather ops
     # instead of einsum with one_hot. That *may* be faster.
     # [batch, {time,} input_dim, bottleneck_dim].
     with tf.name_scope('down_w_einsum'):
       # Can be replaced w/ a single gather if needed
-      down_w = tf.einsum(f'b{t}k,kin->b{t}in', tasks_onehot, theta.down_w)
+      down_w = tf.einsum(f'b{t}k,kin->b{t}in', tasks_onehot, down_w)
+      down_w = self.FromAqtWeight('down_w', down_w)
 
     # [batch, {time,} 1, bottleneck_dim].
     with tf.name_scope('down_b_einsum'):
@@ -6460,7 +6497,8 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     # [batch, {time,} bottleneck_dim, input_dim].
     # Can be replaced w/ a single gather if needed
     with tf.name_scope('up_w_einsum'):
-      up_w = tf.einsum(f'b{t}k,kni->b{t}ni', tasks_onehot, theta.up_w)
+      up_w = tf.einsum(f'b{t}k,kni->b{t}ni', tasks_onehot, up_w)
+      up_w = self.FromAqtWeight('up_w', up_w)
 
     # [batch, {time,} 1, input_dim].
     # Can be replaced w/ a single gather if needed
