@@ -24,9 +24,9 @@ import matplotlib.colors as matplotlib_colors
 import matplotlib.patches as matplotlib_patches
 import matplotlib.patheffects as path_effects
 import numpy as np
-import PIL.Image as Image
-import PIL.ImageDraw as ImageDraw
-import PIL.ImageFont as ImageFont
+from PIL import Image
+from PIL import ImageDraw
+from PIL import ImageFont
 from tensorboard.plugins.mesh import summary as mesh_summary
 
 
@@ -265,7 +265,7 @@ class TopDownVisualizationMetric(metrics.BaseMetric):
         difficulty_value = str(difficulty_vector[box_id])
 
         # Draw a rectangle background slightly larger than the text.
-        _, _, text_width, text_height = font.getbbox(difficulty_value)
+        text_width, text_height = font.getsize(difficulty_value)
         draw.rectangle(
             [(center_x - text_width / 1.8, center_y - text_height / 1.8),
              (center_x + text_width / 1.8, center_y + text_height / 1.8)],

@@ -222,7 +222,7 @@ def DrawBoundingBoxOnImage(image,
   except IOError:
     font = ImageFont.load_default()
 
-  _, _, text_width, text_height = font.getbbox(display_str)
+  text_width, text_height = font.getsize(display_str)
   margin = np.ceil(0.05 * text_height)
   if text_loc == 'TOP':
     text_bottom = top
