@@ -21,6 +21,8 @@ export DOCKER_BUILDKIT=1
 
 # Build wheel-building environment, with four python interpreters and access to
 # the Tensorflow toolchains.
+#   Note: Use --progress=plain to output all logs persistantly.
+#         Use --no-cache if the only changes you make are in dev.requirements.txt
 docker build --tag tensorflow:lingvo_wheelhouse --no-cache \
   -f pip_package/build.Dockerfile .
 

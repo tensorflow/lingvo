@@ -56,6 +56,8 @@ RUN --mount=type=cache,target=/root/.cache \
     python${p} -m pip install -U \
       attrs \
       auditwheel \
+      dill \
+      freezegun \
       graph-compression-google-research \
       grpcio \
       matplotlib \

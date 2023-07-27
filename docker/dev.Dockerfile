@@ -8,7 +8,7 @@
 # Other labels present at https://hub.docker.com/r/tensorflow/build/tags include
 # tensorflow/build:{TF}-python{PY} with TF in {latest,2.8,2.9,2.10,2.11} and PY
 # in {2.7–2.10}.
-# 
+#
 # Test that everything worked:
 #
 # bazel test -c opt --test_output=streamed //lingvo:trainer_test //lingvo:models_test
@@ -35,7 +35,7 @@ RUN --mount=type=cache,target=/root/.cache \
 RUN --mount=type=cache,target=/root/.cache \
   python3 -m pip install -U -r /docker/dev.requirements.txt
 RUN python3 -m ipykernel.kernelspec
-RUN jupyter serverextension enable --py jupyter_http_over_ws
+RUN jupyter server extension enable --py jupyter_http_over_ws
 
 COPY docker/devel.bashrc /root/devel.bashrc
 RUN echo 'source /root/devel.bashrc' >> /root/.bashrc

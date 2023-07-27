@@ -2,16 +2,28 @@
 
 Update the version number in setup.py and commit it.
 
-Build the docker image for building the pip package:
+### Build the Docker environment
+
+Build the Docker image that we use for building the pip package:
 
 ```sh
-./pip_package/runner.sh
+zsh pip_package/runner.sh
 ```
+
+### Build the wheels
 
 Then from within the image's environment, build the wheels:
+
 ```sh
+# Inside the docker environment.
+# The above `runner.sh` should drop you into a shell within the image, but
+# if it doesn't you can use a
+#   docker run --rm -it $IMAGE_NAME bash
+# type command to get there.
 ./pip_package/invoke_build_per_interpreter.sh
 ```
+
+### Upload the wheels to PyPI
 
 If everything goes well, this will produce a set of wheels in
 /tmp/lingvo/dist.
@@ -23,14 +35,20 @@ cd /tmp/lingvo/dist
 To upload to the test pypi server:
 
 ```sh
-python3.9 -m twine upload --repository-url https://test.pypi.org/legacy/ *manylinux2014*.whl
+# Needed to install these packages manually because of the following error:
+#  ImportError: cannot import name 'appengine' from 'urllib3.contrib'
+pip3.10 install urllib3==1.26.15 requests-toolbelt==0.10.1
+
+python3.10 -m twine upload --repository-url https://test.pypi.org/legacy/ *manylinux2014*.whl
 ```
 
 To verify that it works as intended:
 
 ```sh
-python3 -m pip install -i https://test.pypi.org/simple/ --no-deps lingvo
+python3.10 -m pip install -i https://test.pypi.org/simple/ --no-deps lingvo
 ```
+
+### Verify the upload
 
 You can test that the install worked for the common case by running a model
 locally like:
