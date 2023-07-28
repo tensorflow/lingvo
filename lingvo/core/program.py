@@ -290,8 +290,8 @@ class BaseProgram:
       self._WriteInputDataStats(
           sess, dataset_name=dataset_name, inp_instance=inp_instance)
       tf.logging.info('_InfeedLoop done')
-    except Exception as e:
-      tf.logging.info('_InfeedLoop exception %r %s', e, e)
+    except Exception:
+      tf.logging.exception('_InfeedLoop exception')
       raise
 
   def _InfeedLoop(self, sess=None):
