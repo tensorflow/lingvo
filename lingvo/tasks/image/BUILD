@@ -1,3 +1,6 @@
+# Placeholder: load py_library
+# Placeholder: load py_test
+
 # Image related tasks.
 package(default_visibility = ["//visibility:public"])
 

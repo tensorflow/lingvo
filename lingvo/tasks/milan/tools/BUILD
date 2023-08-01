@@ -1,5 +1,7 @@
 # Milan-related tools
 
+# Placeholder: load py_binary
+
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])

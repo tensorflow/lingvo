@@ -1,3 +1,5 @@
+# Placeholder: load py_library
+# Placeholder: load py_test
 load("//lingvo:lingvo.bzl", "py_strict_test")
 load(
     "//lingvo:lingvo.bzl",

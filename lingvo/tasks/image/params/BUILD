@@ -1,3 +1,5 @@
+# Placeholder: load py_library
+
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])

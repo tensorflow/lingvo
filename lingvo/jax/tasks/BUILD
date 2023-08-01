@@ -1,6 +1,7 @@
 # Description:
 #   Includes all open source model configurations.
 
+# Placeholder: load py_library
 load("//lingvo/jax:build-visibility.bzl", "JAX_VISIBILITY")
 
 package(default_visibility = JAX_VISIBILITY)

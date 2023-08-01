@@ -1,5 +1,8 @@
 # tools for ASR task, including WER computation and breakdown analytics
 
+# Placeholder: load py_library
+# Placeholder: load py_test
+
 package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])

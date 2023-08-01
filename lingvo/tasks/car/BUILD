@@ -1,5 +1,8 @@
 # Car related tasks.
 
+# Placeholder: load py_library
+# Placeholder: load py_test
+
 package(default_visibility = [
     "//visibility:public",
 ])

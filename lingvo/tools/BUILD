@@ -1,3 +1,6 @@
+# Placeholder: load py_library
+# Placeholder: load py_test
+# Placeholder: load py_binary
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_cc_binary",

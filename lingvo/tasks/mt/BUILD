@@ -1,3 +1,5 @@
+# Placeholder: load py_library
+# Placeholder: load py_test
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_proto_cc",
