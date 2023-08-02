@@ -26,9 +26,9 @@ from absl import flags
 from absl import logging
 from flax import core as flax_core
 import jax
+from jax import lax
 from jax import numpy as jnp
 from jax import random as jrandom
-from jax.experimental import pjit
 from lingvo.jax import py_utils
 from lingvo.jax import pytypes
 import numpy as np
@@ -190,11 +190,11 @@ def global_mesh_defined() -> bool:
 def with_sharding_constraint(
     x: JTensor, axis_resources: Optional[jax.sharding.PartitionSpec]
 ) -> JTensor:
-  """Wrapper for pjit with_sharding_constraint, no-op on cpu or outside pjit."""
+  """Wrapper for lax.with_sharding_constraint, no-op on cpu or outside pjit."""
   if jax.devices()[0].platform == 'cpu' or not global_mesh_defined():
     return x
   else:
-    return pjit.with_sharding_constraint(x, axis_resources)
+    return lax.with_sharding_constraint(x, axis_resources)
 
 
 def maybe_shard(x: JTensor,
