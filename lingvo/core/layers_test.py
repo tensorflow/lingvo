@@ -2989,6 +2989,7 @@ class MultitaskProjectionEinsumLayerTest(
       is_eval=False,
       input_dtype=tf.float32,
       fprop_dtype=None,
+      einsum_order='select_and_multiply',
   ):
     self._ClearCachedSession()
     tf.reset_default_graph()
@@ -3006,6 +3007,7 @@ class MultitaskProjectionEinsumLayerTest(
       params.activation = activation
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.fprop_dtype = fprop_dtype
+      params.einsum_order = einsum_order
 
       in_padding = tf.zeros([2, 4, 1], dtype=input_dtype)
       inputs = tf.constant(
@@ -3192,7 +3194,8 @@ class MultitaskProjectionEinsumLayerTest(
       # pylint: enable=bad-whitespace
       self.assertAllClose(sym_grads[0], expected_grads, rtol=1e-03, atol=1e-03)
 
-  def testMultitaskProjectionEinsumLayerFPropFullSequence(self):
+  @parameterized.parameters('select_and_multiply', 'multiply_and_select')
+  def testMultitaskProjectionEinsumLayerFPropFullSequence(self, einsum_order):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
@@ -3201,6 +3204,7 @@ class MultitaskProjectionEinsumLayerTest(
       params.input_dim = 3
       params.output_dim = 2
       params.num_tasks = 2
+      params.einsum_order = einsum_order
 
       proj_layer = layers.MultitaskProjectionEinsumLayer(params)
       inputs = tf.constant(
@@ -6208,6 +6212,42 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       # and the same task ID.
       self.assertAllClose(actual[0][0], actual[2][0], rtol=1e-05, atol=1e-05)
       self.assertAllClose(expected_sum, actual_sum, rtol=1e-05, atol=1e-05)
+
+  @parameterized.parameters('select_and_multiply', 'multiply_and_select')
+  def testEinsumLayerEinsumOrder(self, einsum_order):
+    with self.session(use_gpu=True):
+      np.random.seed(1234567)
+      # Inputs are of shape [batch, 1, input_dim] (single time step)
+      # Batch elements 0, 2, and 3 are identical, but 0 and 2 have the same
+      # task ID where as 3 has a different task ID.
+      inputs = tf.constant(
+          [
+              [[0.5, 0.3, -0.2, 0.0]],
+              [[0.0, 0.7, -1.0, 2.0]],
+              [[0.5, 0.3, -0.2, 0.0]],
+              [[0.5, 0.3, -0.2, 0.0]],
+          ],
+          dtype=tf.float32,
+      )
+      tasks = tf.constant([1, 0, 1, 0], dtype=tf.int32)
+      p = layers.MultitaskAdapterEinsumLayer.Params().Set(
+          name='multi_adapter',
+          input_dim=4,
+          bottleneck_dim=2,
+          num_tasks=3,
+          einsum_order=einsum_order,
+          random_seed=505837249,
+      )
+      adapter = p.Instantiate()
+      output = adapter.FProp(adapter.theta, inputs, tasks)
+      self.evaluate(tf.global_variables_initializer())
+      actual, actual_sum = self.evaluate((output, tf.reduce_sum(output)))
+      tf.logging.info('testSingleStepFProp actual=%r' % actual)
+      self.assertEqual(actual.shape, (4, 1, 4))
+      # Batch elements 0 and 2 are equal because they had the same input
+      # and the same task ID.
+      self.assertAllClose(actual[0][0], actual[2][0], rtol=1e-05, atol=1e-05)
+      self.assertAllClose(3.675607, actual_sum, rtol=1e-05, atol=1e-05)
 
   def testEinsumLayerPerFrameBasic(self):
     """Using per-frame setup to produce the same results as per-utt test above.

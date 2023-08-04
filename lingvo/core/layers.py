@@ -1399,6 +1399,13 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
         'Whether or not to introduce the bias params to the layer.',
     )
     p.Define('bias_init', 0.0, 'Initial value for the bias')
+    p.Define(
+        'einsum_order',
+        'multiply_and_select',
+        'The order of performing selection and multiplication. If the '
+        'number of tasks is much smaller than the input dimension, using '
+        'multiply_and_select will be faster.',
+    )
     return p
 
   def __init__(self, params):
@@ -1409,6 +1416,18 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.output_dim) > 0
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.num_tasks) > 0
     assert p.activation == 'NONE' or activations.IsSupported(p.activation)
+    assert p.einsum_order in {
+        'select_and_multiply',
+        'multiply_and_select',
+    }, 'Expect einsum_order to be select_and_multiply or multiply_and_select.'
+    if p.input_dim < p.num_tasks and p.einsum_order == 'multiply_and_select':
+      tf.logging.warning(
+          'Setting einsum_order to select_and_multiply for effeciency.'
+      )
+    if p.input_dim > p.num_tasks and p.einsum_order == 'select_and_multiply':
+      tf.logging.warning(
+          'Setting einsum_order to multiply_and_select for effeciency.'
+      )
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -1460,63 +1479,48 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
     tasks = py_utils.HasShape(tasks, py_utils.GetShape(inputs, 1))
     p = self.params
     with tf.name_scope(p.name):
-      inputs, paddings, tasks = self._CastToFPropDtype(
-          (inputs, paddings, tasks)
-      )
-      w, b = self._GetWeights(theta, inputs, tasks)
-      out = self._ApplyProjectionKernel(w, b, inputs)
+      inputs = self._CastToFPropDtype(inputs)
+      out = self._ApplyProjectionKernel(theta, inputs, tasks)
       out = self._ApplyActivationFunction(out)
       return out
 
   def FPropFullSequence(self, theta, inputs, tasks, paddings):
     return self.FProp(theta, inputs, tasks, paddings)
 
-  def _GetWeights(self, theta, inputs, tasks):
-    """Gets the weights for the computation.
+  def _ApplyProjectionKernel(self, theta, inputs, tasks):
+    """Applies projection.
 
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      inputs: The inputs tensor.  Shaped [batch, ..., input_dim].
-      tasks: An int32 tensor containing the task ID for each input. [batch].
-
-    Returns:
-      Tuple of (w, b) to use for the forward pass. b may be None if bias is
-      disabled.
-    """
-    p = self.params
-    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=theta.w.dtype)
-
-    w = self.QWeight(theta.w)
-    w = self.ToAqtWeight('w', w, feature_axis=-1)
-    w = tf.einsum('bk,kio->bio', tasks_onehot, w)
-    w = self.FromAqtWeight('w', w)
-
-    if p.has_bias:
-      b = tf.einsum('bk,ko->bo', tasks_onehot, theta.b)
-    else:
-      b = None
-    # Cast to fprop_dtype.
-    fprop_dtype = py_utils.FPropDtype(p)
-    if w.dtype != fprop_dtype:
-      w = tf.cast(w, fprop_dtype)
-    if b is not None and b.dtype != fprop_dtype:
-      b = tf.cast(b, fprop_dtype)
-    return w, b
-
-  def _ApplyProjectionKernel(self, w, b, inputs):
-    """Applies projection.
-
-    Args:
-      w: Weight matrix.
-      b: Bias vector (or None).
       inputs: FProp inputs.
+      tasks: An int32 tensor containing the task ID for each input. [batch].
 
     Returns:
       Output tensor with projection applied.
     """
-    out = tf.einsum('b...y,byz->b...z', inputs, w)
+    p = self.params
+    b = theta.b if p.has_bias else None
+    w, b = self._CastToFPropDtype((theta.w, b))
+    w = self.QWeight(w)
+    w = self.ToAqtWeight('w', w, feature_axis=-1)
+    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=w.dtype)
+
+    t = 't' if py_utils.GetRank(inputs) == 3 else ''
+    if p.einsum_order == 'select_and_multiply':
+      w = tf.einsum('bk,kio->bio', tasks_onehot, w)
+      w = self.FromAqtWeight('w', w)
+      out = tf.einsum(f'b{t}i,bio->b{t}o', inputs, w)
+    elif p.einsum_order == 'multiply_and_select':
+      out = tf.einsum(f'b{t}i,kio->b{t}ko', inputs, w)
+      out = tf.einsum(f'b{t}ko,bk->b{t}o', out, tasks_onehot)
+    else:
+      raise ValueError(
+          'einsum_order must be select_and_multiply or multiply_and_select.'
+      )
+
     if b is not None:
+      b = tf.einsum('bk,ko->bo', tasks_onehot, b)
       if py_utils.GetRank(inputs) == 2:
         out += b
       elif py_utils.GetRank(inputs) == 3:
@@ -6350,6 +6354,13 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     p.Define(
         'up_projection_params_init', None, 'Init method for up projectionlayer.'
     )
+    p.Define(
+        'einsum_order',
+        'multiply_and_select',
+        'The order of performing selection and multiplication. If the '
+        'number of tasks is much smaller than the input dimension, using '
+        'multiply_and_select will be faster.',
+    )
     # Non-default quantization behavior for multiple weights in a layer.
     p.qdomain.Define('down_w', None, 'Quantization domain for the down_w.')
     p.qdomain.Define('up_w', None, 'Quantization domain for the up_w.')
@@ -6366,6 +6377,19 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     super().__init__(params)
     p = self.params
     assert p.data_format == 'BTC'
+    assert p.einsum_order in {
+        'select_and_multiply',
+        'multiply_and_select',
+    }, 'Expect einsum_order to be select_and_multiply or multiply_and_select.'
+    if p.input_dim < p.num_tasks and p.einsum_order == 'multiply_and_select':
+      tf.logging.warning(
+          'Setting einsum_order to select_and_multiply for effeciency.'
+      )
+    if p.input_dim > p.num_tasks and p.einsum_order == 'select_and_multiply':
+      tf.logging.warning(
+          'Setting einsum_order to multiply_and_select for effeciency.'
+      )
+
     if p.layer_norm_tpl is not None:
       params = p.layer_norm_tpl.Copy()
       params.input_dim = p.input_dim
@@ -6450,11 +6474,11 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     else:
       assert tasks.shape.ndims == 2, tasks.shape
 
-    # [batch, time, num_tasks] if p.per_frame_task_ids else [batch, num_tasks]
-    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
-
     if p.clip_task_ids:
       tasks = tf.clip_by_value(tasks, 0, p.num_tasks - 1)
+
+    # [batch, time, num_tasks] if p.per_frame_task_ids else [batch, num_tasks]
+    tasks_onehot = tf.one_hot(tasks, p.num_tasks, axis=-1, dtype=inputs.dtype)
 
     # Einsum axis names:
     # b - batch
@@ -6480,46 +6504,62 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     up_w = self.QWeight(theta.up_w, domain='up_w')
     up_w = self.ToAqtWeight('up_w', up_w, feature_axis=-1)
 
-    # TODO(sepand): All down and up variables can be created using gather ops
-    # instead of einsum with one_hot. That *may* be faster.
-    # [batch, {time,} input_dim, bottleneck_dim].
-    with tf.name_scope('down_w_einsum'):
-      # Can be replaced w/ a single gather if needed
-      down_w = tf.einsum(f'b{t}k,kin->b{t}in', tasks_onehot, down_w)
-      down_w = self.FromAqtWeight('down_w', down_w)
-
-    # [batch, {time,} 1, bottleneck_dim].
-    with tf.name_scope('down_b_einsum'):
-      # Can be replaced w/ a single gather if needed
-      down_b = tf.einsum(f'b{t}k,kn->b{t}n', tasks_onehot,
-                         theta.down_b)[b_broadcaster]
-
-    # [batch, {time,} bottleneck_dim, input_dim].
-    # Can be replaced w/ a single gather if needed
-    with tf.name_scope('up_w_einsum'):
-      up_w = tf.einsum(f'b{t}k,kni->b{t}ni', tasks_onehot, up_w)
-      up_w = self.FromAqtWeight('up_w', up_w)
-
-    # [batch, {time,} 1, input_dim].
-    # Can be replaced w/ a single gather if needed
-    with tf.name_scope('up_b_einsum'):
-      up_b = tf.einsum(f'b{t}k,ki->b{t}i', tasks_onehot,
-                       theta.up_b)[b_broadcaster]
-
     # Layer norm -> down-projection -> non-linearity -> up-projection
     if p.layer_norm_tpl is not None:
       with tf.name_scope('layer_norm_feed'):
         norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
     else:
       norm_inputs = inputs
-    # [batch, time, bottleneck_dim].
-    down_projected = tf.einsum(f'bti,b{t}in->btn', norm_inputs, down_w) + down_b
+
+    with tf.name_scope('down_w_einsum'):
+      if p.einsum_order == 'select_and_multiply':
+        # [batch, {time,} input_dim, bottleneck_dim].
+        down_w = tf.einsum(f'b{t}k,kin->b{t}in', tasks_onehot, down_w)
+        down_w = self.FromAqtWeight('down_w', down_w)
+        # [batch, time, bottleneck_dim].
+        down_projected = tf.einsum(f'bti,b{t}in->btn', norm_inputs, down_w)
+      elif p.einsum_order == 'multiply_and_select':
+        # [batch, time, task, bottleneck_dim]
+        down_projected = tf.einsum('bti,kin->btkn', norm_inputs, down_w)
+        # [batch, time, bottleneck_dim]
+        down_projected = tf.einsum(
+            f'btkn,b{t}k->btn', down_projected, tasks_onehot
+        )
+      else:
+        raise ValueError(
+            'einsum_order must be select_and_multiply or multiply_and_select.'
+        )
+    with tf.name_scope('down_b_einsum'):
+      # [batch, {time,} 1, bottleneck_dim].
+      down_b = tf.einsum(f'b{t}k,kn->b{t}n', tasks_onehot, theta.down_b)[
+          b_broadcaster
+      ]
     # ReLU.
-    down_projected = tf.nn.relu(down_projected)
-    # [batch, time, input_dim].
-    up_projected = tf.einsum(f'btn,b{t}ni->bti', down_projected, up_w) + up_b
-    up_projected *= p.residual_weight
+    down_projected = tf.nn.relu(down_projected + down_b)
+
+    with tf.name_scope('up_w_einsum'):
+      if p.einsum_order == 'select_and_multiply':
+        # [batch, {time,} bottleneck_dim, input_dim].
+        up_w = tf.einsum(f'b{t}k,kni->b{t}ni', tasks_onehot, up_w)
+        up_w = self.FromAqtWeight('up_w', up_w)
+        # [batch, time, input_dim].
+        up_projected = tf.einsum(f'btn,b{t}ni->bti', down_projected, up_w)
+      elif p.einsum_order == 'multiply_and_select':
+        # [batch, time, task, input_dim].
+        up_projected = tf.einsum('btn,kni->btki', down_projected, up_w)
+        # [batch, time, input_dim].
+        up_projected = tf.einsum(f'btki,b{t}k->bti', up_projected, tasks_onehot)
+      else:
+        raise ValueError(
+            'einsum_order must be select_and_multiply or multiply_and_select.'
+        )
+    # [batch, {time,} 1, input_dim].
+    with tf.name_scope('up_b_einsum'):
+      up_b = tf.einsum(f'b{t}k,ki->b{t}i', tasks_onehot, theta.up_b)[
+          b_broadcaster
+      ]
     # Residual.
+    up_projected = (up_projected + up_b) * p.residual_weight
     output = inputs + up_projected if p.apply_residual else up_projected
     return output
 
