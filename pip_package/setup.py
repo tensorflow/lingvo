@@ -44,8 +44,8 @@ REQUIRED_PACKAGES = [
     'sympy',
     'tensorflow-datasets',
     'tensorflow-hub',
-    'tensorflow-text~=2.9.0',
-    'tensorflow~=2.9.2',
+#    'tensorflow-text~=2.9.0',
+#    'tensorflow~=2.9.2',
 ]
 
 

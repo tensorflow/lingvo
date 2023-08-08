@@ -2,7 +2,7 @@
 
 def tf_copts():
     # TODO(drpng): autoconf this.
-    return ["-D_GLIBCXX_USE_CXX11_ABI=1", "-std=c++14", "-Wno-sign-compare", "-mavx"] + select({
+    return ["-D_GLIBCXX_USE_CXX11_ABI=1", "-std=c++17", "-Wno-sign-compare"] + select({
         "//lingvo:cuda": ["-DGOOGLE_CUDA=1"],
         "//conditions:default": [],
     })

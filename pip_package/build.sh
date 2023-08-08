@@ -30,7 +30,7 @@ set -e -x
 # Override the following env variables if necessary.
 export PYTHON_MINOR_VERSION="${PYTHON_MINOR_VERSION?python minor version required}"
 PYTHON="python3.${PYTHON_MINOR_VERSION}"
-update-alternatives --install /usr/bin/python3 python3 "/usr/bin/$PYTHON" 1
+#update-alternatives --install /usr/bin/python3 python3 "/usr/bin/$PYTHON" 1
 
 function write_to_bazelrc() {
   echo "$1" >> .bazelrc
@@ -44,7 +44,7 @@ function write_action_env_to_bazelrc() {
 [ -e .bazelrc ] && rm .bazelrc
 
 write_to_bazelrc "build -c opt"
-write_to_bazelrc 'build --copt=-mavx --host_copt=-mavx'
+#write_to_bazelrc 'build --copt=-mavx --host_copt=-mavx'
 write_to_bazelrc 'build --auto_output_filter=subpackages'
 write_to_bazelrc 'build --copt="-Wall" --copt="-Wno-sign-compare"'
 write_to_bazelrc 'build --linkopt="-lrt -lm"'
@@ -97,7 +97,7 @@ DST_DIR="/tmp/lingvo/dist"
 # Note: constraining our release to plat==manylinux2014_x86_64 to match TF.
 # This corresponds to our use of the devtoolset-9 toolchain.
 find "$DST_DIR" -name "*cp3${PYTHON_MINOR_VERSION}*.whl" |\
-  xargs -n1 ./third_party/auditwheel.sh repair --plat manylinux2014_x86_64 -w "$DST_DIR"
+  xargs -n1 ./third_party/auditwheel.sh repair --plat linux_aarch64 -w "$DST_DIR"
 
 rm .bazelrc
 
