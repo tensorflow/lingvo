@@ -41,13 +41,19 @@ from typing import (
     Union,
 )
 
-import lingvo.compat as tf
 from lingvo.core import hyperparams_pb2
+from lingvo.core import lazy_loader
 from lingvo.core import symbolic
 import numpy as np
 
 from google.protobuf import message
 from google.protobuf import text_format
+
+tf = lazy_loader.LazyLoader(
+    'tf',
+    globals(),
+    'lingvo.compat',
+)
 
 
 def _QuoteString(s):

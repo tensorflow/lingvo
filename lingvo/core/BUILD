@@ -227,6 +227,11 @@ py_test(
 )
 
 py_library(
+    name = "lazy_loader",
+    srcs = ["lazy_loader.py"],
+)
+
+py_library(
     name = "stream_step_test_base",
     srcs = ["stream_step_test_base.py"],
     deps = [
@@ -644,6 +649,7 @@ py_library(
     srcs = ["cluster.py"],
     deps = [
         ":hyperparams",
+        ":lazy_loader",
         ":nested_map",
         ":thread_local_utils",
         "//lingvo:compat",
@@ -836,6 +842,7 @@ pytype_library(
     srcs = ["hyperparams.py"],
     deps = [
         ":hyperparams_py_pb2",
+        ":lazy_loader",
         ":symbolic",
         # Implicit python proto dependency.
         "//lingvo:compat",
@@ -2634,6 +2641,7 @@ pytype_library(
     name = "nested_map",
     srcs = ["nested_map.py"],
     deps = [
+        ":lazy_loader",
         "//lingvo:compat",
     ],
 )

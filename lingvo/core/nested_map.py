@@ -30,10 +30,15 @@ from typing import (
     Tuple,
     TypeVar,
 )
-import lingvo.compat as tf
-# pylint: disable=g-direct-tensorflow-import
-from tensorflow.python.training.tracking import data_structures
-# pylint: enable=g-direct-tensorflow-import
+
+from absl import logging
+from lingvo.core import lazy_loader
+
+data_structures = lazy_loader.LazyLoader(
+    'data_structures',
+    globals(),
+    'tensorflow.python.training.tracking.data_structures',
+)
 
 _NAME_PATTERN = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 _SQUARE_BRACKET_PATTERN = re.compile(r'([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]')
@@ -524,7 +529,7 @@ class NestedMap(Dict[str, Any]):
     if prefix is None:
       prefix = 'nmap: '
     for l in self._ToStrings():
-      tf.logging.vlog(level, '%s %s', prefix, l)
+      logging.vlog(level, '%s %s', prefix, l)
 
   def __dir__(self) -> List[str]:
     """dir() that includes flattened keys in returned output."""

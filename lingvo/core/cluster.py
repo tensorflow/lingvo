@@ -18,12 +18,23 @@ import collections
 import contextlib
 import heapq
 import re
-import lingvo.compat as tf
+
 from lingvo.core import hyperparams
+from lingvo.core import lazy_loader
 from lingvo.core import nested_map
 from lingvo.core import thread_local_utils
 import numpy as np
 
+def ThisTestIsUsefulWithoutCallingMain(): pass  # placeholder for an internal implementation
+
+tf = lazy_loader.LazyLoader(
+    'tf',
+    globals(),
+    'lingvo.compat',
+)
+
+# Suppresses a check complaint caused by lazily importing TF
+ThisTestIsUsefulWithoutCallingMain()
 
 # Helper class to record the current infeed host we are working on.
 InfeedContext = collections.namedtuple(
