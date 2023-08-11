@@ -60,42 +60,54 @@ class Builder(batch_major_attention.Builder):
     ]
 
     if p.packed_input:
-      sub_list.append(
-          ('i.segment_mask->o.segment_mask', self._Id('mask')))
+      sub_list.append(('i.segment_mask->o.segment_mask', self._Id('mask')))
 
     return self._Graph(
         name,
         ['i'],  # input NestedMap with {vec, paddings, segment_mask}
         ['o'],  # output NestedMap with {vec, paddings, segment_mask}
-        *sub_list)
+        *sub_list
+    )
 
-  def _TransformerLayerBlock(self, name):
+  def _TransformerLayerBlock(self, name, feed_forward_qdomain=None):
     """(inputs, paddings) -> (encoded, paddings)."""
     return self._Seq(
         name,
         self.SelfAttention('self_atten'),
-        self.Feedforward('ff'))
+        self.Feedforward('ff', qdomain=feed_forward_qdomain),
+    )
 
-  def TransformerStack(self, name, num_layers=1):
+  def TransformerStack(self, name, num_layers=1, feed_forward_qdomain=None):
     """Returns a stack of num_layers self-attention layers."""
-    blocks = [self._TransformerLayerBlock(
-        'block_{}'.format(d)) for d in range(num_layers)]
+    blocks = [
+        self._TransformerLayerBlock(
+            'block_{}'.format(d), feed_forward_qdomain=feed_forward_qdomain
+        )
+        for d in range(num_layers)
+    ]
     return self._MaybeSplit(name, blocks) or (
-        self._Rep(name, num_layers, self._TransformerLayerBlock('block')))
+        self._Rep(name, num_layers, self._TransformerLayerBlock('block'))
+    )
 
-  def _StridedTransformerLayerBlock(self, name, *, stride=1, first_n=None):
+  def _StridedTransformerLayerBlock(
+      self, name, *, stride=1, first_n=None, feed_forward_qdomain=None
+  ):
     """(inputs, paddings) -> (encoded, paddings)."""
     return self._Seq(
         name,
         self._StridedAttention('self_atten', stride=stride, first_n=first_n),
-        self.Feedforward('ff'))
+        self.Feedforward('ff', qdomain=feed_forward_qdomain),
+    )
 
-  def TransformerStackV2(self,
-                         name,
-                         num_layers=1,
-                         *,
-                         final_layer_first_n=None,
-                         final_layer_stride=1):
+  def TransformerStackV2(
+      self,
+      name,
+      num_layers=1,
+      *,
+      final_layer_first_n=None,
+      final_layer_stride=1,
+      feed_forward_qdomain=None
+  ):
     """Returns a stack of num_layers self-attention layers."""
     blocks = []
     for i in range(num_layers):
@@ -107,7 +119,13 @@ class Builder(batch_major_attention.Builder):
           self._Seq(
               'iter_%03d' % i,
               self._StridedTransformerLayerBlock(
-                  'block', stride=stride, first_n=first_n)))
+                  'block',
+                  stride=stride,
+                  first_n=first_n,
+                  feed_forward_qdomain=feed_forward_qdomain,
+              ),
+          )
+      )
     return self._MaybeSplit(name, blocks) or self._Seq(name, *blocks)
 
 
