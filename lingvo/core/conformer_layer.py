@@ -1145,6 +1145,7 @@ class ConformerLayer(base_layer.BaseLayer):
         )
       adapter_in_nmap = in_nmap.DeepCopy()
       adapter_in_nmap.features = features
+      adapter_in_nmap.paddings = paddings
       features, paddings, aux_loss = self._MoeOrFFLayer(
           theta,
           'fflayer_end',
