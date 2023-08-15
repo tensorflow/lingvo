@@ -644,7 +644,7 @@ def get_input_partition_specs(mesh_axis_names, inputs_shape):
 
 
 def train_state_for_eval_step(state_with_opt_states):
-  return TrainState(
+  return TrainState(  # pytype: disable=wrong-arg-types  # dataclass_transform
       step=state_with_opt_states.step,
       mdl_vars=state_with_opt_states.mdl_vars,
       opt_states={})

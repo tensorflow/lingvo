@@ -172,7 +172,7 @@ class SingleTask(BaseTask):
             grad_tx.init_partition_spec(var_weight_params))
       opt_shapes = jax.tree_map(_get_shape, opt_var_weight_params)
     step_shapes = ()
-    return TrainState(
+    return TrainState(  # pytype: disable=wrong-arg-types  # dataclass_transform
         step=step_shapes, mdl_vars=var_shapes, opt_states=opt_shapes)
 
   def create_train_state_partition_specs(self,

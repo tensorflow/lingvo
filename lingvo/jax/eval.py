@@ -56,7 +56,7 @@ def maybe_ema(model_states):
     return model_states
   for i in range(len(model_states.opt_states[0])):
     if 'ema' in model_states.opt_states[0][i]:
-      return TrainState(
+      return TrainState(  # pytype: disable=wrong-arg-types  # dataclass_transform
           step=model_states.step,
           mdl_vars=model_states.opt_states[0][i].ema,  # pytype: disable=attribute-error  # jax-ndarray
           opt_states={})
