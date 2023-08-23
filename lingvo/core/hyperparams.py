@@ -23,6 +23,7 @@ import inspect
 import pickle
 import re
 import sys
+import types
 import typing
 from typing import (
     Any,
@@ -563,7 +564,7 @@ class Params:
         param_pb.dict_val.SetInParent()
         for k, v in val.items():
           param_pb.dict_val.items[k].CopyFrom(_ToParamValue(f'{key}[{k}]', v))
-      elif isinstance(val, type):
+      elif isinstance(val, type | types.FunctionType):
         param_pb.type_val = inspect.getmodule(val).__name__ + '/' + val.__name__
       elif isinstance(val, tf.DType):
         param_pb.dtype_val = val.name
@@ -824,7 +825,7 @@ class Params:
         proto_str = text_format.MessageToString(val, as_one_line=True)
         return 'proto/%s/%s/%s' % (inspect.getmodule(val).__name__,
                                    type(val).__name__, proto_str)
-      if isinstance(val, type):
+      if isinstance(val, type | types.FunctionType):
         return 'type/' + inspect.getmodule(val).__name__ + '/' + val.__name__
       return type(val).__name__
 
@@ -847,23 +848,23 @@ class Params:
       return False
 
     kv = {}
-    types = {}
+    value_types = {}
 
     def _Visit(key: str, p: Any) -> None:
       """Inserts key-value pairs to 'kv'."""
       if isinstance(p, str):
         kv[key] = _QuoteString(p)
-        types[key] = 'str'
+        value_types[key] = 'str'
       else:
         kv[key] = str(GetRepr(p))
-        types[key] = type(p).__name__
+        value_types[key] = type(p).__name__
 
     self.Visit(_Visit, enter_fn=_Enter)
     ret = ''
     for (k, v) in sorted(kv.items()):
       ret += k + f' {separator} ' + v + '\n'
 
-    return (ret, types) if include_types else ret
+    return (ret, value_types) if include_types else ret
 
   def FromText(self: ParamsT,
                text: str,
@@ -978,8 +979,11 @@ class Params:
           raise ValueError('Expected enum of class %s but got %s' %
                            (val_type, cls))
         return type(old_val)[name]
-      elif (isinstance(old_val, type) or isinstance(old_val, message.Message) or
-            old_val is None):
+      elif (
+          isinstance(old_val, type | types.FunctionType)
+          or isinstance(old_val, message.Message)
+          or old_val is None
+      ):
         if val == 'NoneType':
           return None
         elif old_val is None and val in ('False', 'false'):
@@ -1011,22 +1015,22 @@ class Params:
 
   def ToTextWithTypes(self) -> str:
     """Same as ToText but encodes both params and their types."""
-    text, types = self.ToText(include_types=True)
+    text, value_types = self.ToText(include_types=True)  # pylint: disable=unpacking-non-sequence
     text += '\n\n'
-    for (k, v) in sorted(types.items()):
+    for k, v in sorted(value_types.items()):
       text += k + ' : ' + v + '\n'
     return text
 
   def FromTextWithTypes(self: ParamsT, text: str) -> ParamsT:
     """Same as FromText but expects to have types encoded in the text."""
     text, types_str = text.split('\n\n')
-    types = {}
+    value_types = {}
     for row in types_str.split('\n'):
       if not row:
         continue
       k, v = row.split(':')
-      types[k.strip()] = v.strip()
-    return self.FromText(text, type_overrides=types)
+      value_types[k.strip()] = v.strip()
+    return self.FromText(text, type_overrides=value_types)
 
   def TextDiff(self: ParamsT, other: ParamsT) -> str:
     """Return the differences between this object and another as a string.

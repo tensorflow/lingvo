@@ -37,6 +37,10 @@ class TestClass2:
   pass
 
 
+def TestFunction():
+  """This function is used in ParamsTest.testToText as a value of a variable."""
+
+
 class TestEnum(enum.Enum):
   """Test enum class."""
   A = 1
@@ -459,6 +463,7 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('list_of_params', [inner.Copy()], '')
     outer.Define('list_of_tuple_params', [('inner1', inner.Copy())], '')
     outer.Define('class', TestClass1, '')
+    outer.Define('function', TestFunction, '')
     outer.Define('plain_dict', {'a': 10}, '')
     outer.Define('complex_dict', {'a': 10, 'b': inner}, '')
     outer.Define('complex_dict_escape', {'a': 'abc"\'\ndef'}, '')
@@ -477,7 +482,8 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('proto', hyperparams_pb2.HyperparamValue(int_val=42), '')
 
     self.assertEqual(
-        '\n' + outer.ToText(), r"""
+        '\n' + outer.ToText(),
+        r"""
 class : type/__main__/TestClass1
 complex_dict : {'a': 10, 'b': {'bar': 2.71, 'baz': 'hello'}}
 complex_dict_escape : {'a': 'abc"\'
@@ -491,6 +497,7 @@ dtype : float32
 dtype2 : int32
 enum : TestEnum.B
 foo : 1
+function : type/__main__/TestFunction
 inner.bar : 2.71
 inner.baz : 'hello'
 list_of_params[0].bar : 2.71
@@ -506,7 +513,8 @@ seqlen : [10, {'bar': 2.71, 'baz': 'hello'}, 30]
 some_class : complex
 tau : False
 tuple : (1, 'NoneType')
-""")
+""",
+    )
 
     outer.FromText("""
         dataclass : {'a': 27, 'b': 'int32'}
@@ -533,7 +541,8 @@ tuple : (1, 'NoneType')
 
     # Note that the 'hello' has turned into 'world'!
     self.assertEqual(
-        '\n' + outer.ToText(), r"""
+        '\n' + outer.ToText(),
+        r"""
 class : type/__main__/TestClass2
 complex_dict : {'a': 10, 'b': {'bar': 2.71, 'baz': 'world'}}
 complex_dict_escape : {'a': 'abc"\'
@@ -547,6 +556,7 @@ dtype : float32
 dtype2 : float32
 enum : TestEnum.A
 foo : 1
+function : type/__main__/TestFunction
 inner.bar : 2.71
 inner.baz : 'world'
 list_of_params[0].bar : 2.72
@@ -562,7 +572,8 @@ seqlen : [1, 2.0, '3', [4]]
 some_class : complex
 tau : True
 tuple : (2, 3)
-""")
+""",
+    )
     self.assertEqual(outer.dataclass.b, tf.int32)
     self.assertEqual(outer.namedtuple.b, tf.int32)
     self.assertEqual(outer.namedtuple2.dtype, tf.int32)
