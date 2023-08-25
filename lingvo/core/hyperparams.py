@@ -564,7 +564,7 @@ class Params:
         param_pb.dict_val.SetInParent()
         for k, v in val.items():
           param_pb.dict_val.items[k].CopyFrom(_ToParamValue(f'{key}[{k}]', v))
-      elif isinstance(val, type | types.FunctionType):
+      elif isinstance(val, type) or isinstance(val, types.FunctionType):
         param_pb.type_val = inspect.getmodule(val).__name__ + '/' + val.__name__
       elif isinstance(val, tf.DType):
         param_pb.dtype_val = val.name
@@ -825,7 +825,7 @@ class Params:
         proto_str = text_format.MessageToString(val, as_one_line=True)
         return 'proto/%s/%s/%s' % (inspect.getmodule(val).__name__,
                                    type(val).__name__, proto_str)
-      if isinstance(val, type | types.FunctionType):
+      if isinstance(val, type) or isinstance(val, types.FunctionType):
         return 'type/' + inspect.getmodule(val).__name__ + '/' + val.__name__
       return type(val).__name__
 
@@ -980,7 +980,8 @@ class Params:
                            (val_type, cls))
         return type(old_val)[name]
       elif (
-          isinstance(old_val, type | types.FunctionType)
+          isinstance(old_val, type)
+          or isinstance(old_val, types.FunctionType)
           or isinstance(old_val, message.Message)
           or old_val is None
       ):
