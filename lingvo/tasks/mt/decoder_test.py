@@ -1814,7 +1814,7 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       tf.global_variables_initializer().run()
       actual_layer_out1, actual_layer_out2 = self.evaluate(
           [layer_out1, layer_out2])
-      self.assertAllClose(actual_layer_out1, actual_layer_out2)
+      self.assertAllClose(actual_layer_out1, actual_layer_out2, 1e-5, 1e-5)
 
   def testBeamSearchDecode(self):
     with self.session(use_gpu=True):

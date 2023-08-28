@@ -23,7 +23,7 @@ export DOCKER_BUILDKIT=1
 # the Tensorflow toolchains.
 #   Note: Use --progress=plain to output all logs persistantly.
 #         Use --no-cache if the only changes you make are in dev.requirements.txt
-docker build --tag tensorflow:lingvo_wheelhouse --no-cache \
+docker build --tag tensorflow:lingvo_wheelhouse --no-cache --progress=plain \
   -f pip_package/build.Dockerfile .
 
 docker run --rm -it \

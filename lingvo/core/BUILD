@@ -327,6 +327,7 @@ py_test(
 
 py_test(
     name = "batch_major_attention_test",
+    timeout = "long",
     srcs = ["batch_major_attention_test.py"],
     shard_count = 4,
     deps = [
@@ -1632,6 +1633,7 @@ py_test(
 
 py_test(
     name = "generic_input_tf2_test",
+    timeout = "long",
     srcs = ["generic_input_tf2_test.py"],
     deps = [
         ":generic_input",

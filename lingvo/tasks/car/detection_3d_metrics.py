@@ -24,9 +24,7 @@ import matplotlib.colors as matplotlib_colors
 import matplotlib.patches as matplotlib_patches
 import matplotlib.patheffects as path_effects
 import numpy as np
-from PIL import Image
-from PIL import ImageDraw
-from PIL import ImageFont
+import PIL
 from tensorboard.plugins.mesh import summary as mesh_summary
 
 
@@ -244,15 +242,15 @@ class TopDownVisualizationMetric(metrics.BaseMetric):
     """Draw the difficulty values on each ground truth box."""
     batch_size = np.shape(images)[0]
     try:
-      font = ImageFont.truetype('arial.ttf', size=20)
+      font = PIL.ImageFont.truetype('arial.ttf', size=20)
     except IOError:
-      font = ImageFont.load_default()
+      font = PIL.ImageFont.load_default()
 
     for batch_id in range(batch_size):
       image = images[batch_id, :, :, :]
       original_image = image
-      image = Image.fromarray(np.uint8(original_image)).convert('RGB')
-      draw = ImageDraw.Draw(image)
+      image = PIL.Image.fromarray(np.uint8(original_image)).convert('RGB')
+      draw = PIL.ImageDraw.Draw(image)
       difficulty_vector = difficulties[batch_id]
       box_data = gt_bboxes[batch_id]
 
@@ -262,20 +260,25 @@ class TopDownVisualizationMetric(metrics.BaseMetric):
           continue
         center_x = box_data[box_id, 0]
         center_y = box_data[box_id, 1]
-        difficulty_value = str(difficulty_vector[box_id])
+        difficulty_value_str = str(difficulty_vector[box_id])
 
         # Draw a rectangle background slightly larger than the text.
-        text_width, text_height = font.getsize(difficulty_value)
+        _, _, text_width, text_height = font.getbbox(difficulty_value_str)
         draw.rectangle(
-            [(center_x - text_width / 1.8, center_y - text_height / 1.8),
-             (center_x + text_width / 1.8, center_y + text_height / 1.8)],
-            fill='darkcyan')
+            [
+                (center_x - text_width / 1.8, center_y - text_height / 1.8),
+                (center_x + text_width / 1.8, center_y + text_height / 1.8),
+            ],
+            fill='darkcyan',
+        )
 
         # Center the text in the rectangle
-        draw.text((center_x - text_width / 2, center_y - text_height / 2),
-                  str(difficulty_value),
-                  fill='lightcyan',
-                  font=font)
+        draw.text(
+            (center_x - text_width / 2, center_y - text_height / 2),
+            difficulty_value_str,
+            fill='lightcyan',
+            font=font,
+        )
       np.copyto(original_image, np.array(image))
 
 

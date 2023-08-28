@@ -19,10 +19,10 @@
 pip install patchelf
 
 PYTHON_MINOR_VERSION=10 pip_package/build.sh \
-	--crosstool_top=@sigbuild-r2.9-python3.10_config_cuda//crosstool:toolchain
+	--crosstool_top=@sigbuild-r2.13-python3.10_config_cuda//crosstool:toolchain
 
 PYTHON_MINOR_VERSION=9 pip_package/build.sh \
-	--crosstool_top=@sigbuild-r2.9-python3.9_config_cuda//crosstool:toolchain
+	--crosstool_top=@sigbuild-r2.13-python3.9_config_cuda//crosstool:toolchain
 
 PYTHON_MINOR_VERSION=8 pip_package/build.sh \
-	--crosstool_top=@sigbuild-r2.9-python3.8_config_cuda//crosstool:toolchain
+	--crosstool_top=@sigbuild-r2.13-python3.8_config_cuda//crosstool:toolchain

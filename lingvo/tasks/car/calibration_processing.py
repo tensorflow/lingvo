@@ -194,7 +194,7 @@ class CalibrationCalculator:
       def _CalibrationSetter(fig, axes):
         """Configure the plot for calibration."""
         ticks = np.arange(0, 1.05, 0.1)
-        axes.grid(b=False)
+        axes.grid(False)
         axes.set_xlabel('Predicted accuracy')
         axes.set_xticks(ticks)
         axes.set_ylabel('Empirical accuracy')

@@ -189,7 +189,6 @@ cc_library(
           "googletest/src/gtest-all.cc",
           "googlemock/src/gmock-all.cc",
     ],
-    copts = ["-D_GLIBCXX_USE_CXX11_ABI=1"],
     hdrs = glob([
         "**/*.h",
         "googletest/src/*.cc",
@@ -207,7 +206,6 @@ cc_library(
 
 cc_library(
     name = "gtest_main",
-    copts = ["-D_GLIBCXX_USE_CXX11_ABI=1"],
     srcs = ["googlemock/src/gmock_main.cc"],
     linkopts = ["-pthread"],
     visibility = ["//visibility:public"],
@@ -232,9 +230,9 @@ filegroup(
 )
 """,
         urls = [
-            "https://github.com/protocolbuffers/protobuf/releases/download/v3.9.2/protoc-3.9.2-linux-x86_64.zip",
+            "https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip",
         ],
-        sha256 = "0d9034a3b02bd77edf5ef926fb514819a0007f84252c5e6a6391ddfc4189b904",
+        sha256 = "3cd951aff8ce713b94cde55e12378f505f2b89d47bf080508cf77e3934f680b6",
     )
 
 def icu():

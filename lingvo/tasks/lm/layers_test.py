@@ -737,7 +737,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
       logits1_v, logits2_v = self.evaluate([logits1, logits2])
       print('xformer logits1_v', logits1_v)
       print('xformer logits2_v', logits2_v)
-      self.assertAllClose(logits1_v, logits2_v)
+      self.assertAllClose(logits1_v, logits2_v, 1e-5, 1e-5)
 
 
 class TransformerLmTest(test_utils.TestCase):

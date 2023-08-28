@@ -8,7 +8,7 @@
 #   ❯ ./pip_package/invoke_build_per_interpreter.sh
 
 
-ARG base_image="tensorflow/build:2.10-python3.9"
+ARG base_image="tensorflow/build:2.13-python3.9"
 FROM $base_image
 LABEL maintainer="Lingvo team <lingvo-bot@google.com>"
 
@@ -16,6 +16,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install supplementary Python interpreters
 RUN mkdir /tmp/python
+# Temporarily remote nvidia as their apt repo seems broken.
+#   See: https://forums.developer.nvidia.com/t/unable-to-add-apt-repo-mirror-sync-in-progress/263504
+RUN mv /etc/apt/sources.list.d/cuda.list ~/cuda.list.bak
 RUN --mount=type=cache,target=/var/cache/apt \
   apt update && \
   apt install -yqq \
@@ -27,6 +30,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
     libc6-dev \
     libffi-dev \
     libgdbm-dev \
+    lzma \
+    liblzma-dev \
     libncursesw5-dev \
     libreadline-gplv2-dev \
     libsqlite3-dev \
@@ -49,27 +54,45 @@ RUN for v in 3.8.15 3.10.0; do \
   done
 
 # For each python interpreter, install pip dependencies needed for lingvo
-# TF version is fixed at 2.9.
+# TF version is fixed at 2.13.
 RUN --mount=type=cache,target=/root/.cache \
   for p in 3.8 3.9 3.10; do \
     python${p} -m pip install -U pip && \
     python${p} -m pip install -U \
       attrs \
+      apache-beam \
+  	  backports.lzma \
+      contextlib2 \
+      dataclasses \
+      google-api-python-client \
       auditwheel \
       dill \
       freezegun \
       graph-compression-google-research \
+      h5py \
+      ipykernel \
+      jupyter \
+      jupyter_http_over_ws \
       grpcio \
       matplotlib \
       mock \
       model-pruning-google-research \
       numpy \
+      oauth2client \
+      pandas \
+      Pillow \
+      pyyaml \
+      recommonmark \
+      scikit-learn \
       scipy \
       sentencepiece \
+      sphinx \
+      sphinx_rtd_theme \
+      sympy \
       setuptools \
       sympy \
       twine \
-      tensorflow~=2.9.2 tensorflow-text~=2.9.0 tensorflow-datasets; \
+      tensorflow~=2.13.0 tensorflow-text~=2.13.0 tensorflow-datasets tensorflow-probability; \
   done
 
 COPY pip_package/devel.bashrc /root/devel.bashrc

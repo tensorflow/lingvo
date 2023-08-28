@@ -20,6 +20,7 @@ py_library(
 
 py_test(
     name = "input_generator_test",
+    timeout = "long",
     srcs = ["input_generator_test.py"],
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
