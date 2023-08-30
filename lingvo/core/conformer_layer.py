@@ -377,6 +377,8 @@ class LConvLayer(base_layer.BaseLayer):
       inputs, paddings, norm_state1 = self.norm.StreamStep(
           theta.norm, inputs, paddings, state0.norm_state)
       state1.norm_state = norm_state1
+    elif isinstance(self.norm, bn_layers.BatchNormLayer):
+      inputs = self.norm.FProp(theta.norm, inputs)
     elif isinstance(self.norm, layers.LayerNorm):
       inputs = self.norm.FProp(theta.norm, inputs)
     else:

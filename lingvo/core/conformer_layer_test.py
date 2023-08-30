@@ -72,6 +72,8 @@ class LConvLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
         input_dim=input_dim, is_causal=True, kernel_size=kernel)
     if norm_type == 'ln':
       p.conv_norm_layer_tpl = lingvo_layers.LayerNorm.Params()
+    elif norm_type == 'bn':
+      p.conv_norm_layer_tpl = bn_layers.BatchNormLayer.Params()
     else:
       p.conv_norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
           num_groups=2, cumulative=True)
@@ -90,12 +92,13 @@ class LConvLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):
   @parameterized.named_parameters(
       ('Basic',),
       ('BasicGN', False, 'gn'),
+      ('BasicBN', False, 'bn'),
       ('SkipNorm', True),
   )
   def testLeftContext(self, testonly_skip_norm_layers=False, norm_type='ln'):
     with flagsaver.flagsaver(testonly_skip_norm_layers=testonly_skip_norm_layers
                             ), cluster_factory.SetEval(True):
-      assert norm_type in ('ln', 'gn')
+      assert norm_type in ('ln', 'gn', 'bn')
       input_dim, kernel = 2, 3
       self._TestStreamStepHelper(
           num_heads=2, input_dim=input_dim, kernel=kernel, norm_type=norm_type)
