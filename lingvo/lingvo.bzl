@@ -1,8 +1,7 @@
 """Implements custom rules for Lingvo."""
 
 def tf_copts():
-    # TODO(drpng): autoconf this.
-    return ["-std=c++17", "-Wno-sign-compare", "-mavx"] + select({
+    return select({
         "//lingvo:cuda": ["-DGOOGLE_CUDA=1"],
         "//conditions:default": [],
     })

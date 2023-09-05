@@ -44,7 +44,7 @@ function write_action_env_to_bazelrc() {
 [ -e .bazelrc ] && rm .bazelrc
 
 write_to_bazelrc "build -c opt"
-write_to_bazelrc 'build --copt=-mavx --host_copt=-mavx'
+[[ $(uname -m) == "x86_64" ]] && write_to_bazelrc 'build --copt=-mavx --host_copt=-mavx'
 write_to_bazelrc 'build --cxxopt=-std=c++17'
 write_to_bazelrc 'build --auto_output_filter=subpackages'
 write_to_bazelrc 'build --copt="-Wall" --copt="-Wno-sign-compare"'
@@ -97,8 +97,10 @@ DST_DIR="/tmp/lingvo/dist"
 
 # Note: constraining our release to plat==manylinux2014_x86_64 to match TF.
 # This corresponds to our use of the devtoolset-9 toolchain.
-find "$DST_DIR" -name "*cp3${PYTHON_MINOR_VERSION}*.whl" |\
-  xargs -n1 ./third_party/auditwheel.sh repair --plat manylinux2014_x86_64 -w "$DST_DIR"
+if [[ $(uname -m) == "x86_64" ]]; then
+  find "$DST_DIR" -name "*cp3${PYTHON_MINOR_VERSION}*.whl" |\
+    xargs -n1 ./third_party/auditwheel.sh repair --plat manylinux2014_x86_64 -w "$DST_DIR"
+fi
 
 rm .bazelrc
 
