@@ -594,12 +594,14 @@ def CausalSelfAttenPadding(seqlen, dtype):
     rows = tf.expand_dims(tf.range(seqlen), -1)
     # [1, N]
     cols = tf.expand_dims(tf.range(seqlen), 0)
-    row_cols = rows - cols
-    return tf.where(row_cols < 0, tf.ones([seqlen, seqlen], dtype),
-                    tf.zeros([seqlen, seqlen], tf.float32))
+    return tf.cast(rows < cols, dtype=dtype)
   else:
-    return 1.0 - tf.linalg.band_part(
-        tf.ones([seqlen, seqlen], dtype=dtype), -1, 0)
+    return tf.cast(
+        tf.logical_not(
+            tf.linalg.band_part(tf.ones([seqlen, seqlen], dtype=tf.bool), -1, 0)
+        ),
+        dtype=dtype,
+    )
 
 
 def outside_all_rewrites():  # pylint: disable=invalid-name
