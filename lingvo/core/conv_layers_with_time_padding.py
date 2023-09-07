@@ -960,7 +960,7 @@ class PaddingLayer(base_layer.BaseLayer):
 
   def FProp(self, theta, inputs, paddings):
     paddings_expanded = tf.expand_dims(tf.expand_dims(paddings, -1), -1)
-    return inputs * (1.0 - paddings_expanded), paddings
+    return py_utils.ApplyPadding(paddings_expanded, inputs), paddings
 
 
 class GlobalPoolingLayer(base_layer.BaseLayer):
