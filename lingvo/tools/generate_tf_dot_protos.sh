@@ -31,7 +31,3 @@ mkdir -p ${dest}/tensorflow/core/framework
 mkdir -p ${dest}/tensorflow/core/protobuf
 
 ${binary} ${dest}
-
-# genrule requires statically determined outputs, so we package all
-# into a single file.
-tar -C ${dest} -cf ${dest}/tf_protos.tar tensorflow/core/{framework,protobuf}

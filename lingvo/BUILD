@@ -5,7 +5,8 @@ load(
 
 # Placeholder: load py_library
 # Placeholder: load py_test
-load("//lingvo:lingvo.bzl", "pytype_library", "pytype_strict_library")
+load("//lingvo:lingvo.bzl", "pytype_library", "pytype_strict_library",
+     "WELL_KNOWN_PROTO_LIBS")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -327,10 +328,38 @@ lingvo_py_binary(
     ],
 )
 
+TF_PROTOS = [
+    "tensorflow/core/framework/tensor.proto",
+    "tensorflow/core/framework/versions.proto",
+    "tensorflow/core/framework/op_def.proto",
+    "tensorflow/core/framework/resource_handle.proto",
+    "tensorflow/core/framework/function.proto",
+    "tensorflow/core/framework/graph_debug_info.proto",
+    "tensorflow/core/framework/node_def.proto",
+    "tensorflow/core/framework/graph.proto",
+    "tensorflow/core/framework/attr_value.proto",
+    "tensorflow/core/framework/variable.proto",
+    "tensorflow/core/framework/full_type.proto",
+    "tensorflow/core/framework/tensor_shape.proto",
+    "tensorflow/core/framework/types.proto",
+    "tensorflow/core/protobuf/trackable_object_graph.proto",
+    "tensorflow/core/protobuf/saver.proto",
+    "tensorflow/core/protobuf/struct.proto",
+    "tensorflow/core/protobuf/saved_object_graph.proto",
+    "tensorflow/core/protobuf/meta_graph.proto",
+]
+
+proto_library(
+    name = "tf_protos",
+    srcs = TF_PROTOS,
+    strip_import_prefix = "/lingvo",
+    deps = WELL_KNOWN_PROTO_LIBS,
+)
+
 genrule(
     name = "tf_dot_protos",
     srcs = [],
-    outs = ["tf_protos.tar"],
+    outs = TF_PROTOS,
     cmd =
         "$(location //lingvo/tools:" +
         "generate_tf_dot_protos) $(location " +
