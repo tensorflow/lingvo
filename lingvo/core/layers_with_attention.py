@@ -293,17 +293,22 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       ], query_vec)
       # Prepares mask for self-attention
       # Padding is complemented, so time indexes that we want to mask out
-      # receive padding weight 1.0.
+      # receive padding value true.
       if p.mask_type == 'future':
-        padding = py_utils.CausalSelfAttenPadding(
-            target_time, dtype=py_utils.FPropDtype(p))
+        padding = py_utils.CausalSelfAttenPadding(target_time, dtype=tf.bool)
       elif p.mask_type == 'eye':
-        padding = tf.eye(target_time, target_time, dtype=py_utils.FPropDtype(p))
+        padding = tf.eye(target_time, target_time, dtype=tf.bool)
       elif p.mask_type == 'ngram':  # Maybe apply N-gram mask.
         assert p.mask_ngram_order
-        padding = 1.0 - tf.linalg.band_part(
-            tf.ones([target_time, target_time], dtype=py_utils.FPropDtype(p)),
-            tf.minimum(p.mask_ngram_order - 1, target_time - 1), 0)
+        padding = tf.logical_not(
+            tf.linalg.band_part(
+                tf.ones([target_time, target_time], dtype=tf.bool),
+                tf.minimum(p.mask_ngram_order - 1, target_time - 1),
+                0,
+            )
+        )
+      else:
+        raise ValueError('Unsupported mask type.')
 
       # [time,  batch, time]
       causal_padding = tf.tile(tf.expand_dims(padding, 1), [1, target_bs, 1])
