@@ -5369,6 +5369,9 @@ class TransformerLayer(base_layer.BaseLayer):
       The fflayer output with shape [target_batch, target_time, dim].
       atten_probs: A NestedMap with keys `self_atten` <float>[B, N, T, T], and
       `aux_atten` (optional): <float>[B, N, T, S].
+      The following variable is returned only if self.self_atten is an instance
+      of FunnelTransformerAttentionLayer:
+      paddings: [target_batch, target_time // funnel pooling rate].
     """
     p = self.params
     if p.compute_flops:
@@ -5392,13 +5395,24 @@ class TransformerLayer(base_layer.BaseLayer):
                                               'for packed input.')
 
     with tf.name_scope('self_atten'):
-      atten_vec, self_atten_probs = self.self_atten.FProp(
-          theta.self_atten,
-          query_vec,
-          None,
-          paddings,
-          segment_mask=segment_mask,
-          per_step_padding_override=per_step_padding_override)
+      if isinstance(self.self_atten, FunnelTransformerAttentionLayer):
+        atten_vec, paddings, self_atten_probs = self.self_atten.FProp(
+            theta.self_atten,
+            query_vec,
+            None,
+            paddings,
+            segment_mask=segment_mask,
+            per_step_padding_override=per_step_padding_override,
+        )
+      else:
+        atten_vec, self_atten_probs = self.self_atten.FProp(
+            theta.self_atten,
+            query_vec,
+            None,
+            paddings,
+            segment_mask=segment_mask,
+            per_step_padding_override=per_step_padding_override,
+        )
       atten_probs = py_utils.NestedMap(self_atten=self_atten_probs)
 
     if p.has_aux_atten and aux_vec is not None:
@@ -5434,7 +5448,17 @@ class TransformerLayer(base_layer.BaseLayer):
 
     # Finally the feed-forward layer.
     with tf.name_scope('fflayer'):
-      return self.fflayer.FProp(theta.fflayer, atten_vec, paddings), atten_probs
+      if isinstance(self.self_atten, FunnelTransformerAttentionLayer):
+        return (
+            self.fflayer.FProp(theta.fflayer, atten_vec, paddings),
+            atten_probs,
+            paddings,
+        )
+      else:
+        return (
+            self.fflayer.FProp(theta.fflayer, atten_vec, paddings),
+            atten_probs,
+        )
 
   def InitStates(self, theta, target_batch_size, target_max_length):
     return self.self_atten.InitStates(theta.self_atten, target_batch_size,
@@ -5495,6 +5519,9 @@ class TransformerLayer(base_layer.BaseLayer):
       key   - [target_time, target_batch, num_heads, dim_per_head].
       value - [target_time, target_batch, num_heads, dim_per_head].
     """
+    assert not isinstance(
+        self.self_atten, FunnelTransformerAttentionLayer
+    ), 'Funnel pooling is not supported in autoregressive transformer decoding.'
     target_batch, _, dim = py_utils.GetShape(query_vec, 3)
     query_vec = py_utils.HasShape(query_vec, [target_batch, 1, dim])
 
@@ -5896,6 +5923,15 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         'A template of TransformerLayer.params, can be a list of params '
         'of length equal to the num_layers or a factor of num_layers.'
         'For a factor, the params are tiled as [a, a, ..., b, b,...,].')
+    p.Define('funnel_pool_strides', None, 'Stride list for conformer blocks.')
+    p.Define(
+        'funnel_pool_begin_intacts',
+        None,
+        'List of begin_intract for'
+        'conformer blocks. begin_intract is the number of starting tokens'
+        'which we do not apply pooling to, i.e.'
+        'y = concat([x[:, :begin_intact], pool(x[:, begin_intact:])])',
+    )
     p.Define('final_layer_norm', False,
              'If true, apply layer normalization to the final output.')
     p.Define('packed_input', False,
@@ -5984,6 +6020,18 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       p_ii.input_dim = p.mdl_dim or p_ii.input_dim
       p_ii.output_dim = p.mdl_dim or p_ii.output_dim
       p_ii.packed_input = p.packed_input
+      if p.funnel_pool_strides:
+        p_ii.tr_atten_tpl = FunnelTransformerAttentionLayer.Params()
+        p_ii.tr_atten_tpl.atten_tpl.query_stride = p.funnel_pool_strides[ii]
+        p_ii.tr_atten_tpl.funnel_tpl.stride = p.funnel_pool_strides[ii]
+        p_ii.tr_atten_tpl.res_funnel_tpl.stride = p.funnel_pool_strides[ii]
+        if p.funnel_pool_begin_intacts:
+          p_ii.tr_atten_tpl.funnel_tpl.begin_intact = (
+              p.funnel_pool_begin_intacts[ii]
+          )
+          p_ii.tr_atten_tpl.res_funnel_tpl.begin_intact = (
+              p.funnel_pool_begin_intacts[ii]
+          )
       if (not isinstance(p_ii.tr_atten_tpl.num_heads, list) and
           p.num_atten_heads is not None):
         p_ii.tr_atten_tpl.num_heads = p.num_atten_heads
@@ -6074,15 +6122,31 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       for i in range(p.num_layers):
         x_in = x_out
         with tf.device(self._GetDeviceOfLayer(i)):
-          x_out, _ = self.x_layers[i].FProp(
-              theta.x_layers[i],
-              x_in,
-              paddings,
-              aux_vec,
-              aux_paddings,
-              per_step_padding_override=per_step_padding_override,
-              segment_mask=segment_mask,
-              aux_segment_mask=aux_segment_mask)
+          if p.funnel_pool_strides:
+            assert isinstance(
+                self.x_layers[i].self_atten, FunnelTransformerAttentionLayer
+            )
+            x_out, _, paddings = self.x_layers[i].FProp(
+                theta.x_layers[i],
+                x_in,
+                paddings,
+                aux_vec,
+                aux_paddings,
+                per_step_padding_override=per_step_padding_override,
+                segment_mask=segment_mask,
+                aux_segment_mask=aux_segment_mask,
+            )
+          else:
+            x_out, _ = self.x_layers[i].FProp(
+                theta.x_layers[i],
+                x_in,
+                paddings,
+                aux_vec,
+                aux_paddings,
+                per_step_padding_override=per_step_padding_override,
+                segment_mask=segment_mask,
+                aux_segment_mask=aux_segment_mask,
+            )
           all_outs.append(x_out)
     if p.final_layer_norm:
       # Place on the last device.

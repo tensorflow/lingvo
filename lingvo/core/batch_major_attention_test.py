@@ -3784,6 +3784,76 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_layer_output,
                           np.sum(actual_layer_output, axis=0))
 
+  def _FunnelTransformerAttentionLayerInputs(
+      self, input_dim=4, dtype=tf.float32
+  ):
+    np.random.seed(6348575)
+    query_vec = tf.transpose(
+        tf.stack(
+            [
+                tf.constant(np.random.rand(2, input_dim), dtype=dtype)
+                for _ in range(12)
+            ]
+        ),
+        [1, 0, 2],
+    )
+    paddings = tf.constant(
+        [
+            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+        ],
+        dtype=dtype,
+    )
+    aux_vec = tf.transpose(
+        tf.stack(
+            [
+                tf.constant(np.random.rand(2, input_dim), dtype=dtype)
+                for _ in range(16)
+            ]
+        ),
+        [1, 0, 2],
+    )
+    aux_paddings = tf.constant(
+        [
+            [0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0],
+            [1, 0, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+        ],
+        dtype=dtype,
+    )
+    return query_vec, paddings, aux_vec, aux_paddings
+
+  def _ConstructFunnelTransformerEncoderLayerStack(self):
+    p = attention.StackedTransformerLayers.Params()
+    p.name = 'encoder_layers'
+    p.has_aux_atten = False
+    p.mask_self_atten = False
+    p.num_layers = 2
+    p.mdl_dim = 4
+    p.hidden_dim = 8
+    p.num_atten_heads = 2
+    p.dropout_prob = 0.2
+    p.params_init = py_utils.WeightInit.Xavier()
+    p.random_seed = 12345
+    p.funnel_pool_strides = [2, 3]
+    return p.Instantiate()
+
+  def testFunnelTransformerEncoderLayerStackFProp(self):
+    with self.session(use_gpu=True) as sess:
+      query_vec, paddings, _, _ = self._FunnelTransformerAttentionLayerInputs()
+      l = self._ConstructFunnelTransformerEncoderLayerStack()
+      layer_output, _ = l.FProp(l.theta, query_vec=query_vec, paddings=paddings)
+      tf.global_variables_initializer().run()
+      actual_layer_output = sess.run(layer_output)
+      actual_layer_output = np.reshape(actual_layer_output, (4, 4))
+      tf.logging.info(np.array_repr(actual_layer_output))
+      expected_layer_output = [
+          [-0.7575846, -2.9207776, 0.85704005, -0.2898689],
+          [0.0, 0.00692511, 0.5259019, -0.41329697],
+          [0.0, 0.0, 0.7207548, 0.14226744],
+          [-0.25842726, 0.7802449, 2.843825, 0.7811017],
+      ]
+      self.assertAllClose(expected_layer_output, actual_layer_output)
+
   @parameterized.named_parameters(
       {
           'testcase_name': '_short_seq',
