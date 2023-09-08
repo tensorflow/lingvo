@@ -397,7 +397,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
         tf.constant(-0.7 * logits.dtype.max, dtype=logits.dtype))
     if self.do_eval:
       very_negative_logits = self.QAct('logits', very_negative_logits)
-    padded_logits = tf.where_v2(padding > 0.0, very_negative_logits, logits)
+    padded_logits = py_utils.ApplyPadding(padding, logits, very_negative_logits)
     # TFLite hardcodes the range of qsoftmax, setting explicitly to avoid
     # incompatible concats.
     return fns.qsoftmax(padded_logits, qdomain='softmax')
@@ -487,7 +487,11 @@ class AdditiveAttention(BaseAttentionLayer):
       per_step_source_padding = tf.reshape(
           tf.transpose(inputs.per_step_source_padding),
           [-1, multiplier, source_batch])
-      source_padding += per_step_source_padding
+      if source_padding.dtype != tf.bool:
+        source_padding = source_padding > 0
+      if per_step_source_padding.dtype != tf.bool:
+        per_step_source_padding = per_step_source_padding > 0
+      source_padding = tf.logical_or(source_padding, per_step_source_padding)
 
       if p.packed_input:
         source_padding = self._UpdatePaddingWithPackedInputMask(
@@ -611,8 +615,14 @@ class AdditiveAttention(BaseAttentionLayer):
         # Reshape res to [sl, b]
         logits = tf.reshape(res, tf.shape(summed)[:2])
         # Take out the padding states. _source_padding is of shape [sl, b].
-        source_padding = inputs.source_padding + tf.transpose(
+        source_padding = inputs.source_padding
+        per_step_source_padding = tf.transpose(
             inputs.per_step_source_padding)
+        if source_padding.dtype != tf.bool:
+          source_padding = source_padding > 0
+        if per_step_source_padding.dtype != tf.bool:
+          per_step_source_padding = per_step_source_padding > 0
+        source_padding = tf.logical_or(source_padding, per_step_source_padding)
 
         if p.packed_input:
           source_padding = self._UpdatePaddingWithPackedInputMask(
@@ -915,7 +925,11 @@ class DotProductAttention(BaseAttentionLayer):
       # Exclude padding frames.
       # [source_batch, time] => [source_batch, time, 1]
       source_padding = tf.expand_dims(source_padding, 2)
-      source_padding += per_step_source_padding
+      if source_padding.dtype != tf.bool:
+        source_padding = source_padding > 0
+      if per_step_source_padding.dtype != tf.bool:
+        per_step_source_padding = per_step_source_padding > 0
+      source_padding = tf.logical_or(source_padding, per_step_source_padding)
       if p.packed_input:
         source_padding = tf.transpose(source_padding, [1, 2, 0])
         source_padding = self._UpdatePaddingWithPackedInputMask(
@@ -2104,9 +2118,11 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       source_padding = tf.expand_dims(source_padding, 1)
       per_step_source_padding = tf.reshape(
           tf.transpose(per_step_source_padding), [-1, multiplier, sb])
-      source_padding = tf.add(source_padding, per_step_source_padding)
-      source_padding = self.QRAct(source_padding,
-                                  quant_utils.QDistribution.PADDING)
+      if source_padding.dtype != tf.bool:
+        source_padding = source_padding > 0
+      if per_step_source_padding.dtype != tf.bool:
+        per_step_source_padding = per_step_source_padding > 0
+      source_padding = tf.logical_or(source_padding, per_step_source_padding)
 
       # Reshape logits to a matrix of shape [tb, sl] and takes the
       # softmax to compute the probabilities.
