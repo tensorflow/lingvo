@@ -796,8 +796,8 @@ class AdditiveAttention(BaseAttentionLayer):
     query_batch_size = py_utils.GetShape(query_vec)[0]
     source_length = py_utils.GetShape(source_padding)[0]
     if per_step_source_padding is None:
-      zero = tf.constant(0.0, dtype=query_vec.dtype)
-      per_step_source_padding = tf.fill([query_batch_size, source_length], zero)
+      per_step_source_padding = tf.zeros([query_batch_size, source_length],
+                                         source_padding.dtype)
     per_step_source_padding = py_utils.HasShape(
         per_step_source_padding, [query_batch_size, source_length])
     hidden = self.AddVN(theta.hidden_var, per_step=True)
@@ -1133,9 +1133,9 @@ class DotProductAttention(BaseAttentionLayer):
     query_batch_size = py_utils.GetShape(query_vec)[0]
     source_sequence_length = py_utils.GetShape(source_padding)[0]
     if per_step_source_padding is None:
-      zero = tf.constant(0.0, dtype=query_vec.dtype)
-      per_step_source_padding = tf.fill(
-          [query_batch_size, source_sequence_length], zero)
+      per_step_source_padding = tf.zeros(
+          [query_batch_size, source_sequence_length],
+          dtype=source_padding.dtype)
     per_step_source_padding = py_utils.HasShape(
         per_step_source_padding, [query_batch_size, source_sequence_length])
     if source_segment_id is None:
@@ -1751,9 +1751,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       query_segment_id = tf.reshape(query_segment_id_repl, [-1])
 
     if per_step_source_padding is None:
-      zero = tf.constant(0.0, dtype=query_vec.dtype)
-      per_step_source_padding = tf.fill([query_batch_size, source_seq_len],
-                                        zero)
+      per_step_source_padding = tf.zeros([query_batch_size, source_seq_len],
+                                         dtype=source_padding.dtype)
     per_step_source_padding = py_utils.HasShape(
         per_step_source_padding, [query_batch_size, source_seq_len])
     per_step_source_padding = tf.reshape(
@@ -2384,8 +2383,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     query_batch_size = py_utils.GetShape(query_vec)[0]
     source_length = py_utils.GetShape(source_padding)[0]
     if per_step_source_padding is None:
-      zero = tf.constant(0.0, dtype=query_vec.dtype)
-      per_step_source_padding = tf.fill([query_batch_size, source_length], zero)
+      per_step_source_padding = tf.zeros([query_batch_size, source_length],
+                                         dtype=source_padding.dtype)
     per_step_source_padding = py_utils.HasShape(
         per_step_source_padding, [query_batch_size, source_length])
     hidden_var = self.AddVN(theta.hidden_var, per_step=True)
@@ -2429,8 +2428,7 @@ def MergeSourcePaddingWithPerStepSourcePadding(source_padding,
   sb = py_utils.GetShape(source_padding)[1]
 
   if per_step_source_padding is None:
-    zero = tf.constant(0.0, dtype=source_padding.dtype)
-    per_step_source_padding = tf.fill([tb, sl], zero)
+    per_step_source_padding = tf.zeros([tb, sl], dtype=source_padding.dtype)
   per_step_source_padding = py_utils.HasShape(per_step_source_padding, [tb, sl])
 
   # Transpose and reshape source_padding to [1, sb,  sl].
@@ -3016,7 +3014,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     # [target_batch, source_length]
     if per_step_source_padding is None:
       per_step_source_padding = tf.zeros([target_batch, source_length],
-                                         dtype=query_vec.dtype)
+                                         dtype=source_padding.dtype)
     per_step_source_padding = py_utils.HasShape(per_step_source_padding,
                                                 [target_batch, source_length])
 
