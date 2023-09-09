@@ -76,7 +76,7 @@ class StrToVocabTokensOp : public OpKernel {
       string label(t_label(i));
       VLOG(1) << "Label " << label;
       std::vector<string> tokens;
-      if (delimiter_.length() > 0) {
+      if (!delimiter_.empty()) {
         tokens = str_util::Split(label, delimiter_, str_util::SkipWhitespace());
       } else {
         // Split by the empty delimiter.
