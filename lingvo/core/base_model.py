@@ -677,7 +677,8 @@ class BaseTask(base_layer.BaseLayer):
           raise_if_already_added=not py_utils.IsEagerMode())
 
     if p.train.keep_per_example_loss and 'loss' in per_example:
-      metrics['per_example_loss'] = per_example['loss']
+      num_example = tf.constant(per_example['loss'].shape[0], dtype=p.dtype)
+      metrics['per_example_loss'] = (per_example['loss'], num_example)
 
     per_example = self.FilterPerExampleTensors(per_example)
     for name, value in per_example.items():
