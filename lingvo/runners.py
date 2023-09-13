@@ -521,8 +521,9 @@ class TrainerTpu(base_runner.BaseRunner):
             _ConstructPostTrainingLoop(all_tpu_ops, outfeed_dequeue_op))
 
       if FLAGS.checkpoint_in_trainer_tpu:
-        self._checkpointer = checkpointer.Checkpointer(self._train_dir,
-                                                       self._model)
+        self._checkpointer = self._CreateCheckpointer(
+            self._train_dir, self._model
+        )
       # Get the global_variables_initializer after creating the Checkpointer,
       # since it may create additional variables used by async checkpointing.
       self._initialize_local_vars = tf.local_variables_initializer()
