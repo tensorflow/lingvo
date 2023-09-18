@@ -1422,11 +1422,11 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
     }, 'Expect einsum_order to be select_and_multiply or multiply_and_select.'
     if p.input_dim < p.num_tasks and p.einsum_order == 'multiply_and_select':
       tf.logging.warning(
-          'Setting einsum_order to select_and_multiply for effeciency.'
+          'Setting einsum_order to select_and_multiply for efficiency.'
       )
     if p.input_dim > p.num_tasks and p.einsum_order == 'select_and_multiply':
       tf.logging.warning(
-          'Setting einsum_order to multiply_and_select for effeciency.'
+          'Setting einsum_order to multiply_and_select for efficiency.'
       )
 
   def _CreateLayerVariables(self):
@@ -3205,7 +3205,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
   def FProp(self, theta, seq_length):
     """Generates a Tensor of sinusoids with different frequencies.
 
-    Each channel (dimension) of the generated positionanl embedding Tensor
+    Each channel (dimension) of the generated positional embedding Tensor
     corresponds to a sinusoid of different frequency and phase.
 
     This allows attention to learn to use absolute and relative positions.
@@ -3945,8 +3945,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
     p = self.params
 
     # We reshape activation from a matrix to a 3-D tensor (a sequence
-    # of matrices), where the 2nd dimenion is p.chunk_size.  Because
-    # the batch dimenion may not be multiple of p.chunk_size, we pad
+    # of matrices), where the 2nd dimension is p.chunk_size.  Because
+    # the batch dimension may not be multiple of p.chunk_size, we pad
     # zeros.
     activation = py_utils.HasRank(activation, 2)
     batch, input_dim = tf.unstack(tf.shape(activation))
@@ -6383,11 +6383,11 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     }, 'Expect einsum_order to be select_and_multiply or multiply_and_select.'
     if p.input_dim < p.num_tasks and p.einsum_order == 'multiply_and_select':
       tf.logging.warning(
-          'Setting einsum_order to select_and_multiply for effeciency.'
+          'Setting einsum_order to select_and_multiply for efficiency.'
       )
     if p.input_dim > p.num_tasks and p.einsum_order == 'select_and_multiply':
       tf.logging.warning(
-          'Setting einsum_order to multiply_and_select for effeciency.'
+          'Setting einsum_order to multiply_and_select for efficiency.'
       )
 
     if p.layer_norm_tpl is not None:
@@ -6694,7 +6694,7 @@ class CondScaleShiftFFNLayer(base_layer.BaseLayer):
 
 
 class StatisticalPoolingLayer(base_layer.BaseLayer):
-  """A statistical pooling layer that perform sequence pooling.
+  """A statistical pooling layer that performs sequence pooling.
 
   Convert a sequence of vectors into their mean and standard deviation vectors.
   The layer has no trainable parameters.
@@ -6997,7 +6997,7 @@ class LSHTaskWithMultiplierLayer(base_layer.BaseLayer):
 
 
 class PerFrameStatisticalPoolingLayer(base_layer.BaseLayer):
-  """A statistical pooling layer that perform sequence pooling at every frame.
+  """A statistical pooling layer that performs sequence pooling at every frame.
 
   Convert a sequence of vectors into a sequence of mean and standard
   deviation vectors. The layer has no trainable parameters.
