@@ -570,6 +570,52 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_out, self.evaluate(gn_out), atol=1e-5)
 
   @parameterized.named_parameters(
+      ('3D_2', 3, 2),
+      ('3D_4', 3, 4),
+      ('4D_2', 4, 2),
+      ('4D_4', 4, 4),
+  )
+  def testFPropWindowedCumulativeMode(self, input_rank=3, window_size=2):
+    with self.session(use_gpu=True):
+      params = bn_layers.GroupNormLayer.Params()
+      params.name = 'gn'
+      params.dim = 2
+      params.num_groups = 2
+      params.cumulative = True
+      params.window_size = window_size
+      params.input_rank = input_rank
+      # gn_in[0]: [[0, 1], [2, 3], [4, 5], [6, 7]]
+      # gn_in[1]: [[8, 9], [10, 11], [12, 13], [14, 15]]
+      input_shape = [2, 4, 1, 2] if input_rank == 4 else [2, 4, 2]
+      gn_in = tf.reshape(np.arange(16, dtype=np.float32), input_shape)
+      paddings = tf.zeros([2, 4], tf.float32)
+      gn_layer = bn_layers.GroupNormLayer(params)
+      gn_out, _ = gn_layer.FPropDefaultTheta(gn_in, paddings)
+
+      self.evaluate(tf.global_variables_initializer())
+      base_block = None
+      if window_size == 2:
+        base_block = np.array([
+            [0.0, 0.0],
+            [1.4128014, 1.4128014],
+            [0.9995003, 0.9995003],
+            [0.9995003, 0.9995003],
+        ])
+      elif window_size >= input_shape[1]:
+        base_block = np.array([
+            [0.0, 0.0],
+            [1.4128014, 1.4128014],
+            [1.5487288, 1.5487288],
+            [1.6033384, 1.6033384],
+        ])
+      else:
+        assert False
+      expected_out = np.stack([base_block, base_block], axis=0).reshape(
+          input_shape
+      )
+      self.assertAllClose(expected_out, self.evaluate(gn_out), atol=1e-5)
+
+  @parameterized.named_parameters(
       ('Basic',),
       ('Group1', 1, 1),
       ('Stride2', 2),
@@ -617,6 +663,90 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       actual_outs.append(output)
     actual_outs = tf.concat(actual_outs, axis=1)
     actual_outs *= 1. - expanded_paddings
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+      expected, actual = sess.run([base_outs, actual_outs])
+      print(repr(expected))
+      print(repr(actual))
+      print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
+      print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
+      self.assertAllClose(expected, actual)
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('Group1', 2, 1, 1),
+      ('Stride2', 2, 2),
+      ('Stride2Group1', 2, 2, 1),
+      ('Stride4', 2, 4),
+      ('Stride1Group2Window5', 2, 4, 2, 5),
+      ('Stride4Group2Window3', 2, 4, 2, 3),
+      ('Stride4Group2Window6', 2, 4, 2, 6),
+      ('Stride4Group2Window6Rank4', 2, 4, 2, 6, False, 4),
+      ('Stride4Group2Window10', 2, 4, 2, 10),
+      ('TfLiteCompatible', 2, 1, 2, 2, True),
+      ('Batch1Stride1Group2Window5', 1, 4, 2, 5),
+      ('Batch1Stride4Group2Window6', 1, 4, 2, 6),
+      ('Batch1Stride4Group2Window6Rank4', 1, 4, 2, 6, False, 4),
+      ('Batch1TfLiteCompatible', 1, 1, 2, 2, True),
+  )
+  def testStreamStepCumSumWindow(
+      self,
+      batch=2,
+      stride=1,
+      num_groups=2,
+      window_size=2,
+      tflite_compatible=False,
+      input_rank=3,
+  ):
+    py_utils.FLAGS.tflite_compatible = tflite_compatible
+    max_seqlen, input_dim = 16, 4
+    p = bn_layers.GroupNormLayer.Params().Set(
+        name='gn',
+        dim=input_dim,
+        num_groups=num_groups,
+        cumulative=True,
+        window_size=window_size,
+        input_rank=input_rank,
+    )
+
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    np.random.seed(None)
+    inputs = np.random.normal(0.1, 0.5, [batch, max_seqlen, input_dim]).astype(
+        np.float32
+    )
+    print(f'np.sum(inputs): {np.sum(inputs)}')
+    inputs = tf.convert_to_tensor(inputs)
+
+    seqlen = np.random.randint(
+        low=1, high=max_seqlen + 1, size=(batch,), dtype=np.int32
+    )
+    print(repr(seqlen))
+    seqlen = tf.convert_to_tensor(seqlen)
+    paddings = py_utils.PaddingsFromLengths(seqlen, max_seqlen)
+    expanded_paddings = tf.reshape(paddings, py_utils.GetShape(paddings) + [1])
+    if input_rank == 4:
+      inputs = tf.expand_dims(inputs, axis=2)
+      expanded_paddings = tf.expand_dims(expanded_paddings, axis=2)
+    base_outs, _ = l.FProp(l.theta, inputs, paddings)
+    base_outs *= 1.0 - expanded_paddings
+
+    # Runs N//stride step each with input seqlen=stride.
+    assert max_seqlen % stride == 0
+    actual_outs = []
+    state = l.zero_state(batch)
+    for i in range(max_seqlen // stride):
+      output, _, state = l.StreamStep(
+          l.theta,
+          inputs[:, stride * i : stride * (i + 1), ...],
+          paddings[:, stride * i : stride * (i + 1)],
+          state,
+      )
+      actual_outs.append(output)
+    actual_outs = tf.concat(actual_outs, axis=1)
+    actual_outs *= 1.0 - expanded_paddings
 
     with self.session(use_gpu=False) as sess:
       sess.run(init_op)

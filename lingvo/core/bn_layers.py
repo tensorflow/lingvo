@@ -45,12 +45,41 @@ class AddingAccumulator(base_layer.Accumulator):
     self.SetValue(self.GetValue() + tf.cast(value, self.dtype))
 
 
-def ComputeMoments(inputs,
-                   padding,
-                   reduce_over_dims,
-                   cumulative_axis=None,
-                   enable_cross_replica_sum_on_tpu=False,
-                   keepdims=False):
+def _WindowedCumSum(x, padding, window_size, cumulative_axis):
+  """Computes windowed cumulative sum.
+
+  Args:
+    x: A Tensor of shape [b, t, n, 1] or [b, t, 1, n, 1].
+    padding: A Tensor of paddings [b, t].
+    window_size: int, the window size for cumsum.
+    cumulative_axis: The time axis over which to accumulate.
+
+  Returns:
+    A Tensor with windowed cumulative sum with the same shape as x.
+  """
+  x_shape = py_utils.GetShape(x)
+  shifted_x = tf.roll(x, shift=window_size, axis=cumulative_axis)
+  # Shape is [batch, time].
+  shift_mask = py_utils.PaddingsFromLengths(
+      tf.repeat(window_size, x_shape[0]), maxlen=x_shape[1]
+  )
+  # Expand to [batch, time, 1, 1] or [batch, time, 1, 1, 1].
+  shift_mask = tf.reshape(shift_mask, py_utils.GetShape(padding))
+  # Honor padding so that the padded time frames are set to 0.
+  shift_mask = py_utils.ApplyPadding(padding, shift_mask)
+  shifted_x *= shift_mask
+  return x - shifted_x
+
+
+def ComputeMoments(
+    inputs,
+    padding,
+    reduce_over_dims,
+    cumulative_axis=None,
+    enable_cross_replica_sum_on_tpu=False,
+    keepdims=False,
+    cumsum_window_size=None,
+):
   """Computes mean and variance over the valid data points in inputs."""
   mask = py_utils.ApplyPadding(
       padding, tf.ones([], dtype=inputs.dtype), ensure_shape=False
@@ -64,10 +93,15 @@ def ComputeMoments(inputs,
       keepdims=keepdims,
   )
   count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=keepdims)
-
+  window_size = None
   if cumulative_axis is not None:
     sum_v = tf.math.cumsum(sum_v, axis=cumulative_axis)
     count_v = tf.math.cumsum(count_v, axis=cumulative_axis)
+    if cumsum_window_size:
+      window_size = tf.minimum(cumsum_window_size, py_utils.GetShape(inputs)[1])
+      sum_v = _WindowedCumSum(sum_v, padding, window_size, cumulative_axis)
+      count_v = _WindowedCumSum(count_v, padding, window_size, cumulative_axis)
+
   # Input shape is guaranteed to be a multiple of mask shape because the
   # inputs * mask op above was successfully broadcasted.
   input_size_on_reduced_dims = tf.reduce_prod(
@@ -90,6 +124,8 @@ def ComputeMoments(inputs,
   )
   if cumulative_axis is not None:
     sum_vv = tf.math.cumsum(sum_vv, axis=cumulative_axis)
+    if cumsum_window_size:
+      sum_vv = _WindowedCumSum(sum_vv, padding, window_size, cumulative_axis)
 
   if py_utils.use_tpu() and enable_cross_replica_sum_on_tpu:
     sum_vv = tf.tpu.cross_replica_sum(sum_vv)
@@ -720,9 +756,18 @@ class GroupNormLayer(base_layer.BaseLayer):
     p.Define('cumulative', False, 'If true, only normalize by current and '
              'previous time steps.')
     p.Define(
-        'enable_cross_replica_sum_on_tpu', False,
+        'window_size',
+        0,
+        'Windowed group norm. If set, p.cumulative should be True. The'
+        ' statistics for Group Norm is accumulated over the specified'
+        ' window_size in the past.',
+    )
+    p.Define(
+        'enable_cross_replica_sum_on_tpu',
+        False,
         'If true, computes global mean and variance across all replicas.'
-        'Only effective for tpu.')
+        'Only effective for tpu.',
+    )
     p.Define('input_rank', 4,
              'DEPRECATED, only retrained for backwards-compatibility.')
     p.Define('epsilon', 0.001, 'Epsilon.')
@@ -740,6 +785,15 @@ class GroupNormLayer(base_layer.BaseLayer):
       assert p.dim % p.num_groups == 0, ('p.dim({0}) is not dividable by '
                                          'p.num_groups({1})').format(
                                              p.dim, p.num_groups)
+
+    if p.window_size > 0:
+      assert p.cumulative, (
+          'p.window_size is > 0 ({0}), but p.cumulative is False. This setting'
+          ' is incompible.'.format(p.window_size)
+      )
+      assert (
+          p.window_size > 1
+      ), 'p.window_size cannot be 1, since that will result in all-0 features.'
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -788,13 +842,31 @@ class GroupNormLayer(base_layer.BaseLayer):
 
     # Note: Prefer storing data in <=4D tensors, as TFLite doesn't support
     # implicit broadcasting for 5D (or larger) tensors on many operators.
+
     cached_count_shape = [batch_size, 1, 1, 1]
+    cached_count = tf.zeros(cached_count_shape, py_utils.FPropDtype(p))
+
+    if p.window_size > 1:
+      # If window size is specified, we store all the previous values instead
+      # of caching just the last sum and count. Note that this can be memory
+      # intensive depending on the window size.
+      cached_moment_shape = [batch_size, p.window_size, self.num_groups, 1]
+      cached_sums = tf.zeros(cached_moment_shape, py_utils.FPropDtype(p))
+      cached_vars = tf.zeros(cached_moment_shape, py_utils.FPropDtype(p))
+      return py_utils.NestedMap(
+          cached_sums=cached_sums,
+          cached_vars=cached_vars,
+          cached_count=cached_count,
+      )
+
     cached_moment_shape = [batch_size, 1, num_groups, 1]
     cached_sum = tf.zeros(cached_moment_shape, py_utils.FPropDtype(p))
-    cached_count = tf.zeros(cached_count_shape, py_utils.FPropDtype(p))
     cached_var = tf.zeros(cached_moment_shape, py_utils.FPropDtype(p))
     return py_utils.NestedMap(
-        cached_sum=cached_sum, cached_count=cached_count, cached_var=cached_var)
+        cached_sum=cached_sum,
+        cached_count=cached_count,
+        cached_var=cached_var,
+    )
 
   def _Normalize(self, grouped_inputs, group_mean, group_variance):
     p = self.params
@@ -889,7 +961,9 @@ class GroupNormLayer(base_layer.BaseLayer):
             reduce_over_dims,
             cumulative_axis=1,
             enable_cross_replica_sum_on_tpu=p.enable_cross_replica_sum_on_tpu,
-            keepdims=True)
+            keepdims=True,
+            cumsum_window_size=p.window_size,
+        )
 
       outputs = self._Normalize(expanded_inputs, group_mean, group_variance)
       # Merge the last two dims back.
@@ -900,6 +974,241 @@ class GroupNormLayer(base_layer.BaseLayer):
         return outputs
       else:
         return outputs, paddings
+
+  def _StreamWindowedMoments(
+      self,
+      inputs: tf.Tensor,
+      paddings: Optional[tf.Tensor],
+      state: py_utils.NestedMap,
+  ) -> Tuple[tf.Tensor, tf.Tensor, py_utils.NestedMap]:
+    """Computes mean and variance over the valid data points in inputs.
+
+    Args:
+      inputs: [B, T, F, N, G] or [B, T, N, G]
+      paddings: an optional tensor, shaped [B, T, 1, 1, 1] or [B, T, 1, 1] if
+        not None (same rank as inputs)
+      state: a structure returned by zero_state
+
+    Returns:
+      mean: [B, T, 1, N, 1] or [B, T, N, 1] (same rank as inputs)
+      variance: same shape as mean.
+      state: the updated state.
+    """
+    tf.logging.vlog(1, 'inputs: %r', inputs)
+    tf.logging.vlog(1, 'paddings: %r', paddings)
+    tf.logging.vlog(1, 'state: %r', state)
+
+    window_size = self.params.window_size
+    input_rank = py_utils.GetRank(inputs)
+    input_shape = py_utils.GetShape(inputs)
+
+    seq_axis = 1
+    if input_rank == 4:
+      b, t, n, g = input_shape
+      if paddings is not None:
+        paddings = py_utils.HasShape(paddings, [b, t, 1, 1])
+      else:
+        paddings = tf.zeros([b, t, 1, 1], dtype=tf.float32)
+      # Skip {B,T,N}. Reduce just {G}.
+      sum_input_over_dims = [3]
+      squeeze_dim_after_sum = None
+      reduce_over_dims = [3]
+      multiplier = g
+    else:
+      assert input_rank == 5
+      # For rank 5, we'll just sum over {F, G}, and remove {F} dimension
+      # so that most of logic can be shared with input_rank == 4.
+      b, t, f, n, g = input_shape
+      if paddings is not None:
+        paddings = py_utils.HasShape(paddings, [b, t, 1, 1, 1])
+      else:
+        paddings = tf.zeros([b, t, 1, 1, 1], dtype=tf.float32)
+      # Skip {B,T,N}. Reduce just {F,G}.
+      sum_input_over_dims = [2, 4]
+      # After summing input over [2, 4], we remove axis 2, and continue
+      # processing like a 4-dim input.
+      squeeze_dim_after_sum = [2]
+      reduce_over_dims = [3]
+      # Update paddings to -> [b, t, n, 1].
+      paddings = tf.squeeze(paddings, axis=[2])
+      multiplier = f * g
+
+    cached_count = py_utils.HasShape(state.cached_count, [b, 1, 1, 1])
+    cached_sums = py_utils.HasShape(state.cached_sums, [b, window_size, n, 1])
+    cached_vars = py_utils.HasShape(state.cached_vars, [b, window_size, n, 1])
+    # NOTE: cached_count and cached paddings are squeezed to [b],
+    # and [b, window_size], respectively.
+    cached_count = tf.squeeze(cached_count, axis=[1, 2, 3])
+    cached_paddings = py_utils.PaddingsFromLengths(cached_count, window_size)
+
+    def _GetUpdatedCount(previous_count, current_paddings):
+      # Compute counts based on cached count and the length of current inputs,
+      # upper bounded by window size. previous_count is [b], current_paddings
+      # is [b, t, 1, 1].
+      count_v = tf.cast(1.0, inputs.dtype)
+      count_v = py_utils.ApplyPadding(
+          current_paddings, count_v, ensure_shape=False
+      )
+      count_v = tf.reduce_sum(count_v, reduce_over_dims, keepdims=True)
+      count_v = tf.math.cumsum(count_v, axis=seq_axis)
+      count_v = tf.minimum(
+          count_v + tf.reshape(previous_count, [b, 1, 1, 1]), window_size
+      )
+      return count_v
+
+    def _TrimFromTheFront(x, trim_len, keep_len, output_len):
+      # trim_len and keep_len are [b].
+      trim_len = tf.cast(trim_len, tf.int32)
+      keep_len = tf.cast(keep_len, tf.int32)
+      # output_len is an int.
+      output_len = tf.cast(output_len, tf.int32)
+
+      # When batch size is 1, we can just slice without worrying about different
+      # paddings for the different examples in the batch.
+      if b == 1:
+        trimmed_x = x[:, trim_len[0] : (trim_len[0] + output_len), :, :]
+        # This is just to set shapes so that tflite converters don't complain.
+        return tf.reshape(trimmed_x, [b, output_len, n, 1])
+
+      total_len = trim_len + keep_len
+      max_seq_len = py_utils.GetShape(x)[1]
+      # Since you need to select after trim_len, you can reverse sequence,
+      # select, reverse again, and remove unnecessary frames from the end.
+      rev_x = tf.reverse_sequence(x, total_len, seq_axis=seq_axis, batch_axis=0)
+      trim_paddings = py_utils.PaddingsFromLengths(keep_len, max_seq_len)
+      trim_paddings = tf.reshape(trim_paddings, [b, max_seq_len, 1, 1])
+      trimmed_rev_x = py_utils.ApplyPadding(trim_paddings, rev_x)
+      trimmed_x = tf.reverse_sequence(
+          trimmed_rev_x, keep_len, seq_axis=seq_axis, batch_axis=0
+      )
+      return trimmed_x[:, :output_len, :, :]
+
+    # |last_index| and |current_input_lengths| are needed by
+    # _ComputeWindowedCumSum.
+    # [b] -> [b, 1]; needed for tf.gather_nd for the last cached sum / vars.
+    last_index = tf.maximum(cached_count - 1, [0])
+    last_index = tf.expand_dims(last_index, axis=-1)
+    last_index = tf.cast(last_index, tf.int32)
+    current_input_lenghts = py_utils.LengthsFromPaddings(paddings[:, :, 0, 0])
+    current_input_lenghts = tf.cast(current_input_lenghts, tf.int32)
+
+    def _ComputeWindowedCumSum(
+        current_input, current_paddings, cached, cached_paddings
+    ):
+      # current_input can be [b, t, f, n, g] or [b, t, n, g].
+      # But current_paddings is expected to be [b, t, 1, 1].
+      if input_rank == 5:
+        current_input = py_utils.ApplyPadding(
+            tf.expand_dims(current_paddings, -1), current_input
+        )
+      else:
+        current_input = py_utils.ApplyPadding(current_paddings, current_input)
+      # Squeeze current_paddings to [b, t] for susequent steps.
+      current_paddings = tf.squeeze(current_paddings, axis=[2, 3])
+      current_input = tf.reduce_sum(
+          current_input, sum_input_over_dims, keepdims=True
+      )
+      if input_rank == 5:
+        # [b, t, 1, n, 1] => [b, t, n, 1].
+        current_input = tf.squeeze(current_input, axis=squeeze_dim_after_sum)
+      # cached is [b, window_size, n, 1], and cached_paddings is
+      # [b, window_size].
+      current_input = tf.math.cumsum(current_input, axis=seq_axis)
+      if b == 1:
+        # When batch size is 1, we can just slice / index without worrying
+        # about different paddings for the different examples in the batch.
+        last = cached[:, last_index[0, 0], ...]
+        last = tf.reshape(last, [b, 1, n, 1])
+        current_input += last
+        cached_count_int32 = tf.cast(cached_count, tf.int32)
+        num_padded_frames = (
+            window_size + t - cached_count_int32[0] - current_input_lenghts[0]
+        )
+        concat = tf.concat(
+            [
+                cached[:, : cached_count_int32[0], :, :],
+                current_input[:, : current_input_lenghts[0], :, :],
+                tf.zeros((b, num_padded_frames, n, 1), dtype=cached.dtype),
+            ],
+            axis=seq_axis,
+        )
+        concat_paddings = tf.concat(
+            [
+                cached_paddings[:, : cached_count_int32[0]],
+                current_paddings[:, : current_input_lenghts[0]],
+                tf.ones((b, num_padded_frames), dtype=cached_paddings.dtype),
+            ],
+            axis=seq_axis,
+        )
+        # This is just to set shapes so that tflite converters don't complain
+        # when this is eventnally passed to _WindowedCumSum that has a tf.roll
+        # operation on the Tensor.
+        concat = tf.reshape(concat, [b, window_size + t, n, 1])
+        concat_paddings = tf.reshape(concat_paddings, [b, window_size + t])
+      else:
+        last = tf.gather_nd(cached, last_index, batch_dims=1)
+        last = tf.reshape(last, [b, 1, n, 1])
+        current_input += last
+        concat, concat_paddings = py_utils.ConcatenatePaddedSequences(
+            cached,
+            current_input,
+            cached_paddings,
+            current_paddings,
+            seq_dim=1,
+        )
+      concat_paddings = tf.reshape(concat_paddings, [b, -1, 1, 1])
+      windowed_cumsum = _WindowedCumSum(
+          concat, concat_paddings, window_size, cumulative_axis=seq_axis
+      )
+      cumsum = _TrimFromTheFront(
+          windowed_cumsum, cached_count, current_input_lenghts, t
+      )
+      return cumsum, concat, concat_paddings
+
+    # Compute the new mean and variance using the helper functions.
+    sum_v, concat_sum_v, concat_paddings = _ComputeWindowedCumSum(
+        inputs, paddings, cached_sums, cached_paddings
+    )
+    count_v = _GetUpdatedCount(cached_count, paddings)
+    mean = sum_v / tf.maximum(count_v * multiplier, 1.0)
+    if input_rank == 5:
+      mean = tf.expand_dims(mean, axis=2)
+    sum_vv, concat_sum_vv, _ = _ComputeWindowedCumSum(
+        tf.math.squared_difference(inputs, mean),
+        paddings,
+        cached_vars,
+        cached_paddings,
+    )
+    variance = sum_vv / tf.maximum(count_v * multiplier, 1.0)
+    if input_rank == 5:
+      variance = tf.expand_dims(variance, axis=2)
+
+    # Select new state values to pass on.
+    input_len = py_utils.LengthsFromPaddings(concat_paddings[:, :, 0, 0])
+    input_len = tf.cast(input_len, tf.float32)
+    new_cached_count = tf.minimum(input_len, window_size)
+    new_cached_sums = _TrimFromTheFront(
+        concat_sum_v,
+        input_len - new_cached_count,
+        new_cached_count,
+        window_size,
+    )
+    new_cached_vars = _TrimFromTheFront(
+        concat_sum_vv,
+        input_len - new_cached_count,
+        new_cached_count,
+        window_size,
+    )
+    new_cached_count = tf.reshape(new_cached_count, [b, 1, 1, 1])
+    return (
+        mean,
+        variance,
+        py_utils.NestedMap(
+            cached_sums=new_cached_sums,
+            cached_vars=new_cached_vars,
+            cached_count=new_cached_count,
+        ),
+    )
 
   def _StreamMoments(
       self,
@@ -1041,9 +1350,15 @@ class GroupNormLayer(base_layer.BaseLayer):
           if paddings is not None
           else None
       )
-      group_mean, group_variance, state1 = self._StreamMoments(
-          expanded_inputs, expanded_paddings, state0
-      )
+
+      if p.window_size:
+        group_mean, group_variance, state1 = self._StreamWindowedMoments(
+            expanded_inputs, expanded_paddings, state0
+        )
+      else:
+        group_mean, group_variance, state1 = self._StreamMoments(
+            expanded_inputs, expanded_paddings, state0
+        )
       outputs = self._Normalize(expanded_inputs, group_mean, group_variance)
       # Merge the last two dims back.
       outputs = tf.reshape(outputs, input_shape)
