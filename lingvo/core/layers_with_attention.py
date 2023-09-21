@@ -627,7 +627,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     else:
       params.hidden_layer_dims = [p.hidden_dim, p.output_dim]
 
-      if p.output_dim != p.input_dim:
+      if p.add_skip_connection and p.output_dim != p.input_dim:
         pj = p.res_proj_tpl.Copy()
         pj.name = 'res_proj'
         pj.input_dim = p.input_dim
@@ -711,8 +711,6 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
           inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
       else:
         inputs_normalized = inputs
-      if hasattr(self, 'res_proj_layer'):
-        inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
       if paddings is not None:
         paddings = tf.expand_dims(paddings, -1)
       if p.num_tasks:
@@ -726,7 +724,11 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       if p.memory_augmentation:
         h += self.lsh_mem.FProp(theta.lsh_mem, h - inputs)
       h = self.residual_dropout.FProp(theta.residual_dropout, h)
+
       if p.add_skip_connection:
+        # Residual re-projection can be applied only on residual conection.
+        if hasattr(self, 'res_proj_layer'):
+          inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
         if p.residual_droppath_prob:
           h = self.residual_droppath.FProp(
               theta.residual_droppath,
