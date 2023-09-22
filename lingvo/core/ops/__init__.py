@@ -23,16 +23,6 @@ except ImportError:
   gen_x_ops = tf.load_op_library(
       tf.resource_loader.get_path_to_datafile('x_ops.so'))
 
-# Set gen_x_ops function module so sphinx generates documentation.
-for k, v in gen_x_ops.__dict__.items():
-  # We should not override __module__ on objects that don't belong to
-  # lingvo. The following list is incomplete but avoids some egregious cases.
-  if k not in ['TypeVar', 'List', 'collections']:
-    try:
-      v.__module__ = 'lingvo.core.ops'
-    except:  # pylint: disable=bare-except
-      pass
-
 assert_shape_match = gen_x_ops.assert_shape_match
 assert_same_dim0 = gen_x_ops.assert_same_dim0
 random_permutation_sequence = gen_x_ops.random_permutation_sequence

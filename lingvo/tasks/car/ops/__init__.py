@@ -23,16 +23,6 @@ except ImportError:
   gen_car_ops = tf.load_op_library(
       tf.resource_loader.get_path_to_datafile('car_ops.so'))
 
-# Set gen_car_ops function module so sphinx generates documentation.
-for k, v in gen_car_ops.__dict__.items():
-  # We should not override __module__ on objects that don't belong to
-  # lingvo. The following list is incomplete but avoids some egregious cases.
-  if k not in ['TypeVar', 'List']:
-    try:
-      v.__module__ = 'lingvo.tasks.car.ops'
-    except:  # pylint: disable=bare-except
-      pass
-
 pairwise_iou3d = gen_car_ops.pairwise_iou3d
 point_to_grid = gen_car_ops.point_to_grid
 non_max_suppression_3d = gen_car_ops.non_max_suppression3d
