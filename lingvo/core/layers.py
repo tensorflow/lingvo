@@ -3036,10 +3036,11 @@ class EinsumEmbeddingLayer(base_layer.BaseLayer):
     p = self.params
     # Emulate tf.nn.embedding_lookup(theta.wm, ids) with tf.einsum.
     embs_result = py_utils.ProjectLastDim(
-        tf.one_hot(ids, p.vocab_size),
+        tf.one_hot(ids, p.vocab_size, dtype=py_utils.FPropDtype(p)),
         theta.wm,
         input_dim=p.vocab_size,
-        output_dim=p.embedding_dim)
+        output_dim=p.embedding_dim,
+    )
     if p.scale_sqrt_depth:
       embs_result *= p.embedding_dim**0.5
     embs_result = gshard_utils.MeshSplit(embs_result, p.device_mesh,

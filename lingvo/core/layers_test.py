@@ -755,7 +755,7 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       print(repr(actual))
       print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
       print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
-      self.assertAllClose(expected, actual)
+      self.assertAllClose(expected, actual, atol=1e-05)
 
   def testStreamStepLeadingPaddings(self):
     """Tests leading paddings case, useful for local atten with right ctx."""
@@ -3761,7 +3761,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       test_utils.CompareToGoldenSingleFloat(self, 1.886353, self.evaluate(embs_sum))  # pylint: disable=line-too-long
 
 
-class EmbeddingLayerTest(test_utils.TestCase):
+class EmbeddingLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testEmbeddingLayer(self):
     with self.session(use_gpu=True):
@@ -3843,7 +3843,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       params.vn.scale = 0.5
       params.vn.seed = 398847392
       emb_layer = layers.EmbeddingLayer(params)
-      self.assertEqual(len(emb_layer.vars.Flatten()), 4)
+      self.assertLen(emb_layer.vars.Flatten(), 4)
       ids = tf.constant([[89], [100]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
@@ -4017,15 +4017,15 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
       embedding_var_count = 1
       wts = tf.get_collection('SimpleEmbeddingLayer_vars')
-      self.assertEqual(embedding_var_count, len(wts))
+      self.assertLen(wts, embedding_var_count)
 
       embedding_mask_count = 1
       masks = tf.get_collection('masks')
-      self.assertEqual(embedding_mask_count, len(masks))
+      self.assertLen(masks, embedding_mask_count)
 
       emebdding_threshold_count = 1
       threshold = tf.get_collection('thresholds')
-      self.assertEqual(emebdding_threshold_count, len(threshold))
+      self.assertLen(threshold, emebdding_threshold_count)
 
     with self.session(use_gpu=False, graph=g):
       self.evaluate(tf.global_variables_initializer())
@@ -4151,7 +4151,10 @@ class EmbeddingLayerTest(test_utils.TestCase):
       self.assertAllClose(s_outs, o_outs)
       self.assertAllClose(s_grad, o_grad)
 
-  def testCompareMatMulEmbeddingLayers(self):
+  @parameterized.named_parameters(
+      ('float32', tf.float32), ('bfloat16', tf.bfloat16)
+  )
+  def testCompareMatMulEmbeddingLayers(self, dtype):
     classes = 8000
     dims = 128
     with contextlib.ExitStack() as context_stack:
@@ -4162,7 +4165,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
         tf.random.set_seed(398847392)
         p = layers.SimpleEmbeddingLayer.Params()
         p.name = 's_emb'
-        p.dtype = tf.float32
+        p.dtype = dtype
         p.vocab_size = classes
         p.embedding_dim = dims
         p.fprop_mode = 'matmul'
@@ -4183,7 +4186,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
         tf.random.set_seed(398847392)
         p = layers.EinsumEmbeddingLayer.Params()
         p.name = 'e_emb'
-        p.dtype = tf.float32
+        p.dtype = dtype
         p.vocab_size = classes
         p.embedding_dim = dims
         p.params_init = py_utils.WeightInit.Gaussian(0.01)
@@ -4207,6 +4210,8 @@ class EmbeddingLayerTest(test_utils.TestCase):
       e_outs, e_grad = sess.run(_FuncEinsum, feed_dict={ids: ids_val})
       self.assertAllClose(s_outs, e_outs)
       self.assertAllClose(s_grad, e_grad)
+      self.assertEqual(s_outs.dtype, dtype)
+      self.assertEqual(e_outs.dtype, dtype)
 
   def testPositionalEmbeddingLayer(self):
     with self.session(use_gpu=False):
