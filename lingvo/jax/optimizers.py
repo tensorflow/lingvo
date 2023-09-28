@@ -158,8 +158,10 @@ class _ShardedAdamHelper:
 
   def init_opt_state(self, var_params: py_utils.Params) -> _AdamOptState:
     """Returns optimizer state for one particular variable."""
+    # pytype: disable=wrong-arg-types  # jnp-type
     return _AdamOptState(
         m=jnp.zeros_like(var_params), v=jnp.zeros_like(var_params))
+    # pytype: enable=wrong-arg-types
 
   def sanitize_values(self, array: JTensor, replacement: float = 0.0):
     """Sanitizes NaN and Infinity values."""

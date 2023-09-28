@@ -693,8 +693,10 @@ class SequenceModel(BaseModel):
         decode_out.output_ids, decode_out.decode_lengths, key='tgt')
     source_lengths = jnp.sum(
         1.0 - decode_out.src.paddings, axis=1).astype(jnp.int32)
+    # pytype: disable=wrong-arg-types  # jnp-type
     source_strs = input_obj.ids_to_strings(
         decode_out.src.ids, source_lengths, key='src')
+    # pytype: enable=wrong-arg-types
     target_strs = input_obj.ids_to_strings(
         decode_out.tgt.ids, decode_out.original_lengths, key='tgt')
     ret = list()
