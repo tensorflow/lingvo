@@ -569,6 +569,7 @@ class ExecutorTpu(base_runner.BaseRunner):
           program_schedule = self._program_schedule_dict[self._model_task_name]
         else:
           # Otherwise, sample a task.
+          assert self.task_scheduler is not None
           model_task = self.task_scheduler.Sample(global_step)
           tf.logging.info('Sampled %s', model_task)
           program_schedule = self._program_schedule_dict[model_task]

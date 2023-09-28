@@ -251,7 +251,7 @@ class RunnerManager:
 
   def __init__(self, model):
     self._model_name = model
-    self._tf_server = None
+    self._tf_server: tf.distribute.Server = None
 
   def MaybeLaunchTensorFlow(self):
     """Starts TF machinery in this process."""
