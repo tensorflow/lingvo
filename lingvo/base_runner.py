@@ -82,11 +82,11 @@ class BaseRunner:
     self._daemon = False
     self._verbose_enqueue_logging = False
 
-    self._checkpointer = None
+    self._checkpointer: checkpointer.Checkpointer = None
     self._should_report_metrics = False
 
     self._graph = None if py_utils.IsEagerMode() else tf.Graph()
-    self._summary_writer = None
+    self._summary_writer: tf.summary.SummaryWriter = None
     self._initialize_tables = None
     self._dequeue_thread_complete = False
 
