@@ -170,12 +170,14 @@ def cc_tf_configure():
     make_tflib_repo(name = "tensorflow_solib")
 
 def lingvo_testonly_deps():
+    BM_COMMIT = "f7547e29ccaed7b64ef4f7495ecfff1c9f6f3d03"
+    BM_SHA256 = "552ca3d4d1af4beeb1907980f7096315aa24150d6baf5ac1e5ad90f04846c670"
     http_archive(
         name = "com_google_benchmark",
-        sha256 = "23082937d1663a53b90cb5b61df4bcc312f6dee7018da78ba00dd6bd669dfef2",
-        strip_prefix = "benchmark-1.5.1",
+        sha256 = BM_SHA256,
+        strip_prefix = "benchmark-{commit}".format(commit = BM_COMMIT),
         urls = [
-            "https://github.com/google/benchmark/archive/v1.5.1.tar.gz",
+            "https://github.com/google/benchmark/archive/{commit}.tar.gz".format(commit = BM_COMMIT),
         ],
     )
 
