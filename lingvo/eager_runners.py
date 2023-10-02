@@ -35,6 +35,9 @@ class Trainer(base_runner.BaseRunner):
     """Run training."""
     super().Start()
 
+    # Avoid learner var name collisions in the multitask setting.
+    py_utils.EnableUniqueLearnerScopeNames()
+
     with self._cluster:
       model = self._params.Instantiate()
       ckptr = self._CreateCheckpointer(self._train_dir, model)
