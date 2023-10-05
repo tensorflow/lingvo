@@ -287,6 +287,66 @@ class DatasourceTest(test_utils.TestCase):
     self.assertAllEqual(ret.selected_bprop.shape, [2])
     self.assertAllEqual(ret.source_selected.shape, [1, 2])
 
+  def testCrossBatchMixingDataSourceSucceedsWithListFilesAndWeights1(self):
+    # The following test case is a superset of the testcase
+    # testCrossBatchMixingDataSourceSucceedsWithListFilesAndWeights above
+    # and correctly tests the behaviour of CrossBatchMixingDataSource function.
+    files = ['path_to_file', 'path_to_file1']
+    datasources = [
+        datasource.SimpleDataSource.Params().Set(file_pattern=f) for f in files
+    ]
+    weights = [1, 4]
+    ds_params = datasource.CrossBatchMixingDataSource.Params().Set(
+        sub=datasources, weights=weights
+    )
+    ds = ds_params.Instantiate()
+    ds.SetInputGenerator(TestInputGenerator.Params().Instantiate())
+    # In the following loop, we count the number of times each of the two
+    # file_patterns in files appear in a batch; this count is useful to check
+    # whether samples are correctnly sampled from datasources based on their
+    # weights. Also in each iteration, we check whether batch is selected from
+    # only a single datasource.
+    random.seed(1234)
+    n_file = 0
+    n_file1 = 0
+    for _ in range(20):
+      with self.session():
+        batch = ds.GetNext()
+        ret = ds.GetMeta()
+        ret.data = self.evaluate(batch.data)
+        # fp gives the list of datasources that constitute current batch.
+        fp = list(set(ret.data.decode().split(',')))[0]
+        # Following assertion checks whether the batch contains samples from
+        # a single datasource.
+        self.assertEqual(len(set(ret.data.decode().split(','))), 1)
+        # Following code counts the number of times either of two file_patterns
+        # appear in all batches.
+        if fp == files[0]:
+          n_file += 1
+        elif fp == files[1]:
+          n_file1 += 1
+        else:
+          print(f'file_pattern cannot be {fp}')
+
+    # Following assertion checks whether the empirical probability of first
+    # datasource, i.e., based on 'path_to_file', is close 0.2, as the weights of
+    # the two datasources are 1, 4.
+    self.assertEqual(n_file, 3)
+    # Following code is borrowed from the existing test case
+    # testCrossBatchMixingDataSourceSucceedsWithListFilesAndWeights1. Only
+    # one test case should be enough to test all the behaviors.
+    with self.session():
+      batch = ds.GetNext()
+      ret = ds.GetMeta()
+      ret.data = self.evaluate(batch.data)
+    self.assertCountEqual(
+        sorted(ret.keys()),
+        ['bprop_variable_filters', 'data', 'selected_bprop', 'source_selected'],
+    )
+    self.assertCountEqual(ret.bprop_variable_filters, [''] * len(files))
+    self.assertAllEqual(ret.selected_bprop.shape, [2])
+    self.assertAllEqual(ret.source_selected.shape, [1, 2])
+
   def testCurriculumDataSourceSucceedsWithSimpleDataSource(self):
     sources = [
         datasource.SimpleDataSource.Params().Set(file_pattern='file1'),
