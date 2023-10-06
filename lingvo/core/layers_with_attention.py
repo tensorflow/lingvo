@@ -28,7 +28,7 @@ import numpy as np
 
 
 class StochasticResidualLayer(base_layer.BaseLayer):
-  """Stocahstic residual layer that randomly drop the residual branch.
+  """Stochastic residual layer that randomly drop the residual branch.
 
   Originally proposed in "Deep Networks with Stochastic Depth" for ConvNets,
   https://arxiv.org/pdf/1603.09382.pdf
@@ -622,18 +622,16 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       params.use_block_diagonal_matmul_pl = p.use_block_diagonal_matmul_pl
       params.num_blocks_pl = p.num_blocks_pl
 
-    if p.output_dim == 0:
-      params.hidden_layer_dims = [p.hidden_dim, p.input_dim]
-    else:
-      params.hidden_layer_dims = [p.hidden_dim, p.output_dim]
+    output_dim = p.input_dim if p.output_dim == 0 else p.output_dim
+    params.hidden_layer_dims = [p.hidden_dim, output_dim]
 
-      if p.add_skip_connection and p.output_dim != p.input_dim:
-        pj = p.res_proj_tpl.Copy()
-        pj.name = 'res_proj'
-        pj.input_dim = p.input_dim
-        pj.output_dim = p.output_dim
-        pj.activation = 'NONE'
-        self.CreateChild('res_proj_layer', pj)
+    if p.add_skip_connection and output_dim != p.input_dim:
+      pj = p.res_proj_tpl.Copy()
+      pj.name = 'res_proj'
+      pj.input_dim = p.input_dim
+      pj.output_dim = output_dim
+      pj.activation = 'NONE'
+      self.CreateChild('res_proj_layer', pj)
 
     params.dropout = [
         params.dropout.cls.Params().Set(keep_prob=1.0 - p.relu_dropout_prob),
@@ -651,9 +649,12 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       self.CreateChild('pre_layer_norm', pre_params)
       post_params = params.Copy()
       post_params.name = 'post_fflayer_ln'
+      post_params.input_dim = output_dim
       self.CreateChild('post_layer_norm', post_params)
     else:
       params.name = 'fflayer_ln'
+      if not p.pre_layer_norm:
+        params.input_dim = output_dim
       self.CreateChild('layer_norm', params)
 
     dropout_tpl = p.residual_dropout_tpl.Copy()
@@ -726,7 +727,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
       h = self.residual_dropout.FProp(theta.residual_dropout, h)
 
       if p.add_skip_connection:
-        # Residual re-projection can be applied only on residual conection.
+        # Residual re-projection can be applied only on residual connection.
         if hasattr(self, 'res_proj_layer'):
           inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
         if p.residual_droppath_prob:

@@ -76,6 +76,37 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  @parameterized.parameters(
+      (True, True, False),
+      (True, True, False),
+      (True, True, True),
+      (True, False, False),
+  )
+  def testTransformerFeedForwardLayerWithNorm(
+      self,
+      add_skip_connection,
+      pre_layer_norm,
+      primer_hybrid_norm
+  ):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([2, 2, 3], seed=948387483)
+      paddings = tf.zeros([2, 2])
+      p = layers_with_attention.TransformerFeedForwardLayer.Params()
+      p.name = 'transformer_fflayer'
+      p.input_dim = 3
+      p.hidden_dim = 5
+      p.output_dim = 4
+      p.add_skip_connection = add_skip_connection
+      p.pre_layer_norm = pre_layer_norm
+      p.primer_hybrid_norm = primer_hybrid_norm
+      transformer_fflayer = layers_with_attention.TransformerFeedForwardLayer(p)
+
+      h = transformer_fflayer.FPropDefaultTheta(inputs, paddings)
+      self.evaluate(tf.global_variables_initializer())
+      output = self.evaluate(h)
+      self.assertAllEqual(output.shape, [2, 2, p.output_dim])
+
   def testTransformerFeedForwardMultitaskAdapterLayer(self):
     with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)
