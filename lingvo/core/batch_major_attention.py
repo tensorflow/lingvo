@@ -7260,6 +7260,9 @@ class Builder(builder.Base):
         'expert_capacity_dim', 0,
         'If not None, num_groups will be adjusted so that there will be at '
         'least min_group_size tokens in each group.')
+    p.Define(
+        'atten_tpl', MultiHeadedAttention.Params(),
+        'Multi-Headed Dot-Product Attention default params.')
     # SPMD partition related params.
     #
     # d - model_dim
@@ -7380,7 +7383,7 @@ class Builder(builder.Base):
     if num_heads is None:
       num_heads = p.num_heads
 
-    atten_p = MultiHeadedAttention.Params().Set(
+    atten_p = p.atten_tpl.Copy().Set(
         name=name,
         input_dim=p.model_dim,
         hidden_dim=p.attention_hidden_dim or p.model_dim,
