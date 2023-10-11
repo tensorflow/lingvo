@@ -313,6 +313,54 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testTransformerShardedMoeLayerWithExpertChoiceGating(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layers_with_attention.TransformerShardedMoeLayer.Params()
+      p.name = 'transformer_fflayer'
+      p.input_dim = 3
+      p.hidden_dim = 7
+      p.output_dim = 3
+      p.num_groups = 2
+      p.num_experts = 4
+      p.expert_capacity_factor = 2
+      p.gating_func = 'token_shuffle'
+      moe_fflayer = layers_with_attention.TransformerShardedMoeLayer(p)
+
+      h = moe_fflayer.FPropDefaultTheta(inputs, paddings)
+      self.evaluate(tf.global_variables_initializer())
+      actual_layer_output = self.evaluate(h)
+
+      # pylint: disable=bad-whitespace
+      expected_output = [
+          [
+              [-0.20445204, -0.2590714, 0.16577774],
+              [0.13199684, 2.0023189, 2.5105696],
+          ],
+          [
+              [-0.9127313, -0.3445571, 0.38583452],
+              [2.7213383, 0.36977524, 1.0432059],
+          ],
+          [
+              [-0.32787868, -0.632642, -1.3835698],
+              [0.25726342, 0.13920057, 0.19400805],
+          ],
+          [
+              [-0.08872961, -0.07596536, -0.4997902],
+              [-1.0190275, 0.07380891, -0.7711446],
+          ],
+          [
+              [-0.45537415, -0.21204835, -0.49027053],
+              [-1.6673511, 0.5640105, 0.84082156],
+          ],
+      ]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
   @parameterized.named_parameters(
       ('F32FPropF32Input', tf.float32, tf.float32, 7.182965),
       ('F32FPropBF16Input', tf.float32, tf.bfloat16, 7.183718),

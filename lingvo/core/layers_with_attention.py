@@ -1154,9 +1154,11 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       else:
         theta_wo = tf.concat(theta_wos, 2)
 
+      is_expert_choice = p.gating_func in ['token_shuffle', 'token_shuffle_v2']
+      ec_einsum = 'gecs,gsm->egcm' if is_expert_choice else 'gsec,gsm->egcm'
       expert_inputs = _split(
-          tf.einsum('gsec,gsm->egcm', dispatch_tensor, reshaped_inputs),
-          ap.egcm)
+          tf.einsum(ec_einsum, dispatch_tensor, reshaped_inputs), ap.egcm
+      )
       hidden = _split(
           tf.einsum('egcm,emh->egch', expert_inputs, theta_wi), ap.egch)
       # Activation function.
@@ -1169,9 +1171,23 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       # Now transpose and reshard.
       transposed_expert_output = _split(
           tf.einsum('egcm->gecm', expert_output), ap.gecm)
-      combined_output = _split(
-          tf.einsum('gecm,gsec->gsm', transposed_expert_output, combine_tensor),
-          ap.gsm)
+      if is_expert_choice:
+        combined_output = _split(
+            tf.einsum(
+                'gecm,gecs,gec->gsm',
+                transposed_expert_output,
+                dispatch_tensor,
+                combine_tensor,
+            ),
+            ap.gsm,
+        )
+      else:
+        combined_output = _split(
+            tf.einsum(
+                'gecm,gsec->gsm', transposed_expert_output, combine_tensor
+            ),
+            ap.gsm,
+        )
 
       if required_fully_defined_input:
         combined_output = tf.reshape(combined_output,
