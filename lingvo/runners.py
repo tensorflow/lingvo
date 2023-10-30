@@ -220,8 +220,9 @@ class Trainer(base_runner.BaseRunner):
         self._model.ConstructFPropBPropGraph()
       self._CreateTF2SummaryOps()
       if FLAGS.checkpoint_in_trainer_cpu:
-        self._checkpointer = checkpointer.Checkpointer(self._train_dir,
-                                                       self._model)
+        self._checkpointer = self._CreateCheckpointer(
+            self._train_dir, self._model
+        )
 
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()

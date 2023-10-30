@@ -37,7 +37,7 @@ from lingvo.core import inference_graph_pb2
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core import trainer_test_utils
-from lingvo.tasks.image.input_generator import FakeMnistData
+from lingvo.tasks.image import input_generator
 import numpy as np
 
 FLAGS = tf.flags.FLAGS
@@ -122,8 +122,9 @@ class BaseTrainerTest(test_utils.TestCase):
     cfg.cluster.reporting_job = FLAGS.vizier_reporting_job
 
     # Generate 2 inputs.
-    cfg.input.ckpt = FakeMnistData(
-        self.get_temp_dir(), train_size=2, test_size=2)
+    cfg.input.ckpt = input_generator.FakeMnistData(
+        self.get_temp_dir(), train_size=2, test_size=2
+    )
     cfg.input.num_samples = 2
     cfg.input.batch_size = 2
     cfg.train.max_steps = 2
@@ -321,15 +322,19 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
 
   @flagsaver.flagsaver
   def testRunLocally(self):
-    logdir = os.path.join(tf.test.get_temp_dir(),
-                          'run_locally_test' + str(random.random()))
+    logdir = os.path.join(
+        tf.test.get_temp_dir(), 'run_locally_test' + str(random.random())
+    )
     FLAGS.logdir = logdir
     FLAGS.run_locally = 'cpu'
     FLAGS.mode = 'sync'
     FLAGS.model = 'image.mnist.LeNet5'
     FLAGS.model_params_override = (
-        'train.max_steps: 2; input.num_samples: 2; input.ckpt: %s' %
-        FakeMnistData(self.get_temp_dir(), train_size=2, test_size=2))
+        'train.max_steps: 2; input.num_samples: 2; input.ckpt: %s'
+        % input_generator.FakeMnistData(
+            self.get_temp_dir(), train_size=2, test_size=2
+        )
+    )
     trainer.main(None)
 
     train_files = tf.io.gfile.glob(logdir + '/train/*')
@@ -342,16 +347,20 @@ class TrainerTest(BaseTrainerTest, parameterized.TestCase):
 
   @flagsaver.flagsaver
   def testRunLocallyCheckpointInTrainerCpu(self):
-    logdir = os.path.join(tf.test.get_temp_dir(),
-                          'run_locally_test' + str(random.random()))
+    logdir = os.path.join(
+        tf.test.get_temp_dir(), 'run_locally_test' + str(random.random())
+    )
     FLAGS.logdir = logdir
     FLAGS.run_locally = 'cpu'
     FLAGS.mode = 'sync'
     FLAGS.model = 'image.mnist.LeNet5'
     FLAGS.checkpoint_in_trainer_cpu = True
     FLAGS.model_params_override = (
-        'train.max_steps: 2; input.num_samples: 2; input.ckpt: %s' %
-        FakeMnistData(self.get_temp_dir(), train_size=2, test_size=2))
+        'train.max_steps: 2; input.num_samples: 2; input.ckpt: %s'
+        % input_generator.FakeMnistData(
+            self.get_temp_dir(), train_size=2, test_size=2
+        )
+    )
     trainer.main(None)
 
     train_files = tf.io.gfile.glob(logdir + '/train/*')
