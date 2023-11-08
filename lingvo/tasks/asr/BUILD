@@ -25,6 +25,7 @@ py_test(
     deps = [
         ":frontend",
         # Additional FFT kernels dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
@@ -49,6 +50,7 @@ py_test(
     srcs = ["input_generator_test.py"],
     deps = [
         ":input_generator",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -77,6 +79,7 @@ py_test(
     srcs = ["encoder_test.py"],
     deps = [
         ":encoder",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -100,6 +103,7 @@ py_test(
     deps = [
         ":eos_normalization",
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -136,6 +140,7 @@ py_test(
     deps = [
         ":decoder",
         ":decoder_utils",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:symbolic",
@@ -181,6 +186,7 @@ py_test(
     deps = [
         ":decoder",
         # Implicit python proto dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:layers",
@@ -245,6 +251,7 @@ py_test(
         ":input_generator",
         ":model",
         ":model_test_input_generator",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:cluster_factory",

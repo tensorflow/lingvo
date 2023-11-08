@@ -56,6 +56,7 @@ py_strict_test(
         ":input_generator",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo/core:test_helper",
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.

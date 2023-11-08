@@ -17,6 +17,7 @@ py_test(
     srcs = ["simple_wer_test.py"],
     deps = [
         ":simple_wer",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],
@@ -33,6 +34,7 @@ py_test(
     deps = [
         ":custom_html_handlers",
         ":simple_wer_v2",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],

@@ -25,7 +25,10 @@ py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
     shard_count = 2,
-    deps = [":layers_test_lib"],
+    deps = [
+        ":layers_test_lib",
+        #internal proto upb dep
+    ],
 )
 
 py_library(
@@ -64,6 +67,7 @@ py_test(
     shard_count = 12,
     deps = [
         ":encoder",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:self_attention_layer",
@@ -97,7 +101,10 @@ py_test(
     srcs = ["decoder_test.py"],
     shard_count = 20,
     tags = ["not_run:arm"],
-    deps = [":decoder_test_lib"],
+    deps = [
+        ":decoder_test_lib",
+        #internal proto upb dep
+    ],
 )
 
 py_library(
@@ -136,6 +143,7 @@ py_test(
     srcs = ["data_augmenter_test.py"],
     deps = [
         ":data_augmenter",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
@@ -174,6 +182,7 @@ py_test(
     deps = [
         ":input_generator",
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:py_utils",
@@ -205,7 +214,10 @@ py_test(
     srcs = ["model_test.py"],
     shard_count = 20,
     tags = ["not_run:arm"],
-    deps = [":model_test_lib"],
+    deps = [
+        ":model_test_lib",
+        #internal proto upb dep
+    ],
 )
 
 py_library(

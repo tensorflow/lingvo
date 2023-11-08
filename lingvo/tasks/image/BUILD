@@ -27,6 +27,7 @@ py_test(
     deps = [
         ":classifier",
         ":input_generator",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo:model_registry",
         "//lingvo/core:cluster_factory",
@@ -52,6 +53,7 @@ py_test(
     srcs = ["input_generator_test.py"],
     deps = [
         ":input_generator",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.

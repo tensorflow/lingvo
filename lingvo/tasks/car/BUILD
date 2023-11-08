@@ -47,6 +47,7 @@ py_test(
     srcs = ["detection_decoder_test.py"],
     deps = [
         ":detection_decoder",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],
@@ -75,6 +76,7 @@ py_test(
     deps = [
         ":detection_3d_metrics",
         ":transform_util",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -87,6 +89,7 @@ py_test(
     srcs = ["detection_3d_lib_test.py"],
     deps = [
         ":detection_3d_lib",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -98,6 +101,7 @@ py_test(
     srcs = ["car_layers_test.py"],
     deps = [
         ":car_layers",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -137,6 +141,7 @@ py_test(
     deps = [
         ":calibration_processing",
         ":kitti_metadata",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -164,6 +169,7 @@ py_test(
         ":breakdown_metric",
         ":kitti_ap_metric",
         ":kitti_metadata",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -191,6 +197,7 @@ py_test(
     shard_count = 2,
     deps = [
         ":builder_lib",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -247,6 +254,7 @@ py_test(
         ":base_extractor",
         ":input_extractor",
         ":input_preprocessors",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
@@ -337,6 +345,7 @@ py_test(
         ":kitti_input_generator",
         ":lr_util",
         ":pillars",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -419,6 +428,7 @@ py_test(
     deps = [
         ":pointnet",
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -430,6 +440,7 @@ py_test(
     srcs = ["summary_test.py"],
     deps = [
         ":summary",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -454,6 +465,7 @@ py_test(
     ],
     deps = [
         ":transform_util",
+        #internal proto upb dep
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
@@ -464,6 +476,7 @@ py_test(
     srcs = ["car_lib_test.py"],
     deps = [
         ":car_lib",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -476,6 +489,7 @@ py_test(
     deps = [
         ":geometry",
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -504,6 +518,7 @@ py_test(
     srcs = ["input_preprocessors_test.py"],
     deps = [
         ":input_preprocessors",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",

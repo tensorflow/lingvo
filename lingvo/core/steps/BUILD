@@ -23,6 +23,7 @@ py_test(
     srcs = ["attention_steps_test.py"],
     deps = [
         ":attention_steps",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -46,6 +47,7 @@ py_test(
     srcs = ["embedding_steps_test.py"],
     deps = [
         ":embedding_steps",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -69,6 +71,7 @@ py_test(
     srcs = ["rnn_steps_test.py"],
     deps = [
         ":rnn_steps",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:step",

@@ -61,6 +61,7 @@ py_test(
     ],
     deps = [
         ":kitti_data",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",

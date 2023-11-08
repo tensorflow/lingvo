@@ -96,6 +96,7 @@ py_test(
     deps = [
         ":beam_utils",
         # Implicit apache_beam dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
@@ -120,6 +121,7 @@ py_test(
     ],
     deps = [
         ":audio_lib",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
@@ -141,6 +143,7 @@ py_test(
     srcs = ["compare_params_test.py"],
     deps = [
         ":compare_params_lib",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:hyperparams",
         "//lingvo/core:test_utils",

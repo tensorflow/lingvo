@@ -59,6 +59,7 @@ py_strict_test(
     srcs = ["generic_datasets_test.py"],
     deps = [
         ":generic_datasets",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],

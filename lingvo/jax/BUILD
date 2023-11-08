@@ -223,6 +223,7 @@ py_strict_test(
         ":py_utils",
         ":test_utils",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         # Implicit numpy dependency.
     ],
@@ -433,6 +434,7 @@ py_strict_test(
         ":asserts",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
     ],
 )
 
@@ -445,6 +447,7 @@ py_strict_test(
         ":test_utils",
         # Implicit absl.flags dependency.
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
@@ -461,6 +464,7 @@ py_strict_test(
         ":py_utils",
         ":test_utils",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         # Implicit tensorflow dependency.
     ],
@@ -475,6 +479,7 @@ py_strict_test(
         # Implicit absl.flags dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit tensorflow dependency.
     ],
 )
@@ -493,6 +498,7 @@ py_strict_test(
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
@@ -505,6 +511,7 @@ py_strict_test(
     deps = [
         ":model_imports",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
     ],
 )
 
@@ -515,6 +522,7 @@ py_strict_test(
         ":base_model_params",
         ":model_registry",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         "//lingvo/jax/layers",
         "//lingvo/jax/tasks/test/params",
     ],
@@ -530,6 +538,7 @@ py_strict_test(
         ":train_states",
         # Implicit absl.testing.absltest dependency.
         # Implicit flax's core dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
@@ -544,6 +553,7 @@ py_strict_test(
         ":test_utils",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",

@@ -29,6 +29,7 @@ py_test(
     shard_count = 3,
     deps = [
         ":input_generator",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
@@ -58,6 +59,7 @@ py_test(
     deps = [
         ":input_generator",
         ":model",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",

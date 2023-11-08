@@ -81,6 +81,7 @@ py_test(
     deps = [
         ":ops",
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -126,6 +127,7 @@ py_test(
     srcs = ["average_precision_3d_op_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -137,6 +139,7 @@ py_test(
     srcs = ["point_grid_op_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -159,6 +162,7 @@ py_test(
     srcs = ["nms_3d_op_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.

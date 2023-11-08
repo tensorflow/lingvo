@@ -103,6 +103,7 @@ py_strict_test(
     srcs = ["labels_test.py"],
     deps = [
         ":labels",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -114,6 +115,7 @@ py_strict_test(
     srcs = ["score_functions_test.py"],
     deps = [
         ":score_functions",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],
@@ -135,6 +137,7 @@ py_strict_test(
     srcs = ["tf_hub_layers_test.py"],
     deps = [
         ":tf_hub_layers",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:test_utils",
@@ -147,6 +150,7 @@ py_strict_test(
     srcs = ["tpu_utils_test.py"],
     deps = [
         ":tpu_utils",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -159,6 +163,7 @@ py_strict_test(
     srcs = ["transformers_test.py"],
     deps = [
         ":transformers",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],
@@ -180,6 +185,7 @@ py_strict_test(
     srcs = ["utils_test.py"],
     deps = [
         ":utils",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -212,6 +218,7 @@ py_strict_test(
     srcs = ["dataset_spec_test.py"],
     deps = [
         ":dataset_spec",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],
@@ -223,6 +230,7 @@ py_strict_test(
     deps = [
         ":dual_encoder",
         ":labels",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
@@ -237,6 +245,7 @@ py_strict_test(
     deps = [
         ":image_preprocessor",
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:test_utils",
@@ -249,6 +258,7 @@ py_strict_test(
     srcs = ["input_generator_test.py"],
     deps = [
         ":input_generator",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:test_utils",

@@ -185,6 +185,7 @@ py_strict_test(
     deps = [
         ":stats",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
@@ -285,6 +286,7 @@ py_strict_test(
     deps = [
         ":spectrum_augmenter",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:test_utils",
@@ -352,6 +354,7 @@ py_strict_test(
         ":conformers",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:cluster_factory",
         "//lingvo/core:conformer_layer",
@@ -450,6 +453,7 @@ py_strict_test(
     deps = [
         ":vit",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
@@ -465,6 +469,7 @@ py_strict_test(
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:batch_major_attention",
         "//lingvo/jax:base_layer",
@@ -481,6 +486,7 @@ py_strict_test(
         ":augmentations",
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:test_utils",
@@ -494,6 +500,7 @@ py_strict_test(
     deps = [
         ":objectives",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         # Implicit jax/experimental/jax2tf dependency.
         "//lingvo/jax:pytypes",
@@ -511,6 +518,7 @@ py_strict_test(
         ":embedding_softmax",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:layers",
         "//lingvo/jax:py_utils",
@@ -528,6 +536,7 @@ py_strict_test(
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:layers",
         "//lingvo/jax:py_utils",
@@ -544,6 +553,7 @@ py_strict_test(
         ":ngrammer",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:attention_util",
         "//lingvo/jax:base_layer",
@@ -561,6 +571,7 @@ py_strict_test(
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:bn_layers",
         "//lingvo/core:layers",
@@ -578,6 +589,7 @@ py_strict_test(
         ":poolings",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:layers",
         "//lingvo/jax:test_utils",
@@ -593,6 +605,7 @@ py_strict_test(
         ":quantizer",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
@@ -606,6 +619,7 @@ py_strict_test(
     deps = [
         ":objectives",
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         "//lingvo/jax:test_utils",
         # Implicit numpy dependency.
     ],
@@ -619,6 +633,7 @@ py_strict_test(
         ":stochastics",
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:py_utils",
@@ -635,6 +650,7 @@ py_strict_test(
         ":rnn_cell",
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:rnn_cell",
         "//lingvo/jax:py_utils",
@@ -651,6 +667,7 @@ py_strict_test(
         ":stochastics",
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/jax:base_layer",
         "//lingvo/jax:test_utils",
@@ -668,6 +685,7 @@ py_strict_test(
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:batch_major_attention",
         "//lingvo/core:layers_with_attention",
@@ -691,6 +709,7 @@ py_strict_test(
         # Implicit absl.logging dependency.
         # Implicit absl.testing.absltest dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         # Implicit jax dependency.
         "//lingvo/core:gshard_builder",
         "//lingvo/jax:base_layer",

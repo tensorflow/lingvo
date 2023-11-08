@@ -18,6 +18,7 @@ py_test(
     deps = [
         ":waymo_ap_metric",
         ":waymo_metadata",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
@@ -32,6 +33,7 @@ py_test(
     srcs = ["waymo_open_input_generator_test.py"],
     deps = [
         ":waymo_open_input_generator",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",

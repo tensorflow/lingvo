@@ -116,6 +116,7 @@ py_test(
     srcs = ["simple_vocab_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo/core:test_utils",
         # Implicit tensorflow dependency.
     ],
@@ -238,6 +239,7 @@ py_test(
     srcs = ["static_map_op_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
     ],
@@ -254,6 +256,7 @@ py_test(
     srcs = ["assert_ops_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo/core:test_utils",
         # Implicit tensorflow dependency.
     ],
@@ -285,6 +288,7 @@ py_test(
         ":hyps_py_pb2",
         ":ops",
         # Implicit python proto dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -309,6 +313,7 @@ py_test(
     ],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
@@ -330,6 +335,7 @@ py_test(
     srcs = ["functional_ops_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -369,6 +375,7 @@ py_test(
     srcs = ["random_ops_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit tensorflow dependency.
@@ -399,6 +406,7 @@ py_test(
     srcs = ["preconditioner_op_kernels_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -434,6 +442,7 @@ py_test(
     ],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         # Implicit tensorflow dependency.
@@ -458,6 +467,7 @@ py_test(
     deps = [
         ":ops",
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
@@ -475,6 +485,7 @@ py_test(
     srcs = ["mass_op_test.py"],
     deps = [
         ":ops",
+        #internal proto upb dep
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.

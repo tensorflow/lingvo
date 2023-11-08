@@ -56,6 +56,7 @@ py_test(
     srcs = ["compat_test.py"],
     deps = [
         ":compat",
+        #internal proto upb dep
     ],
 )
 
@@ -80,6 +81,7 @@ py_test(
     deps = [
         ":compat",
         ":model_imports_no_params",
+        #internal proto upb dep
     ],
 )
 
@@ -109,6 +111,7 @@ py_test(
         ":model_registry",
         ":model_registry_test_lib",
         ":models_test_helper",
+        #internal proto upb dep
         "//lingvo/core:base_model",
     ],
 )
@@ -127,7 +130,10 @@ py_library(
 py_test(
     name = "model_registry_test",
     srcs = ["model_registry_test.py"],
-    deps = [":model_registry_test_lib"],
+    deps = [
+        ":model_registry_test_lib",
+        #internal proto upb dep
+    ],
 )
 
 py_library(
@@ -161,6 +167,7 @@ py_test(
     deps = [
         ":compat",
         ":datasets_lib",
+        #internal proto upb dep
         "//lingvo/core:base_model_params",
         "//lingvo/core:test_utils",
     ],
@@ -259,6 +266,7 @@ py_test(
         ":trainer_lib",
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
+        #internal proto upb dep
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
         "//lingvo/core:base_model_params",
