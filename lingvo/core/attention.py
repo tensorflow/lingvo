@@ -1308,6 +1308,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         proj_init = py_utils.WeightInit.Uniform(scale=np.sqrt(1.0 / layer_dim))
       elif p.proj_init == 'default':
         proj_init = py_utils.WeightInit.Constant(0.0) if bias else p.params_init
+      else:
+        assert False
       return proj_init
 
     if p.use_bias:
@@ -1316,6 +1318,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           init=InitProj(p.hidden_dim, bias=True),
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
+    else:
+      pc_bias = None
 
     if p.enable_source_proj:
       pc = py_utils.WeightParams(
@@ -1475,7 +1479,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       source_projected = self.ProcessProjectionVec(theta, source_projected,
                                                    'source')
       if p.use_source_vec_as_attention_value:
-        source_contexts_reshaped = source_projected
+        source_contexts_projected = source_projected
       else:
         if p.enable_ctx_pre_proj:
           source_contexts = tf.reshape(
@@ -1505,7 +1509,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           source_contexts_projected = source_contexts
 
         source_context_depth = py_utils.GetShape(source_contexts_projected)[-1]
-        source_contexts_reshaped = tf.reshape(source_contexts_projected, [
+        source_contexts_projected = tf.reshape(source_contexts_projected, [
             time_steps, batch_size * num_heads,
             source_context_depth // num_heads
         ])
@@ -1529,7 +1533,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
                 [1, 1, num_heads]), [time_steps, batch_size * num_heads])
 
       return self.atten.PackSource(theta.atten, source_projected,
-                                   source_contexts_reshaped,
+                                   source_contexts_projected,
                                    source_padding_replicated,
                                    source_segment_id_repl)
 
