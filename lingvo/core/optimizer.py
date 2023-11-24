@@ -207,11 +207,14 @@ class CompositeOptimizer(Base):
 
   For example,
 
-  optimizer_map = {'a': Adam, 'b': Adagrad, 'default_optimizer': SGD}
+  optimizer_map = {r'.*a.*': (Adam.ParamsB(), 0.001),
+                   r'.*b.*': (Adagrad.Params(), 0.01),
+                   'default_optimizer': (SGD.Params(), 0.02)}
 
   will apply Adam to all variables which contain an 'a' in their name, apply
   Adagrad to all variables which contain a 'b' in their name, and apply SGD to
-  the variables which do not contain either 'a' or 'b'.
+  the variables which do not contain either 'a' or 'b' (with the specified
+  learning rates).
 
   If a non-default_optimizer matches more than one variable -- in this example
   variables with both 'a' and 'b' in their name -- an exception is thrown.
