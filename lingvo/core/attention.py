@@ -2713,7 +2713,7 @@ class MonotonicAttention(BaseAttentionLayer):
                                      theta,
                                      packed_src,
                                      query_vec,
-                                     attention_state,
+                                     attention_state=None,
                                      per_step_source_padding=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.
@@ -2971,7 +2971,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
                                      theta,
                                      packed_src,
                                      query_vec,
-                                     attention_state,
+                                     attention_state=None,
                                      per_step_source_padding=None,
                                      query_segment_id=None):
     """Computes the context vector given the current query output.

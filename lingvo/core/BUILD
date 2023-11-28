@@ -40,7 +40,7 @@ lingvo_cuda_py_test(
     ],
 )
 
-py_library(
+pytype_library(
     name = "attention",
     srcs = ["attention.py"],
     deps = [
