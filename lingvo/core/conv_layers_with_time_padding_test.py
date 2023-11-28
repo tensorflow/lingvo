@@ -673,14 +673,17 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
     kernel = kwargs['kernel']
     bias = kwargs['bias']
     dilation = kwargs['dilation']
+    time_alignment = kwargs['time_alignment']
     p = conv_layers.CausalDepthwiseConv2DLayer.Params().Set(
         name='conv',
         filter_stride=[1, 1],
         filter_shape=[kernel, 1, channel, channel_multiplier],
         dilation_rate=[dilation, 1],
+        time_alignment=time_alignment,
         params_init=py_utils.WeightInit.Gaussian(0.1),
         bias=bias,
-        bias_init=py_utils.WeightInit.Gaussian(0.1))
+        bias_init=py_utils.WeightInit.Gaussian(0.1),
+    )
     return p
 
   def _FProp(self, layer, inputs, paddings):
@@ -713,7 +716,9 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
         stride=stride,
         channel_multiplier=1,
         bias=bias,
-        dilation=dilation)
+        dilation=dilation,
+        time_alignment=None,
+    )
     with flagsaver.flagsaver(
         testonly_skip_norm_layers=testonly_skip_norm_layers):
       self._TestStreamStepHelper(**kwargs)
@@ -795,6 +800,100 @@ class CausalDepthwiseConv2DLayerStreamStepTest(
       print(f'np.sum(np.abs(expected)): {np.sum(np.abs(expected))}')
       print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
       self.assertAllClose(expected, actual)
+
+  def _TestOneStreamStep(self, **kwargs):
+    batch_size, max_seqlen, input_dim = 2, 32, kwargs['input_dim']
+
+    stride = kwargs.get('stride', 1)
+    # max_seqlen is divisible by stride.
+    assert max_seqlen % stride == 0
+
+    # Prepares inputs.
+    inputs, paddings = self._GetInputs(batch_size, max_seqlen, input_dim)
+
+    # Gets params
+    p = self._GetParams(**kwargs)
+
+    # Builds graph.
+    with self.session(use_gpu=False) as sess:
+      l = p.Instantiate()
+      init_op = tf.global_variables_initializer()
+
+      fprop_out = self._FProp(l, inputs, paddings)
+      base_outputs, out_paddings = self._GetFPropOutput(fprop_out)
+      out_rank = py_utils.GetRank(base_outputs)
+      base_outputs *= py_utils.AppendDims(1.0 - out_paddings, out_rank - 2)
+
+      try:
+        zero_state = l.zero_state(batch_size)
+      except TypeError:
+        zero_state = l.zero_state(l.theta, batch_size)
+      i = 0
+      step_inputs = inputs[:, stride * i : stride * (i + 1)]
+      step_paddings = paddings[:, stride * i : stride * (i + 1)]
+      output, _, output_state = self._StreamStep(
+          l, step_inputs, step_paddings, zero_state
+      )
+
+      sess.run(init_op)
+      actual_output, actual_output_state, actual_input_state = sess.run(
+          [output, output_state, zero_state]
+      )
+      return actual_output, actual_output_state, actual_input_state
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('BasicS2', False, 2),
+      ('BasicBias', False, 1),
+      ('BasicDilation2', False, 1, 2),
+      ('BasicDilation4', False, 1, 4),
+      ('BasicS4Dilation2', False, 4, 2),
+      ('SkipNorm', True),
+      ('SkipNormS4', True, 4),
+  )
+  def testAlignedStreaming(
+      self, testonly_skip_norm_layers=False, stride=1, dilation=1
+  ):
+    kwargs = dict(
+        input_dim=3,
+        kernel=5,
+        stride=stride,
+        channel_multiplier=1,
+        bias=False,
+        dilation=dilation,
+        time_alignment=8,
+    )
+    with flagsaver.flagsaver(
+        testonly_skip_norm_layers=testonly_skip_norm_layers
+    ):
+      self._TestStreamStepHelper(**kwargs)
+
+  @parameterized.named_parameters(
+      ('Basic',),
+      ('BasicS2', 2),
+      ('BasicDilation2', 1, 2),
+      ('BasicDilation4', 1, 4),
+      ('BasicS4Dilation2', 4, 2),
+  )
+  def testAlignedStreamingStep(self, stride=1, dilation=1):
+    time_alignment = 8
+    kwargs = dict(
+        input_dim=3,
+        kernel=5,
+        stride=stride,
+        channel_multiplier=1,
+        bias=False,
+        dilation=dilation,
+        time_alignment=time_alignment,
+    )
+    with flagsaver.flagsaver(testonly_skip_norm_layers=False):
+      _, output_state, input_state = self._TestOneStreamStep(**kwargs)
+      self.assertFalse(
+          py_utils.GetShape(input_state.context)[1] % time_alignment
+      )
+      self.assertFalse(
+          py_utils.GetShape(output_state.context)[1] % time_alignment
+      )
 
 
 class CausalConv2DLayerStreamStepTest(stream_step_test_base.StreamStepTestBase):

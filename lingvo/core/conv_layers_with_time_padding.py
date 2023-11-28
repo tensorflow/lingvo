@@ -710,6 +710,18 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
 class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
   """Depthwise conv layer with causal dependency on the time axis."""
 
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'time_alignment',
+        None,
+        'Time dimension alignment for streaming state. '
+        'It can be important for streaming inference optimization on TPU.'
+        'E.g. set it equal 8',
+    )
+    return p
+
   def __init__(self, params):
     super().__init__(params)
     p = self.params
@@ -731,18 +743,34 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
           where d is the temporal dilation rate.
     """
     p = self.params
-    assert p.filter_shape[1] == 1, (
-        'zero_state() only supports 1d causal convolution.')
-    assert p.dilation_rate[1] == 1, (
-        'zero_state() only supports 1d dilation convolution.')
-
+    time_size = self._get_aligned_time_size()
     context = tf.zeros(
-        shape=[
-            batch_size, p.dilation_rate[0] * (p.filter_shape[0] - 1),
-            p.filter_shape[1], p.filter_shape[2]
-        ],
-        dtype=py_utils.FPropDtype(p))
+        shape=[batch_size, time_size, p.filter_shape[1], p.filter_shape[2]],
+        dtype=py_utils.FPropDtype(p),
+    )
     return py_utils.NestedMap(context=context)
+
+  def _get_aligned_time_size(self):
+    p = self.params
+    time_size = self._get_time_size()
+    if p.time_alignment is None:
+      return time_size
+    else:
+      r = time_size % p.time_alignment
+      time_size = time_size + (p.time_alignment - r)
+      return time_size
+
+  def _get_time_size(self):
+    p = self.params
+    assert (
+        p.filter_shape[1] == 1
+    ), 'zero_state() only supports 1d causal convolution.'
+    assert (
+        p.dilation_rate[1] == 1
+    ), 'zero_state() only supports 1d dilation convolution.'
+
+    time_size = p.dilation_rate[0] * (p.filter_shape[0] - 1)
+    return time_size
 
   def StreamStep(
       self,
@@ -757,13 +785,15 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
 
     Args:
       theta: A NestedMap of layer params.
-      inputs: A Tensor of shape [b, t, 1, c]
+      inputs: A Tensor of shape [b, t, 1, c]. If time_alignment is defined, then
+        't' will be aligned in zero_state().
       paddings: An optional 0/1 valued tensor of shape [b, t].
       state0: A NestedMap of tensors of the same struct as returned by
         zero_state().
 
     Returns:
-      outputs: A Tensor of shape [b, t, 1, c * channel_multiplier]
+      outputs: A Tensor of shape [b, t, 1, c * channel_multiplier].
+        If time_alignment is defined, then 't' will be aligned.
       padding: the same as input paddings.
       state1: A NestedMap of the same struct as input state
     """
@@ -782,18 +812,39 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
         paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
         inputs = py_utils.ApplyPadding(py_utils.AppendDims(paddings, 2), inputs)
 
-      concat_inputs = tf.concat([state0.context, inputs], axis=1)
+      state0_context = state0.context
+      if p.time_alignment is not None:
+        # De-align time dim in input streaming state.
+        time_size = self._get_time_size()
+        state0_context = state0_context[:, :time_size, :, :]
+
+      concat_inputs = tf.concat([state0_context, inputs], axis=1)
       outputs = tf.nn.depthwise_conv2d(
           concat_inputs,
           self._GetWeight(theta),
           strides=(1, 1, 1, 1),
           dilations=p.dilation_rate,
           data_format='NHWC',
-          padding='VALID')
+          padding='VALID',
+      )
       if p.bias:
         outputs = tf.nn.bias_add(outputs, theta.b)
-      new_context = tf.slice(concat_inputs, [0, q, 0, 0],
-                             tf.shape(state0.context))
+      state0_context_shape = py_utils.GetShape(state0_context)
+      new_context = tf.slice(concat_inputs, [0, q, 0, 0], state0_context_shape)
+      if p.time_alignment is not None:
+        time_size = self._get_time_size()
+        aligned_time_size = self._get_aligned_time_size()
+
+        # Align time dim in output state.
+        if aligned_time_size - time_size > 0:
+          state0_context_shape[1] = aligned_time_size - time_size
+          new_context = tf.concat(
+              [
+                  new_context,
+                  tf.zeros(state0_context_shape, dtype=new_context.dtype),
+              ],
+              axis=1,
+          )
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
 
