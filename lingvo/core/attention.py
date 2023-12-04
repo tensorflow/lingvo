@@ -1501,10 +1501,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           source_contexts_projected = source_contexts
 
         source_context_depth = py_utils.GetShape(source_contexts_projected)[-1]
-        source_contexts_projected = tf.reshape(source_contexts_projected, [
-            time_steps, batch_size * num_heads,
-            source_context_depth // num_heads
-        ])
+        source_contexts_projected = tf.reshape(
+            source_contexts_projected,
+            [time_steps, -1, source_context_depth // num_heads])
         source_contexts_projected = gshard_utils.MeshSplit(
             source_contexts_projected, p.device_mesh,
             p.activation_split_dims_mapping)
@@ -1513,16 +1512,14 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
 
     with tf.name_scope('init__2'):
       source_padding_replicated = tf.reshape(
-          tf.tile(
-              tf.reshape(source_padding, [time_steps, batch_size, 1]),
-              [1, 1, num_heads]), [time_steps, batch_size * num_heads])
+          tf.tile(tf.expand_dims(source_padding, 2), [1, 1, num_heads]),
+          [time_steps, -1])
       if source_segment_id is None:
         source_segment_id_repl = tf.zeros_like(source_padding_replicated)
       else:
         source_segment_id_repl = tf.reshape(
-            tf.tile(
-                tf.reshape(source_segment_id, [time_steps, batch_size, 1]),
-                [1, 1, num_heads]), [time_steps, batch_size * num_heads])
+            tf.tile(tf.expand_dims(source_segment_id, 2), [1, 1, num_heads]),
+            [time_steps, -1])
 
       return self.atten.PackSource(theta.atten, source_projected,
                                    source_contexts_projected,
@@ -1707,7 +1704,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     num_heads = p.num_attention_heads
     batch_size = py_utils.GetShape(query_vec)[0]
     static_inner_atten_dim = symbolic.ToStatic(p.hidden_dim // num_heads)
-    query_vec_projected_shape = [batch_size * num_heads, static_inner_atten_dim]
+    query_vec_projected_shape = [-1, static_inner_atten_dim]
 
     if p.enable_query_proj:
       query_vec, w_query_proj = self.ToAqtInputs(
