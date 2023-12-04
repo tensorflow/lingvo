@@ -626,6 +626,13 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Bias initializer to use if bias is to be applied.')
+    p.Define(
+        'time_alignment',
+        None,
+        'Time dimension alignment for streaming state. '
+        'It can be important for streaming inference optimization on TPU.'
+        'E.g. set it equal 8',
+    )
     return p
 
   def __init__(self, params):
@@ -709,18 +716,6 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding,
 
 class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
   """Depthwise conv layer with causal dependency on the time axis."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define(
-        'time_alignment',
-        None,
-        'Time dimension alignment for streaming state. '
-        'It can be important for streaming inference optimization on TPU.'
-        'E.g. set it equal 8',
-    )
-    return p
 
   def __init__(self, params):
     super().__init__(params)
