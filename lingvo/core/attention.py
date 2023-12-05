@@ -1440,7 +1440,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       if p.use_source_vec_as_attention_value:
         source_vecs = py_utils.HasShape(source_vecs,
                                         py_utils.GetShape(source_contexts))
-      time_steps, batch_size = py_utils.GetShape(source_padding, 2)
+      [time_steps] = py_utils.GetShape(source_vecs, 1)
       # source_projected shape [time * source_batch, hidden]
       if p.enable_source_proj:
         source_vecs, w_source_proj = self.ToAqtInputs(
@@ -1466,8 +1466,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       num_heads = p.num_attention_heads
       # => [time, source_batch * num_heads, hidden / num_heads]
       source_projected = tf.reshape(source_projected, [
-          time_steps, batch_size * num_heads,
-          symbolic.ToStatic(p.hidden_dim // num_heads)
+          time_steps, -1, symbolic.ToStatic(p.hidden_dim // num_heads)
       ])
       source_projected = gshard_utils.MeshSplit(source_projected, p.device_mesh,
                                                 p.activation_split_dims_mapping)
