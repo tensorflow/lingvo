@@ -1198,15 +1198,15 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       # Residual dropout.
       after_residual = self.residual_dropout.FProp(theta.residual_dropout,
                                                    combined_output)
-      if p.add_skip_connection:
-        if p.residual_droppath_prob:
-          out = self.residual_droppath.FProp(
-              theta.residual_droppath,
-              inputs,
-              after_residual,
-          )
-        else:
-          out = inputs + after_residual * self.params.residual_weight
+      assert p.add_skip_connection
+      if p.residual_droppath_prob:
+        out = self.residual_droppath.FProp(
+            theta.residual_droppath,
+            inputs,
+            after_residual,
+        )
+      else:
+        out = inputs + after_residual * self.params.residual_weight
 
       if not p.pre_layer_norm:
         out = self.layer_norm.FProp(theta.layer_norm, out)
@@ -1233,7 +1233,7 @@ class ReshapedTransformerFeedForwardLayer(TransformerFeedForwardLayer):
     p.ln_tpl = layers.ReshapedLayerNorm.Params()
     return p
 
-  def FProp(self, theta, inputs, paddings):
+  def FProp(self, theta, inputs, paddings, tasks=None):
     """Feed-forward, residual and layer-norm.
 
     Args:
@@ -1244,10 +1244,15 @@ class ReshapedTransformerFeedForwardLayer(TransformerFeedForwardLayer):
         first augmented (resp. reduced) by splitting the last dimension
         according to the device_mesh (resp. merging the last two dimensions).
       paddings: [time, batch].
+      tasks: Not supported, must be None.
 
     Returns:
       tensor of the same shape with inputs.
     """
+    if tasks is not None:
+      raise ValueError(
+          'multi-task is not supported in ReshapedTransformerFeedForwardLayer.'
+      )
     p = self.params
     with tf.name_scope(p.name):
       inputs_shape = py_utils.GetShape(inputs)
@@ -2220,14 +2225,16 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
     hidden = self.adapters.FProp(theta.adapters, hidden, source_task_id)
     return hidden, atten_prob
 
-  def ExtendStep(self,
-                 theta,
-                 source_vecs,
-                 prefix_states,
-                 aux_vecs=None,
-                 aux_paddings=None,
-                 timestep=None,
-                 source_task_id=None):
+  def ExtendStep(
+      self,
+      theta,
+      source_vecs,
+      prefix_states,
+      aux_vecs=None,
+      aux_paddings=None,
+      t=None,
+      source_task_id=None,
+  ):
     """Transformer Layer with adapters, extend one step in decoding.
 
     Applies TransformerLayer.ExtendStep, then applies adapters.
@@ -2240,7 +2247,7 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
         attentions, used for fast decoding.
       aux_vecs: [aux_time, aux_batch, dim]
       aux_paddings: [aux_time, aux_batch]
-      timestep: a scalar, the current time step, 0-based.
+      t: a scalar, the current time step, 0-based.
       source_task_id: [source_batch]
 
     Returns:
@@ -2260,7 +2267,8 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
 
     # First the self-attention layer.
     atten_vec, atten_prob, new_states = self.self_atten.ExtendStep(
-        theta.self_atten, source_vecs, prefix_states, timestep)
+        theta.self_atten, source_vecs, prefix_states, t
+    )
 
     atten_vec = tf.expand_dims(atten_vec, axis=0)
     # Next the source attention layer.
@@ -2454,6 +2462,8 @@ class CCTAttentionLayer(base_layer.BaseLayer):
             -1, 0)
       elif p.mask_type == 'eye':
         padding = tf.eye(target_time, target_time, dtype=py_utils.FPropDtype(p))
+      else:
+        raise ValueError('Unsupported mask type')
 
       # [time,  batch, time]
       causal_padding = tf.tile(tf.expand_dims(padding, 1), [1, target_bs, 1])
@@ -2716,6 +2726,7 @@ class CCTFeedForwardLayer(base_layer.BaseLayer):
     """
     p = self.params
     ff_outputs = []
+    inputs_normalized: tf.Tensor = None
     for i in range(p.num_blocks):
       inputs_normalized = self.layer_norm[i].FProp(theta.layer_norm[i], inputs)
       ff_output = self.fflayers[i].FProp(
@@ -2857,14 +2868,20 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
       assert tertiary_segment_id is not None, ('Need to specify segment id for '
                                                'packed input.')
 
-    atten_vec, atten_prob = self.self_atten.FProp(
+    atten_vec, _ = self.self_atten.FProp(
         theta.self_atten,
         source_vecs,
         source_paddings,
-        query_segment_id=source_segment_id)
-    atten_vec, atten_prob = self.tertiary_atten.FProp(
-        theta.tertiary_atten, atten_vec, tertiary_paddings, tertiary_vecs,
-        source_segment_id, tertiary_segment_id)
+        query_segment_id=source_segment_id,
+    )
+    atten_vec, _ = self.tertiary_atten.FProp(
+        theta.tertiary_atten,
+        atten_vec,
+        tertiary_paddings,
+        tertiary_vecs,
+        source_segment_id,
+        tertiary_segment_id,
+    )
     atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
                                              aux_paddings, aux_vecs,
                                              source_segment_id, aux_segment_id,

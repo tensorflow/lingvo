@@ -2036,7 +2036,7 @@ lingvo_cuda_py_test(
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "layers_with_attention",
     srcs = ["layers_with_attention.py"],
     deps = [
@@ -2051,6 +2051,7 @@ py_library(
         ":py_utils",
         ":symbolic",
         "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
