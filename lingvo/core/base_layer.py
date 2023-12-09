@@ -24,6 +24,7 @@ import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
+import numpy as np
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.distribute import tpu_values as tpu_values_lib
@@ -397,6 +398,11 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # self._var_symbolic_shape_map['var_name'] will be a tuple of integers or
     # symbolic expressions, one for each dimension of the variable.
     self._var_symbolic_shape_map = {}
+
+    # Handling the case when device_mesh is a list instead of an np.array.
+    p = self.params
+    if p.device_mesh is not None:
+      p.device_mesh = np.array(p.device_mesh)
 
   def __call__(self, *args, **kwargs):
     """Forwards call to `FPropDefaultTheta`."""
