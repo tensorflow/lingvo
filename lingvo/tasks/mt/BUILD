@@ -1,3 +1,5 @@
+load("//lingvo:lingvo.bzl", "pytype_strict_library")
+
 # Placeholder: load py_library
 # Placeholder: load py_test
 load(
@@ -10,7 +12,7 @@ package(default_visibility = ["//visibility:public"])
 
 licenses(["notice"])
 
-py_library(
+pytype_strict_library(
     name = "layers",
     srcs = ["layers.py"],
     deps = [
