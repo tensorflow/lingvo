@@ -1476,8 +1476,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     with tf.name_scope('init__1'):
       num_heads = p.num_attention_heads
       # => [time, source_batch * num_heads, hidden / num_heads]
+      [time_steps_vecs] = py_utils.GetShape(source_vecs, 1)
       source_projected = tf.reshape(source_projected, [
-          time_steps, -1, symbolic.ToStatic(p.hidden_dim // num_heads)
+          time_steps_vecs, -1, symbolic.ToStatic(p.hidden_dim // num_heads)
       ])
       source_projected = gshard_utils.MeshSplit(source_projected, p.device_mesh,
                                                 p.activation_split_dims_mapping)
@@ -1510,10 +1511,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         else:
           source_contexts_projected = source_contexts
 
+        time_steps_contexts = py_utils.GetShape(source_contexts_projected)[0]
         source_context_depth = py_utils.GetShape(source_contexts_projected)[-1]
         source_contexts_projected = tf.reshape(
             source_contexts_projected,
-            [time_steps, -1, source_context_depth // num_heads])
+            [time_steps_contexts, -1, source_context_depth // num_heads])
         source_contexts_projected = gshard_utils.MeshSplit(
             source_contexts_projected, p.device_mesh,
             p.activation_split_dims_mapping)
@@ -1521,15 +1523,17 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             theta, source_contexts_projected, 'ctx')
 
     with tf.name_scope('init__2'):
+      [time_steps_paddings] = py_utils.GetShape(source_padding, 1)
       source_padding_replicated = tf.reshape(
           tf.tile(tf.expand_dims(source_padding, 2), [1, 1, num_heads]),
-          [time_steps, -1])
+          [time_steps_paddings, -1])
       if source_segment_id is None:
         source_segment_id_repl = tf.zeros_like(source_padding_replicated)
       else:
+        [time_steps_segment_id] = py_utils.GetShape(source_segment_id, 1)
         source_segment_id_repl = tf.reshape(
             tf.tile(tf.expand_dims(source_segment_id, 2), [1, 1, num_heads]),
-            [time_steps, -1])
+            [time_steps_segment_id, -1])
 
       return self.atten.PackSource(theta.atten, source_projected,
                                    source_contexts_projected,
