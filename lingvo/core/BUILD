@@ -45,6 +45,7 @@ pytype_library(
     srcs = ["attention.py"],
     deps = [
         ":base_layer",
+        ":gshard_utils",
         ":layers",
         ":py_utils",
         ":quant_utils",

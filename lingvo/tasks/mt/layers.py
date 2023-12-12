@@ -14,10 +14,13 @@
 """Lingvo MT layers.
 """
 
+from typing import Optional, Tuple
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
+from lingvo.core import py_utils
 
 
 class TransformerStack(base_layer.BaseLayer):
@@ -110,14 +113,16 @@ class TransformerStack(base_layer.BaseLayer):
         transparent_params.append(transparent_param)
       self.CreateChildren('transparent_merger', transparent_params)
 
-  def FProp(self,
-            theta,
-            transformer_input,
-            paddings,
-            src_segment_id=None,
-            aux_vecs=None,
-            aux_paddings=None,
-            aux_segment_id=None):
+  def FProp(
+      self,
+      theta: py_utils.NestedMap,
+      transformer_input: tf.Tensor,
+      paddings: tf.Tensor,
+      src_segment_id: Optional[tf.Tensor] = None,
+      aux_vecs=None,
+      aux_paddings=None,
+      aux_segment_id=None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
     """Transforms source sequence of Tensors with Transformers layers.
 
     Args:
@@ -149,8 +154,15 @@ class TransformerStack(base_layer.BaseLayer):
     if p.packed_input:
       assert src_segment_id is not None, ('Need to specify src_segment_id if '
                                           'packed input is supported.')
+    # Check input tensor sizes
+    [time, batch, _] = py_utils.GetShape(transformer_input)
+    paddings = py_utils.HasShape(paddings, [time, batch])
+    if src_segment_id is not None:
+      src_segment_id = py_utils.HasShape(src_segment_id, [time, batch])
+
     outputs_list = [transformer_input]
     with tf.name_scope(p.name):
+      transformer_output: tf.Tensor = None
       for i, transformer_l in enumerate(self.trans):
 
         # For encoder, keys, values and queries are the same

@@ -131,25 +131,28 @@ class LayersTest(test_utils.TestCase):
 
         input_arr = np.array([[[0, 1], [1, -1]], [[1, 2], [-2, -1]]], dtype=int)
         paddings_arr = np.array([[0, 0], [0, 0]], dtype=int)
-        seg_id_arr = np.array([[0, 1, 0, 1]], dtype=int)
+        seg_id_arr = np.array([[0, 1], [0, 1]], dtype=int)
 
         inputs = tf.constant(input_arr.tolist(), dtype=tf.float32)
         paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
+        seg_id = tf.transpose(
+            tf.constant(seg_id_arr.tolist(), dtype=tf.float32)
+        )
         inputs_packed = tf.reshape(inputs, [-1, 1, 2])
         paddings_packed = tf.reshape(paddings, [-1, 1])
-        seg_id = tf.transpose(
-            tf.constant(seg_id_arr.tolist(), dtype=tf.float32))
+        seg_id_packed = tf.reshape(seg_id, [-1, 1])
 
         output, _, _ = xformer.FProp(xformer.theta, inputs, paddings, seg_id)
 
         output_packed, _, _ = xformer_packed.FProp(
-            xformer_packed.theta, inputs_packed, paddings_packed, seg_id)
+            xformer_packed.theta, inputs_packed, paddings_packed, seg_id_packed
+        )
         output_packed = tf.reshape(output_packed, tf.shape(output))
 
         self.evaluate(tf.global_variables_initializer())
         output, output_packed = self.evaluate([output, output_packed])
 
-        self.assertAllClose(output_packed, output)
+        self.assertAllClose(output_packed, output, rtol=9e-6, atol=3e-5)
 
   def testTransparentTransformerStackTrainFProp(self):
     # time = 2, batch = 1

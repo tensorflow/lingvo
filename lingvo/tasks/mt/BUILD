@@ -20,6 +20,7 @@ pytype_strict_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
+        "//lingvo/core:py_utils",
     ],
 )
 

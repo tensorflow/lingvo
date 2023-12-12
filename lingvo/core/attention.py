@@ -15,6 +15,8 @@
 """Attention models."""
 
 import math
+from typing import Optional
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import gshard_utils
@@ -22,7 +24,6 @@ from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import symbolic
-
 import numpy as np
 
 from tensorflow.python.ops import inplace_ops  # pylint:disable=g-direct-tensorflow-import
@@ -1407,11 +1408,12 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
 
   @py_utils.NameScopeDecorator('MultiHeadedAttention/PackSource')
   def PackSource(self,
-                 theta,
-                 source_vecs,
-                 source_contexts,
-                 source_padding,
-                 source_segment_id=None):
+                 theta: py_utils.NestedMap,
+                 source_vecs: tf.Tensor,
+                 source_contexts: Optional[tf.Tensor],
+                 source_padding: tf.Tensor,
+                 source_segment_id: Optional[tf.Tensor] = None
+                 ) -> py_utils.NestedMap:
     """Packs source vectors.
 
     Does not change attention state.
@@ -1436,11 +1438,20 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       assert p.source_dim == p.hidden_dim
     if not p.enable_query_proj:
       assert p.query_dim == p.hidden_dim
+    # Check input tensor shapes
+    source_vecs = py_utils.HasRank(source_vecs, 3)
+    [time_steps, source_batch] = py_utils.GetShape(source_vecs, 2)
+    if p.use_source_vec_as_attention_value:
+      assert source_contexts is not None
+      source_contexts = py_utils.HasShape(source_contexts,
+                                          [time_steps, source_batch, -1])
+    source_padding = py_utils.HasShape(source_padding,
+                                       [time_steps, source_batch])
+    if source_segment_id is not None:
+      source_segment_id = py_utils.HasShape(source_segment_id,
+                                            [time_steps, source_batch])
+
     with tf.name_scope('init__0'):
-      if p.use_source_vec_as_attention_value:
-        source_vecs = py_utils.HasShape(source_vecs,
-                                        py_utils.GetShape(source_contexts))
-      [time_steps] = py_utils.GetShape(source_vecs, 1)
       # source_projected shape [time * source_batch, hidden]
       if p.enable_source_proj:
         source_vecs, w_source_proj = self.ToAqtInputs(

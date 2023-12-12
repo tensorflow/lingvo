@@ -13,6 +13,8 @@
 # limitations under the License.
 """Lingvo layers that depend on attention layers but are not recurrent."""
 
+from typing import Optional, Tuple
+
 import lingvo.compat as tf
 from lingvo.core import activations
 from lingvo.core import attention
@@ -1409,15 +1411,17 @@ class TransformerLayer(base_layer.BaseLayer):
   def NumOutputNodes(cls, p):
     return p.output_dim if p.output_dim else p.source_dim
 
-  def FProp(self,
-            theta,
-            source_vecs,
-            source_paddings,
-            aux_vecs=None,
-            aux_paddings=None,
-            source_segment_id=None,
-            aux_segment_id=None,
-            **kwargs):
+  def FProp(
+      self,
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_paddings: tf.Tensor,
+      aux_vecs=None,
+      aux_paddings=None,
+      source_segment_id: Optional[tf.Tensor] = None,
+      aux_segment_id=None,
+      **kwargs
+  ) -> Tuple[tf.Tensor, tf.Tensor]:
     """Transformer Layer.
 
     Transformer layer has the naming scheme as follows: `source_vecs` and
@@ -1461,6 +1465,15 @@ class TransformerLayer(base_layer.BaseLayer):
       assert source_segment_id is not None, ('Need to specify segment id for '
                                              'packed input.')
 
+    # Check input tensor sizes
+    source_time, source_batch = py_utils.GetShape(source_vecs, 2)
+    source_paddings = py_utils.HasShape(
+        source_paddings, [source_time, source_batch]
+    )
+    if source_segment_id is not None:
+      source_segment_id = py_utils.HasShape(
+          source_segment_id, [source_time, source_batch]
+      )
     with tf.name_scope('self_atten'):
       atten_vec, atten_prob = self.self_atten.FProp(
           theta.self_atten,
