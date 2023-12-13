@@ -608,9 +608,12 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
   def _Compute(self, theta, inputs, paddings, conv_padding):
     """Computes the forward prop (conv, bn, act)."""
     p = self.params
+    del paddings
 
     bn_padding = conv_padding
     if bn_padding is None:
+      batch_time = None
+      batch_time_any_any = None
       bn_padding_expanded = None
     else:
       batch_time = tf.shape(bn_padding)
@@ -644,6 +647,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     p = self.params
     out = inputs
     out_padding = paddings
+    del conv_padding
 
     if p.batch_norm:
       if out_padding is None:
@@ -1014,6 +1018,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           init=p.params_init,
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
+      mix_kernel_pc = None
     elif p.use_block_diagonal_matmul:
       w_pc = py_utils.WeightParams(
           shape=(p.bd_num_blocks, p.input_dim // p.bd_num_blocks,
@@ -1039,6 +1044,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           device_mesh=p.device_mesh,
           tensor_split_dims_mapping=p.weight_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
+      mix_kernel_pc = None
 
     if p.apply_pruning:
       mask_w_pc = py_utils.WeightParams(w_pc.shape,
@@ -1047,6 +1053,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       threshold_w_pc = py_utils.WeightParams([],
                                              py_utils.WeightInit.Constant(0.0),
                                              tf.float32)
+    else:
+      mask_w_pc = None
+      threshold_w_pc = None
     if p.has_bias:
       if p.device_mesh is not None:
         bias_split_dims_mapping = [p.weight_split_dims_mapping[1]]
@@ -1059,12 +1068,16 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           device_mesh=p.device_mesh,
           tensor_split_dims_mapping=bias_split_dims_mapping,
           collections=[self.__class__.__name__ + '_vars'])
+    else:
+      b_pc = None
     if p.weight_norm:
       g_pc = py_utils.WeightParams(
           shape=[self._internal_output_dim],
           init=py_utils.WeightInit.Constant(0.0),
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
+    else:
+      g_pc = None
 
     weights_var_name = 'w'
     if p.apply_pruning:
@@ -1450,6 +1463,8 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'],
       )
+    else:
+      b_pc = None
     w_name = 'w'
     self.CreateVariable(w_name, w_pc)
     self.TrackQWeight(w_name, shape=w_pc.shape, feature_axis=-1)
@@ -3442,9 +3457,8 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
   The Rotary position embedding is described in https://arxiv.org/abs/2104.09864
   """
 
-  # pylint: disable=arguments-renamed
+  # pylint: disable-next=arguments-renamed
   def FProp(self, theta, inputs, position=None):
-    # pylint: enable=arguments-renamed
     """Generates a JTensor of sinusoids with different frequencies.
 
     Args:
@@ -3759,6 +3773,9 @@ class SimpleFullSoftmax(SoftmaxLayer):
       threshold_pc = py_utils.WeightParams([],
                                            py_utils.WeightInit.Constant(0.0),
                                            tf.float32)
+    else:
+      mask_pc = None
+      threshold_pc = None
 
     for i in range(p.num_shards):
       weights_var_name = f'weight_{i}'
@@ -4315,6 +4332,8 @@ class EinsumSoftmax(base_layer.BaseLayer):
                          class_ids=None,
                          class_probabilities=None):
     """Computes cross-entropy, argmax etc. from logits."""
+    del theta
+    del class_weights
     p = self.params
     assert logits is not None
     per_example_argmax = py_utils.ArgMax(logits)
@@ -4819,6 +4838,7 @@ class DropoutLayer(base_layer.BaseLayer):
     return p
 
   def _Dropout(self, theta, inputs, noise_shape):
+    del theta
     return tf.nn.dropout(
         inputs,
         rate=1 - self.params.keep_prob,
@@ -4827,6 +4847,7 @@ class DropoutLayer(base_layer.BaseLayer):
 
   @classmethod
   def NumOutputNodes(cls, p):
+    del p
     # The layer does element-wise processing thus is input-shape agnostic.
     return
 
