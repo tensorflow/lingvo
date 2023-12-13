@@ -2204,6 +2204,8 @@ def _RandomXavierUniformInitializer(method, scale, seed):
       limit = math.sqrt(6. / (fan_in + fan_out))
     elif method == 'geo_mean_xavier':
       limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
+    else:
+      raise ValueError('Unsupported method')
     return scale * tf.random.uniform(shape, -limit, limit, dtype, seed)
 
   return XavierUniform
@@ -2290,6 +2292,8 @@ def _CreateVarInitStateful(name,
         limit = math.sqrt(6. / (fan_in + fan_out))
       elif method == 'geo_mean_xavier':
         limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
+      else:
+        raise ValueError('Unsupported method')
       return scale * tf.random.uniform(shape, -limit, limit, dtype, seed)
 
     v_init = XavierUniform
@@ -2452,6 +2456,8 @@ def _DeterministicRandomXavierUniformInitializer(method, scale, seed):
       limit = math.sqrt(6. / (fan_in + fan_out))
     elif method == 'geo_mean_xavier':
       limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
+    else:
+      raise ValueError('Unsupported method')
     return scale * stateless_random_ops.stateless_random_uniform(
         shape, seed, -limit, limit, dtype)
 
@@ -3442,6 +3448,8 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
     lp_loss = 0.5 * lp_regularizer_weight * SumSquared(filtered_vars)
   elif p == 1.0:
     lp_loss = lp_regularizer_weight * SumAbs(filtered_vars)
+  else:
+    raise ValueError('Unsupported "p"')
 
   def LpGrad(var_grad):
     """Adjusts item's grad w/ Lp loss term."""
@@ -3477,6 +3485,8 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
           grad_v = values
         elif p == 1.0:
           grad_v = tf.sign(values)
+        else:
+          raise ValueError('Unsupported "p"')
         delta = lp_regularizer_weight * weights * grad_v
         grad = tf.IndexedSlices(grad.values + delta, ids)
     elif not _VarInCollection(var, tf.get_collection(SKIP_LP_REGULARIZATION)):
@@ -3485,6 +3495,8 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
           grad_v = var
         elif p == 1.0:
           grad_v = tf.sign(var)
+        else:
+          raise ValueError('Unsupported "p"')
         delta = lp_regularizer_weight * grad_v
       with tf.device(grad.device):
         grad += delta
@@ -6300,7 +6312,6 @@ def ComputationShape(split_size, topology=None) -> List[int]:
       topology_info = topology
     else:
       topology_info = tf_topology.Topology(serialized=topology)
-  computation_shape = None
   if topology and functools.reduce(lambda a, b: a * b,
                                    topology_info.mesh_shape) == split_size:
     computation_shape = topology_info.mesh_shape
