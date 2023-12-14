@@ -6308,24 +6308,29 @@ def ComputationShape(split_size, topology=None) -> List[int]:
     A 4-element list that describes the computation shape.
   """
   if topology:
-    if isinstance(topology, tf.tpu.experimental.Topology):
-      topology_info = topology
-    else:
-      topology_info = tf_topology.Topology(serialized=topology)
-  if topology and functools.reduce(lambda a, b: a * b,
-                                   topology_info.mesh_shape) == split_size:
-    computation_shape = topology_info.mesh_shape
+    if not isinstance(topology, tf.tpu.experimental.Topology):
+      topology = tf_topology.Topology(serialized=topology)
+  if (
+      topology
+      and functools.reduce(lambda a, b: a * b, topology.mesh_shape)
+      == split_size
+  ):
+    computation_shape = topology.mesh_shape
   elif split_size == 1:
     computation_shape = [1, 1, 1, 1]
-  elif topology and topology_info.mesh_shape[
-      -1] == 1 and split_size in topology_info.mesh_shape:
+  elif (
+      topology
+      and topology.mesh_shape[-1] == 1
+      and split_size in topology.mesh_shape
+  ):
     # For Megacore, if we find exact match on mesh shape, map split_size to it
     computation_shape = [1, 1, 1, 1]
-    computation_shape[topology_info.mesh_shape.tolist().index(
-        split_size)] = split_size
+    computation_shape[topology.mesh_shape.tolist().index(split_size)] = (
+        split_size
+    )
   else:
     if topology:
-      cores_per_chip = topology_info.mesh_shape[-1]
+      cores_per_chip = topology.mesh_shape[-1]
     else:
       cores_per_chip = 2
     assert split_size % cores_per_chip == 0
@@ -6345,7 +6350,7 @@ def ComputationShape(split_size, topology=None) -> List[int]:
     elif split_chips == 24:
       computation_shape = [1, 2, 12, cores_per_chip]
     elif split_chips == 32:
-      if topology and topology_info.mesh_shape[1] == 32:
+      if topology and topology.mesh_shape[1] == 32:
         # Fwd within-replica all-reduces is performed along column;
         # Bwd gradient cross-replica all-reduces is performed along row.
         # This currently has better performance than the strided patten.
