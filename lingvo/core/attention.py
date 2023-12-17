@@ -897,18 +897,19 @@ class DotProductAttention(BaseAttentionLayer):
               tf.cast(
                   py_utils.GetShape(inputs.query_vec)[1],
                   dtype=py_utils.FPropDtype(p))))
-      source_batch = py_utils.GetShape(concated_source_vecs)[0]
+      source_batch, _, source_dim = py_utils.GetShape(concated_source_vecs)
       target_batch = py_utils.GetShape(inputs.query_vec)[0]
       query_vec = inputs.query_vec * inputs.per_dim_scale
       # The n here refers to the "n" described in the comment above.
-      n = target_batch // source_batch
-      query_vec = tf.reshape(query_vec, [n, source_batch, -1])
+      # => [n, source_batch, source_dim] where n = target_batch // source_batch
+      query_vec = tf.reshape(query_vec, [-1, source_batch, source_dim])
       # => [source_batch, source_dim, n]
       query_vec = tf.transpose(query_vec, [1, 2, 0])
-      # => [n, source_batch, source_sequence_len]
+      source_length = py_utils.GetShape(inputs.per_step_source_padding)[1]
+      # => [n, source_batch, source_length]
       per_step_source_padding = tf.reshape(inputs.per_step_source_padding,
-                                           [n, source_batch, -1])
-      # => [source_batch, source_sequence_len, n]
+                                           [-1, source_batch, source_length])
+      # => [source_batch, source_length, n]
       per_step_source_padding = tf.transpose(per_step_source_padding, [1, 2, 0])
       # Dot-product part.
       # Calls batch_mat_mul since dim > 2 for per-instance matmul.
@@ -982,9 +983,8 @@ class DotProductAttention(BaseAttentionLayer):
                                   [py_utils.GetShape(query_vec)[1]])
       py_utils.assert_shape_match([py_utils.GetShape(concated_source_vecs)[2]],
                                   [symbolic.ToStatic(p.source_dim)])
-      source_batch = py_utils.GetShape(concated_source_vecs)[1]
+      time, source_batch = py_utils.GetShape(concated_source_vecs, 2)
       target_batch = py_utils.GetShape(query_vec)[0]
-      n = target_batch // source_batch
       concated_source_vecs = tf.transpose(concated_source_vecs, [1, 0, 2])
       concated_source_vecs = tf.identity(
           concated_source_vecs, name='concated_source_vecs')
@@ -1000,8 +1000,8 @@ class DotProductAttention(BaseAttentionLayer):
               query_segment_id=query_segment_id))
       returned_probs.set_shape(per_step_source_padding.shape)
 
-      # => [n, source_batch, time].
-      probs = tf.reshape(returned_probs, [n, source_batch, -1])
+      # => [n, source_batch, time] where n = target_batch // source_batch
+      probs = tf.reshape(returned_probs, [-1, source_batch, time])
       # => [source_batch, n, time].
       probs = tf.transpose(probs, [1, 0, 2])
 
