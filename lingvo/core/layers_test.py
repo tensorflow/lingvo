@@ -3349,8 +3349,6 @@ class MultitaskProjectionEinsumLayerTest(
       self.evaluate(tf.global_variables_initializer())
 
       # pylint: disable=bad-whitespace
-
-      # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [
           [[0.        , 0.28554747],
