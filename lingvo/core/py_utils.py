@@ -6922,3 +6922,126 @@ class Timer(contextlib.AbstractContextManager):
     self.Stop()
     if self._dbg_print:
       print(f'\033[92m{self._name} timer: {self.duration:.2f}s\033[0m')
+
+
+def MultiTaskProjection(
+    weights: tf.Tensor,
+    biases: Optional[tf.Tensor],
+    inputs: tf.Tensor,
+    tasks: tf.Tensor,
+    max_task_id: int,
+    einsum_order: str,
+    quant_layer,  # quant_utils.QuantizableLayer, would be circular import
+    w_q_name: str,
+    w_q_domain: str = 'default',
+):
+  """Applies a multi-task projection.
+
+  Calculates the projection of a batched input tensor, where the projection
+  parameters (weights, bias) can be from a different 'task' for each batch.
+
+  Args:
+    weights: projection weigth matrices of all tasks, size [num_tasks,
+      input_dim, output_dim]
+    biases: (optional) bias vectors of all tasks, size [num_tasks, output_dim]
+    inputs: input tensor, size [batch, input_dim] or [batch_dim, time_dim,
+      input_dim]
+    tasks: An int32 tensor containing the task ID for each input. Tensor size is
+      [batch_dim] or [batch_dim, time_dim] (allowed only when inputs also has a
+      time dimension), no elements are larger than max_task_id.
+    max_task_id: the highest task id allowed. (Note, different from num_tasks.)
+    einsum_order: the algorithm to use, either 'select_and_multiply' or
+      'multiply_and_select'.
+    quant_layer: QuantizableLayer used for AQT (pass `self`)
+    w_q_name: string. Name of the weight tensor to use for AQT.
+    w_q_domain: string. Name of the Qdomain to use for AQT.
+
+  Returns:
+    Projected tensor, size [batch, time, output_dim]
+
+  Raises:
+    ValueError: if einsum_order is neither 'select_and_multiply' nor
+      'multiply_and_select'.
+  """
+  # Check input dimensions
+  weights = HasRank(weights, 3)
+  num_tasks, input_dim, output_dim = GetShape(weights)
+  if biases is not None:
+    biases = HasShape(biases, [num_tasks, output_dim])
+  if GetRank(inputs) == 2:
+    inputs = HasShape(inputs, [-1, input_dim])
+    batch_size = GetShape(inputs)[0]
+    time_size = None
+  else:
+    inputs = HasShape(inputs, [-1, -1, input_dim])
+    batch_size, time_size = GetShape(inputs, 2)
+  if GetRank(tasks) == 1:
+    tasks = HasShape(tasks, [batch_size])
+  else:
+    assert time_size is not None
+    tasks = HasShape(tasks, [batch_size, time_size])
+
+  # [batch, max_task_id] or [batch, time, max_task_id]
+  tasks_onehot = tf.one_hot(tasks, max_task_id, axis=-1, dtype=inputs.dtype)
+
+  # Einsum axis names:
+  # b - batch
+  # t - time (t_input and t_task, if corresponding tensor has a time dimension)
+  # k - task
+  # i - input_dim
+  # o - output_dim
+
+  if GetRank(inputs) == 3:
+    t_input = 't'
+  else:
+    t_input = ''
+  if GetRank(tasks) == 1:
+    t_task = ''
+    # [:, None, :]
+    # Need to broadcast to the time dimension before addition.
+    b_broadcaster = (slice(None), None, slice(None))
+  else:
+    assert GetRank(inputs) == 3
+    t_task = 't'
+    # [:, :, :]
+    # Will have a time dimension already; no need to broadcast.
+    b_broadcaster = (slice(None), slice(None), slice(None))
+
+  if einsum_order == 'select_and_multiply':
+    # Weights quantization:
+    weights = quant_layer.QWeight(weights, domain=w_q_domain)
+    weights = quant_layer.ToAqtWeight(w_q_name, weights, feature_axis=-1)
+    # select..
+    # [batch, {time,} input_dim, output_dim]
+    selected_weights = tf.einsum(
+        f'b{t_task}k,kio->b{t_task}io', tasks_onehot, weights
+    )
+    selected_weights = quant_layer.FromAqtWeight(w_q_name, selected_weights)
+    # .. and multiply
+    # [batch, {time,} output_dim]
+    out = tf.einsum(
+        f'b{t_input}i,b{t_task}io->b{t_input}o', inputs, selected_weights
+    )
+  elif einsum_order == 'multiply_and_select':
+    # multiply..
+    # [batch, {time,} task, output_dim]
+    all_projected = tf.einsum(f'b{t_input}i,kio->b{t_input}ko', inputs, weights)
+    # .. and select
+    # [batch, {time,} output_dim]
+    out = tf.einsum(
+        f'b{t_input}ko,b{t_task}k->b{t_input}o', all_projected, tasks_onehot
+    )
+  else:
+    raise ValueError(
+        'einsum_order must be select_and_multiply or multiply_and_select.'
+    )
+  if biases is not None:
+    # [batch, {time,} output_dim]
+    bias = tf.einsum(f'b{t_task}k,ko->b{t_task}o', tasks_onehot, biases)
+    if GetRank(inputs) == 2:
+      out += bias
+    elif GetRank(inputs) == 3:
+      out += bias[b_broadcaster]
+    else:
+      raise ValueError('the inputs must has rank 2 or 3.')
+  return out
