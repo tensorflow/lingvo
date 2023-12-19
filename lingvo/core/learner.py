@@ -523,13 +523,15 @@ _LEGACY_LEARNER_PARAMS = [
 ]
 
 
-def ExtractLearnerFromLegacyParams(tp, cls=Learner):
+def ExtractLearnerFromLegacyParams(tp, cls=Learner, remove_legacy_params=True):
   """Extracts legacy learner params from 'tp' to a Learner params.
 
   Args:
     tp: BaseTask training params (p.train). Its legacy params will be cleared to
       be None after the conversion.
     cls: Learner class where we set the params.
+    remove_legacy_params: Whether to keep the legacy hparams. Default to True
+      which sets legacy hparams to None.
 
   Returns:
     A params for Learner.
@@ -542,7 +544,8 @@ def ExtractLearnerFromLegacyParams(tp, cls=Learner):
                       v)
       continue
     setattr(lp, k, v)
-    setattr(tp, k, None)
+    if remove_legacy_params:
+      setattr(tp, k, None)
   for line in lp.ToText().split('\n'):
     tf.logging.info('Learner params: %s', line)
   return lp
