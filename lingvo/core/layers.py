@@ -1435,11 +1435,13 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
     }, 'Expect einsum_order to be select_and_multiply or multiply_and_select.'
     if p.input_dim < p.num_tasks and p.einsum_order == 'multiply_and_select':
       tf.logging.warning(
-          'Setting einsum_order to select_and_multiply for efficiency.'
+          'Setting einsum_order to select_and_multiply would be more efficient'
+          ' than multiply_and_select.'
       )
     if p.input_dim > p.num_tasks and p.einsum_order == 'select_and_multiply':
       tf.logging.warning(
-          'Setting einsum_order to multiply_and_select for efficiency.'
+          'Setting einsum_order to multiply_and_select would be more efficient'
+          ' than select_and_multiply.'
       )
 
   def _CreateLayerVariables(self):
@@ -6390,11 +6392,13 @@ class MultitaskAdapterEinsumLayer(MultitaskAdapterBaseLayer):
     }, 'Expect einsum_order to be select_and_multiply or multiply_and_select.'
     if p.input_dim < p.num_tasks and p.einsum_order == 'multiply_and_select':
       tf.logging.warning(
-          'Setting einsum_order to select_and_multiply for efficiency.'
+          'Setting einsum_order to select_and_multiply would be more efficient'
+          ' than multiply_and_select.'
       )
     if p.input_dim > p.num_tasks and p.einsum_order == 'select_and_multiply':
       tf.logging.warning(
-          'Setting einsum_order to multiply_and_select for efficiency.'
+          'Setting einsum_order to multiply_and_select would be more efficient'
+          ' than select_and_multiply.'
       )
 
     if p.layer_norm_tpl is not None:
