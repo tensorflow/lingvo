@@ -6972,14 +6972,18 @@ def MultiTaskProjection(
     inputs = HasShape(inputs, [-1, input_dim])
     batch_size = GetShape(inputs)[0]
     time_size = None
+    t_input = ''
   else:
     inputs = HasShape(inputs, [-1, -1, input_dim])
     batch_size, time_size = GetShape(inputs, 2)
+    t_input = 't'
   if GetRank(tasks) == 1:
     tasks = HasShape(tasks, [batch_size])
+    t_task = ''
   else:
     assert time_size is not None
     tasks = HasShape(tasks, [batch_size, time_size])
+    t_task = 't'
 
   # [batch, max_task_id] or [batch, time, max_task_id]
   tasks_onehot = tf.one_hot(tasks, max_task_id, axis=-1, dtype=inputs.dtype)
@@ -6990,22 +6994,6 @@ def MultiTaskProjection(
   # k - task
   # i - input_dim
   # o - output_dim
-
-  if GetRank(inputs) == 3:
-    t_input = 't'
-  else:
-    t_input = ''
-  if GetRank(tasks) == 1:
-    t_task = ''
-    # [:, None, :]
-    # Need to broadcast to the time dimension before addition.
-    b_broadcaster = (slice(None), None, slice(None))
-  else:
-    assert GetRank(inputs) == 3
-    t_task = 't'
-    # [:, :, :]
-    # Will have a time dimension already; no need to broadcast.
-    b_broadcaster = (slice(None), slice(None), slice(None))
 
   if einsum_order == 'select_and_multiply':
     # Weights quantization:
@@ -7038,10 +7026,8 @@ def MultiTaskProjection(
   if biases is not None:
     # [batch, {time,} output_dim]
     bias = tf.einsum(f'b{t_task}k,ko->b{t_task}o', tasks_onehot, biases)
-    if GetRank(inputs) == 2:
+    if GetRank(out) == GetRank(bias):
       out += bias
-    elif GetRank(inputs) == 3:
-      out += bias[b_broadcaster]
     else:
-      raise ValueError('the inputs must has rank 2 or 3.')
+      out += tf.expand_dims(bias, 1)
   return out
