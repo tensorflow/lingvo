@@ -6929,7 +6929,6 @@ def MultiTaskProjection(
     biases: Optional[tf.Tensor],
     inputs: tf.Tensor,
     tasks: tf.Tensor,
-    max_task_id: int,
     einsum_order: str,
     quant_layer,  # quant_utils.QuantizableLayer, would be circular import
     w_q_name: str,
@@ -6948,8 +6947,7 @@ def MultiTaskProjection(
       input_dim]
     tasks: An int32 tensor containing the task ID for each input. Tensor size is
       [batch_dim] or [batch_dim, time_dim] (allowed only when inputs also has a
-      time dimension), no elements are larger than max_task_id.
-    max_task_id: the highest task id allowed. (Note, different from num_tasks.)
+      time dimension), no elements are larger than num_tasks.
     einsum_order: the algorithm to use, either 'select_and_multiply' or
       'multiply_and_select'.
     quant_layer: QuantizableLayer used for AQT (pass `self`)
@@ -6985,8 +6983,8 @@ def MultiTaskProjection(
     tasks = HasShape(tasks, [batch_size, time_size])
     t_task = 't'
 
-  # [batch, max_task_id] or [batch, time, max_task_id]
-  tasks_onehot = tf.one_hot(tasks, max_task_id, axis=-1, dtype=inputs.dtype)
+  # [batch, num_tasks] or [batch, time, num_tasks]
+  tasks_onehot = tf.one_hot(tasks, num_tasks, axis=-1, dtype=inputs.dtype)
 
   # Einsum axis names:
   # b - batch
