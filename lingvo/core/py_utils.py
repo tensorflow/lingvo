@@ -385,7 +385,7 @@ def Save(value, filename_prefix, **kwargs):
     return tf.identity(value)
 
 
-def HasRank(tensor, expected_rank):
+def HasRank(tensor: tf.Tensor, expected_rank) -> tf.Tensor:
   """Syntactic sugar for asserting that tensor has the expected rank."""
   if tensor.shape.ndims is not None and isinstance(expected_rank, int):
     assert tensor.shape.ndims == expected_rank, (
@@ -480,7 +480,7 @@ def GetShape(
   return shapes
 
 
-def HasShape(tensor, expected_shape, ndims=None):
+def HasShape(tensor: tf.Tensor, expected_shape, ndims=None) -> tf.Tensor:
   """Syntactic sugar for asserting that tensor has the expected shape.
 
   Args:
@@ -6933,7 +6933,7 @@ def MultiTaskProjection(
     quant_layer,  # quant_utils.QuantizableLayer, would be circular import
     w_q_name: str,
     w_q_domain: str = 'default',
-):
+) -> tf.Tensor:
   """Applies a multi-task projection.
 
   Calculates the projection of a batched input tensor, where the projection
