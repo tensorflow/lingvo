@@ -7261,6 +7261,14 @@ class Builder(builder.Base):
         'If not None, num_groups will be adjusted so that there will be at '
         'least min_group_size tokens in each group.')
     p.Define(
+        'expert_capacity_factor',
+        1.0,
+        'Expert capacity factor in MoE. This should be set to a value greater'
+        ' than or equal to 1.0. This is the ratio between max allowed'
+        ' examples per expert over the average number of examples per '
+        ' expert assuming routing is completely uniform.',
+    )
+    p.Define(
         'atten_tpl', MultiHeadedAttention.Params(),
         'Multi-Headed Dot-Product Attention default params.')
     # SPMD partition related params.
@@ -7430,7 +7438,9 @@ class Builder(builder.Base):
     moe_p.expert_capacity_dim = p.expert_capacity_dim
     moe_p.min_group_size = None
     moe_p.num_experts = p.num_experts
-    moe_p.expert_capacity_factor = 1.0
+
+    assert p.expert_capacity_factor >= 1.0
+    moe_p.expert_capacity_factor = p.expert_capacity_factor
     if p.deterministic_dropout:
       moe_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     sub_list = [
