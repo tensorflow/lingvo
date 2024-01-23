@@ -299,7 +299,9 @@ class TensorShardingSpec:
     shard_shape = list(full_shape)
     for i in range(len(self._split_dims_mapping)):
       if self._split_dims_mapping[i] >= 0:
-        partitions = self._device_mesh.shape[self._split_dims_mapping[i]]
+        partitions = self._checked_device_mesh.shape[
+            self._split_dims_mapping[i]
+        ]
         shard_shape[i] = (full_shape[i] + partitions - 1) // partitions
     return shard_shape
 
@@ -309,12 +311,14 @@ class TensorShardingSpec:
     if not self.is_replicated:
       for i in range(len(self._split_dims_mapping)):
         if self._split_dims_mapping[i] >= 0:
-          full_shape[i] *= self._device_mesh.shape[self._split_dims_mapping[i]]
+          full_shape[i] *= self._checked_device_mesh.shape[
+              self._split_dims_mapping[i]
+          ]
         if self._uneven_padding is not None and self._uneven_padding[i] > 0:
           full_shape[i] -= self._uneven_padding[i]
     return xla_sharding.manual_to_auto_spmd_partition(
-        tensor,
-        self.ToXlaOpSharding().SerializeToString(), full_shape)
+        tensor, self.ToXlaOpSharding().SerializeToString(), full_shape
+    )
 
   def AutoToManualPartitioning(self, tensor: tf.Tensor) -> tf.Tensor:
     """Converts full-size tensor (auto partitioning) to manually sharded."""
@@ -415,6 +419,12 @@ class TensorShardingSpec:
   @property
   def uneven_padding(self) -> Optional[List[int]]:
     return self._uneven_padding
+
+  @property
+  def _checked_device_mesh(self) -> np.ndarray:
+    if self._device_mesh is None:
+      raise ValueError('device_mesh is None')
+    return self._device_mesh
 
 
 def GetVarSharding(var: tf.Variable) -> TensorShardingSpec:
