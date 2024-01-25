@@ -920,7 +920,7 @@ class DotProductAttention(BaseAttentionLayer):
           act_rhs=query_vec,
           act_lhs_distribution=quant_utils.QDistribution.SYMMETRIC,
           act_rhs_distribution=quant_utils.QDistribution.SYMMETRIC)
-      logits = tf.matmul(concated_source_vecs, query_vec)
+      logits = self.QMatmul(concated_source_vecs, query_vec)
       logits = self.FromAqtActActMatmul(logits)
 
       logits *= logit_scale
@@ -1019,8 +1019,7 @@ class DotProductAttention(BaseAttentionLayer):
           act_rhs=concated_source_contexts,
           act_lhs_distribution=quant_utils.QDistribution.POSITIVE,
           act_rhs_distribution=quant_utils.QDistribution.SYMMETRIC)
-
-      context_vector = tf.matmul(probs, concated_source_contexts)
+      context_vector = self.QMatmul(probs, concated_source_contexts)
       context_vector = self.FromAqtActActMatmul(context_vector)
 
       # => [n, source_batch, context_dim].
@@ -1460,7 +1459,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             weight=theta.source_proj,
             w_feature_axis=-1)
         w_source_proj = self.QWeight(w_source_proj)
-        source_projected = tf.matmul(source_vecs, w_source_proj)
+        source_projected = self.QMatmul(source_vecs, w_source_proj)
         source_projected = self.QAct('source_proj_matmul', source_projected)
         source_projected = self.FromAqtMatmul('source_proj', source_projected)
         if p.use_bias:
@@ -1494,8 +1493,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
               weight=theta.ctx_proj,
               w_feature_axis=-1)
           w_ctx_proj = self.QWeight(w_ctx_proj)
-
-          source_contexts_projected = tf.matmul(source_contexts, w_ctx_proj)
+          source_contexts_projected = self.QMatmul(source_contexts, w_ctx_proj)
           source_contexts_projected = self.QAct('ctx_pre_proj_matmul',
                                                 source_contexts_projected)
           source_contexts_projected = self.FromAqtMatmul(
@@ -1727,7 +1725,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           weight=theta.query_proj,
           w_feature_axis=-1)
       w_query_proj = self.QWeight(w_query_proj)
-      query_vec_projected = tf.matmul(query_vec, w_query_proj)
+      query_vec_projected = self.QMatmul(query_vec, w_query_proj)
       query_vec_projected = self.QAct('query_proj_matmul', query_vec_projected)
       query_vec_projected = self.FromAqtMatmul('query_proj',
                                                query_vec_projected)
@@ -1794,7 +1792,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             weight=theta.ctx_post_proj,
             w_feature_axis=-1)
         w_ctx_post_proj = self.QWeight(w_ctx_post_proj)
-        ctx_vec = tf.matmul(ctx_vec, w_ctx_post_proj)
+        ctx_vec = self.QMatmul(ctx_vec, w_ctx_post_proj)
         ctx_vec = self.QAct('ctx_post_proj_matmul', ctx_vec)
         ctx_vec = self.FromAqtMatmul('ctx_post_proj', ctx_vec)
         if p.use_bias:

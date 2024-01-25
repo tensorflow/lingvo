@@ -377,7 +377,7 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
       theta = theta.Transform(lambda x: tf.cast(x, py_utils.FPropDtype(p)))
       inputs, w = self.ToAqtInputs(
           'w', act=inputs, weight=theta.w, w_feature_axis=out_feature_axis)
-      ret = tf.einsum(eqn, inputs, w)
+      ret = self.QEinsum(eqn, inputs, w)
       ret = self.FromAqtMatmul('w', ret)
       if p.use_bias:
         ret += theta.b
@@ -469,7 +469,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    """Params for _MultiHeadedAttention."""
+    """Params for MultiHeadedAttention."""
     p = super().Params()
     p.Define(
         'input_dim', 0,
@@ -696,8 +696,10 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     Returns:
       A Tensor of shape [B, N, T, S]
     """
+    del theta
     query, key = self.ToAqtActActInputs(query, key)
-    logits = attention_util.AttenLogits(query, key)
+    qlayer = self if self.params.qdomain is not None else None
+    logits = attention_util.AttenLogits(query, key, qlayer=qlayer)
     logits = self.FromAqtActActMatmul(logits)
     return self._CapLogits(logits)
 
@@ -714,12 +716,13 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     Returns:
       A Tensor of shape [S, B, N]
     """
+    del theta, time_step
     s, b, _, _ = py_utils.GetShape(key, 4)
     _, n, h = py_utils.GetShape(query, 3)
     # [s, b, n]
     key = tf.reshape(key, [s, b, n, h])
     query, key = self.ToAqtActActInputs(query, key)
-    logits = tf.einsum('BNH,SBNH->SBN', query, key)
+    logits = self.QEinsum('BNH,SBNH->SBN', query, key)
     logits = self.FromAqtActActMatmul(logits)
     return self._CapLogits(logits)
 
@@ -824,15 +827,18 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     return probs, probs_sum
 
   def _AttenContext(self, theta, probs, value):
+    del theta
     probs, value = self.ToAqtActActInputs(
         probs,
         value,
         act_lhs_distribution='positive',
         act_rhs_distribution='symmetric')
-    encoded = attention_util.AttenContext(probs, value)
+    qlayer = self if self.params.qdomain is not None else None
+    encoded = attention_util.AttenContext(probs, value, qlayer=qlayer)
     return self.FromAqtActActMatmul(encoded)
 
   def _AttenContextOneStep(self, theta, probs, value, time_step, h):
+    del theta, time_step
     s, b, _, _ = py_utils.GetShape(value, 4)
     _, _, n = py_utils.GetShape(probs, 3)
     value = tf.reshape(value, [s, b, n, h])
@@ -841,7 +847,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         value,
         act_lhs_distribution='positive',
         act_rhs_distribution='symmetric')
-    encoded = tf.einsum('SBN,SBNH->BNH', probs, value)
+    encoded = self.QEinsum('SBN,SBNH->BNH', probs, value)
     return self.FromAqtActActMatmul(encoded)
 
   def _DotAtten(self,
@@ -1093,7 +1099,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
           )
 
           value_vec, rhs = self.ToAqtActActInputs(value_vec, rhs)
-          value_proj = tf.einsum('BTD,DNH->BTNH', value_vec, rhs)
+          value_proj = self.QEinsum('BTD,DNH->BTNH', value_vec, rhs)
           value_proj = self.FromAqtActActMatmul(value_proj)
 
     query_proj = gshard_utils.MeshSplit(query_proj, p.device_mesh,
@@ -2378,20 +2384,26 @@ class LocalSelfAttention(MultiHeadedAttention):
     if p.right_context > 0:
       query_right = p.right_context // p.query_stride
       state0.query = tf.zeros(
-          [batch_size, query_right, p.num_heads, per_head_dim], dtype)
+          [batch_size, query_right, p.num_heads, per_head_dim], dtype
+      )
       state0.out_masks = tf.zeros([batch_size, query_right], tf.bool)
       # This is used only if the caller of the layer uses skip_connection in
       # the layer's client code.
-      state0.skip_conn_input = tf.zeros([batch_size, query_right, p.hidden_dim],
-                                        dtype)
+      state0.skip_conn_input = tf.zeros(
+          [batch_size, query_right, p.hidden_dim], dtype
+      )
     return state0
 
   def IsInferenceStepStatic(self):
     p = self.params
-    return p.inference_step_max_length is not None and p.inference_step_max_length > 0
+    return (
+        p.inference_step_max_length is not None
+        and p.inference_step_max_length > 0
+    )
 
-  def StreamStep(self, theta, query_vec, query_paddings, key_vec, key_paddings,
-                 state0):
+  def StreamStep(
+      self, theta, query_vec, query_paddings, key_vec, key_paddings, state0
+  ):
     """Computes the value vector given the query of the current step.
 
     This differs from ExtendStep() which requires key/value seq lengths being

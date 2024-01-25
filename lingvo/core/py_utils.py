@@ -473,7 +473,7 @@ def GetShape(
     if static_shape[x] is not None:
       shapes.append(static_shape[x])
     elif optimize_for_reshape:
-      optimize_for_reshape = False  # only replace the first occurance
+      optimize_for_reshape = False  # only replace the first occurrence
       shapes.append(-1)
     else:
       shapes.append(dynamic_shape[x])
@@ -5414,16 +5414,19 @@ def CumSum(x, axis=0, exclusive=False, use_einsum=False):
   comparator = tf.less if exclusive else tf.less_equal
   mask = tf.cast(
       comparator(tf.expand_dims(my_range, 1), tf.expand_dims(my_range, 0)),
-      x.dtype)
+      x.dtype,
+  )
   result = tf.tensordot(x, mask, axes=[[axis], [0]])
   if axis != -1 and axis != rank - 1:
     result = tf.transpose(
-        result,
-        list(range(axis)) + [rank - 1] + list(range(axis, rank - 1)))
+        result, list(range(axis)) + [rank - 1] + list(range(axis, rank - 1))
+    )
   return result
 
 
-def ProjectLastDim(inputs, weight, input_dim, output_dim, use_einsum=True):
+def ProjectLastDim(
+    inputs, weight, input_dim, output_dim, use_einsum=True, qlayer=None
+):
   """Linear projection on the last dim of the input tensor.
 
   This is a TPU efficient implementation to avoid reshaping inputs to Rank-2
@@ -5435,39 +5438,63 @@ def ProjectLastDim(inputs, weight, input_dim, output_dim, use_einsum=True):
     input_dim: An integer or a symbolic dim, the last dimension of the inputs.
     output_dim: An integer or a symbolic dim, the last dimension of the outputs.
     use_einsum: use tf.einsum for calculation (True), or use tf.matmul (False)
+    qlayer: Optional quanization aware layer.
 
   Returns:
     An output Tensor of the same rank as inputs, the last dimension is
     output_dim.
   """
   input_dim = int(
-      symbolic.ToStatic(input_dim) if symbolic.IsExpr(input_dim) else input_dim)
+      symbolic.ToStatic(input_dim) if symbolic.IsExpr(input_dim) else input_dim
+  )
   output_dim = int(
-      symbolic.ToStatic(output_dim) if symbolic.IsExpr(output_dim
-                                                      ) else output_dim)
+      symbolic.ToStatic(output_dim)
+      if symbolic.IsExpr(output_dim)
+      else output_dim
+  )
 
   # Assert input_dim and output_dim
-  inputs = with_dependencies([assert_equal(GetShape(inputs)[-1], input_dim)],
-                             inputs)
-  weight = with_dependencies([
-      assert_equal(GetRank(weight), 2),
-      assert_equal(GetShape(weight)[0], input_dim),
-      assert_equal(GetShape(weight)[1], output_dim)
-  ], weight)
+  inputs = with_dependencies(
+      [assert_equal(GetShape(inputs)[-1], input_dim)], inputs
+  )
+  weight = with_dependencies(
+      [
+          assert_equal(GetRank(weight), 2),
+          assert_equal(GetShape(weight)[0], input_dim),
+          assert_equal(GetShape(weight)[1], output_dim),
+      ],
+      weight,
+  )
 
   if inputs.shape.rank == 2:
     # Shortcut for 2D inputs: just use tf.matmul, no need for Einsum.
-    outputs = tf.matmul(inputs, weight)
-  elif (use_einsum and use_tpu() and inputs.shape is not None and
-        inputs.shape.rank is not None and inputs.shape.rank < 26):
+    if qlayer is None:
+      outputs = tf.matmul(inputs, weight)
+    else:
+      outputs = qlayer.QMatmul(inputs, weight)
+  elif (
+      use_einsum
+      and use_tpu()
+      and inputs.shape is not None
+      and inputs.shape.rank is not None
+      and inputs.shape.rank < 26
+  ):
     # This is equivalent to:
     #   outputs = tf.einsum('...y,yz->...z', inputs, weight)
     # Unfortunately ... in einsum() leads to extra HBM usage.
     s = ''.join([chr(x) for x in range(97, 123)])  # abc...xyz
     r = inputs.shape.rank
-    outputs = tf.einsum('{0}y,yz->{0}z'.format(s[:r - 1]), inputs, weight)
+    if qlayer is None:
+      outputs = tf.einsum('{0}y,yz->{0}z'.format(s[: r - 1]), inputs, weight)
+    else:
+      outputs = qlayer.QEinsum(
+          '{0}y,yz->{0}z'.format(s[: r - 1]), inputs, weight
+      )
   elif inputs.shape.rank is not None and inputs.shape.rank > 2:
-    outputs = tf.matmul(inputs, weight)
+    if qlayer is None:
+      outputs = tf.matmul(inputs, weight)
+    else:
+      outputs = qlayer.QMatmul(inputs, weight)
   else:
     # inputs.shape.rank is None or inputs.shape.rank == 1
     outputs = Matmul(tf.reshape(inputs, [-1, input_dim]), weight)
@@ -6940,7 +6967,7 @@ def MultiTaskProjection(
   parameters (weights, bias) can be from a different 'task' for each batch.
 
   Args:
-    weights: projection weigth matrices of all tasks, size [num_tasks,
+    weights: projection weight matrices of all tasks, size [num_tasks,
       input_dim, output_dim]
     biases: (optional) bias vectors of all tasks, size [num_tasks, output_dim]
     inputs: input tensor, size [batch, input_dim] or [batch_dim, time_dim,

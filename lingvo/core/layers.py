@@ -1305,7 +1305,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       # the correct thing to do here might be scaling on every m and every k,
       # while we are doing every k only.
       x, w = self.ToAqtInputs('w', act=x, weight=w, w_feature_axis=-1)
-      out = tf.einsum('bn,nmk->bmk', x, w)
+      out = self.QEinsum('bn,nmk->bmk', x, w)
       out = self.FromAqtMatmul('w', out)
       # Create an output layer [b, num_outputs].
       bsz = py_utils.GetShape(out)[0]
@@ -1315,33 +1315,49 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         out = tf.slice(out, [0, 0], out_shape)
       out = tf.reshape(
           out,
-          tf.concat([
-              py_utils.GetShape(inputs)[:-1],
-              py_utils.ToStaticShape([self._internal_output_dim])
-          ],
-                    axis=0))
+          tf.concat(
+              [
+                  py_utils.GetShape(inputs)[:-1],
+                  py_utils.ToStaticShape([self._internal_output_dim]),
+              ],
+              axis=0,
+          ),
+      )
     elif self.apply_compression:
       inputs, w = self.ToAqtInputs('w', act=inputs, weight=w, w_feature_axis=-1)
-      out = pruning_utils.PruningOp.GetProjectLastDim(inputs, w, p.input_dim,
-                                                      self._internal_output_dim,
-                                                      self)
+      out = pruning_utils.PruningOp.GetProjectLastDim(
+          inputs, w, p.input_dim, self._internal_output_dim, self
+      )
       out = self.FromAqtMatmul('w', out)
     else:
       inputs, w = self.ToAqtInputs('w', act=inputs, weight=w, w_feature_axis=-1)
       if p.use_block_diagonal_matmul:
-        out = py_utils.BlockDiagonalProjectLastDim(inputs, w, p.input_dim,
-                                                   self._internal_output_dim,
-                                                   p.bd_num_blocks, mix_kernel,
-                                                   p.use_einsum)
+        out = py_utils.BlockDiagonalProjectLastDim(
+            inputs,
+            w,
+            p.input_dim,
+            self._internal_output_dim,
+            p.bd_num_blocks,
+            mix_kernel,
+            p.use_einsum,
+        )
       else:
-        out = py_utils.ProjectLastDim(inputs, w, p.input_dim,
-                                      self._internal_output_dim, p.use_einsum)
+        qlayer = self if p.qdomain is not None else None
+        out = py_utils.ProjectLastDim(
+            inputs,
+            w,
+            p.input_dim,
+            self._internal_output_dim,
+            p.use_einsum,
+            qlayer=qlayer,
+        )
       out = self.FromAqtMatmul('w', out)
 
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
-    return gshard_utils.MeshSplit(out, p.device_mesh,
-                                  p.activation_split_dims_mapping)
+    return gshard_utils.MeshSplit(
+        out, p.device_mesh, p.activation_split_dims_mapping
+    )
 
   def _ApplyActivationFunction(self, out):
     """Applies the activation function in one step.

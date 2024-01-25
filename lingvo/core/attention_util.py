@@ -347,30 +347,38 @@ def RelShift(x):
   return x
 
 
-def AttenLogits(query, key):
+def AttenLogits(query, key, qlayer=None):
   """Computes attention logits.
 
   Args:
     query: A Tensor of shape [B, T, N, H]
     key: A Tensor of shape [B, S, N, H]
+    qlayer: Optional quantization aware layer.
 
   Returns:
     A Tensor of shape [B, N, T, S]
   """
-  return tf.einsum('BTNH,BSNH->BNTS', query, key)
+  if qlayer is None:
+    return tf.einsum('BTNH,BSNH->BNTS', query, key)
+  else:
+    return qlayer.QEinsum('BTNH,BSNH->BNTS', query, key)
 
 
-def AttenContext(probs, value):
+def AttenContext(probs, value, qlayer=None):
   """Computes the attention context vector based on per-head probs and value.
 
   Args:
     probs: [B, N, T, S].
     value: [B, S, N, H].
+    qlayer: Optional quantization aware layer.
 
   Returns:
     encoded: [B, T, N, H].
   """
-  return tf.einsum('BNTS,BSNH->BTNH', probs, value)
+  if qlayer is None:
+    return tf.einsum('BNTS,BSNH->BTNH', probs, value)
+  else:
+    return qlayer.QEinsum('BNTS,BSNH->BTNH', probs, value)
 
 
 class PositionalAttenLogits(quant_utils.QuantizableLayer):
@@ -419,7 +427,7 @@ class PositionalAttenLogits(quant_utils.QuantizableLayer):
     if not skip_term_b:
       # [B, N, T, L=2T-1]
       content, abs_pos_emb = self.ToAqtActActInputs(content, abs_pos_emb)
-      term_bd = tf.einsum('BTNH,LNH->BNTL', content, abs_pos_emb)
+      term_bd = self.QEinsum('BTNH,LNH->BNTL', content, abs_pos_emb)
       term_bd = self.FromAqtActActMatmul(term_bd)
 
       term_bd = tf.reshape(term_bd, [b, n, t * l], name='flatten')
@@ -431,7 +439,7 @@ class PositionalAttenLogits(quant_utils.QuantizableLayer):
     else:
       # [N, L=2T-1]
       content, abs_pos_emb = self.ToAqtActActInputs(content, abs_pos_emb)
-      term_d = tf.einsum('NH,LNH->NL', content, abs_pos_emb)
+      term_d = self.QEinsum('NH,LNH->NL', content, abs_pos_emb)
       term_d = self.FromAqtActActMatmul(term_d)
 
       # [N, T, L]
@@ -495,7 +503,7 @@ class PositionalAttenLogits(quant_utils.QuantizableLayer):
     with tf.name_scope('term_ac'):
       content = query + content_bias
       content, key = self.ToAqtActActInputs(content, key)
-      term_ac = tf.einsum('BTNH,BSNH->BNTS', content, key)
+      term_ac = self.QEinsum('BTNH,BSNH->BNTS', content, key)
       term_ac = self.FromAqtActActMatmul(term_ac)
     with tf.name_scope('term_bd'):
       if skip_term_b:
@@ -592,7 +600,7 @@ class PositionalAttenLogits(quant_utils.QuantizableLayer):
     # Term a and c.
     content = query + content_bias
     content, key = self.ToAqtActActInputs(content, key)
-    term_ac = tf.einsum('BNH,SBNH->SBN', content, key)
+    term_ac = self.QEinsum('BNH,SBNH->SBN', content, key)
     term_ac = self.FromAqtActActMatmul(term_ac)
 
     # Term b an d.
@@ -604,14 +612,14 @@ class PositionalAttenLogits(quant_utils.QuantizableLayer):
     content, abs_pos_emb = self.ToAqtActActInputs(content, abs_pos_emb)
     if not skip_term_b:
       if synced_time_step:
-        term_bd = tf.einsum('BNH,SNH->SBN', content, abs_pos_emb)
+        term_bd = self.QEinsum('BNH,SNH->SBN', content, abs_pos_emb)
       else:
-        term_bd = tf.einsum('BNH,BSNH->SBN', content, abs_pos_emb)
+        term_bd = self.QEinsum('BNH,BSNH->SBN', content, abs_pos_emb)
     else:
       if synced_time_step:
-        term_bd = tf.einsum('NH,SNH->SN', content, abs_pos_emb)
+        term_bd = self.QEinsum('NH,SNH->SN', content, abs_pos_emb)
       else:
-        term_bd = tf.einsum('NH,BSNH->SBN', content, abs_pos_emb)
+        term_bd = self.QEinsum('NH,BSNH->SBN', content, abs_pos_emb)
     term_bd = self.FromAqtActActMatmul(term_bd)
     # Reshape the output after dequantizing.
     if skip_term_b and synced_time_step:
@@ -641,7 +649,7 @@ class PositionalAttenLogits(quant_utils.QuantizableLayer):
 
     key_emb = key + abs_pos_emb
     query, key_emb = self.ToAqtActActInputs(query, key_emb)
-    logits = tf.einsum('BNH,SBNH->SBN', query, key_emb)
+    logits = self.QEinsum('BNH,SBNH->SBN', query, key_emb)
     return self.FromAqtActActMatmul(logits)
 
 

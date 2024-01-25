@@ -781,17 +781,19 @@ class QDomain(base_layer.BaseLayer):
     del dist
     return act
 
-  def QMatmul(self,
-              lhs,
-              rhs,
-              *,
-              lhs_name: Optional[str],
-              rhs_name: Optional[str],
-              lhs_dist: QDistribution = QDistribution.SYMMETRIC,
-              rhs_dist: QDistribution = QDistribution.SYMMETRIC,
-              out_name: Optional[str],
-              ensure2d: bool = False,
-              **op_kwargs):
+  def QMatmul(
+      self,
+      lhs,
+      rhs,
+      *,
+      lhs_name: Optional[str] = None,
+      rhs_name: Optional[str] = None,
+      lhs_dist: QDistribution = QDistribution.SYMMETRIC,
+      rhs_dist: QDistribution = QDistribution.SYMMETRIC,
+      out_name: Optional[str] = None,
+      ensure2d: bool = False,
+      **op_kwargs,
+  ):
     del lhs_name, rhs_name, lhs_dist, rhs_dist, out_name
     if ensure2d:
       return py_utils.Matmul(lhs, rhs, **op_kwargs)
@@ -829,16 +831,18 @@ class QDomain(base_layer.BaseLayer):
                                     **op_kwargs)
     return tf.nn.conv2d(inputs, filters, strides, padding, **op_kwargs)
 
-  def QEinsum(self,
-              equation,
-              lhs,
-              rhs,
-              *,
-              lhs_name: Optional[str],
-              rhs_name: Optional[str],
-              lhs_dist: QDistribution = QDistribution.SYMMETRIC,
-              rhs_dist: QDistribution = QDistribution.SYMMETRIC,
-              **einsum_kwargs):
+  def QEinsum(
+      self,
+      equation,
+      lhs,
+      rhs,
+      *,
+      lhs_name: Optional[str] = None,
+      rhs_name: Optional[str] = None,
+      lhs_dist: QDistribution = QDistribution.SYMMETRIC,
+      rhs_dist: QDistribution = QDistribution.SYMMETRIC,
+      **einsum_kwargs,
+  ):
     del lhs_name, rhs_name, lhs_dist, rhs_dist
     return tf.einsum(equation, lhs, rhs, **einsum_kwargs)
 
