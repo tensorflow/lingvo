@@ -244,7 +244,17 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(actual_layer_output_ff, expected_output_ff)
       self.assertAllClose(actual_layer_output_moe, expected_output_moe)
 
-  def testTransformerShardedMoeLayer(self):
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'Default',
+          'disable_grouping': False,
+      },
+      {
+          'testcase_name': 'DefaultNoFFNBias',
+          'disable_grouping': True,
+      },
+  )
+  def testTransformerShardedMoeLayer(self, disable_grouping=False):
     with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)
       inputs = tf.random.normal([5, 2, 3], seed=948387483)
@@ -257,6 +267,7 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       p.num_groups = 2
       p.num_experts = 4
       p.expert_capacity_factor = 2
+      p.disable_grouping = disable_grouping
       moe_fflayer = layers_with_attention.TransformerShardedMoeLayer(p)
 
       h = moe_fflayer.FPropDefaultTheta(inputs, paddings)

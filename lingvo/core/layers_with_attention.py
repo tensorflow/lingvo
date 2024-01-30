@@ -888,9 +888,19 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
         'Total number of groups for dispatching. num_groups typically'
         ' should be the same as num devices.')
     p.Define(
-        'min_group_size', None,
+        'disable_grouping',
+        False,
+        'Whether to disable grouping. When it is true, num_groups does not have'
+        ' any effect. This is a solution when batch size is not explicitly'
+        ' specified. Note, when SPMD is enabled, disable_grouping will make it'
+        ' less efficient.',
+    )
+    p.Define(
+        'min_group_size',
+        None,
         'If not None, num_groups will be adjusted so that there will be at '
-        'least min_group_size tokens in each group.')
+        'least min_group_size tokens in each group.',
+    )
     p.Define('expert_capacity_dim', 0,
              'number of examples per group per expert.')
     p.Define(
@@ -951,7 +961,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     assert p.output_dim
     assert p.expert_capacity_dim or p.expert_capacity_factor >= 1.0
     assert p.num_experts > 0
-    assert p.num_groups > 0
+    assert p.num_groups > 0 or p.disable_grouping
     # Handling the case when device_mesh is a list instead of an np.array.
     if p.device_mesh is not None:
       p.device_mesh = np.array(p.device_mesh)
@@ -1066,23 +1076,30 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
       else:
         inputs_normalized = inputs
       inputs_normalized = py_utils.HasRank(inputs_normalized, 3)
-      num_groups = p.num_groups
-      g_len = -1
-      if required_fully_defined_input:
-        assert inputs_normalized.shape.is_fully_defined()
-        bs, s_len, m_dim = py_utils.GetShape(inputs_normalized)
-        paddings = py_utils.HasShape(paddings, [bs, s_len])
-        assert num_groups
-        assert m_dim == p.input_dim
-        if (p.min_group_size is not None and
-            bs * s_len / num_groups < p.min_group_size):
-          num_groups = (bs * s_len + p.min_group_size - 1) // p.min_group_size
-          tf.logging.info('num_groups adjusted to %s.' % num_groups)
-        assert (bs * s_len) % num_groups == 0
-        g_len = (bs * s_len) // num_groups
-      reshaped_inputs = tf.reshape(inputs_normalized,
-                                   [num_groups, g_len, p.input_dim])
-      reshaped_paddings = tf.reshape(paddings, [num_groups, g_len])
+      if not p.disable_grouping:
+        num_groups = p.num_groups
+        g_len = -1
+        if required_fully_defined_input:
+          assert inputs_normalized.shape.is_fully_defined()
+          bs, s_len, m_dim = py_utils.GetShape(inputs_normalized)
+          paddings = py_utils.HasShape(paddings, [bs, s_len])
+          assert num_groups
+          assert m_dim == p.input_dim
+          if (
+              p.min_group_size is not None
+              and bs * s_len / num_groups < p.min_group_size
+          ):
+            num_groups = (bs * s_len + p.min_group_size - 1) // p.min_group_size
+            tf.logging.info('num_groups adjusted to %s.' % num_groups)
+          assert (bs * s_len) % num_groups == 0
+          g_len = (bs * s_len) // num_groups
+        reshaped_inputs = tf.reshape(
+            inputs_normalized, [num_groups, g_len, p.input_dim]
+        )
+        reshaped_paddings = tf.reshape(paddings, [num_groups, g_len])
+      else:
+        reshaped_inputs = inputs_normalized
+        reshaped_paddings = paddings
 
       def _split(t_in, sharding):
         return gshard_utils.MeshSplit(t_in, p.device_mesh, sharding)
