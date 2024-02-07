@@ -22,6 +22,8 @@ WARNING:
 """
 
 import functools
+from typing import TypeVar
+
 from lingvo.core import activations
 from lingvo.core import builder_layers
 from lingvo.core import hyperparams
@@ -29,6 +31,8 @@ from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import tshape
 import numpy as np
+
+BaseT = TypeVar('BaseT', bound='Base')
 
 
 class Base:
