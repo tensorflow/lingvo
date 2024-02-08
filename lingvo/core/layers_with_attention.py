@@ -859,6 +859,7 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     # the mean is 0.0. See gshard_builder._LN for more details.
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define('activation', 'RELU', 'Non-linearity.')
+    p.Define('use_glu', False, 'Whether to use GLU.')
     p.Define(
         'dropout_tpl', layers.DropoutLayer.Params(),
         'Dropout params template. keep_prob will be reset to '
@@ -983,7 +984,9 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
     # split the tensor manually into multiple tensors on the second dim.
     assert p.expert_weight_shards > 0
     emh_shape = [
-        p.num_experts, p.input_dim // p.expert_weight_shards, p.hidden_dim
+        p.num_experts,
+        p.input_dim // p.expert_weight_shards,
+        2 * p.hidden_dim if p.use_glu else p.hidden_dim,
     ]
     stddev = (1. / p.input_dim)**0.5
     wi_init_scale = stddev * 3.**0.5
@@ -1179,9 +1182,14 @@ class TransformerShardedMoeLayer(base_layer.BaseLayer):
           tf.einsum(ec_einsum, dispatch_tensor, reshaped_inputs), ap.egcm
       )
       hidden = _split(
-          tf.einsum('egcm,emh->egch', expert_inputs, theta_wi), ap.egch)
-      # Activation function.
-      hidden = activations.GetFn(p.activation)(hidden)
+          tf.einsum('egcm,emh->egch', expert_inputs, theta_wi), ap.egch
+      )
+      if p.use_glu:
+        f, g = tf.split(hidden, 2, axis=-1)
+        hidden = activations.GetFn(p.activation)(f) * g
+      else:
+        # Activation function.
+        hidden = activations.GetFn(p.activation)(hidden)
       # Dropout.
       hidden = self.relu_dropout.FProp(theta.relu_dropout, hidden)
       # Output

@@ -250,7 +250,7 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
           'disable_grouping': False,
       },
       {
-          'testcase_name': 'DefaultNoFFNBias',
+          'testcase_name': 'DefaultNoGrouping',
           'disable_grouping': True,
       },
   )
@@ -270,6 +270,10 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
       p.disable_grouping = disable_grouping
       moe_fflayer = layers_with_attention.TransformerShardedMoeLayer(p)
 
+      self.assertEqual(
+          moe_fflayer.theta.wi_0.get_shape(),
+          tf.TensorShape([p.num_experts, p.input_dim, p.hidden_dim]),
+      )
       h = moe_fflayer.FPropDefaultTheta(inputs, paddings)
       self.evaluate(tf.global_variables_initializer())
       actual_layer_output = self.evaluate(h)
@@ -284,6 +288,55 @@ class LayersWithAttentionTest(test_utils.TestCase, parameterized.TestCase):
                           [-1.0508028, 0.11724383, -0.70965374]],
                          [[-0.3473336, -0.4793697, -0.26441547],
                           [-1.6704988, 0.60920537, 0.7469079]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
+  def testTransformerShardedMoeLayerGLU(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layers_with_attention.TransformerShardedMoeLayer.Params()
+      p.name = 'transformer_fflayer'
+      p.input_dim = 3
+      p.hidden_dim = 7
+      p.output_dim = 3
+      p.num_groups = 2
+      p.num_experts = 4
+      p.expert_capacity_factor = 2
+      p.use_glu = True
+      moe_fflayer = layers_with_attention.TransformerShardedMoeLayer(p)
+
+      self.assertEqual(
+          moe_fflayer.theta.wi_0.get_shape(),
+          tf.TensorShape([p.num_experts, p.input_dim, 2 * p.hidden_dim]),
+      )
+      h = moe_fflayer.FPropDefaultTheta(inputs, paddings)
+      self.evaluate(tf.global_variables_initializer())
+      actual_layer_output = self.evaluate(h)
+      # pylint: disable=bad-whitespace
+      expected_output = [
+          [[-0.007958, -0.544894, 0.483844], [0.404535, 1.759814, 2.608345]],
+          [
+              [-0.56127965, -0.7254486, 0.70235234],
+              [2.126353, 1.0296788, 1.0371392],
+          ],
+          [
+              [-0.4721706, -0.43149078, -1.0391554],
+              [-0.658157, 0.2641865, 0.5347223],
+          ],
+          [
+              [-0.65830696, -0.01233797, -0.13981584],
+              [-1.0389845, -0.26107648, -0.5709945],
+          ],
+          [
+              [-1.675274, 0.00433755, -0.51696587],
+              [-1.4262999, 0.29996663, 0.9233574],
+          ],
+      ]
+
       # pyformat: enable
       # pylint: enable=bad-whitespace
       print(np.array_repr(actual_layer_output))
