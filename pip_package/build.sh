@@ -74,10 +74,6 @@ write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" ${SHARED_LIBRARY_DIR}
 write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${SHARED_LIBRARY_NAME}
 write_action_env_to_bazelrc "TF_NEED_CUDA" ${TF_NEED_CUDA}
 
-# Exclude lingvo Jax from the pip package.
-# TODO(b/203463351): Add lingvo jax into a pip package.
-rm -rf lingvo/jax/
-
 # It is expected that you have git cloned this repo at the branch you want,
 # ideally in our docker.
 
