@@ -46,6 +46,7 @@ class Builder(batch_major_attention.Builder):
             self._MultiHeadedAtten(
                 'atten',
                 enable_qkv_proj_in_onestep=p.default_enable_qkv_proj_in_onestep,
+                enable_qk_proj_in_onestep=p.atten_tpl.enable_qk_proj_in_onestep,
             ),
         ),
         (

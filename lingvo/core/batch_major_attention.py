@@ -503,6 +503,12 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         ),
     )
     p.Define(
+        'enable_qk_proj_in_onestep',
+        False,
+        'Whether to compute q, k proj in one single step. No-op if '
+        'enable_qkv_proj_in_onestep is enabled.',
+    )
+    p.Define(
         'query_stride',
         1,
         (
@@ -591,20 +597,14 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       qkv_weight_split_dims_mapping = p.weight_split_dims_mapping
       post_weight_split_dims_mapping = p.weight_split_dims_mapping
 
-    def ProjectInput(input_dim):
+    def ProjectInput(input_dim, dim_per_head=None):
+      dim_per_head = (
+          dim_per_head or p.proj_tpl.dim_per_head or self.dim_per_head
+      )
       return p.proj_tpl.Copy().Set(
           input_dim=input_dim,
           num_heads=p.num_heads,
-          use_bias=p.use_bias,
-          device_mesh=p.device_mesh,
-          weight_split_dims_mapping=qkv_weight_split_dims_mapping,
-          make_output_proj_no_op=False)
-
-    def ProjectInputOneStep(input_dim):
-      return p.proj_tpl.Copy().Set(
-          input_dim=input_dim,
-          num_heads=p.num_heads,
-          dim_per_head=self.dim_per_head * 3,
+          dim_per_head=dim_per_head,
           use_bias=p.use_bias,
           device_mesh=p.device_mesh,
           weight_split_dims_mapping=qkv_weight_split_dims_mapping,
@@ -623,10 +623,18 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       query_input_dim = p.input_dim
 
     if p.enable_value_proj and p.enable_qkv_proj_in_onestep:
-      self.CreateChild('qkv', ProjectInputOneStep(key_input_dim))
+      self.CreateChild(
+          'qkv', ProjectInput(key_input_dim, dim_per_head=self.dim_per_head * 3)
+      )
     else:
-      self.CreateChild('key', ProjectInput(key_input_dim))
-      self.CreateChild('query', ProjectInput(query_input_dim))
+      if p.enable_qk_proj_in_onestep:
+        self.CreateChild(
+            'qk',
+            ProjectInput(key_input_dim, dim_per_head=self.dim_per_head * 2),
+        )
+      else:
+        self.CreateChild('key', ProjectInput(key_input_dim))
+        self.CreateChild('query', ProjectInput(query_input_dim))
       if p.enable_value_proj:
         assert value_input_dim, f'value_input_dim is {value_input_dim}'
         self.CreateChild('value', ProjectInput(value_input_dim))
@@ -1069,6 +1077,13 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     value_proj = qkv_proj[:, :, :, 2 * dim_per_head : 3 * dim_per_head]
     return query_proj, key_proj, value_proj
 
+  def _GetQKProjOneStep(self, theta, query_vec):
+    dim_per_head = self.dim_per_head
+    qk_proj = self.qk.FProp(theta.qk, query_vec)
+    query_proj = qk_proj[:, :, :, 0:dim_per_head]
+    key_proj = qk_proj[:, :, :, dim_per_head : 2 * dim_per_head]
+    return query_proj, key_proj
+
   def _HeadsProj(self, theta, query_vec, key_vec, value_vec):
     """Perform attention heads projections."""
     p = self.params
@@ -1079,8 +1094,11 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     else:
       # Project inputs to key, value and query, respectively has shape
       # [B, S, N, H], [B, S, N, H], and [B, T, N, H].
-      query_proj = self.query.FProp(theta.query, query_vec)
-      key_proj = self.key.FProp(theta.key, key_vec)
+      if p.enable_qk_proj_in_onestep:
+        query_proj, key_proj = self._GetQKProjOneStep(theta, query_vec)
+      else:
+        query_proj = self.query.FProp(theta.query, query_vec)
+        key_proj = self.key.FProp(theta.key, key_vec)
       if p.enable_value_proj:
         value_proj = self.value.FProp(theta.value, value_vec)
       else:
@@ -7397,7 +7415,8 @@ class Builder(builder.Base):
         tensor_split_dims_mapping=tensor_split_dims_mapping)
 
   def _MultiHeadedAtten(self, name, num_heads=None,
-                        enable_qkv_proj_in_onestep=False):
+                        enable_qkv_proj_in_onestep=False,
+                        enable_qk_proj_in_onestep=False):
     """Returns a MultiHeadedAttention params."""
     p = self.params
     if num_heads is None:
@@ -7416,6 +7435,7 @@ class Builder(builder.Base):
         fprop_dtype=p.fprop_dtype,
         use_bias=p.use_bias,
         enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
+        enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
         enable_scaling_code_motion=p.enable_scaling_code_motion,
         device_mesh=p.device_mesh,
         weight_split_dims_mapping=p.weight_split_dims_mapping.dnh)
@@ -7782,6 +7802,10 @@ class Builder(builder.Base):
     enable_qkv_proj_in_onestep = (p.default_enable_qkv_proj_in_onestep
                                   and stride == 1
                                   and not first_n)
+    # Overriding default param based on stride.
+    enable_qk_proj_in_onestep = (p.atten_tpl.enable_qk_proj_in_onestep
+                                 and stride == 1
+                                 and not first_n)
 
     sub_list += [
         ('i.vec->after_ln',
@@ -7789,7 +7813,7 @@ class Builder(builder.Base):
         ('after_ln->strided_query',
          self._Stride('query_after_stride', stride, first_n)),
         ('{}->after_att,prob'.format(attention_inputs),
-         self._MultiHeadedAtten('atten', num_heads, enable_qkv_proj_in_onestep)),
+         self._MultiHeadedAtten('atten', num_heads, enable_qkv_proj_in_onestep, enable_qk_proj_in_onestep)),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
         ('{}->strided_input'.format(input_to_add),
@@ -7884,14 +7908,17 @@ class Builder(builder.Base):
     enable_qkv_proj_in_onestep = (p.default_enable_qkv_proj_in_onestep
                                   and stride == 1
                                   and not first_n)
-
+    # Overriding default param based on stride.
+    enable_qk_proj_in_onestep = (p.atten_tpl.enable_qk_proj_in_onestep
+                                 and stride == 1
+                                 and not first_n)
     sub_list += [
         ('i.vec->after_ln',
          self._DefaultLN('LN')),
         ('after_ln,i.paddings->strided_query,o.paddings',
          self._Pool('query_after_pooling', stride, first_n)),
         ('{}->after_att,prob'.format(attention_inputs),
-         self._MultiHeadedAtten('atten', num_heads, enable_qkv_proj_in_onestep)),
+         self._MultiHeadedAtten('atten', num_heads, enable_qkv_proj_in_onestep, enable_qk_proj_in_onestep)),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
         shortcut_sub,
@@ -8052,7 +8079,11 @@ class PerformerBuilder(Builder):
     return p
 
   def _MultiHeadedAtten(
-      self, name, num_heads=None, enable_qkv_proj_in_onestep=False
+      self,
+      name,
+      num_heads=None,
+      enable_qkv_proj_in_onestep=False,
+      enable_qk_proj_in_onestep=False,
   ):
     """Returns a MultiHeadedAttention params."""
     p = self.params
@@ -8183,7 +8214,11 @@ class SketchMemTransformerBuilder(Builder):
         seed=p.ffn_seed)
 
   def _MultiHeadedAtten(
-      self, name, num_heads=None, enable_qkv_proj_in_onestep=False
+      self,
+      name,
+      num_heads=None,
+      enable_qkv_proj_in_onestep=False,
+      enable_qk_proj_in_onestep=False,
   ):
     """Returns a MultiHeadedAttention params."""
     p = self.params
@@ -8210,6 +8245,7 @@ class SketchMemTransformerBuilder(Builder):
         fprop_dtype=p.fprop_dtype,
         use_bias=p.use_bias,
         enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
+        enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
         enable_scaling_code_motion=p.enable_scaling_code_motion,
         device_mesh=p.device_mesh,
         weight_split_dims_mapping=p.weight_split_dims_mapping.dnh,
