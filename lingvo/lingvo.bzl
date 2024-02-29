@@ -1,5 +1,7 @@
 """Implements custom rules for Lingvo."""
 
+load("@rules_python//python:proto.bzl", "py_proto_library")
+
 def tf_copts():
     #  "-Wno-sign-compare", "-mavx" removed for compat with aarch64
     return ["-std=c++17"] + select({
@@ -107,65 +109,52 @@ def lingvo_cuda_py_test(name, tags = [], deps = [], **kwargs):
         **kwargs
     )
 
-def _proto_gen_cc_src(name, basename):
-    native.genrule(
-        name = name,
-        srcs = [basename + ".proto"],
-        outs = [basename + ".pb.cc", basename + ".pb.h"],
-        tools = [
-            "@protobuf_protoc//:protoc_bin",
-            "//lingvo:tf_dot_protos",
-        ],
-        # TODO(drpng): only unpack if tf_proto dependency is requested.
-        cmd = """
-          mkdir -p $(@D)/tf_proto.$$$$;
-          tar -C $(@D)/tf_proto.$$$$ -xf $(location //lingvo:tf_dot_protos);
-          $(location @protobuf_protoc//:protoc_bin) --proto_path=$(@D)/tf_proto.$$$$  --proto_path=. --cpp_out=$(GENDIR) $(<);
-          rm -rf $(@D)/tf_proto.$$$$
-        """,
-    )
-
-def _proto_gen_py_src(name, basename):
-    native.genrule(
-        name = name,
-        srcs = [basename + ".proto"],
-        outs = [basename + "_pb2.py"],
-        tools = [
-            "@protobuf_protoc//:protoc_bin",
-            "//lingvo:tf_dot_protos",
-        ],
-        # TODO(drpng): only unpack if tf_proto dependency is requested.
-        cmd = """
-          mkdir -p $(@D)/tf_proto.$$$$;
-          tar -C $(@D)/tf_proto.$$$$ -xf $(location //lingvo:tf_dot_protos);
-          $(location @protobuf_protoc//:protoc_bin) --proto_path=$(@D)/tf_proto.$$$$ --proto_path=. --python_out=$(GENDIR) $(<);
-          rm -rf $(@D)/tf_proto.$$$$
-        """,
-    )
+WELL_KNOWN_PROTO_LIBS = [
+    "@com_google_protobuf//:any_proto",
+    "@com_google_protobuf//:api_proto",
+    "@com_google_protobuf//:compiler_plugin_proto",
+    "@com_google_protobuf//:descriptor_proto",
+    "@com_google_protobuf//:duration_proto",
+    "@com_google_protobuf//:empty_proto",
+    "@com_google_protobuf//:field_mask_proto",
+    "@com_google_protobuf//:source_context_proto",
+    "@com_google_protobuf//:struct_proto",
+    "@com_google_protobuf//:timestamp_proto",
+    "@com_google_protobuf//:type_proto",
+    "@com_google_protobuf//:wrappers_proto",
+]
 
 def lingvo_proto_cc(name, src, deps = []):
     # TODO(drpng): only works with proto with no deps within lingvo.
     _unused = [deps]
     basename = src.replace(".proto", "")
-    _proto_gen_cc_src(name + "_gencc", basename)
-    lingvo_cc_library(
+    native.proto_library(
         name = name,
-        srcs = [basename + ".pb.cc"],
-        hdrs = [basename + ".pb.h"],
+        srcs = [src],
+        deps = [
+             "//lingvo:tf_protos",
+        ] + WELL_KNOWN_PROTO_LIBS,
     )
-    lingvo_cc_library(
-        name = "%s_cc" % name,
-        deps = [":%s" % name],
+    native.cc_proto_library(
+        name = name + "_cc",
+        deps = [":" + name]
     )
+
 
 def lingvo_proto_py(name, src, deps = []):
     # TODO(drpng): only works with proto with no deps within lingvo.
     _unused = [deps]
     basename = src.replace(".proto", "")
-    _proto_gen_py_src(name + "_genpy", basename)
-    native.py_library(
+    native.proto_library(
+        name = name + "_pyproto",
+        srcs = [src],
+        deps = [
+             "//lingvo:tf_protos",
+        ] + WELL_KNOWN_PROTO_LIBS,
+    )
+    py_proto_library(
         name = name,
-        srcs = [basename + "_pb2.py"],
+        deps = [name + "_pyproto"],
     )
 
 # Placeholders to use until bazel supports pytype_{,strict_}{library,test,binary}.

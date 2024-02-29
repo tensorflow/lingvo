@@ -221,22 +221,6 @@ cc_library(
             strip_prefix = "googletest-release-1.10.0",
         )
 
-def lingvo_protoc_deps():
-    http_archive(
-        name = "protobuf_protoc",
-        build_file_content = """
-filegroup(
-    name = "protoc_bin",
-    srcs = ["bin/protoc"],
-    visibility = ["//visibility:public"],
-)
-""",
-        urls = [
-            "https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip",
-        ],
-        sha256 = "3cd951aff8ce713b94cde55e12378f505f2b89d47bf080508cf77e3934f680b6",
-    )
-
 def icu():
     third_party_http_archive(
         name = "icu",
