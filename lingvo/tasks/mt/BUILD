@@ -1,12 +1,4 @@
-load("//lingvo:lingvo.bzl", "pytype_strict_library")
-
-# Placeholder: load py_library
-# Placeholder: load py_test
-load(
-    "//lingvo:lingvo.bzl",
-    "lingvo_proto_cc",
-    "lingvo_proto_py",
-)
+load("//lingvo:lingvo.bzl", "lingvo_proto_cc", "lingvo_proto_py", "pytype_strict_library")
 
 package(default_visibility = ["//visibility:public"])
 

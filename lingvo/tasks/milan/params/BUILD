@@ -1,5 +1,4 @@
-load("//lingvo:lingvo.bzl", "pytype_strict_library")
-load("//lingvo:lingvo.bzl", "py_strict_test")
+load("//lingvo:lingvo.bzl", "py_strict_test", "pytype_strict_library")
 
 package(default_visibility = ["//visibility:public"])
 

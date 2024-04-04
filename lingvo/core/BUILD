@@ -1,16 +1,4 @@
-load("//lingvo:lingvo.bzl", "pytype_library", "pytype_strict_library", "pytype_strict_test")
-load("//lingvo:lingvo.bzl", "py_strict_test")
-
-# Placeholder: load py_library
-# Placeholder: load py_test
-load(
-    "//lingvo:lingvo.bzl",
-    "lingvo_cuda_py_test",
-    "lingvo_portable_pytype_library",
-    "lingvo_proto_cc",
-    "lingvo_proto_py",
-    "lingvo_py_binary",
-)
+load("//lingvo:lingvo.bzl", "lingvo_cuda_py_test", "lingvo_portable_pytype_library", "lingvo_proto_cc", "lingvo_proto_py", "lingvo_py_binary", "py_strict_test", "pytype_library", "pytype_strict_library", "pytype_strict_test")
 
 package(default_visibility = ["//visibility:public"])
 

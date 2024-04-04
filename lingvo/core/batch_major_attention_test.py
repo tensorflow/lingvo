@@ -208,14 +208,16 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(result_np.shape, tuple(batch_sizes + [model_dims]))
 
   @parameterized.named_parameters(
-      ('qkv_one_step_false', False),
-      ('qkv_one_step_false_qk_one_step_true', False, True),
-      ('qkv_one_step_true', True),
+      ('_qkv_one_step_false', False),
+      ('_qkv_one_step_false_qk_one_step_true', False, True),
+      ('_qkv_one_step_true', True),
+      ('_use_mqa', False, False, True),
   )
   def testMultiHeadedAttentionDotProductOutputDim(
       self,
       enable_qkv_proj_in_onestep=False,
       enable_qk_proj_in_onestep=False,
+      use_mqa=False,
   ):
     # input_batch:6, seq_len:6. Test n = 2 case.
     bsz, slen = 6, 6
@@ -234,6 +236,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           output_dim=output_dim,
           enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
           enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
+          use_mqa=use_mqa,
       )
 
       l = p.Instantiate()
@@ -254,11 +257,13 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       ('qkv_one_step_false', False),
       ('qkv_one_step_false_qk_one_step_true', False, True),
       ('qkv_one_step_true', True),
+      ('_use_mqa', False, False, True),
   )
   def testMultiHeadedAttentionVariableDim(
       self,
       enable_qkv_proj_in_onestep=False,
       enable_qk_proj_in_onestep=False,
+      use_mqa=False,
   ):
     # input_batch:6, seq_len:6. Test n = 2 case.
     input_dim = 2
@@ -274,6 +279,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
         output_dim=output_dim,
         enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
         enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
+        use_mqa=use_mqa,
     )
 
     l = p.Instantiate()
@@ -297,6 +303,13 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       )
       self.assertNotIn('query', l.vars)
       self.assertNotIn('key', l.vars)
+    elif use_mqa:
+      self.assertIn('kv', l.vars)
+      self.assertEqual(
+          l.kv.theta.w.get_shape(),
+          tf.TensorShape([input_dim, 1, hidden_dim // num_heads * 2]),
+      )
+      self.assertIn('query', l.vars)
     else:
       self.assertNotIn('qkv', l.vars)
       self.assertIn('query', l.vars)

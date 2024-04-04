@@ -509,6 +509,14 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         'enable_qkv_proj_in_onestep is enabled.',
     )
     p.Define(
+        'use_mqa',
+        False,
+        (
+            'If True, keys and values have a single head, while queries are'
+            ' multi-headed. Based on https://arxiv.org/pdf/1911.02150.pdf.'
+        ),
+    )
+    p.Define(
         'query_stride',
         1,
         (
@@ -597,13 +605,14 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       qkv_weight_split_dims_mapping = p.weight_split_dims_mapping
       post_weight_split_dims_mapping = p.weight_split_dims_mapping
 
-    def ProjectInput(input_dim, dim_per_head=None):
+    def ProjectInput(input_dim, dim_per_head=None, num_heads=None):
       dim_per_head = (
           dim_per_head or p.proj_tpl.dim_per_head or self.dim_per_head
       )
+      num_heads = num_heads or p.num_heads
       return p.proj_tpl.Copy().Set(
           input_dim=input_dim,
-          num_heads=p.num_heads,
+          num_heads=num_heads,
           dim_per_head=dim_per_head,
           use_bias=p.use_bias,
           device_mesh=p.device_mesh,
@@ -622,9 +631,26 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       value_input_dim = p.input_dim
       query_input_dim = p.input_dim
 
+    if p.use_mqa:
+      assert (
+          not p.enable_qk_proj_in_onestep
+      ), 'enable_qk_proj_in_onestep is not supported for use_mqa'
+      assert (
+          not p.enable_qkv_proj_in_onestep
+      ), 'enable_qkv_proj_in_onestep is not supported for use_mqa'
+      assert p.enable_value_proj, 'enable_value_proj should be True for use_mqa'
+
     if p.enable_value_proj and p.enable_qkv_proj_in_onestep:
       self.CreateChild(
           'qkv', ProjectInput(key_input_dim, dim_per_head=self.dim_per_head * 3)
+      )
+    elif p.use_mqa:
+      self.CreateChild('query', ProjectInput(query_input_dim))
+      self.CreateChild(
+          'kv',
+          ProjectInput(
+              key_input_dim, dim_per_head=self.dim_per_head * 2, num_heads=1
+          ),
       )
     else:
       if p.enable_qk_proj_in_onestep:
@@ -707,7 +733,10 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     del theta
     query, key = self.ToAqtActActInputs(query, key)
     qlayer = self if self.params.qdomain is not None else None
-    logits = attention_util.AttenLogits(query, key, qlayer=qlayer)
+    if self.params.use_mqa:
+      logits = self.QEinsum('BTNH,BSH->BNTS', query, key)
+    else:
+      logits = attention_util.AttenLogits(query, key, qlayer=qlayer)
     logits = self.FromAqtActActMatmul(logits)
     return self._CapLogits(logits)
 
@@ -774,6 +803,10 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
 
     key = py_utils.HasRank(key, 4)
     b, s, n, h = py_utils.GetShape(key, 4)
+    if p.use_mqa:
+      assert n == 1
+      key = tf.squeeze(key, axis=2)
+      n = p.num_heads
     query = py_utils.HasShape(query, [b, -1, n, h])
     t = py_utils.GetShape(query)[1]
     if segment_mask is not None and self.params.packed_input:
@@ -842,7 +875,13 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         act_lhs_distribution='positive',
         act_rhs_distribution='symmetric')
     qlayer = self if self.params.qdomain is not None else None
-    encoded = attention_util.AttenContext(probs, value, qlayer=qlayer)
+    if self.params.use_mqa:
+      _, _, kv_heads, _ = py_utils.GetShape(value, 4)
+      assert kv_heads == 1
+      value = tf.squeeze(value, axis=2)
+      encoded = self.QEinsum('BNTS,BSH->BTNH', probs, value)
+    else:
+      encoded = attention_util.AttenContext(probs, value, qlayer=qlayer)
     return self.FromAqtActActMatmul(encoded)
 
   def _AttenContextOneStep(self, theta, probs, value, time_step, h):
@@ -1084,6 +1123,13 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     key_proj = qk_proj[:, :, :, dim_per_head : 2 * dim_per_head]
     return query_proj, key_proj
 
+  def _GetKVProjOneStep(self, theta, key_vec):
+    dim_per_head = self.dim_per_head
+    kv_proj = self.kv.FProp(theta.kv, key_vec)
+    key_proj = kv_proj[:, :, :, 0:dim_per_head]
+    value_proj = kv_proj[:, :, :, dim_per_head : 2 * dim_per_head]
+    return key_proj, value_proj
+
   def _HeadsProj(self, theta, query_vec, key_vec, value_vec):
     """Perform attention heads projections."""
     p = self.params
@@ -1091,6 +1137,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       query_proj, key_proj, value_proj = self._GetQKVProjOneStep(
           theta, query_vec
       )
+    elif p.use_mqa:
+      query_proj = self.query.FProp(theta.query, query_vec)
+      key_proj, value_proj = self._GetKVProjOneStep(theta, key_vec)
     else:
       # Project inputs to key, value and query, respectively has shape
       # [B, S, N, H], [B, S, N, H], and [B, T, N, H].
