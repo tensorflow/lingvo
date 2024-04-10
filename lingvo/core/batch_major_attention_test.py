@@ -253,6 +253,302 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertEqual(context_vec_np.shape, (bsz, slen, output_dim))
       self.assertEqual(attn_prob_np.shape, (bsz, num_heads, slen, slen))
 
+  def testMultiHeadedAttentionWithShapedAttention(self):
+    with self.session(use_gpu=True) as sess:
+      input_dim = 2
+      hidden_dim = 4
+      output_dim = 4
+      num_heads = 2
+
+      p = attention.MultiHeadedAttention.Params().Set(
+          name='self_atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim,
+          output_dim=output_dim,
+          enable_shaped_attention=True,
+          packed_input=True,
+      )
+
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+      np.random.seed(6348575)
+      batch_size = 6
+      seq_len = 6
+      pack_sequences = 3
+      reduced_batch_size = batch_size // pack_sequences
+      packed_seq_len = seq_len * pack_sequences
+      input_vecs_p = [
+          np.random.rand(num_heads, pack_sequences, packed_seq_len)
+          for _ in range(reduced_batch_size)
+      ]
+      input_vecs = tf.stack(
+          [tf.constant(x, dtype=tf.float32) for x in input_vecs_p]
+      )
+      example_ids = 1 + tf.range(pack_sequences)
+      example_ids = tf.tile(
+          example_ids[None, :, None], [reduced_batch_size, 1, seq_len]
+      )
+      example_ids = tf.reshape(
+          example_ids, [reduced_batch_size, packed_seq_len]
+      )
+      segment_mask = attention.SegmentMask(example_ids, example_ids, tf.float32)
+      strided_segment_mask = segment_mask[:, :, :None:seq_len, :]
+      # Expected output computation.
+      diag = l._GetStridedIdentity(packed_seq_len, seq_len)
+      center = l._SoftmaxZeroOrderTerm(input_vecs, strided_segment_mask)
+      # Shaped Attention step.
+      expected_output = diag + input_vecs - center
+      output = l.ShapedAttention(l.theta, input_vecs, strided_segment_mask)
+      output = sess.run([output, expected_output, diag, center])
+      self.assertEqual(
+          output[0].shape,
+          (reduced_batch_size, num_heads, pack_sequences, packed_seq_len),
+      )
+      self.assertAllClose(output[0], output[1])
+      self.assertAllClose(
+          output[2],
+          np.array([[[
+              [
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+              ],
+              [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+              ],
+              [
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  1.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+                  0.0,
+              ],
+          ]]]),
+      )
+      self.assertAllClose(
+          output[3],
+          np.array([
+              [[
+                  [
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                  ],
+                  [
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                  ],
+                  [
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                  ],
+              ]],
+              [[
+                  [
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                  ],
+                  [
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                  ],
+                  [
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.0,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                      0.16666667,
+                  ],
+              ]],
+          ]),
+      )
+
+  def testMultiHeadedAttentionShapedAttentionEquality(self):
+    # Computes context vector manually and compares with the Fprop.
+    with self.session(use_gpu=True) as sess:
+      input_dim = 4
+      hidden_dim = 4
+      output_dim = 4
+      num_heads = 2
+      input_vecs, input_padding, _, _ = self._AttentionInputs(
+          input_dim=input_dim
+      )
+      _, seq_len, _ = input_vecs.shape
+
+      p = attention.MultiHeadedAttention.Params().Set(
+          name='self_atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=hidden_dim,
+          output_dim=output_dim,
+          enable_shaped_attention=True,
+      )
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+      ctx_vec, _ = l.FProp(
+          l.theta,
+          input_vecs,
+          input_vecs,
+          input_vecs,
+          input_padding,
+          segment_mask=None,
+      )
+      # Expected output computation.
+      query_proj, key_proj, value_proj = l._HeadsProj(
+          l.theta, input_vecs, input_vecs, input_vecs
+      )
+      query_proj *= (hidden_dim // num_heads) ** -0.5
+      probs, _ = l.AttenProbs(
+          l.theta, query_proj, key_proj, input_padding, None
+      )
+      diag = l._GetStridedIdentity(seq_len, 1)
+      center = l._SoftmaxZeroOrderTerm(probs)
+      # Shaped Attention step
+      probs = diag + probs - center
+      # Adding context and post projection.
+      encoded = l._AttenContext(l.theta, probs, value_proj)
+      encoded = l._PostProj(l.theta, encoded)
+      output = sess.run([ctx_vec, encoded])
+      self.assertAllClose(output[0], output[1])
+
   @parameterized.named_parameters(
       ('qkv_one_step_false', False),
       ('qkv_one_step_false_qk_one_step_true', False, True),
