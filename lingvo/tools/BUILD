@@ -1,3 +1,4 @@
+# buildifier: disable=same-origin-load
 # Placeholder: load py_binary
 # Placeholder: load py_library
 # Placeholder: load py_test

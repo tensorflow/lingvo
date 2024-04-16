@@ -1,4 +1,6 @@
-load("//lingvo:lingvo.bzl", "py_strict_test", "pytype_strict_library")
+# buildifier: disable=same-origin-load
+load("//lingvo:lingvo.bzl", "pytype_strict_library")
+load("//lingvo:lingvo.bzl", "py_strict_test")
 
 # Multimodal representation learning.
 package(default_visibility = ["//visibility:public"])

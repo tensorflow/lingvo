@@ -1,5 +1,6 @@
 """cc_toolchain_config rule for configuring CUDA toolchains on Linux, Mac, and Windows."""
 
+# buildifier: disable=same-origin-load
 load(
     "@bazel_tools//tools/build_defs/cc:action_names.bzl",
     "ASSEMBLE_ACTION_NAME",
