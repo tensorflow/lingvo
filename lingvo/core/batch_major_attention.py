@@ -30,6 +30,7 @@ from lingvo import compat as tf
 from lingvo.core import attention_util
 from lingvo.core import base_layer
 from lingvo.core import builder
+from lingvo.core import builder_layers
 from lingvo.core import computation_cost
 from lingvo.core import conv_layers_builder as conv_layers
 from lingvo.core import favor_attention as favor
@@ -64,11 +65,14 @@ def CausalSegmentMask(segment_ids, dtype):
   # of shape [b, t, t].
   segment_mask = tf.cast(
       tf.not_equal(
-          tf.expand_dims(segment_ids, 2), tf.expand_dims(segment_ids, 1)),
-      dtype=dtype)
+          tf.expand_dims(segment_ids, 2), tf.expand_dims(segment_ids, 1)
+      ),
+      dtype=dtype,
+  )
   slen = tf.shape(segment_ids)[1]
   causal_mask = 1 - tf.linalg.band_part(
-      tf.ones([slen, slen], dtype=dtype), -1, 0)
+      tf.ones([slen, slen], dtype=dtype), -1, 0
+  )
   causal_mask = tf.expand_dims(causal_mask, 0)
   combined_mask = tf.cast(causal_mask + segment_mask > 0.5, dtype)
   min_value = GetDtypeMin(dtype)
@@ -79,10 +83,12 @@ def CausalPadding(slen, dtype=tf.float32):
   return 1 - tf.linalg.band_part(tf.ones([slen, slen], dtype=dtype), -1, 0)
 
 
-def CrossAttentionPaddingWithTimestamp(timestamp: tf.Tensor,
-                                       source_paddings: tf.Tensor,
-                                       left_context: int,
-                                       right_context: int) -> tf.Tensor:
+def CrossAttentionPaddingWithTimestamp(
+    timestamp: tf.Tensor,
+    source_paddings: tf.Tensor,
+    left_context: int,
+    right_context: int,
+) -> tf.Tensor:
   """Create per_step_padding for cross-attention with timestamp.
 
   In this cross-attention, the target (query) sequence provides an extra
@@ -122,10 +128,13 @@ def CrossAttentionPaddingWithTimestamp(timestamp: tf.Tensor,
   _, s = py_utils.GetShape(source_paddings)
 
   # Verify that timestamp contains valid indices for source.
-  timestamp = py_utils.with_dependencies([
-      py_utils.assert_equal(tf.reduce_all(timestamp >= 0), True),
-      py_utils.assert_equal(tf.reduce_all(timestamp < s), True)
-  ], timestamp)
+  timestamp = py_utils.with_dependencies(
+      [
+          py_utils.assert_equal(tf.reduce_all(timestamp >= 0), True),
+          py_utils.assert_equal(tf.reduce_all(timestamp < s), True),
+      ],
+      timestamp,
+  )
 
   # [1, 1, s]
   source_indices = tf.reshape(tf.range(s), [1, 1, s])
@@ -133,8 +142,10 @@ def CrossAttentionPaddingWithTimestamp(timestamp: tf.Tensor,
   timestamp_comp = tf.expand_dims(timestamp, -1)
   # Check if each index is within the range [central-L+1, central+R).
   # [b, t, s]
-  index_mask = tf.logical_and(source_indices > timestamp_comp - left_context,
-                              source_indices <= timestamp_comp + right_context)
+  index_mask = tf.logical_and(
+      source_indices > timestamp_comp - left_context,
+      source_indices <= timestamp_comp + right_context,
+  )
   # [b, 1, s]
   length_mask = tf.reshape(tf.cast(1 - source_paddings, tf.bool), [b, 1, s])
   # [b, t, s]
@@ -146,10 +157,9 @@ def GetDtypeMin(dtype=tf.float32):
   return tf.constant(-0.7 * dtype.max, dtype=dtype)
 
 
-def SegmentMask(segment_id,
-                source_segment_id,
-                dtype=tf.float32,
-                apply_dtype_min=True):
+def SegmentMask(
+    segment_id, source_segment_id, dtype=tf.float32, apply_dtype_min=True
+):
   """Calculates a segment mask for attention.
 
   Args:
@@ -169,8 +179,10 @@ def SegmentMask(segment_id,
   # Compute [B, T, S] = [B, T, 1] != [B, 1, S]
   ret = tf.cast(
       tf.not_equal(
-          tf.expand_dims(segment_id, 2), tf.expand_dims(source_segment_id, 1)),
-      dtype=dtype)
+          tf.expand_dims(segment_id, 2), tf.expand_dims(source_segment_id, 1)
+      ),
+      dtype=dtype,
+  )
   if apply_dtype_min:
     ret *= GetDtypeMin(ret.dtype)
   # [B, T, S] -> [B, 1, T, S]
@@ -194,7 +206,8 @@ class PerDimScaleLayer(base_layer.BaseLayer):
         shape=[p.dim],
         init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     self.CreateVariable('per_dim_scale', pc)
 
   def FProp(self, theta, inputs):
@@ -210,8 +223,9 @@ class PerDimScaleLayer(base_layer.BaseLayer):
     p = self.params
     with tf.name_scope(p.name):
       dim = symbolic.ToStatic(p.dim)
-      expected_shape = tf.concat([py_utils.GetShape(inputs)[:-1], [dim]],
-                                 axis=0)
+      expected_shape = tf.concat(
+          [py_utils.GetShape(inputs)[:-1], [dim]], axis=0
+      )
       inputs = py_utils.HasShape(inputs, expected_shape)
 
       # 1.0/tf.nn.softplus(0.0) = 1.442695041. Hard code this number so that we
@@ -222,7 +236,8 @@ class PerDimScaleLayer(base_layer.BaseLayer):
       else:
         scale = tf.cast(
             tf.math.rsqrt(tf.cast(dim, tf.float32)) * r_softplus_0,
-            dtype=inputs.dtype)
+            dtype=inputs.dtype,
+        )
 
       scale *= tf.nn.softplus(theta.per_dim_scale)
       return inputs * scale
@@ -231,13 +246,14 @@ class PerDimScaleLayer(base_layer.BaseLayer):
   def FPropMeta(cls, p, inputs):
     py_utils.CheckShapes((inputs,))
     return py_utils.NestedMap(
-        flops=inputs.num_elements() * 5, out_shapes=(inputs,))
+        flops=inputs.num_elements() * 5, out_shapes=(inputs,)
+    )
 
 
 class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
   """Layer that computes multi heads projection.
 
-    This layer is expected to be used within MultiHeadedAttention below.
+  This layer is expected to be used within MultiHeadedAttention below.
   """
 
   @classmethod
@@ -248,19 +264,27 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('num_heads', 0, 'Number of heads.')
     p.Define('dim_per_head', 0, 'Size of each head.')
     p.Define(
-        'is_output_projection', False,
+        'is_output_projection',
+        False,
         'Whether it is out projection or not. If False, we use '
         '"...D,DNH->...NH" for query,key,value projection. Otherwise we use '
-        '"...NH,DNH->...D" for output projection.')
+        '"...NH,DNH->...D" for output projection.',
+    )
     p.Define(
-        'make_output_proj_no_op', False, 'If True no output projection is '
+        'make_output_proj_no_op',
+        False,
+        'If True no output projection is '
         'applied. This should be set with is_output_projection True and will '
         'raise an error otherwise. This does not effect input projections. '
         'This is useful in combining different types of attention heads where'
-        'mixing is done after getting all the different attention outputs.')
+        'mixing is done after getting all the different attention outputs.',
+    )
     p.Define('use_bias', True, 'If to add bias in projection.')
-    p.Define('enable_vn', False, 'Whether to enable variational noise on the '
-             'projection weight matrix.')
+    p.Define(
+        'enable_vn',
+        False,
+        'Whether to enable variational noise on the projection weight matrix.',
+    )
     return p
 
   def __init__(self, params):
@@ -272,7 +296,8 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
         'w',
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
         feature_axis=feature_axis,
-        legacy_aqt_weight_name='aqt_w')
+        legacy_aqt_weight_name='aqt_w',
+    )
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -280,8 +305,10 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
     if p.device_mesh is not None:
       assert p.weight_split_dims_mapping is not None, self.path
     if p.make_output_proj_no_op and not p.is_output_projection:
-      raise ValueError('make_output_proj_no_op must be used with output '
-                       'projection set to True.')
+      raise ValueError(
+          'make_output_proj_no_op must be used with output '
+          'projection set to True.'
+      )
     if p.make_output_proj_no_op:
       return
     pc = py_utils.WeightParams(
@@ -290,7 +317,8 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
         dtype=p.dtype,
         device_mesh=p.device_mesh,
         tensor_split_dims_mapping=p.weight_split_dims_mapping,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     self.CreateVariable('w', pc)
     if p.use_bias:
       if p.is_output_projection:
@@ -304,11 +332,13 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=bias_split_dims_mapping,
-            collections=[self.__class__.__name__ + '_vars'])
+            collections=[self.__class__.__name__ + '_vars'],
+        )
       else:
         if p.device_mesh is not None:
           bias_split_dims_mapping = [
-              p.weight_split_dims_mapping[1], p.weight_split_dims_mapping[2]
+              p.weight_split_dims_mapping[1],
+              p.weight_split_dims_mapping[2],
           ]
         else:
           bias_split_dims_mapping = None
@@ -318,7 +348,8 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
             dtype=p.dtype,
             device_mesh=p.device_mesh,
             tensor_split_dims_mapping=bias_split_dims_mapping,
-            collections=[self.__class__.__name__ + '_vars'])
+            collections=[self.__class__.__name__ + '_vars'],
+        )
       self.CreateVariable('b', pc_bias)
 
   def AddGlobalVN(self, theta):
@@ -362,21 +393,24 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
       if p.is_output_projection:
         expected_shape = tf.concat(
             [py_utils.GetShape(inputs)[:-2], [p.num_heads, p.dim_per_head]],
-            axis=0)
+            axis=0,
+        )
         inputs = py_utils.HasShape(inputs, expected_shape)
-        batch_eqn = eqn_sym[:(rank - 2)] if rank else '...'
+        batch_eqn = eqn_sym[: (rank - 2)] if rank else '...'
         eqn = f'{batch_eqn}NH,DNH->{batch_eqn}D'
         out_feature_axis = 0
       else:
         expected_shape = tf.concat(
-            [py_utils.GetShape(inputs)[:-1], [p.input_dim]], axis=0)
+            [py_utils.GetShape(inputs)[:-1], [p.input_dim]], axis=0
+        )
         inputs = py_utils.HasShape(inputs, expected_shape)
-        batch_eqn = eqn_sym[:(rank - 1)] if rank else '...'
+        batch_eqn = eqn_sym[: (rank - 1)] if rank else '...'
         eqn = f'{batch_eqn}D,DNH->{batch_eqn}NH'
         out_feature_axis = (-2, -1)
       theta = theta.Transform(lambda x: tf.cast(x, py_utils.FPropDtype(p)))
       inputs, w = self.ToAqtInputs(
-          'w', act=inputs, weight=theta.w, w_feature_axis=out_feature_axis)
+          'w', act=inputs, weight=theta.w, w_feature_axis=out_feature_axis
+      )
       ret = self.QEinsum(eqn, inputs, w)
       ret = self.FromAqtMatmul('w', ret)
       if p.use_bias:
@@ -413,8 +447,8 @@ class ReshapedMultiHeadedProjectionLayer(MultiHeadedProjectionLayer):
       theta.w = gshard_utils.ReshapeDim(theta.w, 0, p.device_mesh.shape[1])
       if p.is_output_projection:
         inputs = py_utils.HasShape(
-            inputs, [-1, -1, p.num_heads,
-                     symbolic.ToStatic(p.dim_per_head)])
+            inputs, [-1, -1, p.num_heads, symbolic.ToStatic(p.dim_per_head)]
+        )
         ret = tf.einsum('BTNH,MdNH->BTMd', inputs, theta.w)
       else:
         ret = tf.einsum('BTMd,MdNH->BTNH', inputs, theta.w)
@@ -472,27 +506,40 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     """Params for MultiHeadedAttention."""
     p = super().Params()
     p.Define(
-        'input_dim', 0,
+        'input_dim',
+        0,
         'An integer or a dict of integer values as number of input nodes. If '
-        'input_dim is a dict, keys must be key, value and query.')
+        'input_dim is a dict, keys must be key, value and query.',
+    )
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     p.Define(
-        'output_dim', None, 'The output dimension of the attention module. '
-        'When it is None, use `query_input_dim` for the output projection.')
+        'output_dim',
+        None,
+        'The output dimension of the attention module. '
+        'When it is None, use `query_input_dim` for the output projection.',
+    )
     p.Define('num_heads', 1, 'Num of attention heads.')
     p.Define(
-        'dim_per_head', None, 'Hidden dim of each attention head. If None, '
-        'defaults to p.hidden_dim // p.num_heads')
-    p.Define('dropout_tpl', layers.DropoutLayer.Params(),
-             'Params for dropout layer.')
+        'dim_per_head',
+        None,
+        'Hidden dim of each attention head. If None, '
+        'defaults to p.hidden_dim // p.num_heads',
+    )
     p.Define(
-        'enable_value_proj', True, 'Whether value v is pre-projected '
-        ' before self attention or not.')
+        'dropout_tpl', layers.DropoutLayer.Params(), 'Params for dropout layer.'
+    )
+    p.Define(
+        'enable_value_proj',
+        True,
+        'Whether value v is pre-projected  before self attention or not.',
+    )
     p.Define('enable_query_scale', True, 'Enable scaling of query vector.')
     p.Define(
-        'enable_per_dim_scale', True,
+        'enable_per_dim_scale',
+        True,
         'Whether using per_dim_scale or scaling by a constant factor. '
-        'Only applied when enable_query_scale == True.')
+        'Only applied when enable_query_scale == True.',
+    )
     p.Define(
         'enable_qkv_proj_in_onestep',
         False,
@@ -532,26 +579,41 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
             'See "Strided attention" in the docstring for more information.'
         ),
     )
-    p.Define('rope_tpl', None,
-             'Params for class RotaryPositionalEmbeddingLayer.')
-    p.Define('atten_dropout_prob', 0.0,
-             'Probability at which we apply dropout to the attention weights.')
-    p.Define('proj_tpl', MultiHeadedProjectionLayer.Params(), 'Params for '
-             'projection layer.')
+    p.Define(
+        'rope_tpl', None, 'Params for class RotaryPositionalEmbeddingLayer.'
+    )
+    p.Define(
+        'atten_dropout_prob',
+        0.0,
+        'Probability at which we apply dropout to the attention weights.',
+    )
+    p.Define(
+        'proj_tpl',
+        MultiHeadedProjectionLayer.Params(),
+        'Params for projection layer.',
+    )
     p.Define('packed_input', False, 'Whether there is packed input.')
     p.Define('use_bias', True, 'Whether to use bias for projection layers.')
     p.Define(
-        'enable_scaling_code_motion', False, 'Move scalings from the side '
+        'enable_scaling_code_motion',
+        False,
+        'Move scalings from the side '
         'of T^2 to the side of T for better performance. This may result '
         'in model quality drops when using bf16 for some models due to '
-        'different XLA fusion decisions.')
+        'different XLA fusion decisions.',
+    )
     p.Define(
-        'atten_extra_logit', None, 'Extra logit for attention softmax.'
-        'Notice None and 0 are different.')
+        'atten_extra_logit',
+        None,
+        'Extra logit for attention softmax.Notice None and 0 are different.',
+    )
     p.Define(
-        'atten_logit_cap', 0.0, 'Cap the absolute values of logits by '
+        'atten_logit_cap',
+        0.0,
+        'Cap the absolute values of logits by '
         'tanh. Enabled when a positive value is specified. May not be '
-        'supported by a subclass.')
+        'supported by a subclass.',
+    )
     p.Define(
         'use_scale_invariant_atten',
         False,
@@ -565,11 +627,15 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         ),
     )
     # Memory related params.
-    p.Define('attn_add_memory', False,
-             'Whether to add sketch memory to attention.')
     p.Define(
-        'memory_tpl', None, 'Template for memory layer, currently only support '
-        'layers.LSHTaskWithMultiplierLayer.Params().')
+        'attn_add_memory', False, 'Whether to add sketch memory to attention.'
+    )
+    p.Define(
+        'memory_tpl',
+        None,
+        'Template for memory layer, currently only support '
+        'layers.LSHTaskWithMultiplierLayer.Params().',
+    )
     # SPMD partition related params.
     #
     # d - model_dim
@@ -580,13 +646,17 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     p.activation_split_dims_mapping = hyperparams.Params()
     ap = p.activation_split_dims_mapping
     ap.Define(
-        'blnh', None,
+        'blnh',
+        None,
         'Mesh split for query, key, value, and encoded tensors with the '
-        'shape of [batch_size, seq_len, num_heads, dim_per_head].')
+        'shape of [batch_size, seq_len, num_heads, dim_per_head].',
+    )
     ap.Define(
-        'bld', None,
+        'bld',
+        None,
         'Mesh split for output after post projection with the shape of '
-        '[batch_size, seq_len, model_dim].')
+        '[batch_size, seq_len, model_dim].',
+    )
     return p
 
   def __init__(self, params):
@@ -673,9 +743,11 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     if p.enable_query_scale and p.enable_per_dim_scale:
       self.CreateChild(
           'per_dim_scale',
-          PerDimScaleLayer.Params().Set(dim=p.proj_tpl.dim_per_head))
-    self.CreateChild('atten_dropout',
-                     p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
+          PerDimScaleLayer.Params().Set(dim=p.proj_tpl.dim_per_head),
+      )
+    self.CreateChild(
+        'atten_dropout', p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob)
+    )
     # Setting is_output_projection=True to set the projection direction
     # from hidden dim to input dim. Output projection follows query_input_dim.
     self.CreateChild(
@@ -686,7 +758,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
             is_output_projection=True,
             use_bias=p.use_bias,
             device_mesh=p.device_mesh,
-            weight_split_dims_mapping=post_weight_split_dims_mapping))
+            weight_split_dims_mapping=post_weight_split_dims_mapping,
+        ),
+    )
 
     if p.rope_tpl:
       assert issubclass(p.rope_tpl.cls, layers.RotaryPositionalEmbeddingLayer)
@@ -702,7 +776,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
           p.memory_tpl.Copy().Set(
               input_dim=self.dim_per_head,
               output_dim=self.dim_per_head,
-              name='attn_lsh_mem'))
+              name='attn_lsh_mem',
+          ),
+      )
     if p.use_scale_invariant_atten:
       assert not (p.enable_scaling_code_motion or p.atten_extra_logit)
 
@@ -744,7 +820,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
   def _CapLogits(self, logits):
     """When enabled, cap logits by p.atten_logit_cap with tanh."""
     p = self.params
-    if not p.atten_logit_cap or p.atten_logit_cap <= 0.:
+    if not p.atten_logit_cap or p.atten_logit_cap <= 0.0:
       return logits
     cap = tf.cast(p.atten_logit_cap, logits.dtype)
     # Note that since this caps the negative side as well, caller
@@ -805,7 +881,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       key: tf.Tensor,
       paddings: tf.Tensor,
       segment_mask: Optional[tf.Tensor],
-      per_step_padding: Optional[tf.Tensor] = None
+      per_step_padding: Optional[tf.Tensor] = None,
   ) -> Tuple[tf.Tensor, tf.Tensor]:
     """Compute attention probability.
 
@@ -864,13 +940,15 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       paddings = tf.reshape(paddings, [b, 1, 1, s])
       if per_step_padding is not None:
         if per_step_padding.dtype != tf.bool:
-          per_step_padding = per_step_padding > tf.zeros([],
-                                                         per_step_padding.dtype)
+          per_step_padding = per_step_padding > tf.zeros(
+              [], per_step_padding.dtype
+          )
         per_step_padding = tf.expand_dims(per_step_padding, 1)
         paddings = tf.logical_or(paddings, per_step_padding)
 
-      padded_logits = py_utils.ApplyPadding(paddings, logits,
-                                            GetDtypeMin(logits.dtype))
+      padded_logits = py_utils.ApplyPadding(
+          paddings, logits, GetDtypeMin(logits.dtype)
+      )
 
     if p.use_scale_invariant_atten:
       probs = tf.nn.relu(padded_logits)
@@ -908,7 +986,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         probs,
         value,
         act_lhs_distribution='positive',
-        act_rhs_distribution='symmetric')
+        act_rhs_distribution='symmetric',
+    )
     qlayer = self if self.params.qdomain is not None else None
     if self.params.use_mqa:
       _, _, kv_heads, _ = py_utils.GetShape(value, 4)
@@ -928,7 +1007,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         probs,
         value,
         act_lhs_distribution='positive',
-        act_rhs_distribution='symmetric')
+        act_rhs_distribution='symmetric',
+    )
     encoded = self.QEinsum('SBN,SBNH->BNH', probs, value)
     return self.FromAqtActActMatmul(encoded)
 
@@ -1057,8 +1137,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         # The 2nd part of the softmax --- scaling.
         encoded = encoded / tf.transpose(probs_sum, [0, 2, 1, 3])
 
-    encoded = gshard_utils.MeshSplit(encoded, p.device_mesh,
-                                     p.activation_split_dims_mapping.blnh)
+    encoded = gshard_utils.MeshSplit(
+        encoded, p.device_mesh, p.activation_split_dims_mapping.blnh
+    )
     return encoded, probs
 
   def _MaybeScaleQuery(self, theta, query):
@@ -1067,19 +1148,21 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       if p.enable_per_dim_scale:
         query = self.per_dim_scale.FProp(theta.per_dim_scale, query)
       else:
-        query *= (p.hidden_dim // p.num_heads)**-0.5
+        query *= (p.hidden_dim // p.num_heads) ** -0.5
     return query
 
-  def _DotAttenOneStep(self,
-                       theta,
-                       query,
-                       key,
-                       value,
-                       paddings,
-                       segment_mask,
-                       per_step_padding=None,
-                       time_step=None,
-                       use_short_seq_opt=False):
+  def _DotAttenOneStep(
+      self,
+      theta,
+      query,
+      key,
+      value,
+      paddings,
+      segment_mask,
+      per_step_padding=None,
+      time_step=None,
+      use_short_seq_opt=False,
+  ):
     """Dot attention function for queries with 1 time step.
 
     Args:
@@ -1116,8 +1199,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
 
     if per_step_padding is not None:
       if per_step_padding.dtype != tf.bool:
-        per_step_padding = per_step_padding > tf.zeros([],
-                                                       per_step_padding.dtype)
+        per_step_padding = per_step_padding > tf.zeros(
+            [], per_step_padding.dtype
+        )
       paddings = tf.logical_or(paddings, tf.squeeze(per_step_padding, 1))
 
     query = tf.reshape(query, [b, n, h])
@@ -1126,8 +1210,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     def _LongSeq():
       """For long sequence, directly apply to the entire tensor with padding."""
       logits = self._AttenLogitsOneStep(theta, query, key, time_step)
-      padded_logits = py_utils.ApplyPadding(pad, logits,
-                                            GetDtypeMin(logits.dtype))
+      padded_logits = py_utils.ApplyPadding(
+          pad, logits, GetDtypeMin(logits.dtype)
+      )
       if p.use_scale_invariant_atten:
         probs = tf.nn.relu(padded_logits)
         probs = tf.cast(
@@ -1160,7 +1245,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         """
         ot = tf.reshape(
             tf.reduce_sum(tf.reshape(tf.gather(k, ts), [-1, n, h]) * q, -1),
-            [-1])
+            [-1],
+        )
         return scatter_update.Update(o, ts, ot), k, q, ts + 1
 
       # Prefix with 'quant_' to avoid reassigning variables captured via closure
@@ -1173,13 +1259,15 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
               quant_key,
               quant_query,
               tf.zeros([], tf.int32),
-          ))
+          ),
+      )
       logits = self.FromAqtActActMatmul(logits)
       logits = self._CapLogits(logits)
 
       reshaped_pad = tf.reshape(pad, [s, -1])
-      padded_logits = py_utils.ApplyPadding(reshaped_pad, logits,
-                                            GetDtypeMin(logits.dtype))
+      padded_logits = py_utils.ApplyPadding(
+          reshaped_pad, logits, GetDtypeMin(logits.dtype)
+      )
       if p.use_scale_invariant_atten:
         probs = tf.nn.relu(padded_logits)
         probs = tf.cast(
@@ -1205,15 +1293,25 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         Returns:
           Updated output and time steps.
         """
-        return o + tf.reshape(tf.gather(p, ts), [-1, n, 1]) * tf.reshape(
-            tf.gather(v, ts), [-1, n, h]), p, v, ts + 1
+        return (
+            o
+            + tf.reshape(tf.gather(p, ts), [-1, n, 1])
+            * tf.reshape(tf.gather(v, ts), [-1, n, h]),
+            p,
+            v,
+            ts + 1,
+        )
 
       encoded, _, _, _ = tf.while_loop(
           lambda o, p, v, ts: ts <= time_step,
           _DotStep,
-          loop_vars=(tf.zeros([b, n, h],
-                              probs.dtype), probs, value, tf.zeros([],
-                                                                   tf.int32)))
+          loop_vars=(
+              tf.zeros([b, n, h], probs.dtype),
+              probs,
+              value,
+              tf.zeros([], tf.int32),
+          ),
+      )
       return tf.expand_dims(encoded, 1)
 
     return _ShortSeq() if use_short_seq_opt else _LongSeq()
@@ -1279,12 +1377,15 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
           value_proj = self.QEinsum('BTD,DNH->BTNH', value_vec, rhs)
           value_proj = self.FromAqtActActMatmul(value_proj)
 
-    query_proj = gshard_utils.MeshSplit(query_proj, p.device_mesh,
-                                        p.activation_split_dims_mapping.blnh)
-    key_proj = gshard_utils.MeshSplit(key_proj, p.device_mesh,
-                                      p.activation_split_dims_mapping.blnh)
-    value_proj = gshard_utils.MeshSplit(value_proj, p.device_mesh,
-                                        p.activation_split_dims_mapping.blnh)
+    query_proj = gshard_utils.MeshSplit(
+        query_proj, p.device_mesh, p.activation_split_dims_mapping.blnh
+    )
+    key_proj = gshard_utils.MeshSplit(
+        key_proj, p.device_mesh, p.activation_split_dims_mapping.blnh
+    )
+    value_proj = gshard_utils.MeshSplit(
+        value_proj, p.device_mesh, p.activation_split_dims_mapping.blnh
+    )
 
     return query_proj, key_proj, value_proj
 
@@ -1294,8 +1395,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     # Post projection
     encoded = self.post.FProp(theta.post, encoded)
     # Shard the output
-    encoded = gshard_utils.MeshSplit(encoded, p.device_mesh,
-                                     p.activation_split_dims_mapping.bld)
+    encoded = gshard_utils.MeshSplit(
+        encoded, p.device_mesh, p.activation_split_dims_mapping.bld
+    )
     return encoded
 
   def _RoPE(self, theta, proj, stride=1, time_step=None):
@@ -1328,14 +1430,16 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     position = tf.cast(position, dtype=proj.dtype)
     return self.rope.FProp(theta.rope, proj, position=position)
 
-  def FProp(self,
-            theta,
-            query_vec,
-            key_vec,
-            value_vec,
-            paddings,
-            segment_mask=None,
-            per_step_padding=None):
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      key_vec,
+      value_vec,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+  ):
     """Computes the value vector given the current query output.
 
     Args:
@@ -1360,17 +1464,24 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     p = self.params
 
     # Heads projection
-    query_proj, key_proj, value_proj = self._HeadsProj(theta, query_vec,
-                                                       key_vec, value_vec)
+    query_proj, key_proj, value_proj = self._HeadsProj(
+        theta, query_vec, key_vec, value_vec
+    )
     if p.rope_tpl:
       key_proj = self._RoPE(theta, key_proj)
       query_proj = self._RoPE(theta, query_proj, stride=p.query_stride)
 
     if p.packed_input and not self.do_eval:
       assert segment_mask is not None
-    encoded, atten_probs = self._DotAtten(theta, query_proj, key_proj,
-                                          value_proj, paddings, segment_mask,
-                                          per_step_padding)
+    encoded, atten_probs = self._DotAtten(
+        theta,
+        query_proj,
+        key_proj,
+        value_proj,
+        paddings,
+        segment_mask,
+        per_step_padding,
+    )
     if p.attn_add_memory:
       encoded += self.lsh_mem.FProp(theta.lsh_mem, encoded - query_proj)
     # Post projection
@@ -1402,25 +1513,38 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     # avoid padding and more efficient interpolation in beamsearch.
     return py_utils.NestedMap(
         key=tf.Empty(
-            shape=(target_max_length, target_batch_size, num_heads,
-                   dim_per_head),
+            shape=(
+                target_max_length,
+                target_batch_size,
+                num_heads,
+                dim_per_head,
+            ),
             dtype=dtype,
-            init=True),
+            init=True,
+        ),
         value=tf.Empty(
-            shape=(target_max_length, target_batch_size, num_heads,
-                   dim_per_head),
+            shape=(
+                target_max_length,
+                target_batch_size,
+                num_heads,
+                dim_per_head,
+            ),
             dtype=dtype,
-            init=True))
+            init=True,
+        ),
+    )
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 paddings,
-                 segment_mask,
-                 per_step_padding,
-                 time_step,
-                 use_short_seq_opt=False):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      paddings,
+      segment_mask,
+      per_step_padding,
+      time_step,
+      use_short_seq_opt=False,
+  ):
     """Computes the value vector given the query of the current step.
 
     This function is used by autoregressive decoding.
@@ -1452,11 +1576,13 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     """
     p = self.params
     if not p.enable_value_proj:
-      raise ValueError('Value projection must be enabled for Transformer '
-                       'machine translation.')
+      raise ValueError(
+          'Value projection must be enabled for Transformer '
+          'machine translation.'
+      )
 
     time_step = tf.convert_to_tensor(time_step)
-    synced_time_step = (time_step.shape.ndims == 0)
+    synced_time_step = time_step.shape.ndims == 0
     t, b, n, h = py_utils.GetShape(cached_states.key, 4)
 
     # Project inputs to key, value and query. Each has shape [B, 1, N, H].
@@ -1472,35 +1598,47 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     if p.rope_tpl:
       new_key_proj = self._RoPE(theta, new_key_proj, time_step=time_step)
       query_proj = self._RoPE(
-          theta, query_proj, stride=p.query_stride, time_step=time_step)
+          theta, query_proj, stride=p.query_stride, time_step=time_step
+      )
 
-    new_key_proj = gshard_utils.MeshSplit(new_key_proj, p.device_mesh,
-                                          p.activation_split_dims_mapping.blnh)
+    new_key_proj = gshard_utils.MeshSplit(
+        new_key_proj, p.device_mesh, p.activation_split_dims_mapping.blnh
+    )
     new_value_proj = gshard_utils.MeshSplit(
-        new_value_proj, p.device_mesh, p.activation_split_dims_mapping.blnh)
-    query_proj = gshard_utils.MeshSplit(query_proj, p.device_mesh,
-                                        p.activation_split_dims_mapping.blnh)
+        new_value_proj, p.device_mesh, p.activation_split_dims_mapping.blnh
+    )
+    query_proj = gshard_utils.MeshSplit(
+        query_proj, p.device_mesh, p.activation_split_dims_mapping.blnh
+    )
 
     # Using a if condition, in case it's more efficient to update the same index
     new_key_proj = tf.cast(
-        tf.reshape(new_key_proj, [b, n, h]), dtype=cached_states.key.dtype)
+        tf.reshape(new_key_proj, [b, n, h]), dtype=cached_states.key.dtype
+    )
     new_value_proj = tf.cast(
-        tf.reshape(new_value_proj, [b, n, h]), dtype=cached_states.value.dtype)
+        tf.reshape(new_value_proj, [b, n, h]), dtype=cached_states.value.dtype
+    )
     if synced_time_step:
       # The extended_key and extended_value have shape [T, B, N, H].
-      extended_key = scatter_update.Update(cached_states.key, time_step,
-                                           new_key_proj)
-      extended_value = scatter_update.Update(cached_states.value, time_step,
-                                             new_value_proj)
+      extended_key = scatter_update.Update(
+          cached_states.key, time_step, new_key_proj
+      )
+      extended_value = scatter_update.Update(
+          cached_states.value, time_step, new_value_proj
+      )
     else:
       # The extended_key and extended_value have shape [T, B, N, H].
       selected_indices = tf.range(b) + time_step * b
       extended_key = scatter_update.Update(
-          tf.reshape(cached_states.key, [-1, n, h]), selected_indices,
-          new_key_proj)
+          tf.reshape(cached_states.key, [-1, n, h]),
+          selected_indices,
+          new_key_proj,
+      )
       extended_value = scatter_update.Update(
-          tf.reshape(cached_states.value, [-1, n, h]), selected_indices,
-          new_value_proj)
+          tf.reshape(cached_states.value, [-1, n, h]),
+          selected_indices,
+          new_value_proj,
+      )
       extended_key = tf.reshape(extended_key, [t, b, n, h])
       extended_value = tf.reshape(extended_value, [t, b, n, h])
     updated_state = py_utils.NestedMap(key=extended_key, value=extended_value)
@@ -1517,12 +1655,14 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         segment_mask,
         per_step_padding,
         time_step=time_step,
-        use_short_seq_opt=use_short_seq_opt)
+        use_short_seq_opt=use_short_seq_opt,
+    )
 
     # Post projection.
     encoded = self.post.FProp(theta.post, encoded)
-    encoded = gshard_utils.MeshSplit(encoded, p.device_mesh,
-                                     p.activation_split_dims_mapping.bld)
+    encoded = gshard_utils.MeshSplit(
+        encoded, p.device_mesh, p.activation_split_dims_mapping.bld
+    )
     return encoded, updated_state
 
   @classmethod
@@ -1542,19 +1682,315 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     return py_utils.NestedMap(flops=flops, out_shapes=(args[0], (b, n, t, s)))
 
 
+class SingleHeadedAttention(MultiHeadedAttention):
+  """Dot-product attention with single attention head.
+
+  This implementation heavily uses einsum (wrapped in py_utils.Einsum) to be
+  efficient on TPUs.  We use the following capital letters to denote certain
+  tensor parameters.
+
+    B = batch size
+    S = length of the key/value (source)
+    T = length of the query (target)
+    D = model dimension
+    H = dimensions of attention head.
+
+  The algorithm is sketched as follows. Each intermediate tensor or weight
+  tensor is annotated with its shape. E.g., Wq, the weight tensor for query's
+  projection, its shape is [D, N, H].
+
+  Trainable weights:
+    Wqkv: [D, N, 3*H]
+
+  Input q:[B, T, D]; k:[B, S, D]; v:[B, S, D]
+  q_proj:[B, T, H] = einsum('BTD,DH->BTH', x, Wq)
+  k_proj:[B, S, H] = einsum('BSD,DH->BSH', x, Wk)
+  v_proj:[B, S, H] = einsum('BSD,DH->BSH', x, Wv)
+  logits:[B, T, S] = einsum('BTH,BSH->BTS', q_proj, k_proj) / sqrt(H)
+  probs:[B, T, S] = softmax(logits)
+  Output:[B, T, H] = einsum('BTS,BSH->BTH', probs, v_proj)
+  """
+
+  def __init__(self, params):
+    """Constructs a SingleHeadedAttention object."""
+    # Need to use grandparent's init so that we don't create children again.
+    super(MultiHeadedAttention, self).__init__(params)
+    p = self.params
+    assert p.input_dim, f'input_dim is {p.input_dim}'
+    assert p.hidden_dim, f'hidden_dim is {p.hidden_dim}'
+
+    if p.device_mesh is not None:
+      assert p.weight_split_dims_mapping is not None
+      assert p.activation_split_dims_mapping is not None
+
+    if p.enable_qkv_proj_in_onestep:
+      self.CreateChild(
+          'qkv',
+          builder_layers.LinearLayer.Params().Set(
+              name='qkv',
+              input_dims=p.input_dim,
+              output_dims=3 * p.hidden_dim,
+              device_mesh=p.device_mesh,
+              weight_split_dims_mapping=p.weight_split_dims_mapping,
+          ),
+      )
+    else:
+      self.CreateChild(
+          'query',
+          builder_layers.LinearLayer.Params().Set(
+              name='query',
+              input_dims=p.input_dim,
+              output_dims=p.hidden_dim,
+              device_mesh=p.device_mesh,
+              weight_split_dims_mapping=p.weight_split_dims_mapping,
+          ),
+      )
+      self.CreateChild(
+          'key',
+          builder_layers.LinearLayer.Params().Set(
+              name='key',
+              input_dims=p.input_dim,
+              output_dims=p.hidden_dim,
+              device_mesh=p.device_mesh,
+              weight_split_dims_mapping=p.weight_split_dims_mapping,
+          ),
+      )
+      self.CreateChild(
+          'value',
+          builder_layers.LinearLayer.Params().Set(
+              name='value',
+              input_dims=p.input_dim,
+              output_dims=p.hidden_dim,
+              device_mesh=p.device_mesh,
+              weight_split_dims_mapping=p.weight_split_dims_mapping,
+          ),
+      )
+
+    self.CreateChild(
+        'atten_dropout', p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob)
+    )
+
+  def AttenProbs(
+      self,
+      theta: py_utils.NestedMap,
+      query: tf.Tensor,
+      key: tf.Tensor,
+      paddings: tf.Tensor,
+      segment_mask: Optional[tf.Tensor],
+      per_step_padding: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor]:
+    """Compute attention probability.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query:    [B, T, H].
+      key:      [B, S, H].
+      paddings: [B, S].
+      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention
+        between different segments. This is already been converted into large
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, T, S] if
+        not None.
+
+    Returns:
+      probs: [B, T, S].
+      probs_sum: [B, T, 1].
+    """
+    del per_step_padding  # not used
+    p = self.params
+
+    key = py_utils.HasRank(key, 3)
+    b, s, h = py_utils.GetShape(key, 3)
+    query = py_utils.HasShape(query, [b, -1, h])
+    t = py_utils.GetShape(query)[1]
+    if segment_mask is not None and p.packed_input:
+      segment_mask = py_utils.HasShape(segment_mask, [b, 1, t, s])
+      segment_mask = tf.squeeze(segment_mask, axis=1)
+
+    with tf.name_scope('logits'):
+      # Keep softmax computation in float32 otherwise the low precision can
+      # can lead to worse quality.
+      logits = tf.einsum('BTH,BSH->BTS', query, key)
+      logits = self._CapLogits(logits)
+      logits = tf.cast(logits, tf.float32)
+
+    # Apply segment mask.
+    if p.packed_input and segment_mask is not None:
+      # Paddings have been included in segment_mask.
+      padded_logits = logits + tf.cast(segment_mask, tf.float32)
+    else:
+      # Exclude padding frames.
+      paddings = py_utils.HasShape(paddings, [b, s])
+      if paddings.dtype != tf.bool:
+        paddings = paddings > tf.zeros([], paddings.dtype)
+      paddings = tf.reshape(paddings, [b, 1, s])
+      padded_logits = py_utils.ApplyPadding(
+          paddings, logits, GetDtypeMin(logits.dtype)
+      )
+
+    if p.enable_scaling_code_motion:
+      # Split the softmax into two parts. Do the 1st part here; the 2nd part
+      # (scaling) is moved after _AttenContext for better performance.
+      probs = padded_logits - tf.stop_gradient(
+          tf.reduce_max(padded_logits, -1, True)
+      )
+      probs = tf.exp(probs)
+      probs_sum = tf.reduce_sum(probs, -1, True)
+      probs = tf.cast(probs, key.dtype)
+      probs_sum = tf.cast(probs_sum, key.dtype)
+    else:
+      probs = tf.cast(
+          py_utils.Softmax(padded_logits),
+          key.dtype,
+      )
+      probs_sum = None
+
+    probs = py_utils.HasShape(probs, [b, t, s])
+    return probs, probs_sum
+
+  def _DotAtten(
+      self,
+      theta,
+      query,
+      key,
+      value,
+      paddings,
+      segment_mask,
+      per_step_padding=None,
+  ):
+    """Main attention function.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query:    [B, T, H].
+      key:      [B, S, H].
+      value:    [B, S, H].
+      paddings: [B, S].
+      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention
+        between different segments. This is already been converted into large
+        negative logits. Only applied if packed_input = True.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, T, S] if
+        not None.
+
+    Returns:
+      encoded: [B, T, H].
+      atten_probs: [B, T, S].
+    """
+    p = self.params
+
+    # Compute prob with shape [batch, heads, target_time, source_time].
+    with tf.name_scope('probs'):
+      probs, probs_sum = self.AttenProbs(
+          theta, query, key, paddings, segment_mask, per_step_padding
+      )
+      # Apply dropout to probs.
+      probs = self.atten_dropout.FProp(theta.atten_dropout, probs)
+
+    # Compute the attention context vector.
+    with tf.name_scope('ctx'):
+      encoded = tf.einsum('BTS,BSH->BTH', probs, value)
+      if p.enable_scaling_code_motion:
+        # The 2nd part of the softmax --- scaling.
+        encoded = encoded / probs_sum
+
+    encoded = gshard_utils.MeshSplit(
+        encoded, p.device_mesh, p.activation_split_dims_mapping.bld
+    )
+    return encoded, probs
+
+  def _HeadsProj(self, theta, query_vec, key_vec=None, value_vec=None):
+    """Perform attention heads projections."""
+    p = self.params
+
+    if p.enable_qkv_proj_in_onestep:
+      qkv_proj = self.qkv.FProp(theta.qkv, query_vec)
+      query_proj, key_proj, value_proj = tf.split(qkv_proj, 3, axis=-1)
+    else:
+      query_proj = self.query.FProp(theta.query, query_vec)
+      key_proj = self.key.FProp(theta.key, key_vec)
+      value_proj = self.value.FProp(theta.value, value_vec)
+
+    query_proj = gshard_utils.MeshSplit(
+        query_proj, p.device_mesh, p.activation_split_dims_mapping.bld
+    )
+    key_proj = gshard_utils.MeshSplit(
+        key_proj, p.device_mesh, p.activation_split_dims_mapping.bld
+    )
+    value_proj = gshard_utils.MeshSplit(
+        value_proj, p.device_mesh, p.activation_split_dims_mapping.bld
+    )
+
+    return query_proj, key_proj, value_proj
+
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      key_vec,
+      value_vec,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+  ):
+    """Computes the value vector given the current query output.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec: [B, T, D].
+      key_vec:   [B, S, D].
+      value_vec: [B, S, D].
+      paddings:  [B, S].
+      segment_mask: [B, 1, T, S]. A mask only applied if packed_input=True.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, T, T] if
+        not None.
+
+    Returns:
+      encoded: [B, T, D].
+      atten_probs: [B, N, T, S].
+
+    Raises:
+      ValueError: If value projection is disabled.
+    """
+    p = self.params
+
+    # Heads projection
+    query_proj, key_proj, value_proj = self._HeadsProj(
+        theta, query_vec, key_vec, value_vec
+    )
+    if p.packed_input and not self.do_eval:
+      assert segment_mask is not None
+    encoded, atten_probs = self._DotAtten(
+        theta,
+        query_proj,
+        key_proj,
+        value_proj,
+        paddings,
+        segment_mask,
+        per_step_padding,
+    )
+    return encoded, atten_probs
+
+
 # TODO(shibow, wangtao) remove this after b/174094694 is done.
 class ReshapedMultiHeadedAttention(MultiHeadedAttention):
   """MultiHeadedAttention with model dim D reshaped as Md."""
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 paddings,
-                 segment_mask,
-                 per_step_padding,
-                 time_step,
-                 use_short_seq_opt=False):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      paddings,
+      segment_mask,
+      per_step_padding,
+      time_step,
+      use_short_seq_opt=False,
+  ):
     """Computes the value vector given the query of the current step.
 
     This function is used by autoregressive decoding.
@@ -1595,7 +2031,8 @@ class ReshapedMultiHeadedAttention(MultiHeadedAttention):
           segment_mask,
           per_step_padding,
           time_step,
-          use_short_seq_opt=use_short_seq_opt)
+          use_short_seq_opt=use_short_seq_opt,
+      )
       encoded_shape = py_utils.GetShape(encoded, 2)
       shape = encoded_shape + [-1]
       encoded = tf.reshape(encoded, shape)
@@ -1608,22 +2045,33 @@ class MultiHeadedFavorAttention(MultiHeadedAttention):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('num_random_features', 384,
-             'Number of random projection features for performer.')
-    p.Define('attention_type', 'softmax',
-             'relu|softmax, performer kernel transformation methods')
-    p.Define('redraw', False,
-             'Whether kernel features should be redrawn (N/A if not random).')
+    p.Define(
+        'num_random_features',
+        384,
+        'Number of random projection features for performer.',
+    )
+    p.Define(
+        'attention_type',
+        'softmax',
+        'relu|softmax, performer kernel transformation methods',
+    )
+    p.Define(
+        'redraw',
+        False,
+        'Whether kernel features should be redrawn (N/A if not random).',
+    )
     return p
 
-  def _DotAtten(self,
-                theta,
-                query,
-                key,
-                value,
-                paddings,
-                segment_mask,
-                per_step_padding=None):
+  def _DotAtten(
+      self,
+      theta,
+      query,
+      key,
+      value,
+      paddings,
+      segment_mask,
+      per_step_padding=None,
+  ):
     """Main FAVOR attention function from Rethinking Attention with Performers.
 
     Args:
@@ -1656,34 +2104,44 @@ class MultiHeadedFavorAttention(MultiHeadedAttention):
 
     if p.attention_type == 'relu':
       kernel_transformation = favor.relu_kernel_transformation
-      encoded = favor.favor_attention(query, key, value, paddings,
-                                      kernel_transformation, False)
+      encoded = favor.favor_attention(
+          query, key, value, paddings, kernel_transformation, False
+      )
     elif p.attention_type == 'softmax':
       kernel_transformation = favor.softmax_kernel_transformation
       # TODO(kchoro): Add the option of redrawing projection matrices. This
       # improves in several applications.
       projection_matrix = favor.create_projection_matrix(
-          p.num_random_features, query.shape[-1], None if p.redraw else 0)
-      encoded = favor.favor_attention(query, key, value, paddings,
-                                      kernel_transformation, False,
-                                      projection_matrix)
+          p.num_random_features, query.shape[-1], None if p.redraw else 0
+      )
+      encoded = favor.favor_attention(
+          query,
+          key,
+          value,
+          paddings,
+          kernel_transformation,
+          False,
+          projection_matrix,
+      )
     elif p.attention_type == 'cossim':
       # TODO(kchoro): Add paddings to the cossim variant.
       projection_matrix = favor.create_projection_matrix(
-          p.num_random_features, query.shape[-1], None if p.redraw else 0)
-      key_prime = favor.cossim_kernel_transformation(key, False,
-                                                     projection_matrix, 0.0,
-                                                     p.num_random_features)
-      query_prime = favor.cossim_kernel_transformation(query, True,
-                                                       projection_matrix, 0.0,
-                                                       p.num_random_features)
+          p.num_random_features, query.shape[-1], None if p.redraw else 0
+      )
+      key_prime = favor.cossim_kernel_transformation(
+          key, False, projection_matrix, 0.0, p.num_random_features
+      )
+      query_prime = favor.cossim_kernel_transformation(
+          query, True, projection_matrix, 0.0, p.num_random_features
+      )
       attention_scores = tf.einsum('BXHD,BYHD->BXYH', query_prime, key_prime)
       attention_scores = tf.nn.softmax(attention_scores, axis=2)
       encoded = tf.einsum('BXYH,BYHD->BXHD', attention_scores, value)
     else:
       logging.info(
           'FAVOR attention type: %s is not supported,returning query tensor.',
-          p.attention_type)
+          p.attention_type,
+      )
       return query, None
 
     return encoded, None
@@ -1700,13 +2158,17 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('rel_pos_emb_dim', None,
-             'Dimension of relative positional embedding.')
-    p.Define('skip_term_b', False,
-             'If True, skip term_b in the paper section 3.3.')
-    p.Define('pos_atten_logits_tpl',
-             attention_util.PositionalAttenLogits.Params(),
-             'Params for the positional attention logits.')
+    p.Define(
+        'rel_pos_emb_dim', None, 'Dimension of relative positional embedding.'
+    )
+    p.Define(
+        'skip_term_b', False, 'If True, skip term_b in the paper section 3.3.'
+    )
+    p.Define(
+        'pos_atten_logits_tpl',
+        attention_util.PositionalAttenLogits.Params(),
+        'Params for the positional attention logits.',
+    )
     return p
 
   def __init__(self, params):
@@ -1721,7 +2183,8 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
       raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
 
     emb_params = layers.PositionalEmbeddingLayer.Params().Set(
-        embedding_dim=params.rel_pos_emb_dim)
+        embedding_dim=params.rel_pos_emb_dim
+    )
     self.CreateChild('pos_emb', emb_params)
 
     # Projection layer for relative position encoding
@@ -1730,7 +2193,8 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
         input_dim=params.rel_pos_emb_dim,
         num_heads=params.num_heads,
         dim_per_head=dim_per_head,
-        use_bias=False)
+        use_bias=False,
+    )
     self.CreateChild('pos_proj', pos_proj_tpl)
     self.CreateChild('pos_atten_logits', params.pos_atten_logits_tpl)
 
@@ -1743,12 +2207,14 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
         shape=[params.num_heads, dim_per_head],
         init=py_utils.WeightInit.Constant(0.0),
         dtype=params.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     v_pc = py_utils.WeightParams(
         shape=[params.num_heads, dim_per_head],
         init=py_utils.WeightInit.Constant(0.0),
         dtype=params.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
 
     self.CreateVariable('u', u_pc)
     self.CreateVariable('v', v_pc)
@@ -1774,13 +2240,18 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
         abs_pos_emb=sin_emb,
         content_bias=theta.u,
         positional_bias=theta.v,
-        skip_term_b=self.params.skip_term_b)
+        skip_term_b=self.params.skip_term_b,
+    )
 
     return logits
 
-  def _AttenLogitsOneStep(self, theta: py_utils.NestedMap, query: tf.Tensor,
-                          key: tf.Tensor,
-                          time_step: Union[int, tf.Tensor]) -> tf.Tensor:
+  def _AttenLogitsOneStep(
+      self,
+      theta: py_utils.NestedMap,
+      query: tf.Tensor,
+      key: tf.Tensor,
+      time_step: Union[int, tf.Tensor],
+  ) -> tf.Tensor:
     """Attention logits for one single target (query) step.
 
     Args:
@@ -1796,13 +2267,15 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
       A Tensor of shape [S, B, N]
     """
     p = self.params
-    synced_time_step = (time_step.shape.ndims == 0)  # pytype: disable=attribute-error
+    synced_time_step = time_step.shape.ndims == 0  # pytype: disable=attribute-error
     s, _, _, _ = py_utils.GetShape(key, 4)
 
     # Transformer_XL relative attention.
     if time_step is None:
-      raise ValueError('`time_step` can not be None when using relative '
-                       'position encoding in attention.')
+      raise ValueError(
+          '`time_step` can not be None when using relative '
+          'position encoding in attention.'
+      )
 
     if synced_time_step:
       # [1, s]
@@ -1824,24 +2297,34 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
         abs_pos_emb=sin_emb,
         content_bias=theta.u,
         positional_bias=theta.v,
-        skip_term_b=p.skip_term_b)
+        skip_term_b=p.skip_term_b,
+    )
 
     return logits
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 paddings,
-                 segment_mask,
-                 per_step_padding,
-                 time_step,
-                 use_short_seq_opt=False):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      paddings,
+      segment_mask,
+      per_step_padding,
+      time_step,
+      use_short_seq_opt=False,
+  ):
     # TODO(jamesqin): support use_short_seq_opt for TransformerXL attention.
     assert not use_short_seq_opt
-    return super().ExtendStep(theta, query_vec, cached_states, paddings,
-                              segment_mask, per_step_padding, time_step,
-                              use_short_seq_opt)
+    return super().ExtendStep(
+        theta,
+        query_vec,
+        cached_states,
+        paddings,
+        segment_mask,
+        per_step_padding,
+        time_step,
+        use_short_seq_opt,
+    )
 
 
 class MultiHeadedAttentionRPE(MultiHeadedAttention):
@@ -1855,18 +2338,26 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('rel_pos_emb_dim', None,
-             'Dimension of relative positional embedding.')
-    p.Define('rel_pos_radius', None,
-             'Relative distance is clipped to [-radius, radius].')
+    p.Define(
+        'rel_pos_emb_dim', None, 'Dimension of relative positional embedding.'
+    )
+    p.Define(
+        'rel_pos_radius',
+        None,
+        'Relative distance is clipped to [-radius, radius].',
+    )
     p.Define('skip_value_emb', False, 'If skipping value positional embedding.')
     p.Define(
-        'use_global_emb', True,
+        'use_global_emb',
+        True,
         'If using global relative positional embedding. Only effective if '
-        '`rel_pos_emb_tpl` is not None.')
-    p.Define('pos_atten_logits_tpl',
-             attention_util.PositionalAttenLogits.Params(),
-             'Params for the positional attention logits.')
+        '`rel_pos_emb_tpl` is not None.',
+    )
+    p.Define(
+        'pos_atten_logits_tpl',
+        attention_util.PositionalAttenLogits.Params(),
+        'Params for the positional attention logits.',
+    )
     return p
 
   def __init__(self, params):
@@ -1885,7 +2376,8 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
       rel_pos_emb_dim = params.rel_pos_emb_dim
 
     rel_pos_emb_tpl = layers.RelativePositionalEmbeddingLayer.Params().Set(
-        radius=params.rel_pos_radius, dim=rel_pos_emb_dim)
+        radius=params.rel_pos_radius, dim=rel_pos_emb_dim
+    )
     if rel_pos_emb_dim != params.hidden_dim:
       # Projection layer for relative position encoding
       dim_per_head = params.hidden_dim // params.num_heads
@@ -1893,7 +2385,8 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
           input_dim=rel_pos_emb_dim,
           num_heads=params.num_heads,
           dim_per_head=dim_per_head,
-          use_bias=False)
+          use_bias=False,
+      )
     else:
       pos_proj_tpl = None
 
@@ -1913,12 +2406,14 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
       res[child] = [
           tf.variable_scope(
               self.params.name,
-              reuse=tf.AUTO_REUSE if self.params.use_global_emb else False)
+              reuse=tf.AUTO_REUSE if self.params.use_global_emb else False,
+          )
       ]
     return res
 
-  def _RelativePositionValueEmb(self, theta: py_utils.NestedMap,
-                                key: tf.Tensor) -> tf.Tensor:
+  def _RelativePositionValueEmb(
+      self, theta: py_utils.NestedMap, key: tf.Tensor
+  ) -> tf.Tensor:
     """Gets relative positional value embedding.
 
     Args:
@@ -1949,11 +2444,13 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     pos_proj_layer = 'value_pos_proj'
     if hasattr(self, pos_proj_layer):
       return getattr(self, pos_proj_layer).FProp(
-          getattr(theta, pos_proj_layer), pos_emb)
+          getattr(theta, pos_proj_layer), pos_emb
+      )
     else:
       return tf.reshape(
           pos_emb,
-          [tgt_time, src_time, num_heads, params.hidden_dim // num_heads])
+          [tgt_time, src_time, num_heads, params.hidden_dim // num_heads],
+      )
 
   def _AttenLogits(self, theta, query, key):
     # TODO(jamesqin): optimize it.
@@ -1995,8 +2492,10 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
 
     # Transformer_XL relative attention.
     if time_step is None:
-      raise ValueError('`time_step` can not be None when using relative '
-                       'position encoding in attention.')
+      raise ValueError(
+          '`time_step` can not be None when using relative '
+          'position encoding in attention.'
+      )
     # Gets positional embedding.
     # [1, S]
     rel_dists = tf.expand_dims(time_step - tf.range(s), 0)
@@ -2017,8 +2516,9 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     encoded = tf.einsum('BNij,BjNH->BiNH', probs, value)
 
     if not self.params.skip_value_emb:
-      encoded += tf.einsum('BNij,ijNH->BiNH', probs,
-                           self._RelativePositionValueEmb(theta, value))
+      encoded += tf.einsum(
+          'BNij,ijNH->BiNH', probs, self._RelativePositionValueEmb(theta, value)
+      )
     return encoded
 
   def _AttenContextOneStep(self, theta, probs, value, time_step, h):
@@ -2041,20 +2541,29 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
       logits += tf.einsum('SBN,SNH->BNH', probs, pos_emb)
     return logits
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 paddings,
-                 segment_mask,
-                 per_step_padding,
-                 time_step,
-                 use_short_seq_opt=False):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      paddings,
+      segment_mask,
+      per_step_padding,
+      time_step,
+      use_short_seq_opt=False,
+  ):
     # TODO(jamesqin): support use_short_seq_opt.
     assert not use_short_seq_opt
-    return super().ExtendStep(theta, query_vec, cached_states, paddings,
-                              segment_mask, per_step_padding, time_step,
-                              use_short_seq_opt)
+    return super().ExtendStep(
+        theta,
+        query_vec,
+        cached_states,
+        paddings,
+        segment_mask,
+        per_step_padding,
+        time_step,
+        use_short_seq_opt,
+    )
 
   @classmethod
   def FPropMeta(cls, p, *args):
@@ -2124,36 +2633,50 @@ class LocalSelfAttention(MultiHeadedAttention):
     """Params for LocalSelfAttention."""
     p = super().Params()
     p.Define(
-        'block_size', None, 'Size of a processing block, if unset, default to '
-        'max(1, left_context-1).')
+        'block_size',
+        None,
+        'Size of a processing block, if unset, default to '
+        'max(1, left_context-1).',
+    )
     p.Define(
-        'left_context', None, 'Number of left positions to attend '
-        '(including current position).')
+        'left_context',
+        None,
+        'Number of left positions to attend (including current position).',
+    )
     p.Define('right_context', 0, 'Number of right positions to attend.')
     p.Define(
-        'force_consistent_probs_shape', False,
+        'force_consistent_probs_shape',
+        False,
         'Bool, whether to force the attention_probs tensor returned from '
         'FProp() to have shape [B N T S] to be consistent with the MHA '
         'parent class. Default returns a custom rank-5 tensor with '
-        'shape [B, N, U, W, C].')
+        'shape [B, N, U, W, C].',
+    )
 
     # The following are for streaming inference only.
     p.Define(
-        'inference_step_max_length', None, 'Max inference step length '
+        'inference_step_max_length',
+        None,
+        'Max inference step length '
         '(query_vec length). Used for efficient sunn inference on tpu. In case '
         'inference seq length is not static, set to None or negative, and a '
-        'less optimized algorithm is used.')
+        'less optimized algorithm is used.',
+    )
     p.Define(
-        'use_3d_recurrent_state', False,
+        'use_3d_recurrent_state',
+        False,
         'If True, recurrent state for streaming inference is [B, T, N*H] '
         'instead of [B, T, N, H]. This is for performance optimization '
         'and does not change math. Only effective if inference_step_max_length '
-        'is not None and > 0.')
+        'is not None and > 0.',
+    )
     p.Define(
-        'minimize_state_size', False,
+        'minimize_state_size',
+        False,
         'If True, the recurrent state is a history of the layer inputs instead '
         'of a history of the keys/values. Only supported when '
-        'right_context==0.')
+        'right_context==0.',
+    )
     return p
 
   def __init__(self, params):
@@ -2167,14 +2690,17 @@ class LocalSelfAttention(MultiHeadedAttention):
     if p.block_size is None:
       block_size = max(1, p.left_context - 1)
       p.block_size = block_size + (-block_size % p.query_stride)
-      tf.logging.warning('block_size not set, use default value {}'.format(
-          p.block_size))
+      tf.logging.warning(
+          'block_size not set, use default value {}'.format(p.block_size)
+      )
     assert p.block_size % p.query_stride == 0, (
         f'block_size({p.block_size}) must be a multiple of '
-        f'query_stride({p.query_stride}).')
+        f'query_stride({p.query_stride}).'
+    )
     assert not p.right_context or p.right_context % p.query_stride == 0, (
         f'right_context({p.right_context}) must be a multiple of '
-        f'query_stride({p.query_stride}).')
+        f'query_stride({p.query_stride}).'
+    )
 
   def _AttenLogits(self, theta, query, key):
     return tf.einsum('BUTNH,BUSNH->BNUTS', query, key)
@@ -2184,13 +2710,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     # [B, N, Q, T]
     return tf.einsum('BQNH,BTNH->BNQT', query_proj, key)
 
-  def AttenProbs(self,
-                 theta,
-                 query,
-                 key,
-                 paddings,
-                 segment_mask,
-                 per_step_padding=None):
+  def AttenProbs(
+      self, theta, query, key, paddings, segment_mask, per_step_padding=None
+  ):
     """Compute attention probability.
 
     Args:
@@ -2218,21 +2740,24 @@ class LocalSelfAttention(MultiHeadedAttention):
         key,
         block_size=p.block_size,
         left_context=p.left_context,
-        right_context=p.right_context)
+        right_context=p.right_context,
+    )
     _, u, c, _, _ = py_utils.GetShape(key_block_context)
 
     # -> [B, U, W, N, H]
     query_blocks = attention_util.ConvertToBlocks(
-        query, block_size=(p.block_size // p.query_stride))
+        query, block_size=(p.block_size // p.query_stride)
+    )
 
     # -> [B, U, C]
-    mask = 1. - paddings
+    mask = 1.0 - paddings
     mask_block_context = attention_util.ExtractBlockContext(
         mask,
         block_size=p.block_size,
         left_context=p.left_context,
         right_context=p.right_context,
-        padding_val=0)
+        padding_val=0,
+    )
 
     # -> [B, 1, U, 1, C]
     mask = tf.reshape(mask_block_context, [b, 1, u, 1, c])
@@ -2245,28 +2770,32 @@ class LocalSelfAttention(MultiHeadedAttention):
         left_context=p.left_context,
         right_context=p.right_context,
         query_stride=p.query_stride,
-        dtype=mask.dtype)
+        dtype=mask.dtype,
+    )
     # -> [B, 1, U, W, C]
     mask = mask * local_causal_mask
-    paddings = 1. - mask
+    paddings = 1.0 - mask
 
     # -> [B, N, U, W, C]
     logits = self._AttenLogits(theta, query_blocks, key_block_context)
 
-    padded_logits = py_utils.ApplyPadding(paddings, logits,
-                                          GetDtypeMin(logits.dtype))
+    padded_logits = py_utils.ApplyPadding(
+        paddings, logits, GetDtypeMin(logits.dtype)
+    )
 
     if p.enable_scaling_code_motion:
       # Split the softmax into two parts. Do the 1st part here; the 2nd part
       # (scaling) is moved after _AttenContext for better performance.
       probs = padded_logits - tf.stop_gradient(
-          tf.reduce_max(padded_logits, -1, True))
+          tf.reduce_max(padded_logits, -1, True)
+      )
       probs = tf.cast(tf.exp(probs), key.dtype)
       probs_sum = tf.reduce_sum(probs, -1, True)
     else:
       probs = tf.cast(
           py_utils.Softmax(padded_logits, extra_logit=p.atten_extra_logit),
-          key.dtype)
+          key.dtype,
+      )
       probs_sum = None
 
     return probs, probs_sum
@@ -2288,7 +2817,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         value,
         block_size=p.block_size,
         left_context=p.left_context,
-        right_context=p.right_context)
+        right_context=p.right_context,
+    )
 
     # Compute the attention context vector.
     # -> [B, U, W, N, H]
@@ -2302,14 +2832,16 @@ class LocalSelfAttention(MultiHeadedAttention):
     encoded = encoded[:, :t0, ...]
     return encoded
 
-  def FProp(self,
-            theta,
-            query_vec,
-            key_vec,
-            value_vec,
-            paddings,
-            segment_mask=None,
-            per_step_padding=None):
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      key_vec,
+      value_vec,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+  ):
     """Computes the value vector given the current query output.
 
     Args:
@@ -2336,7 +2868,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     t = py_utils.GetShape(query_vec, 2)[1]
     query_vec = py_utils.HasShape(query_vec, [b, s // p.query_stride, d])
     query_vec = py_utils.with_dependencies(
-        [py_utils.assert_even_divide(s, p.query_stride)], query_vec)
+        [py_utils.assert_even_divide(s, p.query_stride)], query_vec
+    )
 
     value_vec = py_utils.HasShape(value_vec, [b, s, d])
     paddings = py_utils.HasShape(paddings, [b, s])
@@ -2347,7 +2880,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         value_vec,
         paddings,
         segment_mask=segment_mask,
-        per_step_padding=per_step_padding)
+        per_step_padding=per_step_padding,
+    )
     if not p.force_consistent_probs_shape:
       return encoded, probs
 
@@ -2365,25 +2899,27 @@ class LocalSelfAttention(MultiHeadedAttention):
     probs = tf.reshape(probs, [b, n, w, u * (m + l)])
     # Now each row is shifted by W from its previous row. This recovers
     # the true position of the C axis into the now expanded T axis.
-    probs = tf.reshape(probs[:, :, :, :u * m], [b, n, w, u, m])
+    probs = tf.reshape(probs[:, :, :, : u * m], [b, n, w, u, m])
     # Shape [B N U W M]
     probs = tf.transpose(probs, [0, 1, 3, 2, 4])
     # Shape [B N U W S]
-    probs = probs[:, :, :, :, p.left_context - 1:m - p.right_context]
+    probs = probs[:, :, :, :, p.left_context - 1 : m - p.right_context]
     probs = tf.reshape(probs, [b, n, w * u, s])
     # Truncate to shape [B N T S]
     probs = probs[:, :, :t, :]
     return encoded, probs
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 paddings,
-                 segment_mask=None,
-                 per_step_padding=None,
-                 time_step=None,
-                 use_short_seq_opt=False):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+      time_step=None,
+      use_short_seq_opt=False,
+  ):
     """Computes the value vector given the query of the current step.
 
     This function is used by autoregressive decoding, as opposed to
@@ -2421,7 +2957,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     p = self.params
     if p.right_context != 0:
       raise ValueError(
-          'Right context must be zero for autoregressive decoding.')
+          'Right context must be zero for autoregressive decoding.'
+      )
     if use_short_seq_opt:
       raise NotImplementedError('use_short_seq_opt is not supported yet.')
 
@@ -2434,20 +2971,31 @@ class LocalSelfAttention(MultiHeadedAttention):
         paddings = paddings > tf.zeros([], paddings.dtype)
 
     position_diff = tf.tile(tf.range(t)[tf.newaxis, :], [b, 1]) - time_step
-    valid_atten = tf.math.logical_and(position_diff > -p.left_context,
-                                      position_diff <= 0)
+    valid_atten = tf.math.logical_and(
+        position_diff > -p.left_context, position_diff <= 0
+    )
     local_causal_padding = tf.math.logical_not(valid_atten)
     paddings = tf.logical_or(paddings, local_causal_padding)
 
-    return super().ExtendStep(theta, query_vec, cached_states, paddings,
-                              segment_mask, per_step_padding, time_step,
-                              use_short_seq_opt)
+    return super().ExtendStep(
+        theta,
+        query_vec,
+        cached_states,
+        paddings,
+        segment_mask,
+        per_step_padding,
+        time_step,
+        use_short_seq_opt,
+    )
 
   def zero_state(self, batch_size):
     """Returns the initial state given the batch size."""
     p = self.params
-    if (p.inference_step_max_length is not None and
-        p.inference_step_max_length > 0 and not p.right_context):
+    if (
+        p.inference_step_max_length is not None
+        and p.inference_step_max_length > 0
+        and not p.right_context
+    ):
       if p.minimize_state_size:
         state0 = self._zero_state_static_length_inputs(batch_size)
       else:
@@ -2480,8 +3028,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     assert p.right_context == 0, 'StreamStep does not support look-ahead'
 
     context_len = p.inference_step_max_length + p.left_context - 1
-    inputs = tf.zeros([batch_size, context_len, p.input_dim],
-                      py_utils.FPropDtype(p))
+    inputs = tf.zeros(
+        [batch_size, context_len, p.input_dim], py_utils.FPropDtype(p)
+    )
     # At the beginning, all positions are masked out.
     masks = tf.zeros([batch_size, context_len], tf.bool)
     state0 = py_utils.NestedMap(inputs=inputs, masks=masks)
@@ -2517,10 +3066,12 @@ class LocalSelfAttention(MultiHeadedAttention):
     if not p.use_3d_recurrent_state:
       key_state = tf.zeros(
           [batch_size, context_len, p.num_heads, p.hidden_dim // p.num_heads],
-          py_utils.FPropDtype(p))
+          py_utils.FPropDtype(p),
+      )
     else:
-      key_state = tf.zeros([batch_size, context_len, p.hidden_dim],
-                           py_utils.FPropDtype(p))
+      key_state = tf.zeros(
+          [batch_size, context_len, p.hidden_dim], py_utils.FPropDtype(p)
+      )
     value_state = tf.zeros_like(key_state, py_utils.FPropDtype(p))
     # At the beginning, all positions are masked out.
     masks = tf.zeros([batch_size, context_len], tf.bool)
@@ -2552,8 +3103,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     context_len = p.left_context - 1 + p.right_context
     per_head_dim = p.hidden_dim // p.num_heads
 
-    key_state = tf.zeros([batch_size, context_len, p.num_heads, per_head_dim],
-                         dtype)
+    key_state = tf.zeros(
+        [batch_size, context_len, p.num_heads, per_head_dim], dtype
+    )
     value_state = tf.zeros_like(key_state, dtype)
     # At the beginning, all positions are masked out.
     masks = tf.zeros([batch_size, context_len], tf.bool)
@@ -2606,12 +3158,15 @@ class LocalSelfAttention(MultiHeadedAttention):
       if self.IsInferenceStepStatic():
         assert p.right_context == 0, (
             'StreamStep() does not yet support look ahead with '
-            'inference_step_max_length set.')
-        return self._StreamStepStaticLength(theta, query_vec, query_paddings,
-                                            key_vec, key_paddings, state0)
+            'inference_step_max_length set.'
+        )
+        return self._StreamStepStaticLength(
+            theta, query_vec, query_paddings, key_vec, key_paddings, state0
+        )
       else:
-        return self._StreamStepDynamicLength(theta, query_vec, query_paddings,
-                                             key_vec, key_paddings, state0)
+        return self._StreamStepDynamicLength(
+            theta, query_vec, query_paddings, key_vec, key_paddings, state0
+        )
 
   def StreamStepAddSkipConnection(self, input_to_add, output, state0, state1):
     p = self.params
@@ -2620,11 +3175,13 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     seqlen = py_utils.GetShape(output)[1]
     output = py_utils.HasShape(output, py_utils.GetShape(input_to_add))
-    concat_input_to_add = tf.concat([state0.skip_conn_input, input_to_add],
-                                    axis=1)
+    concat_input_to_add = tf.concat(
+        [state0.skip_conn_input, input_to_add], axis=1
+    )
     final_output = output + concat_input_to_add[:, :seqlen]
-    state1.skip_conn_input = tf.slice(concat_input_to_add, [0, seqlen, 0],
-                                      tf.shape(state0.skip_conn_input))
+    state1.skip_conn_input = tf.slice(
+        concat_input_to_add, [0, seqlen, 0], tf.shape(state0.skip_conn_input)
+    )
     return final_output, state1
 
   def _StreamStepDimensions(self, inputs):
@@ -2643,8 +3200,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     b, q = py_utils.GetShape(inputs, 2)
     return py_utils.NestedMap(n=n, h=h, s=s, b=b, q=q)
 
-  def _StreamStepStaticComputeKeyValueMinimal(self, theta, indices, inputs,
-                                              state0):
+  def _StreamStepStaticComputeKeyValueMinimal(
+      self, theta, indices, inputs, state0
+  ):
     """Computes key/value tensors in minimize_state_size mode.
 
     Args:
@@ -2661,15 +3219,16 @@ class LocalSelfAttention(MultiHeadedAttention):
     """
     p = self.params
     dims = self._StreamStepDimensions(inputs)
-    state0.query = py_utils.HasShape(state0.inputs,
-                                     [dims.b, dims.s, p.hidden_dim])
+    state0.query = py_utils.HasShape(
+        state0.inputs, [dims.b, dims.s, p.hidden_dim]
+    )
 
     with tf.name_scope('next_inputs'):
       # [B, S, Q]
       if p.use_3d_recurrent_state:
         new_inputs = tf.tensor_scatter_nd_update(state0.inputs, indices, inputs)
       else:
-        new_inputs = tf.concat([state0.inputs, inputs], axis=1)[:, -dims.s:, :]
+        new_inputs = tf.concat([state0.inputs, inputs], axis=1)[:, -dims.s :, :]
 
     # [B, S, N, H]: Project input vectors into key space.
     key = self.key.FProp(theta.key, new_inputs)
@@ -2709,10 +3268,12 @@ class LocalSelfAttention(MultiHeadedAttention):
     """
     dims = self._StreamStepDimensions(inputs)
 
-    state0.key = py_utils.HasShape(state0.key,
-                                   [dims.b, dims.s, dims.n * dims.h])
-    state0.value = py_utils.HasShape(state0.value,
-                                     py_utils.GetShape(state0.key))
+    state0.key = py_utils.HasShape(
+        state0.key, [dims.b, dims.s, dims.n * dims.h]
+    )
+    state0.value = py_utils.HasShape(
+        state0.value, py_utils.GetShape(state0.key)
+    )
 
     def get_next_state(recur_state, inputs):  # pylint:disable=invalid-name
       next_state = tf.tensor_scatter_nd_update(recur_state, indices, inputs)
@@ -2724,7 +3285,8 @@ class LocalSelfAttention(MultiHeadedAttention):
     incr_key = tf.einsum(
         'DH,BTD->BTH',
         tf.reshape(theta.key.w, [self.key.params.input_dim, dims.n * dims.h]),
-        inputs) + tf.reshape(theta.key.b, [-1])
+        inputs,
+    ) + tf.reshape(theta.key.b, [-1])
     if self.params.rope_tpl:
       # Point the time_step to the last entry in the key.
       time_step = state0.rope_step + dims.q
@@ -2734,9 +3296,11 @@ class LocalSelfAttention(MultiHeadedAttention):
     # [B, Q, N * H]
     incr_value = tf.einsum(
         'DH,BTD->BTH',
-        tf.reshape(theta.value.w,
-                   [self.value.params.input_dim, dims.n * dims.h]),
-        inputs) + tf.reshape(theta.value.b, [-1])
+        tf.reshape(
+            theta.value.w, [self.value.params.input_dim, dims.n * dims.h]
+        ),
+        inputs,
+    ) + tf.reshape(theta.value.b, [-1])
 
     # [B, S, N, H], [B, S, N * H]
     key, next_key = get_next_state(state0.key, incr_key)
@@ -2767,8 +3331,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     """
     dims = self._StreamStepDimensions(inputs)
     state0.key = py_utils.HasShape(state0.key, [dims.b, dims.s, dims.n, dims.h])
-    state0.value = py_utils.HasShape(state0.value,
-                                     py_utils.GetShape(state0.key))
+    state0.value = py_utils.HasShape(
+        state0.value, py_utils.GetShape(state0.key)
+    )
 
     # [B, Q, N, H]
     incr_key = self.key.FProp(theta.key, inputs)
@@ -2780,9 +3345,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     incr_value = self.value.FProp(theta.value, inputs)
 
     # [B, S, N, H]
-    key = tf.concat([state0.key, incr_key], axis=1)[:, -dims.s:, :, :]
+    key = tf.concat([state0.key, incr_key], axis=1)[:, -dims.s :, :, :]
     # [B, S, N, H]
-    value = tf.concat([state0.value, incr_value], axis=1)[:, -dims.s:, :, :]
+    value = tf.concat([state0.value, incr_value], axis=1)[:, -dims.s :, :, :]
 
     state1 = py_utils.NestedMap(key=key, value=value)
     return key, value, state1
@@ -2826,13 +3391,16 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     if p.minimize_state_size:
       key, value, state1 = self._StreamStepStaticComputeKeyValueMinimal(
-          theta, indices, inputs, state0)
+          theta, indices, inputs, state0
+      )
     elif p.use_3d_recurrent_state:
       key, value, state1 = self._StreamStepStaticComputeKeyValue3d(
-          theta, indices, inputs, state0)
+          theta, indices, inputs, state0
+      )
     else:
       key, value, state1 = self._StreamStepStaticComputeKeyValueClassic(
-          theta, inputs, state0)
+          theta, inputs, state0
+      )
 
     # paddings
     # [B, S]. 1s are masked positions.
@@ -2841,27 +3409,31 @@ class LocalSelfAttention(MultiHeadedAttention):
     else:
       input_masks = tf.logical_not(tf.cast(paddings, tf.bool))
     if p.use_3d_recurrent_state:
-      new_masks = tf.tensor_scatter_nd_update(state0.masks, indices,
-                                              input_masks)
+      new_masks = tf.tensor_scatter_nd_update(
+          state0.masks, indices, input_masks
+      )
     else:
-      new_masks = tf.concat([state0.masks, input_masks], axis=1)[:, -dims.s:]
+      new_masks = tf.concat([state0.masks, input_masks], axis=1)[:, -dims.s :]
 
     # [B, 1]
     if p.use_3d_recurrent_state:
-      state1.circular_tail = tf.math.floormod(state0.circular_tail + dims.q,
-                                              dims.s)
+      state1.circular_tail = tf.math.floormod(
+          state0.circular_tail + dims.q, dims.s
+      )
     state1.masks = new_masks
     return key, value, state1
 
-  def _StreamStepStaticLength(self, theta, query_vec, query_paddings, key_vec,
-                              key_paddings, state0):
+  def _StreamStepStaticLength(
+      self, theta, query_vec, query_paddings, key_vec, key_paddings, state0
+  ):
     """query_vec length is staticly known."""
     p = self.params
     dims = self._StreamStepDimensions(query_vec)
     h, s, q = dims.h, dims.s, dims.q
     assert q is not None
     query_vec = py_utils.with_dependencies(
-        [py_utils.assert_less_equal(q, p.inference_step_max_length)], query_vec)
+        [py_utils.assert_less_equal(q, p.inference_step_max_length)], query_vec
+    )
 
     b, k = py_utils.GetShape(key_vec, 2)
     q = (k + p.query_stride - 1) // p.query_stride
@@ -2880,14 +3452,16 @@ class LocalSelfAttention(MultiHeadedAttention):
           query_proj *= h**-0.5
 
       key, value, state1 = self._StreamStepStaticComputeKeyValue(
-          theta, key_vec, key_paddings, state0)
+          theta, key_vec, key_paddings, state0
+      )
 
       if p.rope_tpl:
         # state0.rope_step: the time step of the last token in the prev step.
         # time_step: the time step of the last token.
         time_step = state0.rope_step + (dims.q * p.query_stride)
         query_proj = self._RoPE(
-            theta, query_proj, stride=p.query_stride, time_step=time_step)
+            theta, query_proj, stride=p.query_stride, time_step=time_step
+        )
         state1.rope_step = time_step
 
       # [B, N, Q, T]
@@ -2904,37 +3478,44 @@ class LocalSelfAttention(MultiHeadedAttention):
         distance = tf.math.floormod(cols - rows, s)
         if p.use_3d_recurrent_state:
           # [B, 1]
-          head = tf.math.floormod(state0.circular_tail - (p.left_context - 1),
-                                  s)
+          head = tf.math.floormod(
+              state0.circular_tail - (p.left_context - 1), s
+          )
           # [B, Q, S]
           shifted_distance = tf.math.floormod(
-              tf.expand_dims(distance, 0) - tf.expand_dims(head, -1), s)
+              tf.expand_dims(distance, 0) - tf.expand_dims(head, -1), s
+          )
         else:
           shifted_distance = distance - (p.inference_step_max_length - k)
         stride_margin = p.query_stride - 1
         effective_left_context = p.left_context - 1 + stride_margin
         # [B, Q, S] or [Q, S]
         local_atten_per_step_masks = tf.logical_and(
-            shifted_distance <= effective_left_context, shifted_distance >= 0)
+            shifted_distance <= effective_left_context, shifted_distance >= 0
+        )
         # [1, Q, S] or [B, Q, S]
         if py_utils.GetRank(local_atten_per_step_masks) < 3:
           local_atten_per_step_masks = tf.expand_dims(
-              local_atten_per_step_masks, 0)
+              local_atten_per_step_masks, 0
+          )
         # [B, 1, S]
         expanded_state_masks = tf.expand_dims(state1.masks, 1)
 
         # [B, Q, S]
-        final_masks = tf.logical_and(expanded_state_masks,
-                                     local_atten_per_step_masks)
+        final_masks = tf.logical_and(
+            expanded_state_masks, local_atten_per_step_masks
+        )
         # [B, 1, Q, S]
         final_masks = tf.expand_dims(final_masks, axis=1)
 
       # [B, N, Q, S]
       logits = py_utils.ApplyPadding(
-          tf.logical_not(final_masks), logits, GetDtypeMin(logits.dtype))
+          tf.logical_not(final_masks), logits, GetDtypeMin(logits.dtype)
+      )
       # [B, N, Q, S]
       posteriors = py_utils.Softmax(
-          logits, axis=-1, extra_logit=p.atten_extra_logit)
+          logits, axis=-1, extra_logit=p.atten_extra_logit
+      )
       # [B, Q, N, H]
       output = tf.einsum('BNQS,BSNH->BQNH', posteriors, value)
 
@@ -2943,8 +3524,9 @@ class LocalSelfAttention(MultiHeadedAttention):
       output = self.post.FProp(theta.post, output)
       return output, query_paddings, state1
 
-  def _StreamStepDynamicLength(self, theta, query_vec, query_paddings, key_vec,
-                               key_paddings, state0):
+  def _StreamStepDynamicLength(
+      self, theta, query_vec, query_paddings, key_vec, key_paddings, state0
+  ):
     """query_vec length is dynamic."""
     p = self.params
     # Sanity checks.
@@ -2973,7 +3555,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         time_step = state0.rope_step + py_utils.GetShape(key)[1]
         key = self._RoPE(theta, key, time_step=time_step)
         query_proj = self._RoPE(
-            theta, query_proj, stride=p.query_stride, time_step=time_step)
+            theta, query_proj, stride=p.query_stride, time_step=time_step
+        )
 
       if p.right_context == 0:
         # [B, Q, N, H]
@@ -3002,15 +3585,16 @@ class LocalSelfAttention(MultiHeadedAttention):
       value = tf.concat(
           [state0.value, self.value.FProp(theta.value, key_vec)],
           axis=1,
-          name='concat_value')
+          name='concat_value',
+      )
       # [B, T]
       if key_paddings is None:
         key_masks = tf.ones([b, k], dtype=tf.bool)
       else:
         key_masks = tf.logical_not(tf.cast(key_paddings, tf.bool))
-      state_masks = tf.concat([state0.masks, key_masks],
-                              axis=1,
-                              name='concat_masks')
+      state_masks = tf.concat(
+          [state0.masks, key_masks], axis=1, name='concat_masks'
+      )
 
       # [B, N, Q, T]
       logits = self._StreamAttenLogits(theta, query, key)
@@ -3021,7 +3605,8 @@ class LocalSelfAttention(MultiHeadedAttention):
         # Assuming the current query index starts from 0
         query_right = p.right_context // p.query_stride
         query_indices = tf.expand_dims(
-            tf.range(-query_right, -query_right + q) * p.query_stride, -1)
+            tf.range(-query_right, -query_right + q) * p.query_stride, -1
+        )
         # [1, T]
         target_indices = tf.expand_dims(tf.range(-context_len, k), 0)
         # 1s are masked positions.
@@ -3029,27 +3614,31 @@ class LocalSelfAttention(MultiHeadedAttention):
         distance = query_indices - target_indices
         effective_right_context = p.right_context + p.query_stride - 1
         local_atten_per_step_masks = tf.logical_and(
-            distance <= p.left_context - 1,
-            distance >= -effective_right_context)
+            distance <= p.left_context - 1, distance >= -effective_right_context
+        )
         # [1, Q, T]
-        local_atten_per_step_masks = tf.expand_dims(local_atten_per_step_masks,
-                                                    0)
+        local_atten_per_step_masks = tf.expand_dims(
+            local_atten_per_step_masks, 0
+        )
         # [B, 1, T]
         expanded_state_masks = tf.expand_dims(state_masks, 1)
 
         # [B, Q, T]
-        final_masks = tf.logical_and(expanded_state_masks,
-                                     local_atten_per_step_masks)
+        final_masks = tf.logical_and(
+            expanded_state_masks, local_atten_per_step_masks
+        )
         # [B, 1, Q, T]
         final_masks = tf.expand_dims(final_masks, axis=1)
 
       # [B, N, Q, T]
       logits = py_utils.ApplyPadding(
-          tf.logical_not(final_masks), logits, GetDtypeMin(logits.dtype))
+          tf.logical_not(final_masks), logits, GetDtypeMin(logits.dtype)
+      )
 
       # [B, N, Q, T]
       posteriors = py_utils.Softmax(
-          logits, axis=-1, extra_logit=p.atten_extra_logit)
+          logits, axis=-1, extra_logit=p.atten_extra_logit
+      )
       # [B, Q, N, H]
       output = tf.einsum('BNQT,BTNH->BQNH', posteriors, value)
 
@@ -3060,12 +3649,15 @@ class LocalSelfAttention(MultiHeadedAttention):
       state1 = py_utils.NestedMap(
           key=tf.slice(key, [0, k, 0, 0], tf.shape(state0.key)),
           value=tf.slice(value, [0, k, 0, 0], tf.shape(state0.value)),
-          masks=tf.slice(state_masks, [0, k], tf.shape(state0.masks)))
+          masks=tf.slice(state_masks, [0, k], tf.shape(state0.masks)),
+      )
       if p.right_context > 0:
-        state1.query = tf.slice(concat_query, [0, q, 0, 0],
-                                tf.shape(state0.query))
-        state1.out_masks = tf.slice(concat_out_masks, [0, q],
-                                    tf.shape(state0.out_masks))
+        state1.query = tf.slice(
+            concat_query, [0, q, 0, 0], tf.shape(state0.query)
+        )
+        state1.out_masks = tf.slice(
+            concat_out_masks, [0, q], tf.shape(state0.out_masks)
+        )
       if p.rope_tpl:
         state1.rope_step = time_step
       return output, out_paddings, state1
@@ -3081,10 +3673,12 @@ class LocalSelfAttentionXL(LocalSelfAttention):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('rel_pos_emb_dim', None,
-             'Dimension of relative positional embedding.')
-    p.Define('skip_term_b', False,
-             'If True, skip term_b in the paper section 3.3.')
+    p.Define(
+        'rel_pos_emb_dim', None, 'Dimension of relative positional embedding.'
+    )
+    p.Define(
+        'skip_term_b', False, 'If True, skip term_b in the paper section 3.3.'
+    )
     return p
 
   def __init__(self, params):
@@ -3103,7 +3697,8 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       raise ValueError('Query stride not supported yet.')
 
     emb_params = layers.PositionalEmbeddingLayer.Params().Set(
-        embedding_dim=params.rel_pos_emb_dim)
+        embedding_dim=params.rel_pos_emb_dim
+    )
     self.CreateChild('pos_emb', emb_params)
 
     # Projection layer for relative position encoding
@@ -3112,7 +3707,8 @@ class LocalSelfAttentionXL(LocalSelfAttention):
         input_dim=params.rel_pos_emb_dim,
         num_heads=params.num_heads,
         dim_per_head=dim_per_head,
-        use_bias=False)
+        use_bias=False,
+    )
     self.CreateChild('pos_proj', pos_proj_tpl)
 
   def _CreateLayerVariables(self):
@@ -3124,12 +3720,14 @@ class LocalSelfAttentionXL(LocalSelfAttention):
         shape=[params.num_heads, dim_per_head],
         init=py_utils.WeightInit.Constant(0.0),
         dtype=params.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     v_pc = py_utils.WeightParams(
         shape=[params.num_heads, dim_per_head],
         init=py_utils.WeightInit.Constant(0.0),
         dtype=params.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
 
     self.CreateVariable('u', u_pc)
     self.CreateVariable('v', v_pc)
@@ -3251,11 +3849,14 @@ class LocalSelfAttentionXL(LocalSelfAttention):
 
     # Transformer_XL relative attention.
     if time_step is None:
-      raise ValueError('`time_step` can not be None when using relative '
-                       'position encoding in attention.')
+      raise ValueError(
+          '`time_step` can not be None when using relative '
+          'position encoding in attention.'
+      )
     # term a and c.
-    logits = tf.einsum('BNH,SBNH->SBN', query + theta.u,
-                       tf.reshape(key, [s, b, n, h]))
+    logits = tf.einsum(
+        'BNH,SBNH->SBN', query + theta.u, tf.reshape(key, [s, b, n, h])
+    )
     position = tf.expand_dims(time_step - tf.range(s), 0)
     # [1, s, emb_dim]
     sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, position)
@@ -3270,19 +3871,22 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       logits += tf.expand_dims(tf.einsum('NH,SNH->SN', theta.v, sin_emb), 1)
     return logits
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 paddings,
-                 segment_mask=None,
-                 per_step_padding=None,
-                 time_step=None,
-                 use_short_seq_opt=False):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+      time_step=None,
+      use_short_seq_opt=False,
+  ):
     raise NotImplementedError
 
-  def StreamStep(self, theta, query_vec, query_paddings, key_vec, key_paddings,
-                 state0):
+  def StreamStep(
+      self, theta, query_vec, query_paddings, key_vec, key_paddings, state0
+  ):
     """Computes the value vector given the query of the current step.
 
     Note: Rel pos emb relies on the shape of key. It expects the seq length
@@ -3309,9 +3913,11 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       # Rel pos emb expects the seq length of key is `q.length + left - 1`.
       assert q == p.inference_step_max_length, (
           f'inference_step_max_length `{p.inference_step_max_length}` '
-          f'must be same to the seq length of query `{q}` ')
-    return super().StreamStep(theta, query_vec, query_paddings, key_vec,
-                              key_paddings, state0)
+          f'must be same to the seq length of query `{q}` '
+      )
+    return super().StreamStep(
+        theta, query_vec, query_paddings, key_vec, key_paddings, state0
+    )
 
 
 class ChunkwiseSelfAttention(MultiHeadedAttention):
@@ -3351,14 +3957,18 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
     p = super().Params()
     p.Define('chunk_size', 1, 'Size of a processing chunk, must be at least 1')
     p.Define(
-        'left_context', 1,
+        'left_context',
+        1,
         'Number of left context frames. Note that to be compatible with '
         'LocalSelfAttention, the actual left context frames is '
-        'left_context - 1, so left_context must >= 1')
+        'left_context - 1, so left_context must >= 1',
+    )
     p.Define(
-        'right_context', 0,
+        'right_context',
+        0,
         'Number of right context frames. Right_context must be greater or '
-        'equal to 0')
+        'equal to 0',
+    )
     return p
 
   def _ParamCheck(self, p):
@@ -3386,13 +3996,9 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
   def _AttenLogits(self, theta, query, key):
     return tf.einsum('BUTNH,BUSNH->BNUTS', query, key)
 
-  def AttenProbs(self,
-                 theta,
-                 query,
-                 key,
-                 paddings,
-                 segment_mask,
-                 per_step_padding=None):
+  def AttenProbs(
+      self, theta, query, key, paddings, segment_mask, per_step_padding=None
+  ):
     """Compute attention probability.
 
     Args:
@@ -3426,7 +4032,8 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
         left_context=p.left_context,
         right_context=p.right_context,
         padding_val=0.0,
-        paddings=paddings)
+        paddings=paddings,
+    )
     _, u, c, _ = py_utils.GetShape(key_block_context)
     key_block_context = tf.reshape(key_block_context, [b, u, c, n, h])
 
@@ -3440,20 +4047,23 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
     # einsum('BUWNH,BUCNH->BNUWC)
     with tf.name_scope('atten_logits'):
       logits = self._AttenLogits(theta, query_blocks, key_block_context)
-      padded_logits = py_utils.ApplyPadding(paddings_block, logits,
-                                            GetDtypeMin(logits.dtype))
+      padded_logits = py_utils.ApplyPadding(
+          paddings_block, logits, GetDtypeMin(logits.dtype)
+      )
 
     if p.enable_scaling_code_motion:
       # Split the softmax into two parts. Do the 1st part here; the 2nd part
       # (scaling) is moved after _AttenContext for better performance.
       probs = padded_logits - tf.stop_gradient(
-          tf.reduce_max(padded_logits, -1, True))
+          tf.reduce_max(padded_logits, -1, True)
+      )
       probs = tf.cast(tf.exp(probs), key.dtype)
       probs_sum = tf.reduce_sum(probs, -1, True)
     else:
       probs = tf.cast(
           py_utils.Softmax(padded_logits, extra_logit=p.atten_extra_logit),
-          key.dtype)
+          key.dtype,
+      )
       probs_sum = None
 
     return probs, probs_sum
@@ -3478,7 +4088,8 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
         tf.reshape(value, [b, t, n * h]),
         block_size=p.chunk_size,
         left_context=p.left_context,
-        right_context=p.right_context)
+        right_context=p.right_context,
+    )
     _, u, c, _ = py_utils.GetShape(value_block_context)
     value_block_context = tf.reshape(value_block_context, [b, u, c, n, h])
 
@@ -3490,14 +4101,16 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
     encoded = encoded[:, :t, :, :]
     return encoded
 
-  def FProp(self,
-            theta,
-            query_vec,
-            key_vec,
-            value_vec,
-            paddings,
-            segment_mask=None,
-            per_step_padding=None):
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      key_vec,
+      value_vec,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+  ):
     """Computes the value vector given the current query output.
 
     Args:
@@ -3528,18 +4141,21 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
         value_vec,
         paddings,
         segment_mask=segment_mask,
-        per_step_padding=per_step_padding)
+        per_step_padding=per_step_padding,
+    )
     return encoded, probs
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 paddings,
-                 segment_mask=None,
-                 per_step_padding=None,
-                 time_step=None,
-                 use_short_seq_opt=False):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+      time_step=None,
+      use_short_seq_opt=False,
+  ):
     msg = 'Not implemented yet'
     raise NotImplementedError(msg)
 
@@ -3548,13 +4164,16 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
     del batch_size
     p = self.params
     if p.left_context != 1 or p.right_context != 0:
-      msg = ('Streaming implementation of chunkwise attention with left context'
-             'or right context is not supported yet')
+      msg = (
+          'Streaming implementation of chunkwise attention with left context'
+          'or right context is not supported yet'
+      )
       raise NotImplementedError(msg)
     return py_utils.NestedMap()
 
-  def StreamStep(self, theta, query_vec, query_paddings, input_vec,
-                 input_paddings, state0):
+  def StreamStep(
+      self, theta, query_vec, query_paddings, input_vec, input_paddings, state0
+  ):
     """Computes the output given the query and input vectors of the current step.
 
     Args:
@@ -3572,19 +4191,21 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
     """
     p = self.params
     if p.left_context == 1 and p.right_context == 0:
-      output, padding = self._StreamStepStateless(theta, query_vec,
-                                                  query_paddings, input_vec,
-                                                  input_paddings)
+      output, padding = self._StreamStepStateless(
+          theta, query_vec, query_paddings, input_vec, input_paddings
+      )
       return output, padding, state0
     else:
       msg = (
           f'left_context={p.left_context} and right_context={p.right_context} '
           'requires stateful implementation of StreamStep, which is not '
-          'implemented yet.')
+          'implemented yet.'
+      )
       raise NotImplementedError(msg)
 
-  def _StreamStepStateless(self, theta, query_vec, query_paddings, input_vec,
-                           input_paddings):
+  def _StreamStepStateless(
+      self, theta, query_vec, query_paddings, input_vec, input_paddings
+  ):
     """StreamStep implementation when there is no state.
 
     Args:
@@ -3603,7 +4224,8 @@ class ChunkwiseSelfAttention(MultiHeadedAttention):
         query_vec=query_vec,
         key_vec=input_vec,
         value_vec=input_vec,
-        paddings=input_paddings)
+        paddings=input_paddings,
+    )
     # encoded is the same shape as query_vec
     return encoded, query_paddings
 
@@ -3614,10 +4236,14 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('rel_pos_emb_dim', None,
-             'Dimension of relative position embedding')
-    p.Define('skip_term_b', False,
-             'If true, skip term b in the XL paper in secion 3.3')
+    p.Define(
+        'rel_pos_emb_dim', None, 'Dimension of relative position embedding'
+    )
+    p.Define(
+        'skip_term_b',
+        False,
+        'If true, skip term b in the XL paper in secion 3.3',
+    )
     return p
 
   def __init__(self, params):
@@ -3628,7 +4254,8 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
       raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
 
     emb_params = layers.PositionalEmbeddingLayer.Params().Set(
-        embedding_dim=params.rel_pos_emb_dim)
+        embedding_dim=params.rel_pos_emb_dim
+    )
     self.CreateChild('pos_emb', emb_params)
 
     dim_per_head = params.hidden_dim // params.num_heads
@@ -3636,7 +4263,8 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
         input_dim=params.rel_pos_emb_dim,
         num_heads=params.num_heads,
         dim_per_head=dim_per_head,
-        use_bias=False)
+        use_bias=False,
+    )
     self.CreateChild('pos_proj', pos_proj_param)
 
   def _CreateLayerVariables(self):
@@ -3648,18 +4276,21 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
         shape=[params.num_heads, dim_per_head],
         init=py_utils.WeightInit.Constant(0.0),
         dtype=params.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
     v_pc = py_utils.WeightParams(
         shape=[params.num_heads, dim_per_head],
         init=py_utils.WeightInit.Constant(0.0),
         dtype=params.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'],
+    )
 
     self.CreateVariable('u', u_pc)
     self.CreateVariable('v', v_pc)
 
-  def _AttenLogits(self, theta: py_utils.NestedMap, query: tf.Tensor,
-                   key: tf.Tensor) -> tf.Tensor:
+  def _AttenLogits(
+      self, theta: py_utils.NestedMap, query: tf.Tensor, key: tf.Tensor
+  ) -> tf.Tensor:
     """Given the q,k,v, calculate the attention logits with relative pos.
 
     Args:
@@ -3717,7 +4348,7 @@ class ChunkwiseSelfAttentionXL(ChunkwiseSelfAttention):
     kindx = tf.range(0, c)
     relative_dist = qindx - kindx
     # 2. slice the cxc matrix to (w,c)
-    relative_dist = relative_dist[l - 1:l - 1 + w, :]
+    relative_dist = relative_dist[l - 1 : l - 1 + w, :]
 
     # 3. reshape relative_dist to a (1, w*c)
     relative_dist = tf.reshape(relative_dist, (1, w * c))
@@ -3774,26 +4405,38 @@ class RoutingAttention(MultiHeadedAttention):
     """Params."""
     p = super().Params()
     p.Define(
-        'num_clusters', 0, 'Number of clusters, typically around the square'
-        ' root of the sequence length.')
+        'num_clusters',
+        0,
+        'Number of clusters, typically around the square'
+        ' root of the sequence length.',
+    )
     p.Define('attention_window', 0, 'The number of keys each query attends to.')
-    p.Define('clustering', attention_util.KMeansClusteringForAtten.Params(),
-             'The params for a clustering layer.')
     p.Define(
-        'causal_masking', False,
+        'clustering',
+        attention_util.KMeansClusteringForAtten.Params(),
+        'The params for a clustering layer.',
+    )
+    p.Define(
+        'causal_masking',
+        False,
         'Whether causal masking is enabled. When set, a query at position idx '
-        'is only allowed to attend to keys/values at positions <= idx.')
+        'is only allowed to attend to keys/values at positions <= idx.',
+    )
     p.Define(
-        'fast_path', True,
+        'fast_path',
+        True,
         'Whether to use a more efficient implementation. The fast path is '
         'significantly faster by grouping queries when determining which '
         'values to attend to (which might leave out some queries or duplicate '
-        'others); fast_path=False computes this per each query.')
+        'others); fast_path=False computes this per each query.',
+    )
     p.Define(
-        'query_group_size_factor', 1.2,
+        'query_group_size_factor',
+        1.2,
         'Only used when p.fast_path=True. When grouping queries, we make the '
         'group size larger by this multiplier to not leave out any queries due '
-        'to potential cluster imbalance.')
+        'to potential cluster imbalance.',
+    )
     return p
 
   def __init__(self, params):
@@ -3813,15 +4456,17 @@ class RoutingAttention(MultiHeadedAttention):
     clustering_p.apply_layer_norm = False
     self.CreateChild('clustering', clustering_p)
 
-  def _DotAtten(self,
-                theta,
-                query,
-                key,
-                value,
-                paddings,
-                segment_mask=None,
-                per_step_padding=None,
-                query_paddings=None):
+  def _DotAtten(
+      self,
+      theta,
+      query,
+      key,
+      value,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+      query_paddings=None,
+  ):
     """Computes the attention.
 
     Each query selects 'p.attention_window' number of keys to attend to. First
@@ -3861,14 +4506,15 @@ class RoutingAttention(MultiHeadedAttention):
     if query_paddings is None:
       query_paddings = tf.zeros([b, t], dtype=key_paddings.dtype)
 
-    is_self_attention = (query is key)
+    is_self_attention = query is key
     # Whether to update the centroids. Only do this during training.
     update = not self.do_eval
 
     query = attention_util.KMeansClusteringForAtten.LayerNorm(query)
     # [B, T, N, K]
     q_dists, _ = self.clustering.FProp(
-        theta.clustering, query, query_paddings, update=update)
+        theta.clustering, query, query_paddings, update=update
+    )
 
     if is_self_attention:
       key = query
@@ -3877,15 +4523,30 @@ class RoutingAttention(MultiHeadedAttention):
       key = attention_util.KMeansClusteringForAtten.LayerNorm(key)
       # [B, S, N, K]
       k_dists, _ = self.clustering.FProp(
-          theta.clustering, key, key_paddings, update=update)
+          theta.clustering, key, key_paddings, update=update
+      )
     if p.fast_path:
-      encoded, probs = self._DotAttenFastPath(theta, query, key, value, q_dists,
-                                              k_dists, query_paddings,
-                                              key_paddings)
+      encoded, probs = self._DotAttenFastPath(
+          theta,
+          query,
+          key,
+          value,
+          q_dists,
+          k_dists,
+          query_paddings,
+          key_paddings,
+      )
     else:
-      encoded, probs = self._DotAttenSlowPath(theta, query, key, value, q_dists,
-                                              k_dists, query_paddings,
-                                              key_paddings)
+      encoded, probs = self._DotAttenSlowPath(
+          theta,
+          query,
+          key,
+          value,
+          q_dists,
+          k_dists,
+          query_paddings,
+          key_paddings,
+      )
     # 'probs' has shape [B, T, N, S]
     atten_probs = tf.transpose(probs, perm=[0, 2, 1, 3])
     return encoded, atten_probs
@@ -3895,10 +4556,15 @@ class RoutingAttention(MultiHeadedAttention):
     p = self.params
     states = super().InitStates(theta, target_batch_size, target_max_length)
     states.key_dists = tf.Empty(
-        shape=(target_max_length, target_batch_size, p.num_heads,
-               p.num_clusters),
+        shape=(
+            target_max_length,
+            target_batch_size,
+            p.num_heads,
+            p.num_clusters,
+        ),
         dtype=py_utils.FPropDtype(p),
-        init=True)
+        init=True,
+    )
     return states
 
   def ExtendStep(self,
@@ -3944,8 +4610,9 @@ class RoutingAttention(MultiHeadedAttention):
     """
     p = self.params
     if not p.enable_value_proj:
-      raise ValueError('Value projection must be enabled: '
-                       'set p.enable_value_proj = True.')
+      raise ValueError(
+          'Value projection must be enabled: set p.enable_value_proj = True.'
+      )
     if not p.causal_masking:
       raise ValueError('p.causal_masking must be true.')
     if segment_mask is not None or per_step_padding is not None:
@@ -3968,24 +4635,30 @@ class RoutingAttention(MultiHeadedAttention):
     k_dists, _ = self.clustering.FProp(theta.clustering, key_proj)
 
     # The updated_key and extended_value have shape [T, B, N, H].
-    updated_key = scatter_update.Update(cached_states.key, time_step,
-                                        tf.reshape(key_proj, [b, n, h]))
-    updated_value = scatter_update.Update(cached_states.value, time_step,
-                                          tf.reshape(value_proj, [b, n, h]))
+    updated_key = scatter_update.Update(
+        cached_states.key, time_step, tf.reshape(key_proj, [b, n, h])
+    )
+    updated_value = scatter_update.Update(
+        cached_states.value, time_step, tf.reshape(value_proj, [b, n, h])
+    )
     # Shape [T, B, N, K]
     updated_key_dists = scatter_update.Update(
-        cached_states.key_dists, time_step,
-        tf.reshape(k_dists, [b, n, p.num_clusters]))
+        cached_states.key_dists,
+        time_step,
+        tf.reshape(k_dists, [b, n, p.num_clusters]),
+    )
     updated_states = py_utils.NestedMap(
-        key=updated_key, value=updated_value, key_dists=updated_key_dists)
+        key=updated_key, value=updated_value, key_dists=updated_key_dists
+    )
 
     if paddings is None:
       paddings = tf.zeros([b, t], dtype=query_vec.dtype)
     # Apply causal padding. Shape [B, T]
     paddings = tf.where_v2(
-        tf.range(t)[tf.newaxis, :] > time_step, tf.ones([],
-                                                        dtype=paddings.dtype),
-        paddings)
+        tf.range(t)[tf.newaxis, :] > time_step,
+        tf.ones([], dtype=paddings.dtype),
+        paddings,
+    )
     query_paddings = tf.zeros([b, 1], dtype=paddings.dtype)
 
     encoded = self._DotAttenOneStep(
@@ -3994,13 +4667,15 @@ class RoutingAttention(MultiHeadedAttention):
         updated_states,
         query_paddings=query_paddings,
         key_paddings=paddings,
-        time_step=time_step)
+        time_step=time_step,
+    )
     # Post projection.
     encoded = self.post.FProp(theta.post, encoded)
     return encoded, updated_states
 
-  def _DotAttenOneStep(self, theta, query, states, query_paddings, key_paddings,
-                       time_step):
+  def _DotAttenOneStep(
+      self, theta, query, states, query_paddings, key_paddings, time_step
+  ):
     """Dot attention function for queries with 1 time step.
 
     Called from ExtendStep(). Used for self-attention with p.causal_masking
@@ -4039,7 +4714,8 @@ class RoutingAttention(MultiHeadedAttention):
         k_dists,
         query_paddings,
         key_paddings,
-        query_relative_position_shift=time_step)
+        query_relative_position_shift=time_step,
+    )
     return encoded
 
   def _DotAttenSlowPath(
@@ -4052,7 +4728,8 @@ class RoutingAttention(MultiHeadedAttention):
       k_dists: tf.Tensor,
       query_paddings: Optional[tf.Tensor],
       key_paddings: Optional[tf.Tensor],
-      query_relative_position_shift: int = 0) -> Tuple[tf.Tensor, tf.Tensor]:
+      query_relative_position_shift: int = 0,
+  ) -> Tuple[tf.Tensor, tf.Tensor]:
     """Computes the attention via the slow path.
 
     This implementation selects, on a per query basis, p.attention_window
@@ -4092,12 +4769,14 @@ class RoutingAttention(MultiHeadedAttention):
     nearest_one_hot = tf.one_hot(
         tf.math.argmin(q_dists, axis=-1),
         p.num_clusters,
-        dtype=closest_indices.dtype)
+        dtype=closest_indices.dtype,
+    )
 
     # For each query vec, we allow it to attend to those keys that are the
     # W closest to its centroid, where W is the attention window.
-    sparsity_indices = tf.einsum('BTNK, BNKW -> BTNW', nearest_one_hot,
-                                 closest_indices)
+    sparsity_indices = tf.einsum(
+        'BTNK, BNKW -> BTNW', nearest_one_hot, closest_indices
+    )
     if p.causal_masking:
       _, q_length = py_utils.GetShape(query, 2)
       query_positions = tf.range(q_length) + query_relative_position_shift
@@ -4112,14 +4791,25 @@ class RoutingAttention(MultiHeadedAttention):
       # p.attention_window on padded keys when in theory we could have attended
       # to further away keys that are not in the future (in order to achieve
       # that we need to pick top_k from 'k_dists' differently for each query).
-      sparsity_indices = tf.where(sparsity_indices > query_positions,
-                                  masked_indices, sparsity_indices)
+      sparsity_indices = tf.where(
+          sparsity_indices > query_positions, masked_indices, sparsity_indices
+      )
 
-    return attention_util.ComputeSparseAttention(query, key, value,
-                                                 sparsity_indices, key_paddings)
+    return attention_util.ComputeSparseAttention(
+        query, key, value, sparsity_indices, key_paddings
+    )
 
-  def _DotAttenFastPath(self, theta, query, key, value, q_dists, k_dists,
-                        query_paddings, key_paddings):
+  def _DotAttenFastPath(
+      self,
+      theta,
+      query,
+      key,
+      value,
+      q_dists,
+      k_dists,
+      query_paddings,
+      key_paddings,
+  ):
     """Computes the attention via the fast path.
 
     This implementation compute groups of queries, and for each group,
@@ -4159,8 +4849,11 @@ class RoutingAttention(MultiHeadedAttention):
     q_length = py_utils.GetShape(query, 2)[1]
     k_length = py_utils.GetShape(key, 2)[1]
     q_cluster_size = tf.cast(
-        p.query_group_size_factor / p.num_clusters *
-        tf.cast(q_length, py_utils.FPropDtype(p)), tf.int32)
+        p.query_group_size_factor
+        / p.num_clusters
+        * tf.cast(q_length, py_utils.FPropDtype(p)),
+        tf.int32,
+    )
     # Of shape [B, N, K, T]
     q_dists = tf.transpose(q_dists, [0, 2, 3, 1])
     # closest_q of shape [B, N, K, V], where V = q_cluster_size
@@ -4195,13 +4888,16 @@ class RoutingAttention(MultiHeadedAttention):
     c_query = gather(query, closest_q)
     # of shape [B, N, K, W, D]
     c_key, c_value = tf.split(
-        gather(tf.concat([key, value], -1), closest_k), 2, -1)
+        gather(tf.concat([key, value], -1), closest_k), 2, -1
+    )
     # of shape [B, N, K, W, 1]
     c_key_paddings = gather(
         # [B, T, N, 1]
-        tf.tile(key_paddings[:, :, tf.newaxis, tf.newaxis],
-                [1, 1, num_heads, 1]),
-        closest_k)
+        tf.tile(
+            key_paddings[:, :, tf.newaxis, tf.newaxis], [1, 1, num_heads, 1]
+        ),
+        closest_k,
+    )
     # of shape [B, N, K, 1, W]
     is_key_padded = tf.transpose(c_key_paddings, [0, 1, 2, 4, 3]) > 0.5
     if p.causal_masking:
@@ -4210,14 +4906,16 @@ class RoutingAttention(MultiHeadedAttention):
       # of shape [B, N, K, 1, W]
       c_key_positions = closest_k[:, :, :, tf.newaxis, :]
       # We pad the logit for future key positions relative to each query
-      is_key_padded = tf.math.logical_or(is_key_padded,
-                                         c_key_positions > c_query_positions)
+      is_key_padded = tf.math.logical_or(
+          is_key_padded, c_key_positions > c_query_positions
+      )
 
     logits = tf.einsum('BNKVD,BNKWD->BNKVW', c_query, c_key)
     logits *= tf.math.rsqrt(tf.cast(dim_per_head, py_utils.FPropDtype(p)))
 
-    padded_logits = py_utils.ApplyPadding(is_key_padded, logits,
-                                          GetDtypeMin(logits.dtype))
+    padded_logits = py_utils.ApplyPadding(
+        is_key_padded, logits, GetDtypeMin(logits.dtype)
+    )
 
     c_atten_probs = tf.nn.softmax(padded_logits)
     c_outputs = tf.einsum('BNKWD,BNKVW->BNKVD', c_value, c_atten_probs)
@@ -4240,22 +4938,27 @@ class RoutingAttention(MultiHeadedAttention):
       # [B, N, K, V, 1]
       batch_idx = tf.tile(
           tf.range(B)[:, tf.newaxis, tf.newaxis, tf.newaxis, tf.newaxis],
-          [1, N, K, V, 1])
+          [1, N, K, V, 1],
+      )
       # [B, N, K, V, 1]
       seq_idx = indx[:, :, :, :, tf.newaxis]
       # [B, N, K, V, 1]
       head_idx = tf.tile(
           tf.range(N)[tf.newaxis, :, tf.newaxis, tf.newaxis, tf.newaxis],
-          [B, 1, K, V, 1])
+          [B, 1, K, V, 1],
+      )
       scatter_idx = tf.concat([batch_idx, seq_idx, head_idx], 4)
       scattered = tf.scatter_nd(
-          scatter_idx, tf.concat([v, tf.ones_like(v[:, :, :, :, :1])], -1),
-          [B, seq_len, N, D + 1])
+          scatter_idx,
+          tf.concat([v, tf.ones_like(v[:, :, :, :, :1])], -1),
+          [B, seq_len, N, D + 1],
+      )
       # We need to normaliz as one query vector may appear in multiple clusters.
       scattered, den = tf.split(scattered, [v.shape.as_list()[-1], 1], -1)
       # den = tf.squeeze(den, -1)
-      out = scattered / tf.maximum(tf.constant(1.0, dtype=den.dtype),
-                                   den)  # [:, :, :, tf.newaxis])
+      out = scattered / tf.maximum(
+          tf.constant(1.0, dtype=den.dtype), den
+      )  # [:, :, :, tf.newaxis])
       return out
 
     def scatter_atten_prob(c_atten_probs, closest_k, closest_q, k_length,
@@ -4278,19 +4981,28 @@ class RoutingAttention(MultiHeadedAttention):
       # pylint: enable=invalid-name
       # [B, N, K, V, W, 1]
       batch_idx = tf.tile(
-          tf.range(B)[:, tf.newaxis, tf.newaxis, tf.newaxis, tf.newaxis,
-                      tf.newaxis], [1, N, K, V, W, 1])
+          tf.range(B)[
+              :, tf.newaxis, tf.newaxis, tf.newaxis, tf.newaxis, tf.newaxis
+          ],
+          [1, N, K, V, W, 1],
+      )
       # [B, N, K, V, W, 1]
-      k_idx = tf.tile(closest_k[:, :, :, tf.newaxis, :, tf.newaxis],
-                      [1, 1, 1, V, 1, 1])
-      q_idx = tf.tile(closest_q[:, :, :, :, tf.newaxis, tf.newaxis],
-                      [1, 1, 1, 1, W, 1])
+      k_idx = tf.tile(
+          closest_k[:, :, :, tf.newaxis, :, tf.newaxis], [1, 1, 1, V, 1, 1]
+      )
+      q_idx = tf.tile(
+          closest_q[:, :, :, :, tf.newaxis, tf.newaxis], [1, 1, 1, 1, W, 1]
+      )
       head_idx = tf.tile(
-          tf.range(N)[tf.newaxis, :, tf.newaxis, tf.newaxis, tf.newaxis,
-                      tf.newaxis], [B, 1, K, V, W, 1])
+          tf.range(N)[
+              tf.newaxis, :, tf.newaxis, tf.newaxis, tf.newaxis, tf.newaxis
+          ],
+          [B, 1, K, V, W, 1],
+      )
       scatter_idx = tf.concat([batch_idx, q_idx, head_idx, k_idx], 5)
-      scattered_prob = tf.scatter_nd(scatter_idx, c_atten_probs,
-                                     [B, q_length, N, k_length])
+      scattered_prob = tf.scatter_nd(
+          scatter_idx, c_atten_probs, [B, q_length, N, k_length]
+      )
 
       # We need to normalize the attention prob as one query vector may appear
       # in multiple clusters.
@@ -4298,15 +5010,18 @@ class RoutingAttention(MultiHeadedAttention):
       times_idx = tf.concat([batch_idx, q_idx, head_idx], 5)[:, :, :, :, 0, :]
       # [B, q_length, N]
       times = tf.scatter_nd(
-          times_idx, tf.cast(tf.ones_like(closest_q), scattered_prob.dtype),
-          [B, q_length, N])
+          times_idx,
+          tf.cast(tf.ones_like(closest_q), scattered_prob.dtype),
+          [B, q_length, N],
+      )
       times = tf.maximum(tf.cast(1.0, times.dtype), times[:, :, :, tf.newaxis])
       out = scattered_prob / times
       return out
 
     out = scatter(c_outputs, closest_q, q_length)
-    out_prob = scatter_atten_prob(c_atten_probs, closest_k, closest_q, k_length,
-                                  q_length)
+    out_prob = scatter_atten_prob(
+        c_atten_probs, closest_k, closest_q, k_length, q_length
+    )
     return out, out_prob
 
 
@@ -4322,15 +5037,24 @@ class MultiSourceAttention(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('source_atten_tpls', None,
-             'A list of (source_key, attention_param) pairs.')
+    p.Define(
+        'source_atten_tpls',
+        None,
+        'A list of (source_key, attention_param) pairs.',
+    )
     p.Define('input_dim', 0, 'Default key dimension.')
     p.Define('hidden_dim', 0, 'Default hidden dimension.')
     p.Define(
-        'primary_source_key', 'source_0', 'Key for the primary source '
-        'whose attention probabilities will be used as an output.')
-    p.Define('atten_merger_tpl', None,
-             'Params to specify how to merge source attention vectors.')
+        'primary_source_key',
+        'source_0',
+        'Key for the primary source '
+        'whose attention probabilities will be used as an output.',
+    )
+    p.Define(
+        'atten_merger_tpl',
+        None,
+        'Params to specify how to merge source attention vectors.',
+    )
     return p
 
   def __init__(self, params):
@@ -4366,49 +5090,52 @@ class MultiSourceAttention(base_layer.BaseLayer):
     merger_p.query_dim = p.input_dim
     self.CreateChild('atten_merger', merger_p)
 
-  def FProp(self,
-            theta,
-            query_vec,
-            key_vec,
-            value_vec,
-            paddings,
-            segment_mask=None,
-            per_step_padding=None):
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      key_vec,
+      value_vec,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+  ):
     p = self.params
     with tf.name_scope(self.params.name):
       result_map = py_utils.NestedMap()
       for source_key, _ in p.source_atten_tpls:
-        result_map[source_key] = (
-            self.children['atten_%s' % source_key].FProp(
-                theta.get('atten_%s' % source_key), query_vec,
-                key_vec[source_key], value_vec[source_key],
-                paddings[source_key],
-                segment_mask[source_key] if segment_mask else None,
-                per_step_padding))
+        result_map[source_key] = self.children['atten_%s' % source_key].FProp(
+            theta.get('atten_%s' % source_key),
+            query_vec,
+            key_vec[source_key],
+            value_vec[source_key],
+            paddings[source_key],
+            segment_mask[source_key] if segment_mask else None,
+            per_step_padding,
+        )
       return self._CombineContext(theta, result_map, query_vec)
 
   def _CombineContext(self, theta, enc_map, query_vec):
     encs = enc_map.Flatten()
-    combined_enc = (
-        self.atten_merger.FProp(theta.atten_merger, [enc for enc, _ in encs],
-                                query_vec))
+    combined_enc = self.atten_merger.FProp(
+        theta.atten_merger, [enc for enc, _ in encs], query_vec
+    )
     # Return atten_probs of the primary source.
     return combined_enc, enc_map[self.params.primary_source_key][1]
 
-  def AttenProbs(self,
-                 theta,
-                 query,
-                 key,
-                 paddings,
-                 segment_mask,
-                 per_step_padding=None):
+  def AttenProbs(
+      self, theta, query, key, paddings, segment_mask, per_step_padding=None
+  ):
     primary_source_key = self.params.primary_source_key
     child_name = 'atten_%s' % primary_source_key
     return self.children[child_name].AttenProbs(
-        theta.get(child_name), query, key[primary_source_key],
+        theta.get(child_name),
+        query,
+        key[primary_source_key],
         paddings[primary_source_key],
         segment_mask[primary_source_key] if segment_mask else None,
-        per_step_padding)
+        per_step_padding,
+    )
 
 
 class TransformerAttentionLayer(base_layer.BaseLayer):
@@ -4454,44 +5181,70 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p.Define('input_dim', 0, 'Dimension of the transformer input.')
     p.Define('hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define(
-        'num_heads', 8, 'Number of attention heads. This can be a list in'
-        'case of mixture of attention types')
+        'num_heads',
+        8,
+        'Number of attention heads. This can be a list in'
+        'case of mixture of attention types',
+    )
     p.Define(
-        'is_masked', False,
+        'is_masked',
+        False,
         'If set, uses causal non local multiheaded attention.'
         'This option is not valid when atten_tpl is LocalSelfAttention '
-        'or its subclass(es).')
+        'or its subclass(es).',
+    )
     p.Define(
-        'atten_dropout_prob', 0.0,
+        'atten_dropout_prob',
+        0.0,
         'Probability at which we apply dropout to the attention probs. '
-        'This practically drops memory values at random positions.')
+        'This practically drops memory values at random positions.',
+    )
     p.Define(
-        'residual_dropout_prob', 0.0,
+        'residual_dropout_prob',
+        0.0,
         'Probability at which we apply dropout to the residual layers, '
-        'such that, residual(x, y) = (x + dropout(y)).')
+        'such that, residual(x, y) = (x + dropout(y)).',
+    )
     p.Define('pre_layer_norm', True, 'Pre or post layer norm.')
     p.Define(
-        'primer_hybrid_norm', False,
-        'Add an additional post layer norm, requires pre_layer_norm=True.')
+        'primer_hybrid_norm',
+        False,
+        'Add an additional post layer norm, requires pre_layer_norm=True.',
+    )
     p.Define(
-        'add_unnormalized_input', True,
+        'add_unnormalized_input',
+        True,
         'If set, uses unnormalized input in the residual add. It is'
-        'applicable only if pre_layer_norm is True.')
-    p.Define('add_skip_connection', True,
-             'If True, add input (or normalized input) to the output.')
-    p.Define('ln_tpl', layers.LayerNorm.Params(),
-             'Layer norm default params. No layernorm if set to None.')
+        'applicable only if pre_layer_norm is True.',
+    )
     p.Define(
-        'atten_tpl', MultiHeadedAttention.Params(),
+        'add_skip_connection',
+        True,
+        'If True, add input (or normalized input) to the output.',
+    )
+    p.Define(
+        'ln_tpl',
+        layers.LayerNorm.Params(),
+        'Layer norm default params. No layernorm if set to None.',
+    )
+    p.Define(
+        'atten_tpl',
+        MultiHeadedAttention.Params(),
         'Multi-Headed Dot-Product Attention default params. This can be'
         'a list in the case of mixture of attentions, must be of same size'
-        'as num_heads')
+        'as num_heads',
+    )
     p.Define(
-        'dropout_tpl', layers.DropoutLayer.Params(),
+        'dropout_tpl',
+        layers.DropoutLayer.Params(),
         'Residual dropout params template. keep_prop will be reset to '
-        '(1.0 - residual_dropout_prob).')
-    p.Define('residual_droppath_prob', 0.0,
-             'Probability at which we drop the entire residual path.')
+        '(1.0 - residual_dropout_prob).',
+    )
+    p.Define(
+        'residual_droppath_prob',
+        0.0,
+        'Probability at which we drop the entire residual path.',
+    )
     return p
 
   @classmethod
@@ -4505,7 +5258,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       local_context=None,
       left_context=None,
       right_context=None,
-      dropout_prob=0.,
+      dropout_prob=0.0,
   ):
     # pylint: disable=g-doc-args
     """Returns a hyperparam for the most representative cases.
@@ -4524,7 +5277,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     if local_context:
       assert not left_context and not right_context, (
           'local_context and (left_context, right_context) can not be set '
-          'at the same time.')
+          'at the same time.'
+      )
       left_context = local_context + 1  # include 'self' position.
       right_context = local_context
 
@@ -4533,16 +5287,18 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         num_heads=num_heads,
         is_masked=is_masked,
         atten_dropout_prob=dropout_prob,
-        residual_dropout_prob=dropout_prob)
+        residual_dropout_prob=dropout_prob,
+    )
 
     is_local = left_context or right_context
     if is_local:
       atten_cls = (
-          LocalSelfAttentionXL if use_relative_atten else LocalSelfAttention)
+          LocalSelfAttentionXL if use_relative_atten else LocalSelfAttention
+      )
     else:
       atten_cls = (
-          MultiHeadedAttentionXL
-          if use_relative_atten else MultiHeadedAttention)
+          MultiHeadedAttentionXL if use_relative_atten else MultiHeadedAttention
+      )
     p.atten_tpl = atten_cls.Params()
     if use_relative_atten:
       p.atten_tpl.rel_pos_emb_dim = relative_pos_emb_dim
@@ -4560,22 +5316,32 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p = self.params
 
     if isinstance(p.num_heads, list) != isinstance(atten_tpl, list):
-      raise ValueError('p.num_heads and p.atten_tpl should both be lists '
-                       f'or both scalars for {p.name} num_heads={p.num_heads}.')
+      raise ValueError(
+          'p.num_heads and p.atten_tpl should both be lists '
+          f'or both scalars for {p.name} num_heads={p.num_heads}.'
+      )
     if isinstance(p.num_heads, list) and (len(p.num_heads) != len(atten_tpl)):
-      raise ValueError('num_heads and atten_tpl should both be lists '
-                       'of the equal sizes: '
-                       f'{len(p.num_heads)} vs {len(atten_tpl)}')
+      raise ValueError(
+          'num_heads and atten_tpl should both be lists '
+          'of the equal sizes: '
+          f'{len(p.num_heads)} vs {len(atten_tpl)}'
+      )
 
     def _SetCommonParams(params, name, num_heads):
       # Raise warning if self.params override params from atten_tpl
       for key in ['input_dim', 'hidden_dim', 'num_heads', 'atten_dropout_prob']:
         if params.Get(key) is not p.Get(key):
-          tf.logging.warning('attention param {} overriding: {} -> {}'.format(
-              key, params.Get(key), p.Get(key)))
+          tf.logging.warning(
+              'attention param {} overriding: {} -> {}'.format(
+                  key, params.Get(key), p.Get(key)
+              )
+          )
       if params.name is not name:
-        tf.logging.warning('attention param name overriding: {} -> {}'.format(
-            params.name, name))
+        tf.logging.warning(
+            'attention param name overriding: {} -> {}'.format(
+                params.name, name
+            )
+        )
       params.name = name
       params.input_dim = p.input_dim
       params.hidden_dim = p.hidden_dim
@@ -4594,8 +5360,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       params_list = []
       for i in range(len(atten_tpl)):
         params = atten_tpl[i].Copy()
-        params = _SetCommonParams(params, 'mixed_atten_{}'.format(i),
-                                  p.num_heads[i])
+        params = _SetCommonParams(
+            params, 'mixed_atten_{}'.format(i), p.num_heads[i]
+        )
         params_list.append(params)
       params = params_list
     else:
@@ -4617,17 +5384,23 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     if isinstance(p.atten_tpl, list):
       if all(['right_context' in atten for atten in p.atten_tpl]):
         if len(set([atten.right_context for atten in p.atten_tpl])) > 1:
-          raise ValueError('All attentions much have same right context'
-                           'when using a list atten_tpl')
+          raise ValueError(
+              'All attentions much have same right context'
+              'when using a list atten_tpl'
+          )
         if len(set([atten.query_stride for atten in p.atten_tpl])) > 1:
-          raise ValueError('All attentions much have same query stride'
-                           'when using a list atten_tpl')
+          raise ValueError(
+              'All attentions much have same query stride'
+              'when using a list atten_tpl'
+          )
 
     # Initialize attention.
     def _LocalAttentionError(params):
       if p.is_masked and issubclass(params.cls, LocalSelfAttention):
-        tf.logging.warning('\'is_masked\' is not effective when used with '
-                           'LocalSelfAttention and its subclass(es).')
+        tf.logging.warning(
+            "'is_masked' is not effective when used with "
+            'LocalSelfAttention and its subclass(es).'
+        )
 
     params = self._InitAttentionParams(p.atten_tpl)
     if isinstance(params, list):
@@ -4639,7 +5412,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       # For the projection merging layer, parameter settings from the first
       # attention template in the list is used.
       self.CreateChild(
-          'w_mix_heads', p.atten_tpl[0].proj_tpl.Copy().Set(
+          'w_mix_heads',
+          p.atten_tpl[0]
+          .proj_tpl.Copy()
+          .Set(
               input_dim=p.input_dim,
               num_heads=sum(p.num_heads),
               dim_per_head=dim_per_head,
@@ -4647,8 +5423,11 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
               make_output_proj_no_op=False,
               use_bias=p.atten_tpl[0].use_bias,
               device_mesh=p.atten_tpl[0].device_mesh,
-              weight_split_dims_mapping=p.atten_tpl[0].weight_split_dims_mapping
-          ))
+              weight_split_dims_mapping=p.atten_tpl[
+                  0
+              ].weight_split_dims_mapping,
+          ),
+      )
     else:
       _LocalAttentionError(params)
       self.CreateChild('atten', params)
@@ -4671,23 +5450,25 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     # Initialize residual dropout.
     dropout_tpl = p.dropout_tpl.Copy()
-    dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
+    dropout_tpl.keep_prob = 1.0 - p.residual_dropout_prob
     self.CreateChild('residual_dropout', dropout_tpl)
     # Initialize droppath layer if needed.
     if p.residual_droppath_prob > 0:
       droppath_p = layers_with_attention.StochasticResidualLayer.Params().Set(
-          name='residual_droppath',
-          survival_prob=1.0 - p.residual_droppath_prob)
+          name='residual_droppath', survival_prob=1.0 - p.residual_droppath_prob
+      )
       self.CreateChild('residual_droppath', droppath_p)
     self._prefix_state_target_max_length = None
 
-  def FProp(self,
-            theta,
-            query_vec,
-            source_vecs,
-            paddings,
-            per_step_padding_override=None,
-            segment_mask=None):
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      source_vecs,
+      paddings,
+      per_step_padding_override=None,
+      segment_mask=None,
+  ):
     """Compute the result of Transformer attention layer.
 
     Args:
@@ -4706,10 +5487,19 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     """
     p = self.params
 
-    (query_vec, source_vecs, paddings, per_step_padding_override,
-     segment_mask) = self._CastToFPropDtype(
-         (query_vec, source_vecs, paddings, per_step_padding_override,
-          segment_mask))
+    (
+        query_vec,
+        source_vecs,
+        paddings,
+        per_step_padding_override,
+        segment_mask,
+    ) = self._CastToFPropDtype((
+        query_vec,
+        source_vecs,
+        paddings,
+        per_step_padding_override,
+        segment_mask,
+    ))
 
     b, t, _ = py_utils.GetShape(query_vec, 3)
     unnormalized_query_vec = query_vec
@@ -4732,7 +5522,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         # causal padding.
         per_step_padding = tf.tile(
             tf.expand_dims(CausalPadding(t, dtype=query_vec.dtype), 0),
-            [b, 1, 1])
+            [b, 1, 1],
+        )
       else:
         per_step_padding = None
     else:
@@ -4747,7 +5538,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
           source_vecs,  # value
           paddings,
           segment_mask=segment_mask,
-          per_step_padding=per_step_padding)
+          per_step_padding=per_step_padding,
+      )
 
     with tf.name_scope('atten'):
       if isinstance(self.atten, list):
@@ -4771,7 +5563,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       ctx_vec = self._CastToFPropDtype(ctx_vec)
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
-        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec
+    )
     if p.add_skip_connection:
       if p.residual_droppath_prob:
         ctx_vec = self.residual_droppath.FProp(
@@ -4789,29 +5582,37 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
   def InitStates(self, theta, target_batch_size, target_max_length):
     # Because we memoize `target_max_length`, we do not support
     # interleaving different InitStates() and ExtendStep() sequences.
-    if (self._prefix_state_target_max_length and
-        self._prefix_state_target_max_length != target_max_length):
+    if (
+        self._prefix_state_target_max_length
+        and self._prefix_state_target_max_length != target_max_length
+    ):
       raise ValueError(
           'InitStates() cannot be called twice with different values '
           f'for target_max_length values: now {target_max_length} vs '
-          f'before {self._prefix_state_target_max_length}')
+          f'before {self._prefix_state_target_max_length}'
+      )
     self._prefix_state_target_max_length = target_max_length
     if isinstance(self.atten, list):
-      return py_utils.NestedMap(atten=[
-          a.InitStates(a_theta, target_batch_size, target_max_length)
-          for a, a_theta in zip(self.atten, theta)
-      ])
-    return self.atten.InitStates(theta.atten, target_batch_size,
-                                 target_max_length)
+      return py_utils.NestedMap(
+          atten=[
+              a.InitStates(a_theta, target_batch_size, target_max_length)
+              for a, a_theta in zip(self.atten, theta)
+          ]
+      )
+    return self.atten.InitStates(
+        theta.atten, target_batch_size, target_max_length
+    )
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 time_step,
-                 use_short_seq_opt=False,
-                 per_step_padding=None,
-                 segment_mask=None):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      time_step,
+      use_short_seq_opt=False,
+      per_step_padding=None,
+      segment_mask=None,
+  ):
     """Compute the result and update cached states for the current step.
 
     This function is used by autoregressive decoding. This function knows the
@@ -4845,7 +5646,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     query_vec = self._CastToFPropDtype(query_vec)
     if not p.is_masked and per_step_padding is None:
       raise ValueError(
-          'ExtendStep should be used only by masked/causal self-attention.')
+          'ExtendStep should be used only by masked/causal self-attention.'
+      )
     if isinstance(self.atten, list):
       t = py_utils.GetShape(cached_states.atten[0].key, 1)[0]
     elif 'key' in cached_states:
@@ -4870,18 +5672,22 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       # Generates mask, with shape [b, 1, t].
       # [b, t]
       per_step_padding = tf.where_v2(
-          tf.expand_dims(tf.range(t), 0) < tf.expand_dims(
-              batch_time_step + 1, -1), tf.zeros([], dtype=query_vec.dtype),
-          tf.ones([], dtype=query_vec.dtype))
+          tf.expand_dims(tf.range(t), 0)
+          < tf.expand_dims(batch_time_step + 1, -1),
+          tf.zeros([], dtype=query_vec.dtype),
+          tf.ones([], dtype=query_vec.dtype),
+      )
       # [b, 1, t]
       per_step_padding = tf.expand_dims(per_step_padding, 1)
     per_step_padding = py_utils.HasShape(per_step_padding, [b, 1, t])
 
     if segment_mask is not None:
       segment_mask = py_utils.HasShape(segment_mask, [b, 1, t])
-      segment_padding = tf.where_v2(segment_mask < 0.0,
-                                    tf.ones([], dtype=segment_mask.dtype),
-                                    tf.zeros([], dtype=segment_mask.dtype))
+      segment_padding = tf.where_v2(
+          segment_mask < 0.0,
+          tf.ones([], dtype=segment_mask.dtype),
+          tf.zeros([], dtype=segment_mask.dtype),
+      )
       # Adjust per_step_padding to also take into account segment_padding.
       per_step_padding = tf.minimum(per_step_padding + segment_padding, 1.0)
 
@@ -4895,15 +5701,24 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     # Multiheaded masked/causal self-attention.
     def _AttenExtendStep(atten, theta, cached_states):
-      return atten.ExtendStep(theta, query_vec, cached_states, None, None,
-                              per_step_padding, time_step, use_short_seq_opt)
+      return atten.ExtendStep(
+          theta,
+          query_vec,
+          cached_states,
+          None,
+          None,
+          per_step_padding,
+          time_step,
+          use_short_seq_opt,
+      )
 
     if isinstance(self.atten, list):
       updated_states = py_utils.NestedMap(atten=[])
       ctx_vec_list = []
       for i in range(len(self.atten)):
         ctx_vec, updated_atten_states = _AttenExtendStep(
-            self.atten[i], theta.atten[i], cached_states.atten[i])
+            self.atten[i], theta.atten[i], cached_states.atten[i]
+        )
         ctx_vec_list.append(ctx_vec)
         updated_states.atten.append(updated_atten_states)
       # Concat all attention heads together
@@ -4911,8 +5726,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       # ctx_vec has shape [B, T, N, H] due to identity projection
       ctx_vec = self.w_mix_heads.FProp(theta.w_mix_heads, ctx_vec)
     else:
-      ctx_vec, updated_states = _AttenExtendStep(self.atten, theta.atten,
-                                                 cached_states)
+      ctx_vec, updated_states = _AttenExtendStep(
+          self.atten, theta.atten, cached_states
+      )
 
     # Residual connection.
     if p.primer_hybrid_norm and p.ln_tpl:
@@ -4920,7 +5736,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       ctx_vec = self._CastToFPropDtype(ctx_vec)
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
-        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec
+    )
     if p.add_skip_connection:
       ctx_vec += input_to_add
     return ctx_vec, updated_states
@@ -4945,7 +5762,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     skip_conn_input = tf.zeros([batch_size, query_right, p.input_dim], dtype)
     x = py_utils.NestedMap(
         atten=[a.zero_state(batch_size) for a in self.atten],
-        skip_conn_input=skip_conn_input)
+        skip_conn_input=skip_conn_input,
+    )
     return x
 
   def StreamStepAddSkipConnection(self, input_to_add, output, state0, state1):
@@ -4956,8 +5774,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     seqlen = py_utils.GetShape(output)[1]
     output = py_utils.HasShape(output, py_utils.GetShape(input_to_add))
-    concat_input_to_add = tf.concat([state0.skip_conn_input, input_to_add],
-                                    axis=1)
+    concat_input_to_add = tf.concat(
+        [state0.skip_conn_input, input_to_add], axis=1
+    )
     state1.skip_conn_input = concat_input_to_add[:, seqlen:]
     final_output = output + concat_input_to_add[:, :seqlen]
     return final_output, state1
@@ -4994,8 +5813,13 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         output = []
         for i in range(len(self.atten)):
           output_i, _, atten_state1_i = self.atten[i].StreamStep(
-              theta.atten[i], input_vec, paddings, input_vec, paddings,
-              state0.atten[i])
+              theta.atten[i],
+              input_vec,
+              paddings,
+              input_vec,
+              paddings,
+              state0.atten[i],
+          )
           output.append(output_i)
           atten_state1.atten.append(atten_state1_i)
         # Concat all attention heads together
@@ -5004,7 +5828,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         output = self.w_mix_heads.FProp(theta.w_mix_heads, output)
       else:
         output, paddings, atten_state1 = self.atten.StreamStep(
-            theta.atten, input_vec, paddings, input_vec, paddings, state0.atten)
+            theta.atten, input_vec, paddings, input_vec, paddings, state0.atten
+        )
         atten_state1 = py_utils.NestedMap(atten=atten_state1)
 
       if p.primer_hybrid_norm and p.ln_tpl:
@@ -5014,15 +5839,18 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
       # Residual connection.
       input_to_add = (
-          unnormalized_input_vec if p.add_unnormalized_input else input_vec)
+          unnormalized_input_vec if p.add_unnormalized_input else input_vec
+      )
 
       if p.add_skip_connection:
         if isinstance(self.atten, list):
           output, atten_state1 = self.StreamStepAddSkipConnection(
-              input_to_add, output, state0, atten_state1)
+              input_to_add, output, state0, atten_state1
+          )
         else:
           output, atten_state1 = self.atten.StreamStepAddSkipConnection(
-              input_to_add, output, state0.atten, atten_state1.atten)
+              input_to_add, output, state0.atten, atten_state1.atten
+          )
           atten_state1 = py_utils.NestedMap(atten=atten_state1)
       return output, paddings, atten_state1
 
@@ -5047,12 +5875,16 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('funnel_tpl',
-             FunnelPoolingLayer.Params().Set(stride=1, pooling_type='AVG'),
-             'Funnel pool params template for query. When p.stride==1, no-op.')
-    p.Define('res_funnel_tpl',
-             FunnelPoolingLayer.Params().Set(stride=1, pooling_type='MAX'),
-             'Funnel pool params template for residual connection.')
+    p.Define(
+        'funnel_tpl',
+        FunnelPoolingLayer.Params().Set(stride=1, pooling_type='AVG'),
+        'Funnel pool params template for query. When p.stride==1, no-op.',
+    )
+    p.Define(
+        'res_funnel_tpl',
+        FunnelPoolingLayer.Params().Set(stride=1, pooling_type='MAX'),
+        'Funnel pool params template for residual connection.',
+    )
     return p
 
   @classmethod
@@ -5066,14 +5898,20 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
       local_context=None,
       left_context=None,
       right_context=None,
-      dropout_prob=0.,
+      dropout_prob=0.0,
       query_stride=1,
   ):
-    p = super(FunnelTransformerAttentionLayer,
-              cls).CommonParams(input_dim, num_heads, is_masked,
-                                use_relative_atten, relative_pos_emb_dim,
-                                local_context, left_context, right_context,
-                                dropout_prob)
+    p = super(FunnelTransformerAttentionLayer, cls).CommonParams(
+        input_dim,
+        num_heads,
+        is_masked,
+        use_relative_atten,
+        relative_pos_emb_dim,
+        local_context,
+        left_context,
+        right_context,
+        dropout_prob,
+    )
     is_local = left_context or right_context
     if is_local:
       p.atten_tpl.Set(query_stride=query_stride)
@@ -5091,13 +5929,15 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
     if isinstance(self.atten, LocalSelfAttentionXL):
       raise ValueError('LocalSelfAttentionXL is not yet supported.')
 
-  def FProp(self,
-            theta,
-            query_vec,
-            source_vecs,
-            paddings,
-            per_step_padding_override=None,
-            segment_mask=None):
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      source_vecs,
+      paddings,
+      per_step_padding_override=None,
+      segment_mask=None,
+  ):
     """Compute the result of Transformer attention layer.
 
     Args:
@@ -5115,24 +5955,35 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
     """
     p = self.params
 
-    (query_vec, source_vecs, paddings, per_step_padding_override,
-     segment_mask) = self._CastToFPropDtype(
-         (query_vec, source_vecs, paddings, per_step_padding_override,
-          segment_mask))
+    (
+        query_vec,
+        source_vecs,
+        paddings,
+        per_step_padding_override,
+        segment_mask,
+    ) = self._CastToFPropDtype((
+        query_vec,
+        source_vecs,
+        paddings,
+        per_step_padding_override,
+        segment_mask,
+    ))
     assert source_vecs is None, 'Cross attention is not supported.'
 
     # Pad 0 to make the sequence length be multiple of p.stride. After this
     # line, all code assumes it's true.
     stride, seq_len = p.funnel_tpl.stride, py_utils.GetShape(paddings)[1]
     pad_len = seq_len + (-seq_len % stride)
-    query_vec = py_utils.PadSequenceDimension(query_vec, pad_len, pad_val=0.)
-    paddings = py_utils.PadSequenceDimension(paddings, pad_len, pad_val=1.)
+    query_vec = py_utils.PadSequenceDimension(query_vec, pad_len, pad_val=0.0)
+    paddings = py_utils.PadSequenceDimension(paddings, pad_len, pad_val=1.0)
     if per_step_padding_override:
       per_step_padding_override = py_utils.PadSequenceDimension(
-          per_step_padding_override, pad_len, pad_val=1.)
+          per_step_padding_override, pad_len, pad_val=1.0
+      )
     if segment_mask:
       segment_mask = py_utils.PadSequenceDimension(
-          segment_mask, pad_len, pad_val=0., axis=2)
+          segment_mask, pad_len, pad_val=0.0, axis=2
+      )
 
     b, t, _ = py_utils.GetShape(query_vec, 3)
     unnormalized_query_vec = query_vec
@@ -5152,7 +6003,7 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
         # causal padding.
         query_stride = p.funnel_tpl.stride
         causal_padding = CausalPadding(t, dtype=query_vec.dtype)
-        causal_padding = causal_padding[query_stride - 1::query_stride]
+        causal_padding = causal_padding[query_stride - 1 :: query_stride]
         per_step_padding = tf.tile(tf.expand_dims(causal_padding, 0), [b, 1, 1])
       else:
         per_step_padding = None
@@ -5160,11 +6011,13 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
       per_step_padding = per_step_padding_override
 
     pooled_query_vec, pooled_paddings = self.funnel_pool.FProp(
-        theta.funnel_pool, query_vec, paddings)
+        theta.funnel_pool, query_vec, paddings
+    )
 
     with tf.name_scope('atten'):
-      assert not isinstance(self.atten,
-                            list), 'Listed attention are not supported.'
+      assert not isinstance(
+          self.atten, list
+      ), 'Listed attention are not supported.'
       ctx_vec, atten_probs = self.atten.FProp(
           theta.atten,
           pooled_query_vec,  # query
@@ -5172,15 +6025,18 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
           source_vecs,  # value
           paddings,
           segment_mask=segment_mask,
-          per_step_padding=per_step_padding)
+          per_step_padding=per_step_padding,
+      )
 
     # Residual connection.
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
-        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec
+    )
     if p.add_skip_connection:
-      input_to_add, _ = self.res_funnel_pool.FProp(theta.res_funnel_pool,
-                                                   input_to_add, paddings)
+      input_to_add, _ = self.res_funnel_pool.FProp(
+          theta.res_funnel_pool, input_to_add, paddings
+      )
       if p.residual_droppath_prob:
         ctx_vec = self.residual_droppath.FProp(
             theta.residual_droppath,
@@ -5194,16 +6050,19 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
       ctx_vec = self._CastToFPropDtype(ctx_vec)
     return ctx_vec, pooled_paddings, atten_probs
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 cached_states,
-                 time_step,
-                 use_short_seq_opt=False,
-                 per_step_padding=None,
-                 segment_mask=None):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      cached_states,
+      time_step,
+      use_short_seq_opt=False,
+      per_step_padding=None,
+      segment_mask=None,
+  ):
     raise ValueError(
-        'ExtendStep should be used only by masked/causal self-attention.')
+        'ExtendStep should be used only by masked/causal self-attention.'
+    )
 
   def StreamStep(self, theta, input_vec, paddings, state0):
     """Computes the value vector given the query of the current step.
@@ -5230,23 +6089,32 @@ class FunnelTransformerAttentionLayer(TransformerAttentionLayer):
         input_vec = self._CastToFPropDtype(input_vec)
 
       pooled_query_vec, pooled_paddings = self.funnel_pool.StreamStep(
-          theta.funnel_pool, input_vec, paddings)
+          theta.funnel_pool, input_vec, paddings
+      )
       key_vec = input_vec
       output, pooled_paddings, atten_state1 = self.atten.StreamStep(
-          theta.atten, pooled_query_vec, pooled_paddings, key_vec, paddings,
-          state0.atten)
+          theta.atten,
+          pooled_query_vec,
+          pooled_paddings,
+          key_vec,
+          paddings,
+          state0.atten,
+      )
 
       output = self.residual_dropout.FProp(theta.residual_dropout, output)
 
       # Residual connection.
       input_to_add = (
-          unnormalized_input_vec if p.add_unnormalized_input else input_vec)
-      input_to_add, _ = self.res_funnel_pool.StreamStep(theta.res_funnel_pool,
-                                                        input_to_add, paddings)
+          unnormalized_input_vec if p.add_unnormalized_input else input_vec
+      )
+      input_to_add, _ = self.res_funnel_pool.StreamStep(
+          theta.res_funnel_pool, input_to_add, paddings
+      )
 
       if p.add_skip_connection:
         output, atten_state1 = self.atten.StreamStepAddSkipConnection(
-            input_to_add, output, state0.atten, atten_state1)
+            input_to_add, output, state0.atten, atten_state1
+        )
       return output, pooled_paddings, py_utils.NestedMap(atten=atten_state1)
 
 
@@ -5269,10 +6137,15 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
     p = super().Params()
     p.Define('num_source', 0, 'Number of sources to attend to.')
     p.Define(
-        'primary_source_index', 0, 'Index of the primary source whose '
-        'attention probs will be returned.')
-    p.Define('multi_source_atten', MultiSourceAttention.Params(),
-             'Multi-source attention params.')
+        'primary_source_index',
+        0,
+        'Index of the primary source whose attention probs will be returned.',
+    )
+    p.Define(
+        'multi_source_atten',
+        MultiSourceAttention.Params(),
+        'Multi-source attention params.',
+    )
     # Only used for case 3.
     p.is_masked = False
     return p
@@ -5289,7 +6162,8 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
       if isinstance(src_atten, list):
         raise ValueError(
             'TransformerMultiSourceAttentionLayer does not support '
-            'num_heads > 1.')
+            'num_heads > 1.'
+        )
       src_atten.name = 'multihead_atten_%s' % src_key
       source_atten_tpls.append((src_key, src_atten))
 
@@ -5315,33 +6189,48 @@ class TransformerLayer(base_layer.BaseLayer):
     p.Define('input_dim', 0, 'Dimension of the transformer block input.')
     p.Define('output_dim', 0, 'Dimension of the transformer block output.')
     p.Define('num_heads', None, 'Num of heads in self attention.')
-    p.Define('has_aux_atten', False,
-             'If set, introduces a second attention layer')
     p.Define(
-        'aux_atten_input_dim', None,
-        'If set, allows the aux atten layer to use customized input dims.')
+        'has_aux_atten', False, 'If set, introduces a second attention layer'
+    )
+    p.Define(
+        'aux_atten_input_dim',
+        None,
+        'If set, allows the aux atten layer to use customized input dims.',
+    )
     p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
-    p.Define('tr_atten_tpl',
-             TransformerAttentionLayer.Params().Set(),
-             'Transformer Attention Layer params.')
     p.Define(
-        'tr_self_atten_tpl', None,
-        'Attention template for self attention. If unset, use tr_atten_tpl.')
+        'tr_atten_tpl',
+        TransformerAttentionLayer.Params().Set(),
+        'Transformer Attention Layer params.',
+    )
+    p.Define(
+        'tr_self_atten_tpl',
+        None,
+        'Attention template for self attention. If unset, use tr_atten_tpl.',
+    )
     p.Define(
         'tr_fflayer_tpl',
         layers_with_attention.TransformerFeedForwardLayer.Params().Set(
-            hidden_dim=2048), 'Transformer Feed-Forward Layer params.')
-    p.Define('packed_input', False,
-             'If True, each training example may pack multiple sequences.')
-    p.Define('compute_flops', False,
-             'If True adds computation cost for the layer FLOPs')
+            hidden_dim=2048
+        ),
+        'Transformer Feed-Forward Layer params.',
+    )
+    p.Define(
+        'packed_input',
+        False,
+        'If True, each training example may pack multiple sequences.',
+    )
+    p.Define(
+        'compute_flops',
+        False,
+        'If True adds computation cost for the layer FLOPs',
+    )
     return p
 
   @classmethod
-  def SetCanonicalShardingParams(cls,
-                                 params,
-                                 reshape_dim=False,
-                                 shard_atten_w=True):
+  def SetCanonicalShardingParams(
+      cls, params, reshape_dim=False, shard_atten_w=True
+  ):
     """Set up canonical SPMD sharding params.
 
     The topology is required to written as 2D. For 1D sharding, the topology is
@@ -5364,25 +6253,32 @@ class TransformerLayer(base_layer.BaseLayer):
       shard_atten_w: A bool, whether to shard attention weight.
     """
     # Weights
-    params.tr_atten_tpl.atten_tpl.weight_split_dims_mapping = [
-        0, 1, -1
-    ] if shard_atten_w else [-1, -1, -1]
-    params.tr_fflayer_tpl.fflayer_tpl.weight_split_dims_mapping_list = [[0, 1],
-                                                                        [1, 0]]
+    params.tr_atten_tpl.atten_tpl.weight_split_dims_mapping = (
+        [0, 1, -1] if shard_atten_w else [-1, -1, -1]
+    )
+    params.tr_fflayer_tpl.fflayer_tpl.weight_split_dims_mapping_list = [
+        [0, 1],
+        [1, 0],
+    ]
     # Activations
     params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.blnh = None
     bld_split = [1, -1, -1]
     blf_split = [0, -1, 1]
     sharding_2d = (
-        params.device_mesh.shape[0] != 1 and params.device_mesh.shape[1] != 1)
+        params.device_mesh.shape[0] != 1 and params.device_mesh.shape[1] != 1
+    )
     if sharding_2d:
       params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.blnh = [
-          0, -1, 1, -1
+          0,
+          -1,
+          1,
+          -1,
       ]
-      bld_split = ([0, -1, 1, -1] if reshape_dim else [0, -1, 1])
+      bld_split = [0, -1, 1, -1] if reshape_dim else [0, -1, 1]
     params.tr_atten_tpl.atten_tpl.activation_split_dims_mapping.bld = bld_split
     params.tr_fflayer_tpl.fflayer_tpl.activation_split_dims_mapping_list = [
-        blf_split, bld_split
+        blf_split,
+        bld_split,
     ]
 
   @classmethod
@@ -5408,7 +6304,8 @@ class TransformerLayer(base_layer.BaseLayer):
     old_tr_atten_atten_proj_p = params.tr_atten_tpl.atten_tpl.proj_tpl
 
     params.tr_fflayer_tpl = (
-        layers_with_attention.ReshapedTransformerFeedForwardLayer.Params())
+        layers_with_attention.ReshapedTransformerFeedForwardLayer.Params()
+    )
     _CopyParams(old_tr_fflayer_p, params.tr_fflayer_tpl)
     params.tr_fflayer_tpl.ln_tpl = layers.ReshapedLayerNorm.Params()
     _CopyParams(old_tr_fflayer_ln_p, params.tr_fflayer_tpl.ln_tpl)
@@ -5417,23 +6314,27 @@ class TransformerLayer(base_layer.BaseLayer):
     params.tr_atten_tpl.atten_tpl = ReshapedMultiHeadedAttention.Params()
     _CopyParams(old_tr_atten_atten_p, params.tr_atten_tpl.atten_tpl)
     params.tr_atten_tpl.atten_tpl.proj_tpl = (
-        ReshapedMultiHeadedProjectionLayer.Params())
-    _CopyParams(old_tr_atten_atten_proj_p,
-                params.tr_atten_tpl.atten_tpl.proj_tpl)
+        ReshapedMultiHeadedProjectionLayer.Params()
+    )
+    _CopyParams(
+        old_tr_atten_atten_proj_p, params.tr_atten_tpl.atten_tpl.proj_tpl
+    )
 
   @classmethod
-  def CommonParams(cls,
-                   input_dim,
-                   atten_num_heads,
-                   atten_is_relative=False,
-                   atten_local_context=None,
-                   atten_left_context=None,
-                   atten_right_context=None,
-                   has_aux_atten=False,
-                   mask_self_atten=False,
-                   fflayer_hidden_dim=None,
-                   fflayer_output_dim=None,
-                   dropout_prob=0.):
+  def CommonParams(
+      cls,
+      input_dim,
+      atten_num_heads,
+      atten_is_relative=False,
+      atten_local_context=None,
+      atten_left_context=None,
+      atten_right_context=None,
+      has_aux_atten=False,
+      mask_self_atten=False,
+      fflayer_hidden_dim=None,
+      fflayer_output_dim=None,
+      dropout_prob=0.0,
+  ):
     # pylint: disable=g-doc-args
     """Returns a hyperparam for the most representative cases.
 
@@ -5452,7 +6353,8 @@ class TransformerLayer(base_layer.BaseLayer):
         output_dim=output_dim,
         num_heads=atten_num_heads,
         has_aux_atten=has_aux_atten,
-        mask_self_atten=mask_self_atten)
+        mask_self_atten=mask_self_atten,
+    )
     p.tr_self_atten_tpl = TransformerAttentionLayer.CommonParams(
         input_dim,
         atten_num_heads,
@@ -5461,11 +6363,13 @@ class TransformerLayer(base_layer.BaseLayer):
         local_context=atten_local_context,
         left_context=atten_left_context,
         right_context=atten_right_context,
-        dropout_prob=dropout_prob)
+        dropout_prob=dropout_prob,
+    )
     p.tr_fflayer_tpl.Set(
         hidden_dim=fflayer_hidden_dim,
         residual_dropout_prob=dropout_prob,
-        relu_dropout_prob=dropout_prob)
+        relu_dropout_prob=dropout_prob,
+    )
     return p
 
   @classmethod
@@ -5527,16 +6431,18 @@ class TransformerLayer(base_layer.BaseLayer):
   def _GetSourceLength(self, aux_vec):
     return py_utils.GetShape(aux_vec, 2)[1]
 
-  def FProp(self,
-            theta,
-            query_vec,
-            paddings,
-            aux_vec=None,
-            aux_paddings=None,
-            per_step_padding_override=None,
-            aux_per_step_padding_override=None,
-            segment_mask=None,
-            aux_segment_mask=None):
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      paddings,
+      aux_vec=None,
+      aux_paddings=None,
+      per_step_padding_override=None,
+      aux_per_step_padding_override=None,
+      segment_mask=None,
+      aux_segment_mask=None,
+  ):
     """Transformer decoder layer.
 
     Args:
@@ -5564,24 +6470,33 @@ class TransformerLayer(base_layer.BaseLayer):
     """
     p = self.params
     if p.compute_flops:
-      assert not p.has_aux_atten, (
-          'Current FLOPs computation does not include auxiliary attention')
+      assert (
+          not p.has_aux_atten
+      ), 'Current FLOPs computation does not include auxiliary attention'
       computation_cost.Add(
-          self, 'flops',
+          self,
+          'flops',
           TransformerFlops(
-              tf.shape(query_vec), p.tr_atten_tpl.num_heads,
-              symbolic.EvalExpr(symbolic.TENSOR_VALUES,
-                                p.tr_fflayer_tpl.hidden_dim),
-              symbolic.EvalExpr(symbolic.TENSOR_VALUES,
-                                p.tr_atten_tpl.hidden_dim),
-              symbolic.EvalExpr(symbolic.TENSOR_VALUES, p.input_dim)))
+              tf.shape(query_vec),
+              p.tr_atten_tpl.num_heads,
+              symbolic.EvalExpr(
+                  symbolic.TENSOR_VALUES, p.tr_fflayer_tpl.hidden_dim
+              ),
+              symbolic.EvalExpr(
+                  symbolic.TENSOR_VALUES, p.tr_atten_tpl.hidden_dim
+              ),
+              symbolic.EvalExpr(symbolic.TENSOR_VALUES, p.input_dim),
+          ),
+      )
     # First the self-attention layer.
     if p.packed_input:
-      assert segment_mask is not None, ('Need to specify segment_mask '
-                                        'for packed input.')
+      assert (
+          segment_mask is not None
+      ), 'Need to specify segment_mask for packed input.'
       if p.has_aux_atten:
-        assert aux_segment_mask is not None, ('Need to specify aux_segment_mask'
-                                              'for packed input.')
+        assert (
+            aux_segment_mask is not None
+        ), 'Need to specify aux_segment_maskfor packed input.'
 
     with tf.name_scope('self_atten'):
       if isinstance(self.self_atten, FunnelTransformerAttentionLayer):
@@ -5614,22 +6529,25 @@ class TransformerLayer(base_layer.BaseLayer):
 
         atten_vec = tf.reshape(atten_vec, [-1, source_batch, target_time, dim])
         atten_vec = tf.reshape(
-            tf.transpose(atten_vec, [1, 0, 2, 3]), [source_batch, -1, dim])
+            tf.transpose(atten_vec, [1, 0, 2, 3]), [source_batch, -1, dim]
+        )
         atten_vec, aux_atten_probs = self.cross_atten.FProp(
             theta.cross_atten,
             atten_vec,
             aux_vec,
             aux_paddings,
             segment_mask=aux_segment_mask,
-            per_step_padding_override=aux_per_step_padding_override)
+            per_step_padding_override=aux_per_step_padding_override,
+        )
         num_heads = py_utils.GetShape(aux_atten_probs)[1]
         aux_atten_probs = tf.reshape(
             aux_atten_probs,
-            [source_batch, -1, num_heads, target_time, source_time])
+            [source_batch, -1, num_heads, target_time, source_time],
+        )
         aux_atten_probs = tf.transpose(aux_atten_probs, [1, 0, 2, 3, 4])
         aux_atten_probs = tf.reshape(
-            aux_atten_probs,
-            [target_batch, num_heads, target_time, source_time])
+            aux_atten_probs, [target_batch, num_heads, target_time, source_time]
+        )
         atten_vec = tf.reshape(atten_vec, [source_batch, -1, target_time, dim])
         atten_vec = tf.transpose(atten_vec, [1, 0, 2, 3])
         atten_vec = tf.reshape(atten_vec, [target_batch, target_time, dim])
@@ -5650,22 +6568,25 @@ class TransformerLayer(base_layer.BaseLayer):
         )
 
   def InitStates(self, theta, target_batch_size, target_max_length):
-    return self.self_atten.InitStates(theta.self_atten, target_batch_size,
-                                      target_max_length)
+    return self.self_atten.InitStates(
+        theta.self_atten, target_batch_size, target_max_length
+    )
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 aux_vec,
-                 aux_paddings,
-                 cached_states,
-                 time_step,
-                 use_short_seq_opt=False,
-                 per_step_padding=None,
-                 *,
-                 compute_atten_probs=False,
-                 segment_mask=None,
-                 aux_segment_mask=None):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      aux_vec,
+      aux_paddings,
+      cached_states,
+      time_step,
+      use_short_seq_opt=False,
+      per_step_padding=None,
+      *,
+      compute_atten_probs=False,
+      segment_mask=None,
+      aux_segment_mask=None,
+  ):
     """Transformer decoder layer, extend one step in autoregressive decoding.
 
     query_vec and aux_* may have different batch sizes, e.g., during a beam
@@ -5722,7 +6643,8 @@ class TransformerLayer(base_layer.BaseLayer):
         time_step,
         use_short_seq_opt,
         per_step_padding,
-        segment_mask=segment_mask)
+        segment_mask=segment_mask,
+    )
 
     atten_vec = py_utils.HasShape(atten_vec, [target_batch, 1, dim])
     cross_atten_probs = None
@@ -5740,25 +6662,30 @@ class TransformerLayer(base_layer.BaseLayer):
           atten_vec,
           aux_vec,
           aux_paddings,
-          segment_mask=aux_segment_mask)
+          segment_mask=aux_segment_mask,
+      )
 
       atten_vec = tf.reshape(atten_vec, [target_batch, 1, -1])
       if compute_atten_probs:
         cross_atten_probs = py_utils.HasShape(
             aux_atten_probs,
             # [source_batch, num_heads, batch_multiplier, source_length].
-            [source_batch, -1, batch_multiplier, source_length])
+            [source_batch, -1, batch_multiplier, source_length],
+        )
         _, num_heads, _, _ = py_utils.GetShape(cross_atten_probs)
         # [source_batch, batch_multiplier, num_heads, source_length].
         cross_atten_probs = tf.transpose(cross_atten_probs, [0, 2, 1, 3])
         # Reshape to [target_batch, num_heads, 1, source_length].
         cross_atten_probs = tf.reshape(
-            cross_atten_probs, [target_batch, num_heads, 1, source_length])
+            cross_atten_probs, [target_batch, num_heads, 1, source_length]
+        )
 
     # Finally the feed-forward layer.
     cur_output = self.fflayer.FProp(
-        theta.fflayer, atten_vec,
-        tf.zeros([target_batch, 1], dtype=atten_vec.dtype))
+        theta.fflayer,
+        atten_vec,
+        tf.zeros([target_batch, 1], dtype=atten_vec.dtype),
+    )
     return cur_output, cross_atten_probs, updated_states
 
 
@@ -5793,8 +6720,13 @@ def TransformerFlops(inputs, num_heads, ff_dim, atten_dim, model_dim):
   h = tf.cast(a / n, tf.int64)  # dim per head
   inputs = tf.cast(inputs, tf.int64)
   b, t = inputs[0], inputs[1]
-  multi_head_atten_flops = (6 * a * d + n * t * (2 * h - 1) + a * (2 * t - 1) +
-                            5 * n * d + d * (2 * h - 1) * (2 * n - 1))
+  multi_head_atten_flops = (
+      6 * a * d
+      + n * t * (2 * h - 1)
+      + a * (2 * t - 1)
+      + 5 * n * d
+      + d * (2 * h - 1) * (2 * n - 1)
+  )
   residual_flops = 2 * d
   ff_flops = 4 * f * d
   return (multi_head_atten_flops + residual_flops + ff_flops) * b * t
@@ -5811,13 +6743,17 @@ class MultiSourceTransformerLayer(TransformerLayer):
     p = super().Params()
     p.Define('num_source', 0, 'Number of sources to attend to.')
     p.Define(
-        'primary_source_index', 0, 'Index for the primary source '
-        'whose attention probabilities will be used as an output.')
+        'primary_source_index',
+        0,
+        'Index for the primary source '
+        'whose attention probabilities will be used as an output.',
+    )
     return p
 
   def __init__(self, params):
-    assert issubclass(params.tr_atten_tpl.cls,
-                      TransformerMultiSourceAttentionLayer)
+    assert issubclass(
+        params.tr_atten_tpl.cls, TransformerMultiSourceAttentionLayer
+    )
     # Set up multi-source attention layer
     cross_atten_p = params.tr_atten_tpl
     cross_atten_p.num_source = params.num_source
@@ -5842,24 +6778,25 @@ ATTEN_TRANSFORMER_XL = 'transformer_xl'
 ATTEN_RPE = 'rpe'
 
 
-def UseRelativeAttentionInTransformerLayer(transformer_params,
-                                           rel_pos_emb_dim,
-                                           atten_type=ATTEN_TRANSFORMER_XL):
+def UseRelativeAttentionInTransformerLayer(
+    transformer_params, rel_pos_emb_dim, atten_type=ATTEN_TRANSFORMER_XL
+):
   """Uses transformer-xl attention for self attention of a transformer layer.
 
   Args:
     transformer_params: A mt_attention_layer.TransformerLayer.Params() object.
     rel_pos_emb_dim: (int) Relative positional embedding dim to be set.
-    atten_type: (string) Attention type. Supported:
-      - 'transformer_xl': mt_attention_layer.MultiHeadedAttentionXL
-      - 'rpe': mt_attention_layer.MultiHeadedAttentionRPE
+    atten_type: (string) Attention type. Supported: - 'transformer_xl':
+      mt_attention_layer.MultiHeadedAttentionXL - 'rpe':
+      mt_attention_layer.MultiHeadedAttentionRPE
 
   Returns:
     A mt_attention_layer.TransformerLayer.Params() object with relative pos emb.
   """
   if not issubclass(transformer_params.cls, TransformerLayer):
-    raise ValueError('Unsupported input transformer layer: %s' %
-                     transformer_params.cls)
+    raise ValueError(
+        'Unsupported input transformer layer: %s' % transformer_params.cls
+    )
 
   if atten_type not in (ATTEN_TRANSFORMER_XL, ATTEN_RPE):
     raise ValueError('Relative attention type: %s unsupported' % atten_type)
@@ -5871,8 +6808,11 @@ def UseRelativeAttentionInTransformerLayer(transformer_params,
   atten_tpl = trans_params_copy.tr_self_atten_tpl.atten_tpl
 
   # If already using relative attention class.
-  if atten_tpl.cls in (MultiHeadedAttentionRPE, MultiHeadedAttentionXL,
-                       LocalSelfAttentionXL):
+  if atten_tpl.cls in (
+      MultiHeadedAttentionRPE,
+      MultiHeadedAttentionXL,
+      LocalSelfAttentionXL,
+  ):
     atten_tpl.rel_pos_emb_dim = rel_pos_emb_dim
     return trans_params_copy
 
@@ -5880,7 +6820,7 @@ def UseRelativeAttentionInTransformerLayer(transformer_params,
     if atten_tpl.cls == MultiHeadedAttention:
       rel_atten_tpl = MultiHeadedAttentionXL.Params()
     elif atten_tpl.cls == LocalSelfAttention:
-      rel_atten_tpl = (LocalSelfAttentionXL.Params())
+      rel_atten_tpl = LocalSelfAttentionXL.Params()
     else:
       raise ValueError('Unsupported attention: %s' % atten_tpl.cls)
   elif atten_type == ATTEN_RPE:
@@ -5903,8 +6843,9 @@ def ClearRelativeAttentionInTransformerLayer(transformer_params):
     A mt_attention_layer.TransformerLayer param without relative attention.
   """
   if not issubclass(transformer_params.cls, TransformerLayer):
-    raise ValueError('Unsupported input transformer layer: %s' %
-                     transformer_params.cls)
+    raise ValueError(
+        'Unsupported input transformer layer: %s' % transformer_params.cls
+    )
   trans_params_copy = transformer_params.Copy()
   if trans_params_copy.tr_self_atten_tpl is None:
     trans_params_copy.tr_self_atten_tpl = trans_params_copy.tr_atten_tpl.Copy()
@@ -5919,7 +6860,8 @@ def ClearRelativeAttentionInTransformerLayer(transformer_params):
   new_attention_tpl = hyperparams.CopyFieldsTo(
       attention_tpl,
       new_attention_tpl,
-      skip=['rel_pos_emb_dim', 'skip_term_b', 'pos_atten_logits_tpl'])
+      skip=['rel_pos_emb_dim', 'skip_term_b', 'pos_atten_logits_tpl'],
+  )
   trans_params_copy.tr_self_atten_tpl.atten_tpl = new_attention_tpl
   return trans_params_copy
 
@@ -5954,9 +6896,11 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
     p = super().Params()
     p.body = TransformerLayer.Params()
     p.Define(
-        'atten_prob_aggregation', None,
+        'atten_prob_aggregation',
+        None,
         'None: return attention probabilities for each layer separately. '
-        'mean: return the mean attention probabilities across layers.')
+        'mean: return the mean attention probabilities across layers.',
+    )
     return p
 
   def FProp(self, theta, query_vec, paddings, **kwargs):
@@ -5995,11 +6939,14 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
             theta.body,
             query_vec=iterative.query_vec,
             paddings=iterative.paddings,
-            **common_input)
+            **common_input,
+        )
         return py_utils.NestedMap(
             iterative=py_utils.NestedMap(
-                query_vec=layer_out, paddings=iterative.paddings),
-            layerwise_output=py_utils.NestedMap(atten_probs=layer_atten_probs))
+                query_vec=layer_out, paddings=iterative.paddings
+            ),
+            layerwise_output=py_utils.NestedMap(atten_probs=layer_atten_probs),
+        )
 
       repeat_results = self._Repeat(
           theta,
@@ -6007,13 +6954,16 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
           common_input=py_utils.NestedMap(kwargs),
           layerwise_inputs=py_utils.NestedMap(),
           iterative_input_0=py_utils.NestedMap(
-              query_vec=query_vec, paddings=paddings))
+              query_vec=query_vec, paddings=paddings
+          ),
+      )
       atten_probs = repeat_results.layerwise.atten_probs
       assert p.atten_prob_aggregation in (None, 'mean')
       if p.atten_prob_aggregation == 'mean':
         tf.logging.info('atten_probs=%s', atten_probs)
-        atten_probs = tf.nest.map_structure(lambda x: tf.reduce_mean(x, axis=0),
-                                            atten_probs)
+        atten_probs = tf.nest.map_structure(
+            lambda x: tf.reduce_mean(x, axis=0), atten_probs
+        )
       return repeat_results.iterative.query_vec, atten_probs
 
   def InitStates(self, theta, *args, **kwargs):
@@ -6023,16 +6973,18 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
     def _Fn(theta, *, common_input, layerwise_input, iterative):
       del layerwise_input
       del iterative
-      states = self._body.InitStates(theta.body, *common_input.args,
-                                     **common_input.kwargs)
+      states = self._body.InitStates(
+          theta.body, *common_input.args, **common_input.kwargs
+      )
       return py_utils.NestedMap(
-          iterative=py_utils.NestedMap(), layerwise_output=states)
+          iterative=py_utils.NestedMap(), layerwise_output=states
+      )
 
     return self._Repeat(
         theta,
         _Fn,
-        common_input=py_utils.NestedMap(args=list(args),
-                                        kwargs=kwargs)).layerwise
+        common_input=py_utils.NestedMap(args=list(args), kwargs=kwargs),
+    ).layerwise
 
   def ExtendStep(self, theta, query_vec, *, cached_states, **kwargs):
     p = self.params
@@ -6047,25 +6999,33 @@ class RepeatedTransformerLayer(repeat_layer.GenericRepeatLayer):
             theta.body,
             query_vec=iterative.query_vec,
             cached_states=layerwise_input.cached_states,
-            **common_input)
+            **common_input,
+        )
         return py_utils.NestedMap(
             iterative=py_utils.NestedMap(query_vec=layer_out),
             layerwise_output=py_utils.NestedMap(
-                atten_probs=layer_atten_probs, updated_states=updated_states))
+                atten_probs=layer_atten_probs, updated_states=updated_states
+            ),
+        )
 
       repeat_results = self._Repeat(
           theta,
           _Fn,
           common_input=py_utils.NestedMap(kwargs),
           layerwise_inputs=py_utils.NestedMap(cached_states=cached_states),
-          iterative_input_0=py_utils.NestedMap(query_vec=query_vec))
+          iterative_input_0=py_utils.NestedMap(query_vec=query_vec),
+      )
       atten_probs = repeat_results.layerwise.atten_probs
       assert p.atten_prob_aggregation in (None, 'mean')
       if p.atten_prob_aggregation == 'mean':
-        atten_probs = tf.nest.map_structure(lambda x: tf.reduce_mean(x, axis=0),
-                                            atten_probs)
-      return (repeat_results.iterative.query_vec, atten_probs,
-              repeat_results.layerwise.updated_states)
+        atten_probs = tf.nest.map_structure(
+            lambda x: tf.reduce_mean(x, axis=0), atten_probs
+        )
+      return (
+          repeat_results.iterative.query_vec,
+          atten_probs,
+          repeat_results.layerwise.updated_states,
+      )
 
 
 class StackedTransformerLayers(base_layer.BaseLayer):
@@ -6074,44 +7034,60 @@ class StackedTransformerLayers(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('has_aux_atten', False,
-             'If set, introduces a second attention layer')
+    p.Define(
+        'has_aux_atten', False, 'If set, introduces a second attention layer'
+    )
     p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
     p.Define('num_layers', 0, 'Num of layers in this stack.')
     p.Define(
-        'mdl_dim', None,
+        'mdl_dim',
+        None,
         'Model dimension in Transformer layers. If None, one must set model '
         'dimension directly in transformer_layer_params_tpl. If set, p.mdl_dim '
-        'will override transformer_layer_params_tpl.')
+        'will override transformer_layer_params_tpl.',
+    )
     p.Define(
-        'hidden_dim', None,
+        'hidden_dim',
+        None,
         'The hidden layer dimension in Transformer layers. If None, one must '
         'set model dimension directly in transformer_layer_params_tpl. If set, '
-        'p.hidden_dim will override transformer_layer_params_tpl.')
+        'p.hidden_dim will override transformer_layer_params_tpl.',
+    )
     p.Define(
-        'num_atten_heads', None,
+        'num_atten_heads',
+        None,
         'Num of attention heads. If None, one must set num_atten_heads '
         'directly in transformer_layer_params_tpl. If set, p.num_atten_heads '
-        'will override transformer_layer_params_tpl.')
+        'will override transformer_layer_params_tpl.',
+    )
     p.Define(
-        'dropout_prob', None,
+        'dropout_prob',
+        None,
         'Apply dropout at this prob at various places. If None, dropout values '
         'in transformer_layer_params_tpl will be used. If set, p.dropout_prob '
-        'will override transformer_layer_params_tpl.')
+        'will override transformer_layer_params_tpl.',
+    )
     p.Define(
-        'stochastic_depth_droppath_prob', None,
+        'stochastic_depth_droppath_prob',
+        None,
         'The probability of dropping the residual branches (feedforward blocks '
         'and attention blocks). See Deep Networks with Stochastic Depth: '
         'https://arxiv.org/pdf/1603.09382.pdf'
         'Note: the droppath prob is linearly increasing from block 0 to the '
-        'last block with dropout ratio from 0 to targeted ratio.')
-    p.Define('add_unnormalized_input', True,
-             'If set, uses unnormalized input in the residual add.')
+        'last block with dropout ratio from 0 to targeted ratio.',
+    )
     p.Define(
-        'transformer_layer_params_tpl', TransformerLayer.Params(),
+        'add_unnormalized_input',
+        True,
+        'If set, uses unnormalized input in the residual add.',
+    )
+    p.Define(
+        'transformer_layer_params_tpl',
+        TransformerLayer.Params(),
         'A template of TransformerLayer.params, can be a list of params '
         'of length equal to the num_layers or a factor of num_layers.'
-        'For a factor, the params are tiled as [a, a, ..., b, b,...,].')
+        'For a factor, the params are tiled as [a, a, ..., b, b,...,].',
+    )
     p.Define('funnel_pool_strides', None, 'Stride list for conformer blocks.')
     p.Define(
         'funnel_pool_begin_intacts',
@@ -6121,30 +7097,46 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         'which we do not apply pooling to, i.e.'
         'y = concat([x[:, :begin_intact], pool(x[:, begin_intact:])])',
     )
-    p.Define('final_layer_norm', False,
-             'If true, apply layer normalization to the final output.')
-    p.Define('packed_input', False,
-             'If True, each training example may pack multiple sequences.')
+    p.Define(
+        'final_layer_norm',
+        False,
+        'If true, apply layer normalization to the final output.',
+    )
+    p.Define(
+        'packed_input',
+        False,
+        'If True, each training example may pack multiple sequences.',
+    )
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm. ')
     p.Define(
-        'layernorm_tpl', layers.LayerNorm.Params(), 'Template for the '
+        'layernorm_tpl',
+        layers.LayerNorm.Params(),
+        'Template for the '
         'LayerNorm layers. use_fused_layernorm param above overrides the '
-        'layernorm_tpl.use_fused_layernorm for compatibility.')
+        'layernorm_tpl.use_fused_layernorm for compatibility.',
+    )
     p.Define(
-        'splits', None, 'None or a list of layer indices. If None, all layers '
+        'splits',
+        None,
+        'None or a list of layer indices. If None, all layers '
         'are placed on the same and only one partition. Else, len(splits) is '
         'the number of partitions the stack is sliced into. layer_i is placed '
-        'on the kth partition (0-based) where split[k] < i <= split[k+1].')
+        'on the kth partition (0-based) where split[k] < i <= split[k+1].',
+    )
     # MOE related params.
-    p.Define('moe_layer_tpl',
-             layers_with_attention.TransformerShardedMoeLayer.Params(),
-             'Template configuration for the moe feedforward layer.')
+    p.Define(
+        'moe_layer_tpl',
+        layers_with_attention.TransformerShardedMoeLayer.Params(),
+        'Template configuration for the moe feedforward layer.',
+    )
     p.Define('num_experts', 0, 'Total number of experts.')
     p.Define('num_groups', 1, 'Num of groups for dispatching.')
     p.Define(
-        'min_group_size', None,
+        'min_group_size',
+        None,
         'If not None, num_groups will be adjusted so that there will be at '
-        'least min_group_size tokens in each group.')
+        'least min_group_size tokens in each group.',
+    )
     p.Define('moe_layers', [], 'The list of MoE layer indices, e.g. [0, 2, 4].')
     return p
 
@@ -6168,13 +7160,15 @@ class StackedTransformerLayers(base_layer.BaseLayer):
 
     if isinstance(p.transformer_layer_params_tpl, list):
       if p.num_layers % len(p.transformer_layer_params_tpl):
-        raise ValueError('num_layers should be divisible by '
-                         'transformer_layer_params_tpl')
+        raise ValueError(
+            'num_layers should be divisible by transformer_layer_params_tpl'
+        )
 
     def _MoeLayerParams(ff_p):
       """Convert a Feedforward layer into an MOE layer."""
-      assert issubclass(ff_p.cls,
-                        layers_with_attention.TransformerFeedForwardLayer)
+      assert issubclass(
+          ff_p.cls, layers_with_attention.TransformerFeedForwardLayer
+      )
       assert p.num_experts > 0
       moe_p = p.moe_layer_tpl.Copy()
       # Copy over the base params.
@@ -6221,8 +7215,10 @@ class StackedTransformerLayers(base_layer.BaseLayer):
           p_ii.tr_atten_tpl.res_funnel_tpl.begin_intact = (
               p.funnel_pool_begin_intacts[ii]
           )
-      if (not isinstance(p_ii.tr_atten_tpl.num_heads, list) and
-          p.num_atten_heads is not None):
+      if (
+          not isinstance(p_ii.tr_atten_tpl.num_heads, list)
+          and p.num_atten_heads is not None
+      ):
         p_ii.tr_atten_tpl.num_heads = p.num_atten_heads
       if p.dropout_prob is not None:
         p_ii.tr_atten_tpl.atten_dropout_prob = p.dropout_prob
@@ -6247,13 +7243,15 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     if p.final_layer_norm:
       assert p.mdl_dim
       final_ln_p = p.layernorm_tpl.Copy().Set(
-          input_dim=p.mdl_dim, use_fused_layernorm=p.use_fused_layernorm)
+          input_dim=p.mdl_dim, use_fused_layernorm=p.use_fused_layernorm
+      )
       self.CreateChild('final_ln', final_ln_p)
 
   @classmethod
   def GetSplitForLayer(cls, buckets, layer_index):
-    assert layer_index <= buckets[-1], (
-        f'layer_index:{layer_index} > buckets[-1]:{buckets[-1]}')
+    assert (
+        layer_index <= buckets[-1]
+    ), f'layer_index:{layer_index} > buckets[-1]:{buckets[-1]}'
     #  Return index of the smallest element greater than or equal to layer_index
     return bisect.bisect_left(buckets, layer_index)
 
@@ -6262,18 +7260,21 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     if not self.params.splits:
       return None
     return self.cluster.WorkerDeviceInModelSplit(
-        self.GetSplitForLayer(self.params.splits, layer_idx))
+        self.GetSplitForLayer(self.params.splits, layer_idx)
+    )
 
-  def FProp(self,
-            theta,
-            query_vec,
-            paddings=None,
-            aux_vec=None,
-            aux_paddings=None,
-            per_step_padding_override=None,
-            segment_mask=None,
-            aux_segment_mask=None,
-            collect_per_layer_output=False):
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      paddings=None,
+      aux_vec=None,
+      aux_paddings=None,
+      per_step_padding_override=None,
+      segment_mask=None,
+      aux_segment_mask=None,
+      collect_per_layer_output=False,
+  ):
     """Stacked Transformer layer.
 
     Args:
@@ -6353,20 +7354,24 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     return tuple(res)
 
   def InitStates(self, theta, *args, **kwargs):
-    return py_utils.NestedMap(x_layers=[
-        layer.InitStates(layer_theta, *args, **kwargs)
-        for layer, layer_theta in zip(self.x_layers, theta.x_layers)
-    ])
+    return py_utils.NestedMap(
+        x_layers=[
+            layer.InitStates(layer_theta, *args, **kwargs)
+            for layer, layer_theta in zip(self.x_layers, theta.x_layers)
+        ]
+    )
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 aux_vec,
-                 aux_paddings,
-                 cached_states,
-                 time_step,
-                 use_short_seq_opt=False,
-                 **kwargs):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      aux_vec,
+      aux_paddings,
+      cached_states,
+      time_step,
+      use_short_seq_opt=False,
+      **kwargs,
+  ):
     """Transformer decoder layer, extend one step in autoregressive decoding.
 
     Args:
@@ -6378,9 +7383,9 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       cached_states: A `.NestedMap` object containing tensors which are the
         results of previous attentions, used for fast decoding.
         cached_states.x_layers is a list corresponding to self.x_layers, where
-        each element is a NestedMap with attention keys and values:
-        - key: [target_time, target_batch, num_heads, dim_per_head].
-        - value: [target_time, target_batch, num_heads, dim_per_head].
+        each element is a NestedMap with attention keys and values: - key:
+        [target_time, target_batch, num_heads, dim_per_head]. - value:
+        [target_time, target_batch, num_heads, dim_per_head].
       time_step: A scalar, the current decode step, 0-based.
       use_short_seq_opt: A bool, whether using short sequence optimization.
       **kwargs: additional kwargs for TransformerLayer.ExtendStep.
@@ -6398,11 +7403,19 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       updated_states = py_utils.NestedMap(x_layers=[])
       decoder_input = query_vec
-      for layer, layer_theta, layer_states in zip(self.x_layers, theta.x_layers,
-                                                  cached_states.x_layers):
+      for layer, layer_theta, layer_states in zip(
+          self.x_layers, theta.x_layers, cached_states.x_layers
+      ):
         decoder_output, _, updated_layer_states = layer.ExtendStep(
-            layer_theta, decoder_input, aux_vec, aux_paddings, layer_states,
-            time_step, use_short_seq_opt, **kwargs)
+            layer_theta,
+            decoder_input,
+            aux_vec,
+            aux_paddings,
+            layer_states,
+            time_step,
+            use_short_seq_opt,
+            **kwargs,
+        )
         updated_states.x_layers.append(updated_layer_states)
         decoder_input = decoder_output
 
@@ -6417,30 +7430,47 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('pipeline_stage', StackedTransformerLayers.Params(),
-             'The layer params of each stage.')
-    p.Define('num_pipeline_stages', None, 'Number of pipeline stages.')
-    p.Define('num_pipeline_microbatches', None,
-             'Number of pipeline microbatches.')
-    p.Define('pipeline_microbatch_size', None,
-             'Size of each pipeline microbatch.')
-    p.Define('shard_stages_1d', False,
-             'Whether to use 1D sharding on pipeline stages.')
-    p.Define('final_layer_norm', False,
-             'Whether to add a layer norm after all stages.')
     p.Define(
-        'final_ln_at_each_stage', False,
+        'pipeline_stage',
+        StackedTransformerLayers.Params(),
+        'The layer params of each stage.',
+    )
+    p.Define('num_pipeline_stages', None, 'Number of pipeline stages.')
+    p.Define(
+        'num_pipeline_microbatches', None, 'Number of pipeline microbatches.'
+    )
+    p.Define(
+        'pipeline_microbatch_size', None, 'Size of each pipeline microbatch.'
+    )
+    p.Define(
+        'shard_stages_1d',
+        False,
+        'Whether to use 1D sharding on pipeline stages.',
+    )
+    p.Define(
+        'final_layer_norm',
+        False,
+        'Whether to add a layer norm after all stages.',
+    )
+    p.Define(
+        'final_ln_at_each_stage',
+        False,
         'If True, a layer norm will be added to the end of each stage instead '
         'of the end of the whole pipeline. This is to support legacy '
-        'behaviors. Set to False for all new use cases.')
+        'behaviors. Set to False for all new use cases.',
+    )
     p.Define(
-        'circular_repeat', 1,
+        'circular_repeat',
+        1,
         'If > 1, it enables circular pipeline, and this is the number of '
-        'repeats for each stage.')
+        'repeats for each stage.',
+    )
     p.Define(
-        'pipeline_stage_mesh_dim', None,
+        'pipeline_stage_mesh_dim',
+        None,
         'The mesh dimension to shard the pipeline stage dimension. Set '
-        'this only when shard_stages_1d is False.')
+        'this only when shard_stages_1d is False.',
+    )
     p.Define('unroll', 'never', 'Unroll the layers: never, eval_only, always.')
     return p
 
@@ -6458,7 +7488,8 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
       # structure as the positional arguments, which only include query_vec and
       # cached_states.
       return self._stage.ExtendStep(
-          theta, query_vec, cached_states=cached_states, **kwargs)
+          theta, query_vec, cached_states=cached_states, **kwargs
+      )
 
   def __init__(self, params):
     super().__init__(params)
@@ -6468,31 +7499,39 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
     stage_params = p.pipeline_stage.Copy()
     layer_params = stage_params.transformer_layer_params_tpl
     layer_params.tr_atten_tpl.dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params()
+    )
     layer_params.tr_atten_tpl.atten_tpl.dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params()
+    )
     if layer_params.tr_self_atten_tpl is not None:
       layer_params.tr_self_atten_tpl.dropout_tpl = (
-          layers.DeterministicDropoutLayer.Params())
+          layers.DeterministicDropoutLayer.Params()
+      )
       layer_params.tr_self_atten_tpl.atten_tpl.dropout_tpl = (
-          layers.DeterministicDropoutLayer.Params())
+          layers.DeterministicDropoutLayer.Params()
+      )
     layer_params.tr_fflayer_tpl.residual_dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params()
+    )
     layer_params.tr_fflayer_tpl.fflayer_tpl.dropout = (
-        layers.DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params()
+    )
     stage_params.final_layer_norm = p.final_ln_at_each_stage
-    pipeline_params = gshard_layers.LayerwiseShardablePipelinedLayer.Params(
-    ).Set(
-        name=p.name,
-        num_stages=p.num_pipeline_stages,
-        single_stage_body=stage_params,
-        num_microbatches=p.num_pipeline_microbatches,
-        microbatch_size=p.pipeline_microbatch_size,
-        shard_stages_1d=p.shard_stages_1d,
-        per_stage_vars=False,
-        circular_repeat=p.circular_repeat,
-        pipeline_stage_mesh_dim=p.pipeline_stage_mesh_dim,
-        unroll=p.unroll)
+    pipeline_params = (
+        gshard_layers.LayerwiseShardablePipelinedLayer.Params().Set(
+            name=p.name,
+            num_stages=p.num_pipeline_stages,
+            single_stage_body=stage_params,
+            num_microbatches=p.num_pipeline_microbatches,
+            microbatch_size=p.pipeline_microbatch_size,
+            shard_stages_1d=p.shard_stages_1d,
+            per_stage_vars=False,
+            circular_repeat=p.circular_repeat,
+            pipeline_stage_mesh_dim=p.pipeline_stage_mesh_dim,
+            unroll=p.unroll,
+        )
+    )
     self.CreateChild('pipeline', pipeline_params)
     self.pipeline.body = self.WrappedStageClass(self.pipeline.body)
 
@@ -6501,7 +7540,8 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
       assert p.pipeline_stage.mdl_dim
       final_ln_p = p.pipeline_stage.layernorm_tpl.Copy().Set(
           input_dim=p.pipeline_stage.mdl_dim,
-          use_fused_layernorm=p.pipeline_stage.use_fused_layernorm)
+          use_fused_layernorm=p.pipeline_stage.use_fused_layernorm,
+      )
       self.CreateChild('final_ln', final_ln_p)
 
     if not p.final_ln_at_each_stage:
@@ -6530,14 +7570,17 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
       states = []
       for repeat_idx in range(p.circular_repeat):
         for stage_idx in range(p.num_pipeline_stages):
-          layer_theta = self.pipeline.layer_theta(theta.pipeline, repeat_idx,
-                                                  stage_idx)
+          layer_theta = self.pipeline.layer_theta(
+              theta.pipeline, repeat_idx, stage_idx
+          )
           states.append(
-              self.pipeline.body.InitStates(layer_theta, *args, **kwargs))
+              self.pipeline.body.InitStates(layer_theta, *args, **kwargs)
+          )
       return states
 
     per_stage, _ = self.pipeline.BodyFPropNoMicrobatching(
-        theta.pipeline.body, 'InitStates', *args, **kwargs)
+        theta.pipeline.body, 'InitStates', *args, **kwargs
+    )
 
     def _TransposeStageBatch(x):
       """Microbatches the state and applying padding."""
@@ -6558,15 +7601,17 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
 
     return tf.nest.map_structure(_TransposeStageBatch, per_stage)
 
-  def ExtendStep(self,
-                 theta,
-                 query_vec,
-                 aux_vec,
-                 aux_paddings,
-                 cached_states,
-                 time_step,
-                 use_short_seq_opt=False,
-                 **kwargs):
+  def ExtendStep(
+      self,
+      theta,
+      query_vec,
+      aux_vec,
+      aux_paddings,
+      cached_states,
+      time_step,
+      use_short_seq_opt=False,
+      **kwargs,
+  ):
     p = self.params
     query_vec = self._CastToFPropDtype(query_vec)
     # Fix argument order for LayerwiseShardablePipelinedLayer.
@@ -6579,7 +7624,8 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
         aux_vec=aux_vec,
         aux_paddings=aux_paddings,
         use_short_seq_opt=use_short_seq_opt,
-        **kwargs)
+        **kwargs,
+    )
 
     if p.final_layer_norm and not p.final_ln_at_each_stage:
       decoder_output = self.final_ln.FProp(theta.final_ln, decoder_output)
@@ -6587,14 +7633,16 @@ class PipelinedTransformerLayers(base_layer.BaseLayer):
 
 
 class TransformerFeedForwardLayerWithTaskId(
-    layers_with_attention.TransformerFeedForwardLayer):
+    layers_with_attention.TransformerFeedForwardLayer
+):
   """TransformerFeedForwardLayer with optional task_id input args."""
 
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('use_task_ids', False,
-             'If set, introduces a second attention layer')
+    p.Define(
+        'use_task_ids', False, 'If set, introduces a second attention layer'
+    )
     return p
 
   def FProp(self, theta, inputs, paddings, task_id=None):
@@ -6621,8 +7669,8 @@ class TransformerFeedForwardLayerWithTaskId(
     fflayer_args = [inputs_normalized, expanded_paddings]
     fflayer_args += [task_id] if p.use_task_ids else []
     h = inputs + self.residual_dropout.FProp(
-        theta.residual_dropout, self.fflayer.FProp(theta.fflayer, *
-                                                   fflayer_args))
+        theta.residual_dropout, self.fflayer.FProp(theta.fflayer, *fflayer_args)
+    )
     return h
 
 
@@ -6635,10 +7683,16 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('ln_tpl', layers.LayerNorm.Params(),
-             'Layer norm default params. No layernorm if set to None.')
-    p.Define('output_layer_norm', False,
-             'Whether to layer normalize the output of the layer.')
+    p.Define(
+        'ln_tpl',
+        layers.LayerNorm.Params(),
+        'Layer norm default params. No layernorm if set to None.',
+    )
+    p.Define(
+        'output_layer_norm',
+        False,
+        'Whether to layer normalize the output of the layer.',
+    )
     return p
 
   def __init__(self, params):
@@ -6651,9 +7705,17 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
       params.input_dim = p.input_dim
       self.CreateChild('layer_norm', params)
 
-  def FProp(self, theta, source_vecs, source_paddings, target_vecs,  # pytype: disable=signature-mismatch
-            target_paddings, encoder_self_atten_segment_mask,
-            decoder_self_atten_segment_mask, decoder_cross_atten_segment_mask):
+  def FProp(
+      self,
+      theta,
+      source_vecs,
+      source_paddings,
+      target_vecs,  # pytype: disable=signature-mismatch
+      target_paddings,
+      encoder_self_atten_segment_mask,
+      decoder_self_atten_segment_mask,
+      decoder_cross_atten_segment_mask,
+  ):
     p = self.params
     with tf.name_scope(p.name):
       if p.has_aux_atten:  # Decoder FProp
@@ -6671,22 +7733,30 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
             target_vecs,
             None,
             target_paddings,
-            segment_mask=sa_mask)
+            segment_mask=sa_mask,
+        )
         atten_vec, _ = self.cross_atten.FProp(
             theta.cross_atten,
             atten_vec,
             source_vecs,
             source_paddings,
-            segment_mask=ca_mask)
-        atten_vec = self.fflayer.FProp(theta.fflayer, atten_vec,
-                                       target_paddings)
+            segment_mask=ca_mask,
+        )
+        atten_vec = self.fflayer.FProp(
+            theta.fflayer, atten_vec, target_paddings
+        )
         atten_vec.set_shape(target_vecs.shape)
         if p.output_layer_norm:
           atten_vec = self.layer_norm.FProp(theta.layer_norm, atten_vec)
-        return (source_vecs, source_paddings, atten_vec, target_paddings,
-                encoder_self_atten_segment_mask,
-                decoder_self_atten_segment_mask,
-                decoder_cross_atten_segment_mask)
+        return (
+            source_vecs,
+            source_paddings,
+            atten_vec,
+            target_paddings,
+            encoder_self_atten_segment_mask,
+            decoder_self_atten_segment_mask,
+            decoder_cross_atten_segment_mask,
+        )
 
       # Encoder FProp
       sa_mask = None
@@ -6698,15 +7768,22 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
           source_vecs,
           None,
           source_paddings,
-          segment_mask=sa_mask)
+          segment_mask=sa_mask,
+      )
       atten_vec = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
       atten_vec.set_shape(source_vecs.shape)
       if p.output_layer_norm:
         atten_vec = self.layer_norm.FProp(theta.layer_norm, atten_vec)
 
-      return (atten_vec, source_paddings, target_vecs, target_paddings,
-              encoder_self_atten_segment_mask, decoder_self_atten_segment_mask,
-              decoder_cross_atten_segment_mask)
+      return (
+          atten_vec,
+          source_paddings,
+          target_vecs,
+          target_paddings,
+          encoder_self_atten_segment_mask,
+          decoder_self_atten_segment_mask,
+          decoder_cross_atten_segment_mask,
+      )
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -6720,24 +7797,28 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
   @classmethod
   def SetupDeterministicDropout(cls, params):
     """Replaced dropout layers in transformer with deterministic ones."""
-    params.tr_atten_tpl.dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
+    params.tr_atten_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     params.tr_atten_tpl.atten_tpl.dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params()
+    )
     params.tr_fflayer_tpl.residual_dropout_tpl = (
-        layers.DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params()
+    )
     params.tr_fflayer_tpl.fflayer_tpl.dropout = (
-        layers.DeterministicDropoutLayer.Params())
+        layers.DeterministicDropoutLayer.Params()
+    )
     return params
 
-  def ExtendStep(self,  # pytype: disable=signature-mismatch
-                 theta,
-                 query_vec,
-                 aux_vec,
-                 aux_paddings,
-                 cached_states,
-                 time_step,
-                 use_short_seq_opt=False):
+  def ExtendStep(
+      self,  # pytype: disable=signature-mismatch
+      theta,
+      query_vec,
+      aux_vec,
+      aux_paddings,
+      cached_states,
+      time_step,
+      use_short_seq_opt=False,
+  ):
     """Transformer decoder layer, extend one step in autoregressive decoding.
 
     Args:
@@ -6764,22 +7845,25 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
 
     # First the self-attention layer.
     atten_vec, updated_states = self.self_atten.ExtendStep(
-        theta.self_atten, query_vec, cached_states, time_step,
-        use_short_seq_opt)
+        theta.self_atten, query_vec, cached_states, time_step, use_short_seq_opt
+    )
 
     # Next the cross-attention layer.
     if self.params.has_aux_atten:  # Decoder FProp
       atten_vec = tf.reshape(atten_vec, [source_batch, -1, dim])
       atten_vec, cross_atten_probs = self.cross_atten.FProp(
-          theta.cross_atten, atten_vec, aux_vec, aux_paddings)
+          theta.cross_atten, atten_vec, aux_vec, aux_paddings
+      )
       atten_vec = tf.reshape(atten_vec, [target_batch, 1, -1])
     else:
       cross_atten_probs = None
 
     # Finally the feed-forward layer.
     cur_output = self.fflayer.FProp(
-        theta.fflayer, atten_vec,
-        tf.zeros([target_batch, 1], dtype=atten_vec.dtype))
+        theta.fflayer,
+        atten_vec,
+        tf.zeros([target_batch, 1], dtype=atten_vec.dtype),
+    )
 
     if self.params.output_layer_norm:
       cur_output = self.layer_norm.FProp(theta.layer_norm, cur_output)
@@ -6854,8 +7938,11 @@ class ResidualAddLayer(base_layer.BaseLayer):
     p = super().Params()
     p.Define('residual_weight', 1.0, 'Residual weight.')
     p.Define(
-        'apply_residual', True, 'If set False, input is not added, decay '
-        'to Id layer if residual_weight is 1.')
+        'apply_residual',
+        True,
+        'If set False, input is not added, decay '
+        'to Id layer if residual_weight is 1.',
+    )
     return p
 
   def FProp(self, theta, x, y):
@@ -6906,7 +7993,8 @@ class PaddingLayer(base_layer.BaseLayer):
     py_utils.CheckShapes((inputs, paddings))
     return py_utils.NestedMap(
         flops=max(inputs.num_elements(), paddings.num_elements()) * 2,
-        out_shapes=(inputs,))
+        out_shapes=(inputs,),
+    )
 
 
 class StrideLayer(base_layer.BaseLayer):
@@ -6917,16 +8005,22 @@ class StrideLayer(base_layer.BaseLayer):
     """Params for `StrideLayer`."""
     p = super().Params()
     p.Define(
-        'stride', 0, 'To use every k-th token, set the stride to k. When '
+        'stride',
+        0,
+        'To use every k-th token, set the stride to k. When '
         'stride == 0, only returns the first token of the input. When '
-        'stride == 1, returns every token in the input.')
+        'stride == 1, returns every token in the input.',
+    )
     p.Define(
-        'first_n', None, 'only considers the first N tokens for the '
+        'first_n',
+        None,
+        'only considers the first N tokens for the '
         'output. We use [:first_n:stride] to select the output tokens. If '
         'first_n is None, this flag is a no-op. If stride is positive, the'
         ' output sequence length is "(first_n-1) // stride + 1". If stride'
         ' is 0, first_n has to be None or 1. first_n ca not be 0. If '
-        'first_n <= stride, only the first token is used.')
+        'first_n <= stride, only the first token is used.',
+    )
     p.Define('axis', 1, 'The axis to apply striding.')
     return p
 
@@ -6974,15 +8068,17 @@ class StrideLayer(base_layer.BaseLayer):
     out_seq_len = (first_n - 1) // stride + 1
     return py_utils.NestedMap(
         flops=1,
-        out_shapes=(tshape.Shape(x[0:p.axis] + [out_seq_len] +
-                                 x[p.axis + 1:]),))
+        out_shapes=(
+            tshape.Shape(x[0 : p.axis] + [out_seq_len] + x[p.axis + 1 :]),
+        ),
+    )
 
 
 class FunnelPoolingLayer(StrideLayer):
   """A layer that does pooling in Funnel-Transformer.
 
-    https://arxiv.org/pdf/2006.03236.pdf section 2.2. for query-only pooling and
-    section A.1 for begin_intact & trunc_seq.
+  https://arxiv.org/pdf/2006.03236.pdf section 2.2. for query-only pooling and
+  section A.1 for begin_intact & trunc_seq.
   """
 
   @classmethod
@@ -6990,31 +8086,39 @@ class FunnelPoolingLayer(StrideLayer):
     """Params for `FunnelPoolingLayer`."""
     p = super().Params()
     p.Define(
-        'begin_intact', 0,
+        'begin_intact',
+        0,
         'Number of starting tokens which we do not apply pooling to, i.e. '
-        'y = concat([x[:, :begin_intact], pool(x[:, begin_intact:])])')
+        'y = concat([x[:, :begin_intact], pool(x[:, begin_intact:])])',
+    )
     p.Define(
-        'trunc_seq', True,
+        'trunc_seq',
+        True,
         'Truncate ending tokens of the sequence when `begin_intact > 0` for '
-        'TPU efficiency.')
+        'TPU efficiency.',
+    )
     p.Define('pool_window', None, 'Size of the pooling window.')
     p.Define('pooling_type', 'AVG', 'Pooling type: MAX|AVG')
     p.Define(
-        'padding_algorithm', 'SAME',
+        'padding_algorithm',
+        'SAME',
         'Padding algorithm. See the "returns" section of '
         '`tf.nn.convolution` for details. '
-        'Roughly, VALID = NO_PADDING and SAME (default) = PAD INPUT')
+        'Roughly, VALID = NO_PADDING and SAME (default) = PAD INPUT',
+    )
     # TODO(zihangd): remove this option after verifying this change does not
     # harm existing results.
     p.Define(
-        'exclude_pad_effect', True,
+        'exclude_pad_effect',
+        True,
         'Ignore the padded values when applying MAX|AVG pooling to recover the '
         'case where there is no padding at all. Specifically, for MAX pooling, '
         'values of padding positions are set to dtype.min. For AVG pooling, '
         'the padding positions are set to 0 and then the token count in the '
         'corresponding window is reduced accordingly.'
         'This is a temporary option for back compatibility as the old '
-        'implementation does not consider this.')
+        'implementation does not consider this.',
+    )
     return p
 
   def __init__(self, params):
@@ -7064,8 +8168,9 @@ class FunnelPoolingLayer(StrideLayer):
     assert p.first_n is None or p.first_n > 0
     assert p.stride >= 0
     if p.axis != 1:
-      raise ValueError('FunnelPoolingLayer only supports axis = 1 but got '
-                       '%d' % (p.axis))
+      raise ValueError(
+          'FunnelPoolingLayer only supports axis = 1 but got %d' % (p.axis)
+      )
 
     # stride == 0
     if p.stride == 0:
@@ -7077,8 +8182,8 @@ class FunnelPoolingLayer(StrideLayer):
       return pooled_tensor
 
     if p.first_n:
-      inputs = inputs[:, :p.first_n]
-      paddings = paddings[:, :p.first_n] if paddings is not None else None
+      inputs = inputs[:, : p.first_n]
+      paddings = paddings[:, : p.first_n] if paddings is not None else None
 
     # stride == 1
     if p.stride == 1:
@@ -7088,25 +8193,30 @@ class FunnelPoolingLayer(StrideLayer):
 
     # stride > 1
     if p.begin_intact > 0:
-      intact_inputs = inputs[:, :p.begin_intact]
+      intact_inputs = inputs[:, : p.begin_intact]
       intact_paddings = (
-          paddings[:, :p.begin_intact] if paddings is not None else None)
+          paddings[:, : p.begin_intact] if paddings is not None else None
+      )
       if p.trunc_seq:
         num_trunc = p.begin_intact * p.stride - p.begin_intact
-        inputs = inputs[:, p.begin_intact:-num_trunc]
+        inputs = inputs[:, p.begin_intact : -num_trunc]
         paddings = (
-            paddings[:, p.begin_intact:-num_trunc]
-            if paddings is not None else None)
+            paddings[:, p.begin_intact : -num_trunc]
+            if paddings is not None
+            else None
+        )
       else:
-        inputs = inputs[:, p.begin_intact:]
+        inputs = inputs[:, p.begin_intact :]
         paddings = (
-            paddings[:, p.begin_intact:] if paddings is not None else None)
+            paddings[:, p.begin_intact :] if paddings is not None else None
+        )
 
     if paddings is not None and p.exclude_pad_effect:
       if p.pooling_type == 'MAX':
         # Fill dtype.min in padded positions.
-        inputs = py_utils.ApplyPadding(paddings[..., tf.newaxis], inputs,
-                                       inputs.dtype.min)
+        inputs = py_utils.ApplyPadding(
+            paddings[..., tf.newaxis], inputs, inputs.dtype.min
+        )
       elif p.pooling_type == 'AVG':
         # Fill 0 in padded positions.
         inputs = py_utils.ApplyPadding(paddings[..., tf.newaxis], inputs)
@@ -7116,10 +8226,14 @@ class FunnelPoolingLayer(StrideLayer):
         window_shape=[p.pool_window],
         pooling_type=p.pooling_type,
         strides=[p.stride],
-        padding=p.padding_algorithm)
+        padding=p.padding_algorithm,
+    )
 
-    if (paddings is not None and p.pooling_type == 'AVG' and
-        p.exclude_pad_effect):
+    if (
+        paddings is not None
+        and p.pooling_type == 'AVG'
+        and p.exclude_pad_effect
+    ):
       # Count the fraction of non-padding elements inside each pooling window.
       in_mask = py_utils.ApplyPadding(
           paddings,
@@ -7131,21 +8245,25 @@ class FunnelPoolingLayer(StrideLayer):
           window_shape=[p.pool_window],
           pooling_type='AVG',
           strides=[p.stride],
-          padding=p.padding_algorithm)
+          padding=p.padding_algorithm,
+      )
       # Divide by non-padding ratios to eliminate the effect of padded values.
       pooled_tensor = py_utils.DivideNoNan(pooled_tensor, non_padding_ratio)
 
-    pooled_paddings = (
-        paddings[:, ::p.stride] if paddings is not None else None)
+    pooled_paddings = paddings[:, :: p.stride] if paddings is not None else None
 
     if p.begin_intact > 0:
-      pooled_tensor = tf.concat([intact_inputs, pooled_tensor],
-                                axis=1,
-                                name='concat_intact_pooled_tensor')
+      pooled_tensor = tf.concat(
+          [intact_inputs, pooled_tensor],
+          axis=1,
+          name='concat_intact_pooled_tensor',
+      )
       if pooled_paddings is not None:
-        pooled_paddings = tf.concat([intact_paddings, pooled_paddings],
-                                    axis=1,
-                                    name='concat_intact_pooled_paddings')
+        pooled_paddings = tf.concat(
+            [intact_paddings, pooled_paddings],
+            axis=1,
+            name='concat_intact_pooled_paddings',
+        )
 
     # Set padding values to 0. If not set, in the case of max pooling, padded
     # values will be dtype.min, which can cause numerical instability.
@@ -7169,11 +8287,11 @@ class FunnelPoolingLayer(StrideLayer):
       first_n = x[p.axis]
 
     out_seq_len = (first_n - 1) // stride + 1
-    out_x_shape = tshape.Shape(x[0:p.axis] + [out_seq_len] + x[p.axis + 1:])
+    out_x_shape = tshape.Shape(x[0 : p.axis] + [out_seq_len] + x[p.axis + 1 :])
     if paddings is None:
       return py_utils.NestedMap(flops=1, out_shapes=(out_x_shape,))
 
-    out_paddings = tshape.Shape(paddings[0:p.axis] + [out_seq_len])
+    out_paddings = tshape.Shape(paddings[0 : p.axis] + [out_seq_len])
     return py_utils.NestedMap(flops=1, out_shapes=(out_x_shape, out_paddings))
 
   def StreamStep(
@@ -7205,9 +8323,12 @@ class FunnelPoolingLayer(StrideLayer):
 
     max_seqlen = py_utils.GetShape(inputs)[1]
     # It's a strong restriction during streaming inference. b/202530591#comment4
-    inputs = py_utils.with_dependencies([
-        py_utils.assert_even_divide(max_seqlen, p.pool_window),
-    ], inputs)
+    inputs = py_utils.with_dependencies(
+        [
+            py_utils.assert_even_divide(max_seqlen, p.pool_window),
+        ],
+        inputs,
+    )
     outputs = self.FProp(theta, inputs, paddings)
     if paddings is None:
       return outputs, None
@@ -7222,28 +8343,37 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
     """Params for `FunnelUpsampleLayer`."""
     p = super().Params()
     p.Define(
-        'hidden_dim', 0,
+        'hidden_dim',
+        0,
         'The static size of 3rd dimension of both the input and output, '
         'which is usually the same as the Transformer hidden dimension '
         'when used together. This will be used for the shape of weights '
-        'for DECONV upsampling.')
-    p.Define('upsample_rate', 1,
-             'The length multiplier for the upsampled sequence.')
+        'for DECONV upsampling.',
+    )
     p.Define(
-        'begin_intact', 0,
+        'upsample_rate', 1, 'The length multiplier for the upsampled sequence.'
+    )
+    p.Define(
+        'begin_intact',
+        0,
         'Number of starting tokens which we do not upsample. This value '
         'should be the same as the `begin_intact` used in the Funnel '
-        'pooling layers to ensure correctness.')
+        'pooling layers to ensure correctness.',
+    )
     p.Define(
-        'trunc_seq', True,
+        'trunc_seq',
+        True,
         'Truncate sequence for efficiency. This is only effective when '
-        '`begin_intact > 0`')
+        '`begin_intact > 0`',
+    )
     p.Define('upsample_type', 'REPEAT', 'upsample type: REPEAT|DECONV')
     p.Define(
-        'shortcut_index', None,
+        'shortcut_index',
+        None,
         'Layer index of the hidden states which will be used to provide '
         'an additional low-level features. Will be used to index `all_hiddens` '
-        'to retrieve the corresponding hidden state.')
+        'to retrieve the corresponding hidden state.',
+    )
     p.Define('decoder_stack', None, 'Params for decoder layer stack.')
     return p
 
@@ -7261,7 +8391,8 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
           shape=[p.hidden_dim, p.upsample_rate, p.hidden_dim],
           init=py_utils.WeightInit.Gaussian(1.0 / math.sqrt(p.hidden_dim)),
           dtype=p.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
+          collections=[self.__class__.__name__ + '_vars'],
+      )
       self.CreateVariable('weight', pc)
 
   def FProp(self, theta, x, all_hiddens=None):
@@ -7279,19 +8410,23 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
     """
     p = self.params
     if x.shape.ndims is not None and x.shape.ndims != 3:
-      raise ValueError('FunnelUpsampleLayer expects input to be rank 3, but '
-                       'got %d' % (x.shape.ndims))
+      raise ValueError(
+          'FunnelUpsampleLayer expects input to be rank 3, but got %d'
+          % (x.shape.ndims)
+      )
     if p.upsample_type not in ['REPEAT', 'DECONV']:
-      raise ValueError('Only supports upsample_type REPEAT and DECONV, but '
-                       'got %s' % (p.upsample_type))
+      raise ValueError(
+          'Only supports upsample_type REPEAT and DECONV, but got %s'
+          % (p.upsample_type)
+      )
 
     assert isinstance(p.upsample_rate, int)
     if p.upsample_rate == 1:
       return x
 
     if p.begin_intact > 0:
-      intact = x[:, :p.begin_intact]
-      hid = x[:, p.begin_intact:]
+      intact = x[:, : p.begin_intact]
+      hid = x[:, p.begin_intact :]
     else:
       hid = x
 
@@ -7300,8 +8435,9 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
     elif p.upsample_type == 'DECONV':
       upsampled = tf.einsum('BLD,DNH->BLNH', hid, theta.weight)
       bsz, seq_len = py_utils.GetShape(hid, 3)[:2]
-      upsampled = tf.reshape(upsampled,
-                             [bsz, p.upsample_rate * seq_len, p.hidden_dim])
+      upsampled = tf.reshape(
+          upsampled, [bsz, p.upsample_rate * seq_len, p.hidden_dim]
+      )
 
     if p.begin_intact > 0:
       sep_len = 1
@@ -7310,9 +8446,9 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
         upsampled = tf.pad(upsampled, [[0, 0], [0, num_pad], [0, 0]])
       else:
         upsampled = upsampled[:, :-sep_len]
-      upsampled = tf.concat([intact, upsampled],
-                            axis=1,
-                            name='concat_upsampled')
+      upsampled = tf.concat(
+          [intact, upsampled], axis=1, name='concat_upsampled'
+      )
 
     if p.shortcut_index is not None:
       assert all_hiddens, 'all_hiddens must be provided for shortcut.'
@@ -7320,11 +8456,13 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
       shortcut_shape = tf.shape(all_hiddens[p.shortcut_index].vec)
       upsampled = py_utils.with_dependencies(
           [py_utils.assert_shape_match(upsampled_shape, shortcut_shape)],
-          upsampled + all_hiddens[p.shortcut_index].vec)
+          upsampled + all_hiddens[p.shortcut_index].vec,
+      )
 
       if p.decoder_stack is not None:
         decoder_input = py_utils.NestedMap(
-            vec=upsampled, paddings=all_hiddens[p.shortcut_index].paddings)
+            vec=upsampled, paddings=all_hiddens[p.shortcut_index].paddings
+        )
         upsampled = self.decoder_stack(decoder_input).vec
 
     return upsampled
@@ -7338,9 +8476,11 @@ class MeshSplitLayer(base_layer.BaseLayer):
     """Params for `MeshSplitLayer`."""
     p = super().Params()
     p.Define(
-        'tensor_split_dims_mapping', None,
+        'tensor_split_dims_mapping',
+        None,
         'A list of integers that map each tensor axis to the device mesh axis '
-        'along which it is sharded.')
+        'along which it is sharded.',
+    )
     return p
 
   def FProp(self, theta, x):
@@ -8229,12 +9369,21 @@ class PerformerBuilder(Builder):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('num_random_features', 384,
-             'Number of random projection features for performer.')
-    p.Define('attention_type', 'softmax',
-             'relu|softmax, performer kernel transformation methods')
-    p.Define('redraw', False,
-             'Whether kernel features should be redrawn (N/A if not random).')
+    p.Define(
+        'num_random_features',
+        384,
+        'Number of random projection features for performer.',
+    )
+    p.Define(
+        'attention_type',
+        'softmax',
+        'relu|softmax, performer kernel transformation methods',
+    )
+    p.Define(
+        'redraw',
+        False,
+        'Whether kernel features should be redrawn (N/A if not random).',
+    )
     return p
 
   def _MultiHeadedAtten(
@@ -8263,7 +9412,8 @@ class PerformerBuilder(Builder):
         use_bias=p.use_bias,
         num_random_features=p.num_random_features,
         attention_type=p.attention_type,
-        redraw=p.redraw)
+        redraw=p.redraw,
+    )
     if p.deterministic_dropout:
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
@@ -8302,7 +9452,8 @@ class MemoryAddLayer(base_layer.BaseLayer):
           rank=p.rank,
           memory_act=p.memory_act,
           add_bias=p.add_bias,
-          seed=p.seed)
+          seed=p.seed,
+      )
       lsh_params.dtype = p.dtype
       self.CreateChild('lsh_mem', lsh_params)
 
@@ -8338,8 +9489,9 @@ class SketchMemTransformerBuilder(Builder):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('attn_add_memory', False,
-             'Whether to add sketch memory to attention.')
+    p.Define(
+        'attn_add_memory', False, 'Whether to add sketch memory to attention.'
+    )
     p.Define('ffn_add_memory', False, 'Whether to add sketch memory to FFN.')
     p.Define('attn_log_num_buckets', 6, 'Log of number of buckets.')
     p.Define('attn_num_hash_fn', 2, 'Number of hash functions.')
@@ -8370,7 +9522,8 @@ class SketchMemTransformerBuilder(Builder):
         rank=p.ffn_rank,
         add_bias=p.ffn_add_bias,
         memory_act=p.ffn_memory_act,
-        seed=p.ffn_seed)
+        seed=p.ffn_seed,
+    )
 
   def _MultiHeadedAtten(
       self,
@@ -8390,7 +9543,8 @@ class SketchMemTransformerBuilder(Builder):
         rank=p.attn_rank,
         memory_act=p.attn_memory_act,
         add_bias=p.attn_add_bias,
-        seed=p.attn_seed)
+        seed=p.attn_seed,
+    )
     atten_p = MultiHeadedAttention.Params().Set(
         name=name,
         input_dim=p.model_dim,
@@ -8418,11 +9572,13 @@ class SketchMemTransformerBuilder(Builder):
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
 
-  def Feedforward(self,  # pytype: disable=signature-mismatch
-                  name,
-                  is_causal=False,
-                  ff_hidden_dim=None,
-                  qdomain=None):
+  def Feedforward(
+      self,  # pytype: disable=signature-mismatch
+      name,
+      is_causal=False,
+      ff_hidden_dim=None,
+      qdomain=None,
+  ):
     del is_causal
     p = self.params
     if ff_hidden_dim is None:
@@ -8431,10 +9587,16 @@ class SketchMemTransformerBuilder(Builder):
       assert p.device_mesh.ndim >= 2
       assert p.weight_split_dims_mapping.df is not None
       assert p.weight_split_dims_mapping.fd is not None
-    bias_f_split = ([p.weight_split_dims_mapping.df[1]]
-                    if p.weight_split_dims_mapping.df is not None else None)
-    bias_d_split = ([p.weight_split_dims_mapping.fd[1]]
-                    if p.weight_split_dims_mapping.fd is not None else None)
+    bias_f_split = (
+        [p.weight_split_dims_mapping.df[1]]
+        if p.weight_split_dims_mapping.df is not None
+        else None
+    )
+    bias_d_split = (
+        [p.weight_split_dims_mapping.fd[1]]
+        if p.weight_split_dims_mapping.fd is not None
+        else None
+    )
     sub_list = [
         (
             'i.vec->after_feedforward',
@@ -8447,13 +9609,15 @@ class SketchMemTransformerBuilder(Builder):
                     ff_hidden_dim,
                     device_mesh=p.device_mesh,
                     weight_split_dims_mapping=(p.weight_split_dims_mapping.df),
-                    qdomain=qdomain),
+                    qdomain=qdomain,
+                ),
                 self.MeshSplit('split01', p.activation_split_dims_mapping.blf),
                 self._Bias(
                     'bias01',
                     ff_hidden_dim,
                     device_mesh=p.device_mesh,
-                    weight_split_dims_mapping=bias_f_split),
+                    weight_split_dims_mapping=bias_f_split,
+                ),
                 self._Activation('act', p.ff_activation_fn),
                 self._Dropout('relu_dropout', p.relu_dropout_prob),
                 self._Linear(
@@ -8462,46 +9626,59 @@ class SketchMemTransformerBuilder(Builder):
                     p.model_dim,
                     device_mesh=p.device_mesh,
                     weight_split_dims_mapping=(p.weight_split_dims_mapping.fd),
-                    qdomain=qdomain),
+                    qdomain=qdomain,
+                ),
                 self.MeshSplit('split02', p.activation_split_dims_mapping.bld),
                 self._Bias(
                     'bias02',
                     p.model_dim,
                     device_mesh=p.device_mesh,
-                    weight_split_dims_mapping=bias_d_split),
+                    weight_split_dims_mapping=bias_d_split,
+                ),
                 # TODO(wanxin): add memory here for feedforward.
                 # If dropout is zero, we can also apply it after this layer.
-                self._Dropout('dropout', p.residual_dropout_prob))),
-        ('i.vec,after_feedforward->after_memory',
-         self._MemoryAdd('lsh_mem', p.ffn_add_memory)),
-        ('i.vec,after_memory->added',
-         self._Add('add', p.ff_residual_weight, p.ff_apply_residual)),
+                self._Dropout('dropout', p.residual_dropout_prob),
+            ),
+        ),
+        (
+            'i.vec,after_feedforward->after_memory',
+            self._MemoryAdd('lsh_mem', p.ffn_add_memory),
+        ),
+        (
+            'i.vec,after_memory->added',
+            self._Add('add', p.ff_residual_weight, p.ff_apply_residual),
+        ),
         ('added,i.paddings->o.vec', self._Pad('pad')),
         ('i.paddings->o.paddings', self._Id('id')),
     ]
 
     if p.packed_input:
       sub_list.append(
-          ('i.segment_mask->o.segment_mask', self._Id('segment_mask')))
+          ('i.segment_mask->o.segment_mask', self._Id('segment_mask'))
+      )
 
     return self._Graph(
         name,
         ['i'],  # input NestedMap with {vec, paddings, segment_mask}
         ['o'],  # output NestedMap with {vec, paddings, segment_mask}
-        *sub_list)
+        *sub_list,
+    )
 
   def GatedGeluFeedforward(self, name, is_causal=False, ff_hidden_dim=None):
     return self.GatedFeedforward(
         name,
         is_causal,
         ff_hidden_dim,
-        activation_fn=lambda x: tf.nn.gelu(x, approximate=True))
+        activation_fn=lambda x: tf.nn.gelu(x, approximate=True),
+    )
 
-  def GatedFeedforward(self,  # pytype: disable=signature-mismatch
-                       name,
-                       is_causal=False,
-                       ff_hidden_dim=None,
-                       activation_fn=tf.nn.relu):
+  def GatedFeedforward(
+      self,  # pytype: disable=signature-mismatch
+      name,
+      is_causal=False,
+      ff_hidden_dim=None,
+      activation_fn=tf.nn.relu,
+  ):
     del is_causal
     p = self.params
     if ff_hidden_dim is None:
@@ -8511,32 +9688,50 @@ class SketchMemTransformerBuilder(Builder):
       return tf.math.multiply(activation_fn(x), y)
 
     sub_list = [
-        ('i.vec->after_gelu',
-         self._Graph(
-             'feedforward', ['x'], ['y'], ('x->x1', self._DefaultLN('ln')),
-             ('x1->h0', self._Linear('wi0', p.model_dim, ff_hidden_dim)),
-             ('x1->h1', self._Linear('wi1', p.model_dim, ff_hidden_dim)),
-             ('h0,h1->h', self._Fn('gelu', fn=GatedFn, fn_out=lambda x, y: x)),
-             ('h->h_dropout', self._Dropout('dropout', p.relu_dropout_prob)),
-             ('h_dropout->y', self._Linear('wo', ff_hidden_dim, p.model_dim)))),
-        ('i.vec,after_gelu->after_memory',
-         self._MemoryAdd('lsh_mem', p.ffn_add_memory)),
+        (
+            'i.vec->after_gelu',
+            self._Graph(
+                'feedforward',
+                ['x'],
+                ['y'],
+                ('x->x1', self._DefaultLN('ln')),
+                ('x1->h0', self._Linear('wi0', p.model_dim, ff_hidden_dim)),
+                ('x1->h1', self._Linear('wi1', p.model_dim, ff_hidden_dim)),
+                (
+                    'h0,h1->h',
+                    self._Fn('gelu', fn=GatedFn, fn_out=lambda x, y: x),
+                ),
+                ('h->h_dropout', self._Dropout('dropout', p.relu_dropout_prob)),
+                (
+                    'h_dropout->y',
+                    self._Linear('wo', ff_hidden_dim, p.model_dim),
+                ),
+            ),
+        ),
+        (
+            'i.vec,after_gelu->after_memory',
+            self._MemoryAdd('lsh_mem', p.ffn_add_memory),
+        ),
         ('after_memory->y', self._Dropout('dropout', p.residual_dropout_prob)),
-        ('i.vec,y->added',
-         self._Add('add', p.ff_residual_weight, p.ff_apply_residual)),
+        (
+            'i.vec,y->added',
+            self._Add('add', p.ff_residual_weight, p.ff_apply_residual),
+        ),
         ('added,i.paddings->o.vec', self._Pad('pad')),
         ('i.paddings->o.paddings', self._Id('id')),
     ]
 
     if p.packed_input:
       sub_list.append(
-          ('i.segment_mask->o.segment_mask', self._Id('segment_mask')))
+          ('i.segment_mask->o.segment_mask', self._Id('segment_mask'))
+      )
 
     return self._Graph(
         name,
         ['i'],  # input NestedMap with {vec, paddings, segment_mask}
         ['o'],  # output NestedMap with {vec, paddings, segment_mask}
-        *sub_list)
+        *sub_list,
+    )
 
 
 class LmBuilder(Builder):
@@ -8554,52 +9749,68 @@ class LmBuilder(Builder):
   def _ShardedVar(self, name, weights, mesh_split):
     sharded_weights = []
     for k, v in weights:
-      sharded_weights.append((k,
-                              gshard_layers.ShardedWeightParams(
-                                  shape=v.shape,
-                                  init=v.init,
-                                  dtype=v.dtype,
-                                  collections=v.collections,
-                                  tensor_split_dims_mapping=mesh_split)))
+      sharded_weights.append((
+          k,
+          gshard_layers.ShardedWeightParams(
+              shape=v.shape,
+              init=v.init,
+              dtype=v.dtype,
+              collections=v.collections,
+              tensor_split_dims_mapping=mesh_split,
+          ),
+      ))
     return gshard_layers.ShardedVarLayer.Params().Set(
         name=name,
         weights=sharded_weights,
         device_mesh=self.params.device_mesh,
-        fprop_dtype=self.params.fprop_dtype)
+        fprop_dtype=self.params.fprop_dtype,
+    )
 
   def _LinearWeight(self, name, input_dim, output_dim, mesh_split):
     return self._ShardedVar(
         name=name,
-        weights=[('w',
-                  py_utils.WeightParams(
-                      shape=[input_dim, output_dim],
-                      init=py_utils.WeightInit.Uniform((3. / input_dim)**0.5),
-                      dtype=self.params.dtype))],
-        mesh_split=mesh_split)
+        weights=[(
+            'w',
+            py_utils.WeightParams(
+                shape=[input_dim, output_dim],
+                init=py_utils.WeightInit.Uniform((3.0 / input_dim) ** 0.5),
+                dtype=self.params.dtype,
+            ),
+        )],
+        mesh_split=mesh_split,
+    )
 
   def _Linear(self, name, input_dim, output_dim, mesh_split, qdomain=None):  # pytype: disable=signature-mismatch
     if qdomain is not None:
       raise NotImplementedError(
-          'Quantization support is not implemented for LmBuilder._Linear.')
+          'Quantization support is not implemented for LmBuilder._Linear.'
+      )
     return self._Graph(
         name,
         ['inputs'],
         ['outputs'],
         ('->w', self._LinearWeight('w', input_dim, output_dim, mesh_split)),
-        ('inputs,w->outputs',
-         self._Fn(
-             'linear',
-             fn=lambda inputs, w: tf.einsum('BLI,IO->BLO', inputs, w))),
+        (
+            'inputs,w->outputs',
+            self._Fn(
+                'linear',
+                fn=lambda inputs, w: tf.einsum('BLI,IO->BLO', inputs, w),
+            ),
+        ),
     )
 
   def _BiasWeight(self, name, dim):
     return self._Var(
         name=name,
-        weights=[('b',
-                  py_utils.WeightParams(
-                      shape=[dim],
-                      init=py_utils.WeightInit.Constant(0.0),
-                      dtype=self.params.dtype))])
+        weights=[(
+            'b',
+            py_utils.WeightParams(
+                shape=[dim],
+                init=py_utils.WeightInit.Constant(0.0),
+                dtype=self.params.dtype,
+            ),
+        )],
+    )
 
   def _Bias(self, name, dim):
     return self._Graph(
@@ -8607,8 +9818,10 @@ class LmBuilder(Builder):
         ['inputs'],
         ['outputs'],
         ('->b', self._BiasWeight('b', dim)),
-        ('inputs,b->outputs', self._Fn('bias',
-                                       fn=lambda inputs, b: inputs + b)),
+        (
+            'inputs,b->outputs',
+            self._Fn('bias', fn=lambda inputs, b: inputs + b),
+        ),
     )
 
   def Feedforward(self, name):  # pytype: disable=signature-mismatch
@@ -8616,31 +9829,45 @@ class LmBuilder(Builder):
 
     ff_list = [
         self._DefaultLN('ln'),
-        self._Linear('linear01', p.model_dim, p.ff_hidden_dim,
-                     p.weight_split_dims_mapping.df)
+        self._Linear(
+            'linear01',
+            p.model_dim,
+            p.ff_hidden_dim,
+            p.weight_split_dims_mapping.df,
+        ),
     ]
     if p.use_bias:
       ff_list.append(self._Bias('bias01', p.ff_hidden_dim))
     ff_list.append(
-        self.MeshSplit('hidden_split', p.activation_split_dims_mapping.blf))
+        self.MeshSplit('hidden_split', p.activation_split_dims_mapping.blf)
+    )
     ff_list += [
         self._Activation('act', p.ff_activation_fn),
         self._Dropout('relu_dropout', p.relu_dropout_prob),
-        self._Linear('linear02', p.ff_hidden_dim, p.model_dim,
-                     p.weight_split_dims_mapping.fd)
+        self._Linear(
+            'linear02',
+            p.ff_hidden_dim,
+            p.model_dim,
+            p.weight_split_dims_mapping.fd,
+        ),
     ]
     if p.use_bias:
       ff_list.append(self._Bias('bias02', p.model_dim))
     ff_list.append(
-        self.MeshSplit('output_split', p.activation_split_dims_mapping.bld))
+        self.MeshSplit('output_split', p.activation_split_dims_mapping.bld)
+    )
     ff_list.append(self._Dropout('dropout', p.residual_dropout_prob))
 
     sub_list = [
-        ('i.vec->split_i',
-         self.MeshSplit('input_split', p.activation_split_dims_mapping.bld)),
+        (
+            'i.vec->split_i',
+            self.MeshSplit('input_split', p.activation_split_dims_mapping.bld),
+        ),
         ('split_i->after_feedforward', self._Seq('feedforward', *ff_list)),
-        ('split_i,after_feedforward->added',
-         self._Add('add', p.ff_residual_weight)),
+        (
+            'split_i,after_feedforward->added',
+            self._Add('add', p.ff_residual_weight),
+        ),
         ('added,i.paddings->o.vec', self._Pad('pad')),
         ('i.paddings->o.paddings', self._Id('id')),
     ]
@@ -8649,7 +9876,8 @@ class LmBuilder(Builder):
         name,
         ['i'],  # input NestedMap with {vec, paddings}
         ['o'],  # output NestedMap with {vec, paddings}
-        *sub_list)
+        *sub_list,
+    )
 
   def _Attention(self, name, is_causal=True):
     """Computes self attention with optional stride.
@@ -8679,11 +9907,14 @@ class LmBuilder(Builder):
     tr_atten_p.atten_tpl.enable_per_dim_scale = p.enable_per_dim_scale
     tr_atten_p.atten_tpl.device_mesh = p.device_mesh
     tr_atten_p.atten_tpl.weight_split_dims_mapping = (
-        p.weight_split_dims_mapping.dnh)
+        p.weight_split_dims_mapping.dnh
+    )
     tr_atten_p.atten_tpl.activation_split_dims_mapping.blnh = (
-        p.activation_split_dims_mapping.blnh)
+        p.activation_split_dims_mapping.blnh
+    )
     tr_atten_p.atten_tpl.activation_split_dims_mapping.bld = (
-        p.activation_split_dims_mapping.bld)
+        p.activation_split_dims_mapping.bld
+    )
     if p.deterministic_dropout:
       tr_atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
       tr_atten_p.atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
@@ -8692,10 +9923,13 @@ class LmBuilder(Builder):
         name,
         ['i'],  # input NestedMap with {vec, paddings}
         ['o'],  # output NestedMap with {vec, paddings}
-        ('i.vec->split_i',
-         self.MeshSplit('input_split', p.activation_split_dims_mapping.bld)),
+        (
+            'i.vec->split_i',
+            self.MeshSplit('input_split', p.activation_split_dims_mapping.bld),
+        ),
         ('split_i,split_i,i.paddings->o.vec,unused_prob', tr_atten_p),
-        ('i.paddings->o.paddings', self._Id('id')))
+        ('i.paddings->o.paddings', self._Id('id')),
+    )
 
   def TransformerEncoderLayer(self, name, is_causal=True):
     """(inputs, paddings) -> (encoded, paddings).
@@ -8710,5 +9944,9 @@ class LmBuilder(Builder):
     # Hack to be compatible with ckpt generated by self._rep
     return self._Seq(
         name,
-        self._Seq('block', self._Attention('self_atten', is_causal=is_causal),
-                  self.Feedforward('ff')))
+        self._Seq(
+            'block',
+            self._Attention('self_atten', is_causal=is_causal),
+            self.Feedforward('ff'),
+        ),
+    )
