@@ -280,6 +280,11 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       hidden_dim = 4
       output_dim = 4
       num_heads = 2
+      batch_size = 6
+      seq_len = 6
+      pack_sequences = 3
+      query_stride = seq_len
+      query_first_n = None
 
       p = attention.MultiHeadedAttention.Params().Set(
           name='self_atten',
@@ -289,14 +294,13 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           output_dim=output_dim,
           enable_shaped_attention=True,
           packed_input=True,
+          query_stride=query_stride,
+          query_first_n=query_first_n,
       )
 
       l = p.Instantiate()
       tf.global_variables_initializer().run()
       np.random.seed(6348575)
-      batch_size = 6
-      seq_len = 6
-      pack_sequences = 3
       reduced_batch_size = batch_size // pack_sequences
       packed_seq_len = seq_len * pack_sequences
       input_vecs_p = [
@@ -314,9 +318,9 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           example_ids, [reduced_batch_size, packed_seq_len]
       )
       segment_mask = attention.SegmentMask(example_ids, example_ids, tf.float32)
-      strided_segment_mask = segment_mask[:, :, :None:seq_len, :]
+      strided_segment_mask = segment_mask[:, :, :query_first_n:query_stride, :]
       # Expected output computation.
-      diag = l._GetStridedIdentity(packed_seq_len, seq_len)
+      diag = l._GetStridedIdentity(packed_seq_len, query_stride, query_first_n)
       center = l._SoftmaxZeroOrderTerm(input_vecs, strided_segment_mask)
       # Shaped Attention step.
       expected_output = diag + input_vecs - center
@@ -560,7 +564,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       probs, _ = l.AttenProbs(
           l.theta, query_proj, key_proj, input_padding, None
       )
-      diag = l._GetStridedIdentity(seq_len, 1)
+      diag = l._GetStridedIdentity(seq_len, stride=1, first_n=None)
       center = l._SoftmaxZeroOrderTerm(probs)
       # Shaped Attention step
       probs = diag + probs - center

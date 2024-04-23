@@ -580,6 +580,12 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
         ),
     )
     p.Define(
+        'query_first_n',
+        None,
+        'only considers the first N tokens for the'
+        'query. Same as first_n in StrideLayer.',
+    )
+    p.Define(
         'rope_tpl', None, 'Params for class RotaryPositionalEmbeddingLayer.'
     )
     p.Define(
@@ -625,6 +631,11 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
             'If use_scale_invariant_atten is set to true, then '
             'enable_scaling_code_motion is ignored.'
         ),
+    )
+    p.Define(
+        'enable_ctx_post_proj',
+        True,
+        'Whether to compute context post projection.',
     )
     # Memory related params.
     p.Define(
@@ -750,19 +761,21 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     )
     # Setting is_output_projection=True to set the projection direction
     # from hidden dim to input dim. Output projection follows query_input_dim.
-    self.CreateChild(
-        'post',
-        p.proj_tpl.Copy().Set(
-            input_dim=p.output_dim or query_input_dim,
-            num_heads=p.num_heads,
-            is_output_projection=True,
-            use_bias=p.use_bias,
-            device_mesh=p.device_mesh,
-            weight_split_dims_mapping=post_weight_split_dims_mapping,
-        ),
-    )
+    if p.enable_ctx_post_proj:
+      self.CreateChild(
+          'post',
+          p.proj_tpl.Copy().Set(
+              input_dim=p.output_dim or query_input_dim,
+              num_heads=p.num_heads,
+              is_output_projection=True,
+              use_bias=p.use_bias,
+              device_mesh=p.device_mesh,
+              weight_split_dims_mapping=post_weight_split_dims_mapping,
+          ),
+      )
 
     if p.rope_tpl:
+      assert p.query_first_n is None, 'query_first_n is not supported for RoPE.'
       assert issubclass(p.rope_tpl.cls, layers.RotaryPositionalEmbeddingLayer)
       rope_p = p.rope_tpl.Copy()
       if rope_p.embedding_dim == 0:
@@ -1012,10 +1025,14 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     encoded = self.QEinsum('SBN,SBNH->BNH', probs, value)
     return self.FromAqtActActMatmul(encoded)
 
-  def _GetStridedIdentity(self, length, stride):
+  def _GetStridedIdentity(self, length, stride=1, first_n=None):
+    assert first_n is None or first_n > 0
+    if stride == 0:
+      assert first_n is None or first_n == 1
+      first_n = 1  # x[:k:1]  == x[:k]
+      stride = 1
     diag = tf.eye(length, dtype=self.params.dtype)
-    if stride > 1:
-      diag = diag[:None:stride, :]
+    diag = diag[:first_n:stride, :]
     diag = tf.expand_dims(tf.expand_dims(diag, axis=0), axis=0)
     return diag
 
@@ -1067,10 +1084,10 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     Returns:
       probs: Perturbed probs of shape [B, N, T, S].
     """
+    p = self.params
     shaped_attn_beta = tf.cast(theta.shaped_attn_beta, probs.dtype)
-    _, _, query_len, key_len = py_utils.GetShape(probs, 4)
-    query_stride = key_len // query_len
-    diag = self._GetStridedIdentity(key_len, query_stride)
+    _, _, _, key_len = py_utils.GetShape(probs, 4)
+    diag = self._GetStridedIdentity(key_len, p.query_stride, p.query_first_n)
     center = self._SoftmaxZeroOrderTerm(probs, segment_mask)
     shaped_probs = (
         theta.shaped_attn_alpha * diag
@@ -1485,7 +1502,11 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     if p.attn_add_memory:
       encoded += self.lsh_mem.FProp(theta.lsh_mem, encoded - query_proj)
     # Post projection
-    encoded = self._PostProj(theta, encoded)
+    if p.enable_ctx_post_proj:
+      encoded = self._PostProj(theta, encoded)
+    else:
+      b, t, n, h = py_utils.GetShape(encoded, 4)
+      encoded = tf.reshape(encoded, [b, t, n * h])
 
     return encoded, atten_probs
 
@@ -2686,6 +2707,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     p = self.params
     assert p.left_context >= 1, 'Left context should be at least one.'
     assert not p.packed_input, 'Packed input not implemented yet.'
+    assert p.query_first_n is None, 'query_first_n not supported yet.'
 
     if p.block_size is None:
       block_size = max(1, p.left_context - 1)
@@ -3695,6 +3717,7 @@ class LocalSelfAttentionXL(LocalSelfAttention):
 
     if params.query_stride != 1:
       raise ValueError('Query stride not supported yet.')
+    assert params.query_first_n is None, 'query_first_n is not supported yet.'
 
     emb_params = layers.PositionalEmbeddingLayer.Params().Set(
         embedding_dim=params.rel_pos_emb_dim
@@ -8715,7 +8738,9 @@ class Builder(builder.Base):
 
   def _MultiHeadedAtten(self, name, num_heads=None,
                         enable_qkv_proj_in_onestep=False,
-                        enable_qk_proj_in_onestep=False):
+                        enable_qk_proj_in_onestep=False,
+                        query_stride=1,
+                        query_first_n=None):
     """Returns a MultiHeadedAttention params."""
     p = self.params
     if num_heads is None:
@@ -8735,6 +8760,8 @@ class Builder(builder.Base):
         use_bias=p.use_bias,
         enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
         enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
+        query_stride=query_stride,
+        query_first_n=query_first_n,
         enable_scaling_code_motion=p.enable_scaling_code_motion,
         device_mesh=p.device_mesh,
         weight_split_dims_mapping=p.weight_split_dims_mapping.dnh)
@@ -9105,6 +9132,11 @@ class Builder(builder.Base):
     enable_qk_proj_in_onestep = (p.atten_tpl.enable_qk_proj_in_onestep
                                  and stride == 1
                                  and not first_n)
+    # Rope template doesn't handle first_n, so resetting it to None until it is
+    # handled correctly.
+    if first_n is not None and p.atten_tpl.rope_tpl is not None:
+      tf.logging.warning('Rope Attn needs to handle valid query_first_n.')
+      first_n = None
 
     sub_list += [
         ('i.vec->after_ln',
@@ -9112,7 +9144,7 @@ class Builder(builder.Base):
         ('after_ln->strided_query',
          self._Stride('query_after_stride', stride, first_n)),
         ('{}->after_att,prob'.format(attention_inputs),
-         self._MultiHeadedAtten('atten', num_heads, enable_qkv_proj_in_onestep, enable_qk_proj_in_onestep)),
+         self._MultiHeadedAtten('atten', num_heads, enable_qkv_proj_in_onestep, enable_qk_proj_in_onestep, stride, first_n)),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
         ('{}->strided_input'.format(input_to_add),
@@ -9211,13 +9243,19 @@ class Builder(builder.Base):
     enable_qk_proj_in_onestep = (p.atten_tpl.enable_qk_proj_in_onestep
                                  and stride == 1
                                  and not first_n)
+    # Rope template doesn't handle first_n, so resetting it to None until it is
+    # handled correctly.
+    if first_n is not None and p.atten_tpl.rope_tpl is not None:
+      tf.logging.warning('Rope Attn needs to handle valid query_first_n.')
+      first_n = None
+
     sub_list += [
         ('i.vec->after_ln',
          self._DefaultLN('LN')),
         ('after_ln,i.paddings->strided_query,o.paddings',
          self._Pool('query_after_pooling', stride, first_n)),
         ('{}->after_att,prob'.format(attention_inputs),
-         self._MultiHeadedAtten('atten', num_heads, enable_qkv_proj_in_onestep, enable_qk_proj_in_onestep)),
+         self._MultiHeadedAtten('atten', num_heads, enable_qkv_proj_in_onestep, enable_qk_proj_in_onestep, stride, first_n)),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
         shortcut_sub,
@@ -9392,6 +9430,8 @@ class PerformerBuilder(Builder):
       num_heads=None,
       enable_qkv_proj_in_onestep=False,
       enable_qk_proj_in_onestep=False,
+      query_stride=1,
+      query_first_n=None,
   ):
     """Returns a MultiHeadedAttention params."""
     p = self.params
@@ -9531,6 +9571,8 @@ class SketchMemTransformerBuilder(Builder):
       num_heads=None,
       enable_qkv_proj_in_onestep=False,
       enable_qk_proj_in_onestep=False,
+      query_stride=1,
+      query_first_n=None,
   ):
     """Returns a MultiHeadedAttention params."""
     p = self.params
@@ -9559,6 +9601,8 @@ class SketchMemTransformerBuilder(Builder):
         use_bias=p.use_bias,
         enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
         enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
+        query_stride=query_stride,
+        query_first_n=query_first_n,
         enable_scaling_code_motion=p.enable_scaling_code_motion,
         device_mesh=p.device_mesh,
         weight_split_dims_mapping=p.weight_split_dims_mapping.dnh,
