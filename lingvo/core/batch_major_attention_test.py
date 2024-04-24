@@ -232,19 +232,21 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       ('_qkv_one_step_false_qk_one_step_true', False, True),
       ('_qkv_one_step_true', True),
       ('_use_mqa', False, False, True),
+      ('_use_gqa', False, False, True, 2),
   )
   def testMultiHeadedAttentionDotProductOutputDim(
       self,
       enable_qkv_proj_in_onestep=False,
       enable_qk_proj_in_onestep=False,
       use_mqa=False,
+      num_kv_heads=1,
   ):
     # input_batch:6, seq_len:6. Test n = 2 case.
     bsz, slen = 6, 6
     input_dim = 2
     hidden_dim = 4
     output_dim = 4
-    num_heads = 2
+    num_heads = 4
     with self.session(use_gpu=True) as sess:
       input_vecs, input_padding, _, _ = self._AttentionInputs(
           input_dim=input_dim
@@ -258,6 +260,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
           enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
           use_mqa=use_mqa,
+          num_kv_heads=num_kv_heads,
       )
 
       l = p.Instantiate()
@@ -579,18 +582,20 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       ('qkv_one_step_false_qk_one_step_true', False, True),
       ('qkv_one_step_true', True),
       ('_use_mqa', False, False, True),
+      ('_use_gqa', False, False, True, 2),
   )
   def testMultiHeadedAttentionVariableDim(
       self,
       enable_qkv_proj_in_onestep=False,
       enable_qk_proj_in_onestep=False,
       use_mqa=False,
+      num_kv_heads=1,
   ):
     # input_batch:6, seq_len:6. Test n = 2 case.
     input_dim = 2
     hidden_dim = 4
     output_dim = 4
-    num_heads = 2
+    num_heads = 4
 
     p = attention.MultiHeadedAttention.Params().Set(
         name='self_atten',
@@ -601,6 +606,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
         enable_qkv_proj_in_onestep=enable_qkv_proj_in_onestep,
         enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
         use_mqa=use_mqa,
+        num_kv_heads=num_kv_heads,
     )
 
     l = p.Instantiate()
@@ -626,10 +632,18 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertNotIn('key', l.vars)
     elif use_mqa:
       self.assertIn('kv', l.vars)
-      self.assertEqual(
-          l.kv.theta.w.get_shape(),
-          tf.TensorShape([input_dim, 1, hidden_dim // num_heads * 2]),
-      )
+      if num_kv_heads is not None:
+        self.assertEqual(
+            l.kv.theta.w.get_shape(),
+            tf.TensorShape(
+                [input_dim, num_kv_heads, hidden_dim // num_heads * 2]
+            ),
+        )
+      else:
+        self.assertEqual(
+            l.kv.theta.w.get_shape(),
+            tf.TensorShape([input_dim, 1, hidden_dim // num_heads * 2]),
+        )
       self.assertIn('query', l.vars)
     else:
       self.assertNotIn('qkv', l.vars)

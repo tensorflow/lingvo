@@ -520,6 +520,12 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     )
     p.Define('num_heads', 1, 'Num of attention heads.')
     p.Define(
+        'num_kv_heads',
+        None,
+        'Number of kv heads. Defaults to num_heads. num_heads % num_kv_heads'
+        ' = 0. Based on GQA - https://arxiv.org/pdf/2305.13245.pdf',
+    )
+    p.Define(
         'dim_per_head',
         None,
         'Hidden dim of each attention head. If None, '
@@ -718,7 +724,18 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       value_input_dim = p.input_dim
       query_input_dim = p.input_dim
 
+    num_kv_heads = p.num_kv_heads
+    if num_kv_heads is None:
+      num_kv_heads = p.num_heads
+
     if p.use_mqa:
+      if num_kv_heads > 1:
+        assert (
+            num_kv_heads <= p.num_heads
+        ), 'num_kv_heads needs to be <= num_heads.'
+        assert (
+            p.num_heads % num_kv_heads == 0
+        ), 'num_kv_heads needs to divide num_heads exactly.'
       assert (
           not p.enable_qk_proj_in_onestep
       ), 'enable_qk_proj_in_onestep is not supported for use_mqa'
@@ -736,7 +753,9 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       self.CreateChild(
           'kv',
           ProjectInput(
-              key_input_dim, dim_per_head=self.dim_per_head * 2, num_heads=1
+              key_input_dim,
+              dim_per_head=self.dim_per_head * 2,
+              num_heads=num_kv_heads,
           ),
       )
     else:
@@ -855,10 +874,25 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       A Tensor of shape [B, N, T, S]
     """
     del theta
+    p = self.params
+    num_kv_heads = p.num_kv_heads
+    if num_kv_heads is None:
+      num_kv_heads = p.num_heads
     query, key = self.ToAqtActActInputs(query, key)
     qlayer = self if self.params.qdomain is not None else None
     if self.params.use_mqa:
-      logits = self.QEinsum('BTNH,BSH->BNTS', query, key)
+      _, s, k, _ = py_utils.GetShape(key, 4)
+      if num_kv_heads > 1:
+        b, t, n, h = py_utils.GetShape(query, 4)
+        query = tf.reshape(
+            query, [b, t, num_kv_heads, p.num_heads // num_kv_heads, h]
+        )
+        logits = self.QEinsum('BTKnH,BSKH->BnKTS', query, key)
+        logits = tf.reshape(logits, [b, n, t, s])
+      else:
+        assert k == 1
+        key = tf.squeeze(key, axis=2)
+        logits = self.QEinsum('BTNH,BSH->BNTS', query, key)
     else:
       logits = attention_util.AttenLogits(query, key, qlayer=qlayer)
     logits = self.FromAqtActActMatmul(logits)
@@ -927,10 +961,7 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
 
     key = py_utils.HasRank(key, 4)
     b, s, n, h = py_utils.GetShape(key, 4)
-    if p.use_mqa:
-      assert n == 1
-      key = tf.squeeze(key, axis=2)
-      n = p.num_heads
+    n = p.num_heads
     query = py_utils.HasShape(query, [b, -1, n, h])
     t = py_utils.GetShape(query)[1]
     if segment_mask is not None and self.params.packed_input:
@@ -1003,10 +1034,15 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     )
     qlayer = self if self.params.qdomain is not None else None
     if self.params.use_mqa:
-      _, _, kv_heads, _ = py_utils.GetShape(value, 4)
-      assert kv_heads == 1
-      value = tf.squeeze(value, axis=2)
-      encoded = self.QEinsum('BNTS,BSH->BTNH', probs, value)
+      _, _, kv_heads, h = py_utils.GetShape(value, 4)
+      if kv_heads == 1:
+        value = tf.squeeze(value, axis=2)
+        encoded = self.QEinsum('BNTS,BSH->BTNH', probs, value)
+      else:
+        b, n, t, s = py_utils.GetShape(probs, 4)
+        probs = tf.reshape(probs, [b, n // kv_heads, kv_heads, t, s])
+        encoded = self.QEinsum('BnKTS,BSKH->BTnKH', probs, value)
+        encoded = tf.reshape(encoded, [b, t, n, h])
     else:
       encoded = attention_util.AttenContext(probs, value, qlayer=qlayer)
     return self.FromAqtActActMatmul(encoded)

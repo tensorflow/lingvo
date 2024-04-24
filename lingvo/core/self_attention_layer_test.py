@@ -399,6 +399,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       atten_builder.atten_tpl.enable_shaped_attention = True
       atten_builder.atten_tpl.enable_ctx_post_proj = False
       atten_builder.atten_tpl.use_mqa = True
+      atten_builder.atten_tpl.num_kv_heads = 1
       builder = atten_builder.Instantiate()
       if use_v1_stack:
         p = builder.TransformerStack('atten', num_layers=3)
