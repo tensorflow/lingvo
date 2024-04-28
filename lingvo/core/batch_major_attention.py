@@ -1067,7 +1067,10 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
       assert first_n is None or first_n == 1
       first_n = 1  # x[:k:1]  == x[:k]
       stride = 1
-    diag = tf.eye(length, dtype=self.params.dtype)
+    dtype = self.params.fprop_dtype
+    if dtype is None:
+      dtype = self.params.dtype
+    diag = tf.eye(length, dtype=dtype)
     diag = diag[:first_n:stride, :]
     diag = tf.expand_dims(tf.expand_dims(diag, axis=0), axis=0)
     return diag
