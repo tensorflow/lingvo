@@ -281,6 +281,14 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
     )
     p.Define('use_bias', True, 'If to add bias in projection.')
     p.Define(
+        'input_proj_bias_rank_3',
+        False,
+        'If set to True, the input projection bias is of shape'
+        ' [num_heads, 1, dim_per_head] instead of [num_heads, dim_per_head].'
+        'Useful for cases where the projection shape is'
+        ' [batch, num_heads, time_steps, dim_per_head]',
+    )
+    p.Define(
         'enable_vn',
         False,
         'Whether to enable variational noise on the projection weight matrix.',
@@ -342,8 +350,13 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
           ]
         else:
           bias_split_dims_mapping = None
+        bias_shape = None
+        if p.input_proj_bias_rank_3:
+          bias_shape = [p.num_heads, 1, p.dim_per_head]
+        else:
+          bias_shape = [p.num_heads, p.dim_per_head]
         pc_bias = py_utils.WeightParams(
-            shape=[p.num_heads, p.dim_per_head],
+            shape=bias_shape,
             init=py_utils.WeightInit.Constant(0.0),
             dtype=p.dtype,
             device_mesh=p.device_mesh,
@@ -361,7 +374,7 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
       )
     return theta
 
-  def FProp(self, theta, inputs):
+  def FProp(self, theta, inputs, eqn=None):
     """Computes the multi headed projection for inputs.
 
     Args:
@@ -369,6 +382,7 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
         its children layers.
       inputs: A tensor of shape [..., num_heads, dim_per_head] or [...,
         hidden_size].
+      eqn: The einsum equation to use.
 
     Returns:
       The projected tensor with shape [..., hidden_size] or
@@ -391,21 +405,23 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
         return inputs
 
       if p.is_output_projection:
-        expected_shape = tf.concat(
-            [py_utils.GetShape(inputs)[:-2], [p.num_heads, p.dim_per_head]],
-            axis=0,
-        )
-        inputs = py_utils.HasShape(inputs, expected_shape)
-        batch_eqn = eqn_sym[: (rank - 2)] if rank else '...'
-        eqn = f'{batch_eqn}NH,DNH->{batch_eqn}D'
+        if eqn is None:
+          expected_shape = tf.concat(
+              [py_utils.GetShape(inputs)[:-2], [p.num_heads, p.dim_per_head]],
+              axis=0,
+          )
+          inputs = py_utils.HasShape(inputs, expected_shape)
+          batch_eqn = eqn_sym[: (rank - 2)] if rank else '...'
+          eqn = f'{batch_eqn}NH,DNH->{batch_eqn}D'
         out_feature_axis = 0
       else:
-        expected_shape = tf.concat(
-            [py_utils.GetShape(inputs)[:-1], [p.input_dim]], axis=0
-        )
-        inputs = py_utils.HasShape(inputs, expected_shape)
-        batch_eqn = eqn_sym[: (rank - 1)] if rank else '...'
-        eqn = f'{batch_eqn}D,DNH->{batch_eqn}NH'
+        if eqn is None:
+          expected_shape = tf.concat(
+              [py_utils.GetShape(inputs)[:-1], [p.input_dim]], axis=0
+          )
+          inputs = py_utils.HasShape(inputs, expected_shape)
+          batch_eqn = eqn_sym[: (rank - 1)] if rank else '...'
+          eqn = f'{batch_eqn}D,DNH->{batch_eqn}NH'
         out_feature_axis = (-2, -1)
       theta = theta.Transform(lambda x: tf.cast(x, py_utils.FPropDtype(p)))
       inputs, w = self.ToAqtInputs(
@@ -422,7 +438,7 @@ class MultiHeadedProjectionLayer(quant_utils.QuantizableLayer):
 class ReshapedMultiHeadedProjectionLayer(MultiHeadedProjectionLayer):
   """MultiHeadedProjectionLayer with model dim D reshaped as Md."""
 
-  def FProp(self, theta, inputs):
+  def FProp(self, theta, inputs, eqn=None):
     """Computes the multi headed projection for inputs.
 
     Args:
@@ -431,6 +447,7 @@ class ReshapedMultiHeadedProjectionLayer(MultiHeadedProjectionLayer):
       inputs: A tensor of shape [batch_size, time_steps, num_heads,
         dim_per_head] or [batch_size, time_steps, dim_reshape_segments,
         hidden_size // dim_reshape_segments].
+      eqn: The einsum equation to use.
 
     Returns:
       The projected tensor with shape [batch_size, time_steps,
@@ -449,9 +466,11 @@ class ReshapedMultiHeadedProjectionLayer(MultiHeadedProjectionLayer):
         inputs = py_utils.HasShape(
             inputs, [-1, -1, p.num_heads, symbolic.ToStatic(p.dim_per_head)]
         )
-        ret = tf.einsum('BTNH,MdNH->BTMd', inputs, theta.w)
+        eqn = eqn or 'BTNH,MdNH->BTMd'
+        ret = tf.einsum(eqn, inputs, theta.w)
       else:
-        ret = tf.einsum('BTMd,MdNH->BTNH', inputs, theta.w)
+        eqn = eqn or 'BTMd,MdNH->BTNH'
+        ret = tf.einsum(eqn, inputs, theta.w)
       if p.use_bias:
         if p.is_output_projection:
           theta.b = gshard_utils.ReshapeDim(theta.b, 0, p.device_mesh.shape[1])
@@ -1372,48 +1391,48 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
 
     return _ShortSeq() if use_short_seq_opt else _LongSeq()
 
-  def _GetQKVProjOneStep(self, theta, query_vec):
+  def _GetQKVProjOneStep(self, theta, query_vec, eqn=None):
     dim_per_head = self.dim_per_head
-    qkv_proj = self.qkv.FProp(theta.qkv, query_vec)
+    qkv_proj = self.qkv.FProp(theta.qkv, query_vec, eqn=eqn)
     query_proj = qkv_proj[:, :, :, 0:dim_per_head]
     key_proj = qkv_proj[:, :, :, dim_per_head : 2 * dim_per_head]
     value_proj = qkv_proj[:, :, :, 2 * dim_per_head : 3 * dim_per_head]
     return query_proj, key_proj, value_proj
 
-  def _GetQKProjOneStep(self, theta, query_vec):
+  def _GetQKProjOneStep(self, theta, query_vec, eqn=None):
     dim_per_head = self.dim_per_head
-    qk_proj = self.qk.FProp(theta.qk, query_vec)
+    qk_proj = self.qk.FProp(theta.qk, query_vec, eqn=eqn)
     query_proj = qk_proj[:, :, :, 0:dim_per_head]
     key_proj = qk_proj[:, :, :, dim_per_head : 2 * dim_per_head]
     return query_proj, key_proj
 
-  def _GetKVProjOneStep(self, theta, key_vec):
+  def _GetKVProjOneStep(self, theta, key_vec, eqn=None):
     dim_per_head = self.dim_per_head
-    kv_proj = self.kv.FProp(theta.kv, key_vec)
+    kv_proj = self.kv.FProp(theta.kv, key_vec, eqn=eqn)
     key_proj = kv_proj[:, :, :, 0:dim_per_head]
     value_proj = kv_proj[:, :, :, dim_per_head : 2 * dim_per_head]
     return key_proj, value_proj
 
-  def _HeadsProj(self, theta, query_vec, key_vec, value_vec):
+  def _HeadsProj(self, theta, query_vec, key_vec, value_vec, eqn=None):
     """Perform attention heads projections."""
     p = self.params
     if p.enable_value_proj and p.enable_qkv_proj_in_onestep:
       query_proj, key_proj, value_proj = self._GetQKVProjOneStep(
-          theta, query_vec
+          theta, query_vec, eqn=eqn
       )
     elif p.use_mqa:
-      query_proj = self.query.FProp(theta.query, query_vec)
-      key_proj, value_proj = self._GetKVProjOneStep(theta, key_vec)
+      query_proj = self.query.FProp(theta.query, query_vec, eqn=eqn)
+      key_proj, value_proj = self._GetKVProjOneStep(theta, key_vec, eqn=eqn)
     else:
       # Project inputs to key, value and query, respectively has shape
       # [B, S, N, H], [B, S, N, H], and [B, T, N, H].
       if p.enable_qk_proj_in_onestep:
-        query_proj, key_proj = self._GetQKProjOneStep(theta, query_vec)
+        query_proj, key_proj = self._GetQKProjOneStep(theta, query_vec, eqn=eqn)
       else:
-        query_proj = self.query.FProp(theta.query, query_vec)
-        key_proj = self.key.FProp(theta.key, key_vec)
+        query_proj = self.query.FProp(theta.query, query_vec, eqn=eqn)
+        key_proj = self.key.FProp(theta.key, key_vec, eqn=eqn)
       if p.enable_value_proj:
-        value_proj = self.value.FProp(theta.value, value_vec)
+        value_proj = self.value.FProp(theta.value, value_vec, eqn=eqn)
       else:
         with tf.name_scope('value'):
           h = p.num_heads
@@ -1430,7 +1449,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
           )
 
           value_vec, rhs = self.ToAqtActActInputs(value_vec, rhs)
-          value_proj = self.QEinsum('BTD,DNH->BTNH', value_vec, rhs)
+          eqn = eqn or 'BTD,DNH->BTNH'
+          value_proj = self.QEinsum(eqn, value_vec, rhs)
           value_proj = self.FromAqtActActMatmul(value_proj)
 
     query_proj = gshard_utils.MeshSplit(
@@ -1445,11 +1465,11 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
 
     return query_proj, key_proj, value_proj
 
-  def _PostProj(self, theta, encoded):
+  def _PostProj(self, theta, encoded, eqn=None):
     """Post-attention projection."""
     p = self.params
     # Post projection
-    encoded = self.post.FProp(theta.post, encoded)
+    encoded = self.post.FProp(theta.post, encoded, eqn=eqn)
     # Shard the output
     encoded = gshard_utils.MeshSplit(
         encoded, p.device_mesh, p.activation_split_dims_mapping.bld
@@ -1961,8 +1981,11 @@ class SingleHeadedAttention(MultiHeadedAttention):
     )
     return encoded, probs
 
-  def _HeadsProj(self, theta, query_vec, key_vec=None, value_vec=None):
+  def _HeadsProj(
+      self, theta, query_vec, key_vec=None, value_vec=None, eqn=None
+  ):
     """Perform attention heads projections."""
+    assert eqn is None, 'eqn is not supported.'
     p = self.params
 
     if p.enable_qkv_proj_in_onestep:

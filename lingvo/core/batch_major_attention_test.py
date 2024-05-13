@@ -173,8 +173,16 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     expected_prob_out = np.reshape(expected_prob_out, (6, 6, 6))
     self.assertAllClose(expected_prob_out, prob_out)
 
-  @parameterized.named_parameters(('Two', 2), ('Three', 3))
-  def testMultiHeadedProjectionLayerInputMode(self, batch_dims):
+  @parameterized.named_parameters(
+      ('Two', 2), ('Three', 3), ('Eqn', 2, 'BTD,DNH->BNTH', True, (3, 4, 4, 2))
+  )
+  def testMultiHeadedProjectionLayerInputMode(
+      self,
+      batch_dims,
+      eqn=None,
+      input_proj_bias_rank_3=False,
+      expected_shape=None,
+  ):
     with self.session(use_gpu=True) as sess:
       batch_sizes = list(np.arange(3, 3 + batch_dims))
 
@@ -189,28 +197,43 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           num_heads=num_heads,
           dim_per_head=dim_per_head,
           is_output_projection=False,
+          use_bias=True,
+          input_proj_bias_rank_3=input_proj_bias_rank_3,
           name='proj',
       )
 
       proj = proj_p.Instantiate()
       tf.global_variables_initializer().run()
-      result = proj.FPropDefaultTheta(input_tf)
+      result = proj.FPropDefaultTheta(input_tf, eqn=eqn)
       result_np = sess.run(result)
-      self.assertEqual(
-          result_np.shape, tuple(batch_sizes + [num_heads, dim_per_head])
+      expected_shape = expected_shape or tuple(
+          batch_sizes + [num_heads, dim_per_head]
       )
+      self.assertEqual(result_np.shape, expected_shape)
 
-  @parameterized.named_parameters(('Two', 2), ('Three', 3))
-  def testMultiHeadedProjectionLayerOutputMode(self, batch_dims):
+  @parameterized.named_parameters(
+      ('Two', 2), ('Three', 3), ('Eqn', 2, 'BNTH,DNH->BTD')
+  )
+  def testMultiHeadedProjectionLayerOutputMode(
+      self,
+      batch_dims,
+      eqn=None,
+  ):
     with self.session(use_gpu=True) as sess:
-      batch_sizes = list(np.arange(3, 3 + batch_dims))
-
       num_heads, dim_per_head = 4, 2
       model_dims = num_heads * dim_per_head
-
-      input_tf = tf.random.normal(
-          shape=batch_sizes + [num_heads, dim_per_head], dtype=tf.float32
-      )
+      batch_sizes = list(np.arange(8, 8 + batch_dims))
+      if eqn is None:
+        input_tf = tf.random.normal(
+            shape=batch_sizes + [num_heads, dim_per_head], dtype=tf.float32
+        )
+      else:
+        batch_size = batch_sizes[0]
+        time_steps = batch_sizes[1]
+        input_tf = tf.random.normal(
+            shape=[batch_size, num_heads, time_steps, dim_per_head],
+            dtype=tf.float32,
+        )
 
       proj_p = attention.MultiHeadedProjectionLayer.Params().Set(
           input_dim=model_dims,
@@ -222,7 +245,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       proj = proj_p.Instantiate()
       tf.global_variables_initializer().run()
-      result = proj.FPropDefaultTheta(input_tf)
+      result = proj.FPropDefaultTheta(input_tf, eqn=eqn)
       result_np = sess.run(result)
 
       self.assertEqual(result_np.shape, tuple(batch_sizes + [model_dims]))
