@@ -34,10 +34,38 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'num_micro_batches': 2,
       },
       {
+          'testcase_name': '_atten_tpl_list',
+          'num_splits': 1,
+          'num_micro_batches': 2,
+          'atten_tpl': [
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+          ],
+      },
+      {
           'testcase_name': '_simplified_transformer',
           'num_splits': 1,
           'num_micro_batches': 1,
           'builder': self_attention.SimplifiedTransformerBuilder,
+          'expected_output': 39.930980,
+      },
+      {
+          'testcase_name': '_simplified_transformer_atten_tpl_list',
+          'num_splits': 1,
+          'num_micro_batches': 1,
+          'builder': self_attention.SimplifiedTransformerBuilder,
+          'atten_tpl': [
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+          ],
           'expected_output': 39.930980,
       },
       {
@@ -55,12 +83,14 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       num_micro_batches,
       builder=self_attention.Builder,
       parallel_attention_mlp=False,
+      atten_tpl=None,
       expected_output=386.16742,
   ):
     with self.session(use_gpu=False) as sess:
       bs = 2
       sl = 21
       d = 16
+      num_layers = 6
       tf.random.set_seed(12345)
       deterministic_dropout = num_splits > 1 or num_micro_batches > 1
       atten_builder = builder.Params().Set(
@@ -70,13 +100,20 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           deterministic_dropout=deterministic_dropout,
           num_splits=num_splits,
           num_micro_batches=num_micro_batches,
+          atten_tpl=atten_tpl or mt_attention.MultiHeadedAttention.Params(),
       )
       if builder is self_attention.SimplifiedTransformerBuilder:
         atten_builder.Set(
             parallel_attention_mlp=parallel_attention_mlp,
         )
-        atten_builder.atten_tpl.enable_shaped_attention = True
-      p = atten_builder.Instantiate().TransformerStack('atten', 6)
+        if isinstance(atten_builder.atten_tpl, list):
+          atten_builder.atten_tpl = [
+              atten_builder.atten_tpl[i].Set(enable_shaped_attention=True)
+              for i in range(len(atten_builder.atten_tpl))
+          ]
+        else:
+          atten_builder.atten_tpl.enable_shaped_attention = True
+      p = atten_builder.Instantiate().TransformerStack('atten', num_layers)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
       input_embs = tf.constant(np.random.random(size=[bs, sl, d]), dtype=float)
@@ -101,24 +138,54 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       {
           'testcase_name': '_v1_stack',
           'use_v1_stack': True,
-      }, {
+      },
+      {
+          'testcase_name': '_v1_stack_atten_tpl_list',
+          'use_v1_stack': True,
+          'atten_tpl': [
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+          ],
+      },
+      {
           'testcase_name': '_baseline',
           'first_n': None,
-      }, {
+      },
+      {
+          'testcase_name': '_baseline_atten_tpl_list',
+          'first_n': None,
+          'atten_tpl': [
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+          ],
+      },
+      {
           'testcase_name': '_first_1',
           'first_n': 1,
-      }, {
+      },
+      {
           'testcase_name': '_first_2',
           'first_n': 2,
-      }, {
+      },
+      {
           'testcase_name': '_stride_2',
           'stride': 2,
-      })
-  def testTransformerStackV2(self, use_v1_stack=False, stride=1, first_n=None):
+      },
+  )
+  def testTransformerStackV2(
+      self,
+      use_v1_stack=False,
+      stride=1,
+      first_n=None,
+      atten_tpl=mt_attention.MultiHeadedAttention.Params(),
+  ):
     with self.session(use_gpu=False) as sess:
       bs = 2
       sl = 21
       d = 16
+      num_layers = 3
       tf.random.set_seed(12345)
       atten_builder = self_attention.Builder.Params().Set(
           model_dim=d,
@@ -126,16 +193,19 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           ff_hidden_dim=5,
           deterministic_dropout=False,
           num_splits=1,
-          num_micro_batches=1)
+          num_micro_batches=1,
+          atten_tpl=atten_tpl,
+      )
       builder = atten_builder.Instantiate()
       if use_v1_stack:
-        p = builder.TransformerStack('atten', num_layers=3)
+        p = builder.TransformerStack('atten', num_layers=num_layers)
       else:
         p = builder.TransformerStackV2(
             'atten',
-            num_layers=3,
+            num_layers=num_layers,
             final_layer_stride=stride,
-            final_layer_first_n=first_n)
+            final_layer_first_n=first_n,
+        )
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
       self.assertAllEqual([
@@ -221,8 +291,26 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'use_v1_stack': True,
       },
       {
+          'testcase_name': '_v1_stack_atten_tpl_list',
+          'use_v1_stack': True,
+          'atten_tpl': [
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+          ],
+      },
+      {
           'testcase_name': '_baseline',
           'first_n': None,
+      },
+      {
+          'testcase_name': '_baseline_atten_tpl_list',
+          'first_n': None,
+          'atten_tpl': [
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+              mt_attention.MultiHeadedAttention.Params(),
+          ],
       },
       {
           'testcase_name': '_first_1',
@@ -243,12 +331,17 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       },
   )
   def testTransformerStackV2WithSimplifiedTransformer(
-      self, use_v1_stack=False, stride=1, first_n=None
+      self,
+      use_v1_stack=False,
+      stride=1,
+      first_n=None,
+      atten_tpl=mt_attention.MultiHeadedAttention.Params(),
   ):
     with self.session(use_gpu=False) as sess:
       bs = 2
       sl = 21
       d = 16
+      num_layers = 3
       tf.random.set_seed(12345)
       atten_builder = self_attention.SimplifiedTransformerBuilder.Params().Set(
           model_dim=d,
@@ -258,16 +351,25 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           num_splits=1,
           num_micro_batches=1,
           selfatten_enable_value_proj=False,
+          atten_tpl=atten_tpl,
       )
-      atten_builder.atten_tpl.enable_shaped_attention = True
-      atten_builder.atten_tpl.enable_ctx_post_proj = False
+      if isinstance(atten_builder.atten_tpl, list):
+        atten_builder.atten_tpl = [
+            atten_builder.atten_tpl[i].Set(
+                enable_shaped_attention=True, enable_ctx_post_proj=False
+            )
+            for i in range(len(atten_builder.atten_tpl))
+        ]
+      else:
+        atten_builder.atten_tpl.enable_shaped_attention = True
+        atten_builder.atten_tpl.enable_ctx_post_proj = False
       builder = atten_builder.Instantiate()
       if use_v1_stack:
-        p = builder.TransformerStack('atten', num_layers=3)
+        p = builder.TransformerStack('atten', num_layers=num_layers)
       else:
         p = builder.TransformerStackV2(
             'atten',
-            num_layers=3,
+            num_layers=num_layers,
             final_layer_stride=stride,
             final_layer_first_n=first_n,
         )

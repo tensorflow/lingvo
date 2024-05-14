@@ -5802,6 +5802,14 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'strides': [1, 1],
       },
       {
+          'testcase_name': '_baseline_atten_tpl_list',
+          'strides': [1, 1],
+          'atten_tpl': [
+              attention.MultiHeadedAttention.Params(),
+              attention.MultiHeadedAttention.Params(),
+          ],
+      },
+      {
           'testcase_name': '_stride_2',
           'strides': [1, 2],
       },
@@ -5835,6 +5843,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       trunc_seq=True,
       num_splits=1,
       num_micro_batches=1,
+      atten_tpl=None,
   ):
     with self.session(use_gpu=False) as sess:
       bs = 2
@@ -5851,6 +5860,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           funnel_pool_tpl=attention.FunnelPoolingLayer.Params().Set(
               begin_intact=begin_intact, trunc_seq=trunc_seq
           ),
+          atten_tpl=atten_tpl or attention.MultiHeadedAttention.Params(),
       )
       atten_builder = atten_builder_params.Instantiate()
       layers = []
@@ -5859,7 +5869,9 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
         accumulate_stride *= stride
         layers.append(
             atten_builder.FunnelEncoderLayer(
-                name='atten_{}'.format(layer_i), stride=stride
+                name='atten_{}'.format(layer_i),
+                stride=stride,
+                layer_idx=layer_i,
             )
         )
       p = atten_builder.Stack('model', layers)
@@ -6328,6 +6340,14 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'strides': [1, 1],
       },
       {
+          'testcase_name': '_baseline_atten_tpl_list',
+          'strides': [1, 1],
+          'atten_tpl': [
+              attention.MultiHeadedAttention.Params(),
+              attention.MultiHeadedAttention.Params(),
+          ],
+      },
+      {
           'testcase_name': '_stride_2',
           'strides': [2, 1],
       },
@@ -6336,7 +6356,9 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'strides': [2, 0],
       },
   )
-  def testTransformerStackWithStride(self, strides):
+  def testTransformerStackWithStride(
+      self, strides, atten_tpl=attention.MultiHeadedAttention.Params()
+  ):
     with self.session(use_gpu=False) as sess:
       bs = 2
       sl = 10
@@ -6344,7 +6366,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       tf.random.set_seed(12345)
       atten_builder = (
           attention.Builder.Params()
-          .Set(model_dim=d, num_heads=2, ff_hidden_dim=5)
+          .Set(model_dim=d, num_heads=2, ff_hidden_dim=5, atten_tpl=atten_tpl)
           .Instantiate()
       )
       layers = []
@@ -6353,7 +6375,9 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
         accumulate_stride *= stride
         layers.append(
             atten_builder.TransformerEncoderLayer(
-                name='atten_{}'.format(layer_i), stride=stride
+                name='atten_{}'.format(layer_i),
+                stride=stride,
+                layer_idx=layer_i,
             )
         )
       p = atten_builder.Seq('model', *layers)

@@ -30,7 +30,7 @@ MultiHeadedSelfAttention = batch_major_attention.MultiHeadedAttention
 class Builder(batch_major_attention.Builder):
   """Builder for self-attention layers."""
 
-  def SelfAttention(self, name):
+  def SelfAttention(self, name, layer_idx=None):
     p = self.params
     input_to_add = (
         'i.vec' if p.selfatten_add_unnormalized_input else 'after_ln')
@@ -38,6 +38,11 @@ class Builder(batch_major_attention.Builder):
     attention_inputs = 'after_ln,after_ln,after_ln,i.paddings'
     if p.packed_input:
       attention_inputs += ',i.segment_mask'
+    if isinstance(p.atten_tpl, list):
+      assert layer_idx is not None, 'layer_idx must be specified.'
+      atten_tpl = p.atten_tpl[layer_idx]
+    else:
+      atten_tpl = p.atten_tpl
 
     sub_list = [
         ('i.vec->after_ln', self._DefaultLN('LN')),
@@ -46,7 +51,8 @@ class Builder(batch_major_attention.Builder):
             self._MultiHeadedAtten(
                 'atten',
                 enable_qkv_proj_in_onestep=p.default_enable_qkv_proj_in_onestep,
-                enable_qk_proj_in_onestep=p.atten_tpl.enable_qk_proj_in_onestep,
+                enable_qk_proj_in_onestep=atten_tpl.enable_qk_proj_in_onestep,
+                atten_tpl=atten_tpl,
             ),
         ),
         (
@@ -70,33 +76,52 @@ class Builder(batch_major_attention.Builder):
         *sub_list
     )
 
-  def _TransformerLayerBlock(self, name, feed_forward_qdomain=None):
+  def _TransformerLayerBlock(
+      self, name, feed_forward_qdomain=None, layer_idx=None
+  ):
     """(inputs, paddings) -> (encoded, paddings)."""
     return self._Seq(
         name,
-        self.SelfAttention('self_atten'),
+        self.SelfAttention('self_atten', layer_idx=layer_idx),
         self.Feedforward('ff', qdomain=feed_forward_qdomain),
     )
 
   def TransformerStack(self, name, num_layers=1, feed_forward_qdomain=None):
     """Returns a stack of num_layers self-attention layers."""
-    blocks = [
-        self._TransformerLayerBlock(
-            'block_{}'.format(d), feed_forward_qdomain=feed_forward_qdomain
-        )
-        for d in range(num_layers)
-    ]
-    return self._MaybeSplit(name, blocks) or (
-        self._Rep(name, num_layers, self._TransformerLayerBlock('block'))
-    )
+    p = self.params
+    if isinstance(p.atten_tpl, list):
+      assert (
+          len(p.atten_tpl) == num_layers
+      ), 'atten_tpl list must have the same length as num_layers.'
+    blocks = []
+    for i in range(num_layers):
+      blocks.append(
+          self._Seq(
+              'iter_%03d' % i,
+              self._TransformerLayerBlock(
+                  'block',
+                  feed_forward_qdomain=feed_forward_qdomain,
+                  layer_idx=i,
+              ),
+          )
+      )
+    return self._MaybeSplit(name, blocks) or self._Seq(name, *blocks)
 
   def _StridedTransformerLayerBlock(
-      self, name, *, stride=1, first_n=None, feed_forward_qdomain=None
+      self,
+      name,
+      *,
+      stride=1,
+      first_n=None,
+      feed_forward_qdomain=None,
+      layer_idx=None
   ):
     """(inputs, paddings) -> (encoded, paddings)."""
     return self._Seq(
         name,
-        self._StridedAttention('self_atten', stride=stride, first_n=first_n),
+        self._StridedAttention(
+            'self_atten', stride=stride, first_n=first_n, layer_idx=layer_idx
+        ),
         self.Feedforward('ff', qdomain=feed_forward_qdomain),
     )
 
@@ -110,6 +135,11 @@ class Builder(batch_major_attention.Builder):
       feed_forward_qdomain=None
   ):
     """Returns a stack of num_layers self-attention layers."""
+    p = self.params
+    if isinstance(p.atten_tpl, list):
+      assert (
+          len(p.atten_tpl) == num_layers
+      ), 'atten_tpl list must have the same length as num_layers.'
     blocks = []
     for i in range(num_layers):
       if i < num_layers - 1:
@@ -124,6 +154,7 @@ class Builder(batch_major_attention.Builder):
                   stride=stride,
                   first_n=first_n,
                   feed_forward_qdomain=feed_forward_qdomain,
+                  layer_idx=i,
               ),
           )
       )
@@ -151,6 +182,7 @@ class SimplifiedTransformerBuilder(Builder):
       first_n=None,
       num_heads=None,
       feed_forward_qdomain=None,
+      layer_idx=None,
   ):
     """(inputs, paddings) -> (encoded, paddings)."""
     p = self.params
@@ -182,6 +214,12 @@ class SimplifiedTransformerBuilder(Builder):
     if num_heads is None:
       num_heads = p.num_heads
 
+    if isinstance(p.atten_tpl, list):
+      assert layer_idx is not None, 'layer_idx must be specified.'
+      atten_tpl = p.atten_tpl[layer_idx]
+    else:
+      atten_tpl = p.atten_tpl
+
     # compute qkv in one step only if default_enable_qkv_proj_in_onestep
     # and no striding (stride==1) and not first_n
     enable_qkv_proj_in_onestep = (
@@ -189,10 +227,10 @@ class SimplifiedTransformerBuilder(Builder):
     )
     # Overriding default param based on stride.
     enable_qk_proj_in_onestep = (
-        p.atten_tpl.enable_qk_proj_in_onestep
+        atten_tpl.enable_qk_proj_in_onestep
         and stride == 1
         and not first_n
-        and not p.atten_tpl.use_mqa
+        and not atten_tpl.use_mqa
     )
 
     sub_list += [
@@ -215,6 +253,7 @@ class SimplifiedTransformerBuilder(Builder):
                 enable_qk_proj_in_onestep=enable_qk_proj_in_onestep,
                 query_stride=stride,
                 query_first_n=first_n,
+                atten_tpl=atten_tpl,
             ),
         ),
         (
@@ -334,15 +373,24 @@ class SimplifiedTransformerBuilder(Builder):
 
   def TransformerStack(self, name, num_layers=1, feed_forward_qdomain=None):
     """Returns a stack of num_layers self-attention layers."""
-    blocks = [
-        self.TransformerLayerBlock(
-            'block_{}'.format(d), feed_forward_qdomain=feed_forward_qdomain
-        )
-        for d in range(num_layers)
-    ]
-    return self._MaybeSplit(name, blocks) or (
-        self._Rep(name, num_layers, self.TransformerLayerBlock('block'))
-    )
+    p = self.params
+    if isinstance(p.atten_tpl, list):
+      assert (
+          len(p.atten_tpl) == num_layers
+      ), 'atten_tpl list must have the same length as num_layers.'
+    blocks = []
+    for i in range(num_layers):
+      blocks.append(
+          self._Seq(
+              'iter_%03d' % i,
+              self.TransformerLayerBlock(
+                  'block',
+                  feed_forward_qdomain=feed_forward_qdomain,
+                  layer_idx=i,
+              ),
+          )
+      )
+    return self._MaybeSplit(name, blocks) or self._Seq(name, *blocks)
 
   def TransformerStackV2(
       self,
@@ -354,6 +402,11 @@ class SimplifiedTransformerBuilder(Builder):
       feed_forward_qdomain=None
   ):
     """Returns a stack of num_layers self-attention layers."""
+    p = self.params
+    if isinstance(p.atten_tpl, list):
+      assert (
+          len(p.atten_tpl) == num_layers
+      ), 'atten_tpl list must have the same length as num_layers.'
     blocks = []
     for i in range(num_layers):
       if i < num_layers - 1:
@@ -368,6 +421,7 @@ class SimplifiedTransformerBuilder(Builder):
                   stride=stride,
                   first_n=first_n,
                   feed_forward_qdomain=feed_forward_qdomain,
+                  layer_idx=i,
               ),
           )
       )
