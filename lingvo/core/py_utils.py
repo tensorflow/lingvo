@@ -6960,6 +6960,7 @@ def MultiTaskProjection(
     quant_layer,  # quant_utils.QuantizableLayer, would be circular import
     w_q_name: str,
     w_q_domain: str = 'default',
+    qat_output: bool = False,
 ) -> tf.Tensor:
   """Applies a multi-task projection.
 
@@ -6982,6 +6983,11 @@ def MultiTaskProjection(
     quant_layer: QuantizableLayer used for AQT (pass `self`)
     w_q_name: string. Name of the weight tensor to use for AQT.
     w_q_domain: string. Name of the Qdomain to use for AQT.
+    qat_output: bool. Setting to true allows quantization aware training in the
+      select_and_multiply branch, as the weights are quantized and output is
+      converted back to the float domain after multiply. Setting to false is
+      fake quantization aware training, where the weights are quantized and
+      converted back before multiply.
 
   Returns:
     Projected tensor, size [batch, time, output_dim]
@@ -7036,12 +7042,24 @@ def MultiTaskProjection(
     selected_weights = tf.einsum(
         f'{b_task}{t_task}k,kio->{b_task}{t_task}io', tasks_onehot, weights
     )
-    selected_weights = quant_layer.FromAqtWeight(w_q_name, selected_weights)
-    # .. and multiply
-    # [batch, {time,} output_dim]
-    out = tf.einsum(
-        f'b{t_input}i,{b_task}{t_task}io->b{t_input}o', inputs, selected_weights
-    )
+    if qat_output:
+      # .. and multiply
+      # [batch, {time,} output_dim]
+      out = tf.einsum(
+          f'b{t_input}i,{b_task}{t_task}io->b{t_input}o',
+          inputs,
+          selected_weights,
+      )
+      out = quant_layer.FromAqtMatmul(w_q_name, out)
+    else:
+      selected_weights = quant_layer.FromAqtWeight(w_q_name, selected_weights)
+      # .. and multiply
+      # [batch, {time,} output_dim]
+      out = tf.einsum(
+          f'b{t_input}i,{b_task}{t_task}io->b{t_input}o',
+          inputs,
+          selected_weights,
+      )
   elif einsum_order == 'multiply_and_select':
     # multiply..
     # [batch, {time,} task, output_dim]

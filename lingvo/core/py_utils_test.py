@@ -1321,6 +1321,37 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       x = py_utils.AddVN(p, x, channel_reverse=channel_reverse)
       self.assertAllClose(self.evaluate(x), expected)
 
+  @parameterized.named_parameters(
+      ('DefaultQatWeight', False, [[3.0, 3.0, 3.0]]),
+      ('TestQatOutput', True, [[3.0, 3.0, 3.0]]),
+  )
+  def testQAT(self, qat_output, expected):
+    # num_tasks=1, input_dim=2, output_dim=3
+    weights = tf.constant(
+        [[[1.0, 1.0, 1.0], [2.0, 2.0, 2.0]]], dtype=tf.float32
+    )
+    inputs = tf.constant([[1.0, 1.0]], dtype=tf.float32)
+    einsum_order = 'select_and_multiply'
+    quant_layer_p = layers.MultitaskProjectionEinsumLayer.Params()
+    quant_layer_p.name = 'testQAT'
+    quant_layer_p.input_dim = 2
+    quant_layer_p.output_dim = 3
+    quant_layer_p.num_tasks = 1
+
+    with self.session(use_gpu=False):
+      x = py_utils.MultiTaskProjection(
+          weights=weights,
+          biases=None,
+          inputs=inputs,
+          tasks=0,
+          einsum_order=einsum_order,
+          quant_layer=layers.MultitaskProjectionEinsumLayer(quant_layer_p),
+          w_q_name='w',
+          w_q_domain='default',
+          qat_output=qat_output,
+      )
+      self.assertAllClose(self.evaluate(x), expected)
+
   def testShardedFilePatternToGlob(self):
     file_pattern = '/some/path/to/file@8'
     self.assertEqual('/some/path/to/file-?????-of-00008',

@@ -1435,6 +1435,15 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
         'number of tasks is much smaller than the input dimension, using '
         'multiply_and_select will be faster.',
     )
+    p.Define(
+        'qat_output',
+        False,
+        'Setting to true allows quantization aware training in the '
+        'select_and_multiply branch, as the weights are quantized and output '
+        'is converted back to the float domain after multiply. Setting to '
+        'false is fake quantization aware training, where the weights are '
+        'quantized and converted back before multiply.',
+    )
     return p
 
   def __init__(self, params):
@@ -1544,6 +1553,7 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
         einsum_order=p.einsum_order,
         quant_layer=self,
         w_q_name='w',
+        qat_output=p.qat_output,
     )
 
   def _ApplyActivationFunction(self, out):
