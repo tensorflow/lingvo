@@ -27,6 +27,242 @@ from lingvo.core import py_utils
 MultiHeadedSelfAttention = batch_major_attention.MultiHeadedAttention
 
 
+class BlockSparseAttention(MultiHeadedSelfAttention):
+  """Block sparse attention based on https://arxiv.org/pdf/2007.14062.pdf.
+
+  This implmentation only has diagonal band mask and does not support
+  global and random attention.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define(
+        'src_block_size', None, 'Query Block size for block sparse attention.'
+    )
+    p.Define(
+        'tgt_block_size',
+        None,
+        'Key/Value Block size for block sparse attention.',
+    )
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    assert p.src_block_size is not None, 'src_block_size is not set'
+    assert p.src_block_size > 0, 'src_block_size should be greater than 0'
+    assert not p.packed_input, 'packed_input is not supported'
+    assert (
+        not p.use_scale_invariant_atten
+    ), 'use_scale_invariant_atten is not supported.'
+    assert (
+        not p.enable_scaling_code_motion
+    ), 'enable_scaling_code_motion is not supported.'
+
+  def _DiagonalBandMaskFromInputs(self, src_blocked_mask, tgt_blocked_mask):
+    """Constructs diagonal block mask to compute local attention.
+
+    This mask is used to compute local attention for all the query blocks.
+
+    Args:
+      src_blocked_mask: 3D Tensor of shape [b, t//wt, wt].
+      tgt_blocked_mask: 3D Tensor of shape [b, s//ws, ws].
+
+    Returns:
+      float Tensor of shape [b, 1, t//wt, ws, ws].
+    """
+    # Concatenating left rolled, fixed and right rolled copies of
+    # tgt_blocked_mask to compute diagonal band mask.
+    # [b, t//wt, wt] x [b, s//ws, ws] ==> [b, t//wt, wt, ws]
+    # Assumption: t//wt = s//ws
+    band_mask = self.QEinsum(
+        'BLQ,BLK->BLQK', src_blocked_mask, tgt_blocked_mask
+    )
+    band_mask = tf.expand_dims(band_mask, 1)
+    return band_mask
+
+  def _ComputeLogits(self, theta, query, key, mask=None, eqn=None):
+    del theta
+    query, key = self.ToAqtActActInputs(query, key)
+    if eqn is None:
+      eqn = 'BNTH,BNSH->BNTS'
+    logits = self.QEinsum(eqn, query, key)
+    logits = self.FromAqtActActMatmul(logits)
+    # Keep softmax computation in float32 otherwise the low precision can
+    # can lead to worse quality.
+    logits = tf.cast(logits, tf.float32)
+    logits = self._CapLogits(logits)
+    if mask is not None:
+      logits += batch_major_attention.GetDtypeMin(logits.dtype) * (
+          1.0 - tf.cast(mask, logits.dtype)
+      )
+    return logits
+
+  def _ComputeAttnProbs(self, theta, logits):
+    p = self.params
+    dtype = p.fprop_dtype
+    if dtype is None:
+      dtype = p.dtype
+    probs = tf.cast(
+        py_utils.Softmax(logits, extra_logit=p.atten_extra_logit),
+        dtype,
+    )
+    # Apply dropout to probs.
+    probs = self.atten_dropout.FProp(theta.atten_dropout, probs)
+    return probs
+
+  def _ComputeContext(self, theta, probs, value, eqn=None):
+    del theta
+    probs, value = self.ToAqtActActInputs(
+        probs,
+        value,
+        act_lhs_distribution='positive',
+        act_rhs_distribution='symmetric',
+    )
+    if eqn is None:
+      eqn = 'BNTS,BNSH->BNTH'
+    encoded = self.QEinsum(eqn, probs, value)
+    encoded = self.FromAqtActActMatmul(encoded)
+    return encoded
+
+  def ComputeLocalContext(self, theta, query, key, value, band_mask):
+    """Computes diagonal context for query blocks.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query: [B, n, t//wt, wt, h]
+      key: [B, n, s//ws, ws, h]
+      value: [B, n, s//ws, ws h]
+      band_mask: [B, 1, t//wt, wt, ws]
+
+    Returns:
+      [B, n, t//wt, wt, h]
+    """
+    # [b, n, t//wt, wt, h] x [b, n, t//wt, ws, h]
+    #  ==> [b, n, t//wt, wt, ws]
+    diagonal_logits = self._ComputeLogits(
+        theta,
+        query,  # [b, n, t//wt, wt, h]
+        key,  # [b, n, t//wt, ws, h]
+        mask=band_mask,  # [b, 1, t//wt, wt, ws]
+        eqn='BNLTH,BNLSH->BNLTS',
+    )
+    band_probs = self._ComputeAttnProbs(theta, diagonal_logits)
+    # [b, n, t//wt, wt, ws] x [b, n, s//ws, ws, h] ==>
+    # [b, n, t//wt, wt, h]
+    band_context = self._ComputeContext(
+        theta,
+        band_probs,  # [b, n, t//wt, wt, ws]
+        value,  # [b, n, s//ws, ws, h]
+        eqn='BNLTS,BNLSH->BNLTH',
+    )
+    return band_context, band_probs
+
+  def BlockSparseAttention(
+      self, theta, query, key, value, input_mask, band_mask
+  ):
+    del input_mask
+    p = self.params
+    # Scale the query projection.
+    query = self._MaybeScaleQuery(theta, query)
+
+    # Converting query to blocks.
+    b, n, t, h = py_utils.GetShape(query, 4)
+    wt = p.src_block_size
+    src_num_blocks = t // wt
+    blocked_query = tf.reshape(query, (b, n, src_num_blocks, wt, h))
+
+    # Converting key/value to blocks.
+    _, n, s, h = py_utils.GetShape(key, 5)
+    ws = p.tgt_block_size or p.src_block_size
+    tgt_num_blocks = s // ws
+    assert tgt_num_blocks == src_num_blocks, 'tgt_num_blocks != src_num_blocks'
+    blocked_key = tf.reshape(key, (b, n, tgt_num_blocks, ws, h))
+    blocked_value = tf.reshape(value, (b, n, tgt_num_blocks, ws, h))
+
+    with tf.name_scope('q_0_to_n_local_context'):
+      ctx, _ = self.ComputeLocalContext(
+          theta,
+          blocked_query,
+          blocked_key,
+          blocked_value,
+          band_mask,
+      )
+    encoded = tf.reshape(ctx, [b, n, t, h])
+    return encoded, None
+
+  def FProp(
+      self,
+      theta,
+      query_vec,
+      key_vec,
+      value_vec,
+      paddings,
+      segment_mask=None,
+      per_step_padding=None,
+  ):
+    """Computes the value vector given the current query output.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec: [B, T, D].
+      key_vec:   [B, S, D].
+      value_vec: [B, S, D].
+      paddings:  [B, S].
+      segment_mask: [B, 1, T, S]. A mask only applied if packed_input=encTrue.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, T, T] if
+        not None.
+
+    Returns:
+      encoded: [B, T, D].
+      atten_probs: [B, N, T, S].
+
+    Raises:
+      ValueError: If value projection is disabled.
+    """
+    p = self.params
+    assert per_step_padding is None, 'per_step_padding is not supported.'
+    assert segment_mask is None, 'segment_mask is not supported.'
+    b, t, _ = py_utils.GetShape(query_vec, 3)
+    _, s, _ = py_utils.GetShape(key_vec, 3)
+    paddings = py_utils.HasShape(paddings, [b, s])
+    assert t % p.src_block_size == 0, 'seq_length % src_block_size != 0'
+    assert s % p.tgt_block_size == 0, 'seq_length % tgt_block_size != 0'
+    input_mask = tf.cast(1.0 - tf.cast(paddings, tf.float32), paddings.dtype)
+    # Computing band mask for local attention.
+    block_mask = tf.reshape(
+        input_mask, (-1, s // p.tgt_block_size, p.tgt_block_size)
+    )
+    band_mask = self._DiagonalBandMaskFromInputs(block_mask, block_mask)
+
+    # Heads projection
+    query_proj, key_proj, value_proj = self._HeadsProj(
+        theta, query_vec, key_vec, value_vec, eqn='BTD,DNH->BNTH'
+    )
+    input_mask = tf.reshape(input_mask, [b, 1, 1, s])
+    encoded, atten_probs = self.BlockSparseAttention(
+        theta,
+        query_proj,
+        key_proj,
+        value_proj,
+        input_mask,
+        band_mask,
+    )
+    # Post projection
+    if p.enable_ctx_post_proj:
+      encoded = self._PostProj(theta, encoded, eqn='BNTH,DNH->BTD')
+    else:
+      b, n, t, h = py_utils.GetShape(encoded, 4)
+      encoded = tf.transpose(encoded, [0, 2, 1, 3])
+      encoded = tf.reshape(encoded, [b, t, n * h])
+
+    return encoded, atten_probs
+
+
 class Builder(batch_major_attention.Builder):
   """Builder for self-attention layers."""
 

@@ -21,6 +21,7 @@ from lingvo.core import py_utils
 from lingvo.core import self_attention_layer as self_attention
 from lingvo.core import test_utils
 import numpy as np
+from scipy.special import softmax
 
 
 class BuilderTest(test_utils.TestCase, parameterized.TestCase):
@@ -678,6 +679,159 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       enc_vec = sess.run(enc_vec)
       self_attention_enc_vec = sess.run(self_attention_enc_vec)
       self.assertAllClose(enc_vec, self_attention_enc_vec)
+
+
+class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
+  """Test block sparse attention."""
+
+  def _AttentionInputs(self, batch_size, seq_len, input_dim, dtype=tf.float32):
+    np.random.seed(6348575)
+    input_vecs_p = [
+        np.random.rand(seq_len, input_dim) for _ in range(batch_size)
+    ]
+    input_vecs = tf.stack([tf.constant(x, dtype=dtype) for x in input_vecs_p])
+    input_padding_p = np.zeros([batch_size, seq_len])
+    input_padding = tf.constant(input_padding_p, dtype=dtype)
+
+    return input_vecs, input_padding, input_vecs_p, input_padding_p
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_local_attention',
+          'expected_output': 11.880488,
+      },
+  )
+  def testBlockSparseAttentionFprop(
+      self,
+      expected_output=None,
+  ):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 4
+      ws = 2  # block size.
+      tf.random.set_seed(12345)
+      (input_vecs, input_padding, _, _) = self._AttentionInputs(bs, sl, d)
+      segment_mask = None
+
+      p = self_attention.BlockSparseAttention.Params().Set(
+          name='self_atten',
+          input_dim=d,
+          hidden_dim=d,
+          src_block_size=ws,
+          tgt_block_size=ws,
+      )
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+
+      encoded, _ = l.FPropDefaultTheta(
+          query_vec=input_vecs,
+          key_vec=input_vecs,
+          value_vec=input_vecs,
+          paddings=input_padding,
+          segment_mask=segment_mask,
+      )
+      encoder_sum = tf.reduce_sum(encoded)
+      tf.global_variables_initializer().run()
+      encoded_out, encoded_out_sum = sess.run([encoded, encoder_sum])
+      self.assertAllEqual(encoded_out.shape, (bs, sl, d))
+      self.assertAllClose(expected_output, encoded_out_sum, atol=1e-5)
+
+  def _ComputeLocalContext(self, query, key, value, band_mask):
+    """Computing local context.
+
+    Args:
+      query: [b, n, l, t, h]
+      key: [b, n, l, s, h]
+      value: [b, n, l, s, h]
+      band_mask: [b, 1, l, t, s]
+
+    Returns:
+    """
+    band_logits = np.einsum('bnlth,bnlsh->bnlts', query, key)
+    band_logits += (1.0 - band_mask) * -1e9
+    band_probs = softmax(band_logits, axis=-1)
+    band_context = np.einsum(
+        'bnlts,bnlsh->bnlth',
+        band_probs,
+        value,
+    )
+    return band_context
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_local_attention',
+      },
+  )
+  def testBlockSparseAttentionOutput(self):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 4
+      src_block_size = 2
+      tgt_block_size = 2
+      tf.random.set_seed(12345)
+      (input_vecs, input_padding, input_vecs_p, input_padding_p) = (
+          self._AttentionInputs(bs, sl, d)
+      )
+
+      p = self_attention.BlockSparseAttention.Params().Set(
+          name='self_atten',
+          input_dim=d,
+          hidden_dim=d,
+          src_block_size=src_block_size,
+          tgt_block_size=tgt_block_size,
+          enable_query_scale=False,
+      )
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+
+      input_proj = tf.expand_dims(input_vecs, 1)
+      input_mask = tf.cast(
+          1.0 - tf.cast(input_padding, tf.float32), input_padding.dtype
+      )
+      block_mask = tf.reshape(
+          input_mask, (-1, sl // tgt_block_size, tgt_block_size)
+      )
+      band_mask = l._DiagonalBandMaskFromInputs(block_mask, block_mask)
+      input_mask = tf.reshape(input_mask, (bs, 1, 1, sl))
+
+      encoded, _ = l.BlockSparseAttention(
+          l.theta,
+          query=input_proj,
+          key=input_proj,
+          value=input_proj,
+          input_mask=input_mask,
+          band_mask=band_mask,
+      )
+      tf.global_variables_initializer().run()
+      encoded_out = sess.run(encoded)
+      self.assertAllEqual(encoded_out.shape, (bs, 1, sl, d))
+      # Use numpy to perform the same computation to generate expected results.
+      input_vecs_p = np.expand_dims(input_vecs_p, 2)
+      input_mask_p = 1.0 - input_padding_p
+      block_mask_p = np.reshape(
+          input_mask_p, (-1, sl // tgt_block_size, tgt_block_size)
+      )
+      band_mask_p = np.einsum('blq,blk->blqk', block_mask_p, block_mask_p)
+      band_mask_p = np.expand_dims(band_mask_p, 1)
+      blocked_query = np.reshape(
+          input_vecs_p, (bs, 1, sl // src_block_size, src_block_size, d)
+      )
+      blocked_key = np.reshape(
+          input_vecs_p, (bs, 1, sl // tgt_block_size, tgt_block_size, d)
+      )
+      blocked_value = np.reshape(
+          input_vecs_p, (bs, 1, sl // tgt_block_size, tgt_block_size, d)
+      )
+      expected_encoded = self._ComputeLocalContext(
+          blocked_query,
+          blocked_key,
+          blocked_value,
+          band_mask_p,
+      )
+      expected_encoded = np.reshape(expected_encoded, (bs, 1, sl, d))
+      self.assertAllClose(expected_encoded, encoded_out, atol=1e-5)
 
 
 if __name__ == '__main__':
