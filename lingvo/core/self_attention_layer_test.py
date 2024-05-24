@@ -698,11 +698,25 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       {
           'testcase_name': '_local_attention',
-          'expected_output': 11.880488,
+          'expected_output': 11.933180,
+      },
+      {
+          'testcase_name': '_local_attention_mqa',
+          'use_mqa': True,
+          'num_kv_heads': 1,
+          'expected_output': 4.652255,
+      },
+      {
+          'testcase_name': '_local_attention_gqa',
+          'use_mqa': True,
+          'num_kv_heads': 2,
+          'expected_output': 5.873354,
       },
   )
   def testBlockSparseAttentionFprop(
       self,
+      use_mqa=False,
+      num_kv_heads=None,
       expected_output=None,
   ):
     with self.session(use_gpu=False) as sess:
@@ -717,9 +731,15 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
       p = self_attention.BlockSparseAttention.Params().Set(
           name='self_atten',
           input_dim=d,
-          hidden_dim=d,
+          hidden_dim=4,
+          num_heads=4,
+          proj_tpl=mt_attention.MultiHeadedProjectionLayer.Params().Set(
+              input_proj_bias_rank_3=True
+          ),
           src_block_size=ws,
           tgt_block_size=ws,
+          use_mqa=use_mqa,
+          num_kv_heads=num_kv_heads,
       )
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
@@ -737,7 +757,9 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(encoded_out.shape, (bs, sl, d))
       self.assertAllClose(expected_output, encoded_out_sum, atol=1e-5)
 
-  def _ComputeLocalContext(self, query, key, value, band_mask):
+  def _ComputeLocalContext(
+      self, query, key, value, band_mask, logits_eqn=None, ctx_eqn=None
+  ):
     """Computing local context.
 
     Args:
@@ -745,14 +767,18 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
       key: [b, n, l, s, h]
       value: [b, n, l, s, h]
       band_mask: [b, 1, l, t, s]
+      logits_eqn: Einsum string
+      ctx_eqn: Einsum string
 
     Returns:
     """
-    band_logits = np.einsum('bnlth,bnlsh->bnlts', query, key)
+    logits_eqn = logits_eqn or 'bnlth,bnlsh->bnlts'
+    ctx_eqn = ctx_eqn or 'bnlts,bnlsh->bnlth'
+    band_logits = np.einsum(logits_eqn, query, key)
     band_logits += (1.0 - band_mask) * -1e9
     band_probs = softmax(band_logits, axis=-1)
     band_context = np.einsum(
-        'bnlts,bnlsh->bnlth',
+        ctx_eqn,
         band_probs,
         value,
     )
@@ -762,12 +788,23 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
       {
           'testcase_name': '_local_attention',
       },
+      {
+          'testcase_name': '_local_attention_mqa',
+          'use_mqa': True,
+          'num_kv_heads': 1,
+      },
+      {
+          'testcase_name': '_local_attention_gqa',
+          'use_mqa': True,
+          'num_kv_heads': 2,
+      },
   )
-  def testBlockSparseAttentionOutput(self):
+  def testBlockSparseAttentionOutput(self, use_mqa=False, num_kv_heads=None):
     with self.session(use_gpu=False) as sess:
       bs = 2
       sl = 10
       d = 4
+      num_heads = 4
       src_block_size = 2
       tgt_block_size = 2
       tf.random.set_seed(12345)
@@ -779,6 +816,9 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
           name='self_atten',
           input_dim=d,
           hidden_dim=d,
+          num_heads=num_heads,
+          use_mqa=use_mqa,
+          num_kv_heads=num_kv_heads,
           src_block_size=src_block_size,
           tgt_block_size=tgt_block_size,
           enable_query_scale=False,
@@ -786,7 +826,12 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
 
-      input_proj = tf.expand_dims(input_vecs, 1)
+      src_proj = tf.reshape(input_vecs, [bs, num_heads, sl, d // num_heads])
+      if num_kv_heads is not None and num_kv_heads < num_heads:
+        tgt_proj = tf.split(src_proj, num_heads, axis=1)
+        tgt_proj = tf.concat(tgt_proj[:num_kv_heads], axis=1)
+      else:
+        tgt_proj = src_proj
       input_mask = tf.cast(
           1.0 - tf.cast(input_padding, tf.float32), input_padding.dtype
       )
@@ -798,17 +843,21 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       encoded, _ = l.BlockSparseAttention(
           l.theta,
-          query=input_proj,
-          key=input_proj,
-          value=input_proj,
+          query=src_proj,
+          key=tgt_proj,
+          value=tgt_proj,
           input_mask=input_mask,
           band_mask=band_mask,
       )
       tf.global_variables_initializer().run()
       encoded_out = sess.run(encoded)
-      self.assertAllEqual(encoded_out.shape, (bs, 1, sl, d))
+      self.assertAllEqual(
+          encoded_out.shape, (bs, num_heads, sl, d // num_heads)
+      )
       # Use numpy to perform the same computation to generate expected results.
-      input_vecs_p = np.expand_dims(input_vecs_p, 2)
+      input_vecs_p = np.reshape(
+          input_vecs_p, (bs, num_heads, sl, d // num_heads)
+      )
       input_mask_p = 1.0 - input_padding_p
       block_mask_p = np.reshape(
           input_mask_p, (-1, sl // tgt_block_size, tgt_block_size)
@@ -816,21 +865,51 @@ class BlockSparseAttentionTest(test_utils.TestCase, parameterized.TestCase):
       band_mask_p = np.einsum('blq,blk->blqk', block_mask_p, block_mask_p)
       band_mask_p = np.expand_dims(band_mask_p, 1)
       blocked_query = np.reshape(
-          input_vecs_p, (bs, 1, sl // src_block_size, src_block_size, d)
+          input_vecs_p,
+          (
+              bs,
+              num_heads,
+              sl // src_block_size,
+              src_block_size,
+              d // num_heads,
+          ),
       )
-      blocked_key = np.reshape(
-          input_vecs_p, (bs, 1, sl // tgt_block_size, tgt_block_size, d)
-      )
-      blocked_value = np.reshape(
-          input_vecs_p, (bs, 1, sl // tgt_block_size, tgt_block_size, d)
-      )
+      if num_kv_heads is not None:
+        input_kv_vecs_p = blocked_query[:, :num_kv_heads, :, :, :]
+        if num_kv_heads > 1:
+          blocked_query = np.reshape(
+              blocked_query,
+              (
+                  bs,
+                  num_kv_heads,
+                  num_heads // num_kv_heads,
+                  sl // src_block_size,
+                  src_block_size,
+                  d // num_heads,
+              ),
+          )
+          logits_eqn = 'BKnLTH,BKLSH->BnKLTS'
+          ctx_eqn = 'BKnLTS,BKLSH->BnKLTH'
+        else:
+          input_kv_vecs_p = np.squeeze(input_kv_vecs_p, axis=1)
+          logits_eqn = 'BNLTH,BLSH->BNLTS'
+          ctx_eqn = 'BNLTS,BLSH->BNLTH'
+      else:
+        logits_eqn = None
+        ctx_eqn = None
+        input_kv_vecs_p = blocked_query
+
       expected_encoded = self._ComputeLocalContext(
           blocked_query,
-          blocked_key,
-          blocked_value,
+          input_kv_vecs_p,
+          input_kv_vecs_p,
           band_mask_p,
+          logits_eqn=logits_eqn,
+          ctx_eqn=ctx_eqn,
       )
-      expected_encoded = np.reshape(expected_encoded, (bs, 1, sl, d))
+      expected_encoded = np.reshape(
+          expected_encoded, (bs, num_heads, sl, d // num_heads)
+      )
       self.assertAllClose(expected_encoded, encoded_out, atol=1e-5)
 
 

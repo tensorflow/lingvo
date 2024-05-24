@@ -142,12 +142,37 @@ class BlockSparseAttention(MultiHeadedSelfAttention):
     """
     # [b, n, t//wt, wt, h] x [b, n, t//wt, ws, h]
     #  ==> [b, n, t//wt, wt, ws]
+    p = self.params
+    b, n, l, t, h = py_utils.GetShape(query, 5)
+    _, k, _, s, _ = py_utils.GetShape(key, 5)
+
+    num_kv_heads = p.num_kv_heads
+    if num_kv_heads is None:
+      num_kv_heads = p.num_heads
+    if p.use_mqa:
+      if num_kv_heads > 1:
+        query = tf.reshape(
+            query, [b, num_kv_heads, p.num_heads // num_kv_heads, l, t, h]
+        )
+        logits_eqn = 'BKnLTH,BKLSH->BnKLTS'
+        ctx_eqn = 'BKnLTS,BKLSH->BnKLTH'
+        band_mask = tf.expand_dims(band_mask, 1)
+      else:
+        assert k == 1, f'k={k} must be 1 for MQA'
+        key = tf.squeeze(key, axis=1)
+        value = tf.squeeze(value, axis=1)
+        logits_eqn = 'BNLTH,BLSH->BNLTS'
+        ctx_eqn = 'BNLTS,BLSH->BNLTH'
+    else:
+      logits_eqn = 'BNLTH,BNLSH->BNLTS'
+      ctx_eqn = 'BNLTS,BNLSH->BNLTH'
+
     diagonal_logits = self._ComputeLogits(
         theta,
         query,  # [b, n, t//wt, wt, h]
         key,  # [b, n, t//wt, ws, h]
         mask=band_mask,  # [b, 1, t//wt, wt, ws]
-        eqn='BNLTH,BNLSH->BNLTS',
+        eqn=logits_eqn,
     )
     band_probs = self._ComputeAttnProbs(theta, diagonal_logits)
     # [b, n, t//wt, wt, ws] x [b, n, s//ws, ws, h] ==>
@@ -156,8 +181,11 @@ class BlockSparseAttention(MultiHeadedSelfAttention):
         theta,
         band_probs,  # [b, n, t//wt, wt, ws]
         value,  # [b, n, s//ws, ws, h]
-        eqn='BNLTS,BNLSH->BNLTH',
+        eqn=ctx_eqn,
     )
+    if p.use_mqa and num_kv_heads > 1:
+      band_context = tf.reshape(band_context, [b, n, l, t, h])
+      band_probs = tf.reshape(band_probs, [b, n, l, t, s])
     return band_context, band_probs
 
   def BlockSparseAttention(
@@ -175,12 +203,12 @@ class BlockSparseAttention(MultiHeadedSelfAttention):
     blocked_query = tf.reshape(query, (b, n, src_num_blocks, wt, h))
 
     # Converting key/value to blocks.
-    _, n, s, h = py_utils.GetShape(key, 5)
+    _, k, s, h = py_utils.GetShape(key, 4)
     ws = p.tgt_block_size or p.src_block_size
     tgt_num_blocks = s // ws
     assert tgt_num_blocks == src_num_blocks, 'tgt_num_blocks != src_num_blocks'
-    blocked_key = tf.reshape(key, (b, n, tgt_num_blocks, ws, h))
-    blocked_value = tf.reshape(value, (b, n, tgt_num_blocks, ws, h))
+    blocked_key = tf.reshape(key, (b, k, tgt_num_blocks, ws, h))
+    blocked_value = tf.reshape(value, (b, k, tgt_num_blocks, ws, h))
 
     with tf.name_scope('q_0_to_n_local_context'):
       ctx, _ = self.ComputeLocalContext(

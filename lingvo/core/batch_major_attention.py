@@ -750,8 +750,8 @@ class MultiHeadedAttention(quant_utils.QuantizableLayer):
     if p.use_mqa:
       if num_kv_heads > 1:
         assert (
-            num_kv_heads <= p.num_heads
-        ), 'num_kv_heads needs to be <= num_heads.'
+            num_kv_heads < p.num_heads
+        ), 'num_kv_heads needs to be < num_heads if MQA is enabled.'
         assert (
             p.num_heads % num_kv_heads == 0
         ), 'num_kv_heads needs to divide num_heads exactly.'
