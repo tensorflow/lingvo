@@ -2369,6 +2369,7 @@ py_library(
     deps = [
         ":py_utils",
         ":saver",
+        # Implicit lineage_log dependency.
         "//lingvo:compat",
         # Implicit six dependency.
     ],
