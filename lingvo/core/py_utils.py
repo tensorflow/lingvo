@@ -2071,7 +2071,9 @@ def _CreateVariableStateful(name,
         aggregation=aggregation)
 
   combined_layers_dims = GetVariableNumLeadingDimsForCombinedLayersContext()
-  if combined_layers_dims > 0:
+
+  # Tensor.op is undefined when eager execution is enabled.
+  if combined_layers_dims > 0 and hasattr(var, 'op'):
     # pylint: disable=protected-access
     var.op._set_attr('_num_leading_dims_for_combined_layers',
                      attr_value_pb2.AttrValue(i=combined_layers_dims))
