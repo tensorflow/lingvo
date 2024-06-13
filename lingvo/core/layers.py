@@ -454,6 +454,44 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     b = (beta - (gamma * mean * sigma_recip))
     return filter_w, b
 
+  def _ApplyCausalPadding(self, inputs):
+    p = self.params
+    # The effective spatial filter size for dilated convolutions is
+    # (kernel - 1) * dilation_rate + 1 as according to
+    # https://www.tensorflow.org/api_docs/python/tf/nn/convolution.
+    causal_pad_size = (p.filter_shape[0] - 1) * p.dilation_rate[0]
+
+    # Apply padding in width dimension to mimic SAME padding.
+    # Using the similar logic as above to produce the same number of output
+    # as if SAME padding is used.
+    width_pad_size = (p.filter_shape[1] - 1) * p.dilation_rate[1]
+
+    # The amount of padding on the left is tricky. If stride > 1, total
+    # padding required for SAME padding would be:
+    #   pad = ceil(input_size / stride - 1) * stride + eff_kernel - input_size
+    # where eff_kernel = (kernel - 1) * dilation_rate + 1
+    # TensorFlow also pads more on the right / bottom side if total padding
+    # required is an odd number, so pad_left = pad // 2
+    # Therefore pad_left could depend on input size, which might be dynamic.
+    # Here we only handle two special cases where 1) stride = 1, then
+    #   pad_left = (eff_kernel - 1) // 2
+    # and 2) kernel = 1, then
+    #   pad_left = 0
+    if p.filter_stride[1] > 1 and p.filter_shape[1] > 1:
+      raise ValueError(
+          'Causal convolution only supports width stride = 1  or filter '
+          'width = 1.'
+      )
+    width_pad_left = max(0, width_pad_size - 1) // 2
+    width_pad_right = width_pad_size - width_pad_left
+    pad_size = [
+        [0, 0],
+        [causal_pad_size, 0],
+        [width_pad_left, width_pad_right],
+        [0, 0],
+    ]
+    return tf.pad(inputs, pad_size)
+
   def _ApplyConv(self, theta, inputs, folded_bn_padding=None):
     p = self.params
     strides = [p.filter_stride[0], p.filter_stride[1]]
@@ -462,7 +500,6 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     if dtype != tf.float32:
       cast_dtype = tf.float32
       inputs = tf.cast(inputs, cast_dtype)
-
     padding_algorithm = 'SAME'
     if p.causal_convolution:
       # Causal convolution is only applied in time (height) dimension.
@@ -470,34 +507,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
       # first output only depends on the first input and so on. The output is
       # the same size as the input, as if the convolution used SAME padding.
       padding_algorithm = 'VALID'
-      # The effective spatial filter size for dilated convolutions is
-      # (kernel - 1) * dilation_rate + 1 as according to
-      # https://www.tensorflow.org/api_docs/python/tf/nn/convolution.
-      causal_pad_size = (p.filter_shape[0] - 1) * p.dilation_rate[0]
-
-      # Apply padding in width dimension to mimic SAME padding.
-      # Using the similar logic as above to produce the same number of output
-      # as if SAME padding is used.
-      width_pad_size = (p.filter_shape[1] - 1) * p.dilation_rate[1]
-
-      # The amount of padding on the left is tricky. If stride > 1, total
-      # padding required for SAME padding would be:
-      #   pad = ceil(input_size / stride - 1) * stride + eff_kernel - input_size
-      # where eff_kernel = (kernel - 1) * dilation_rate + 1
-      # TensorFlow also pads more on the right / bottom side if total padding
-      # required is an odd number, so pad_left = pad // 2
-      # Therefore pad_left could depend on input size, which might be dynamic.
-      # Here we only handle two special cases where 1) stride = 1, then
-      #   pad_left = (eff_kernel - 1) // 2
-      # and 2) kernel = 1, then
-      #   pad_left = 0
-      if p.filter_stride[1] > 1 and p.filter_shape[1] > 1:
-        raise ValueError('Causal convolution only supports width stride = 1 '
-                         'or filter width = 1.')
-      width_pad_left = max(0, width_pad_size - 1) // 2
-      width_pad_right = width_pad_size - width_pad_left
-      inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0],
-                               [width_pad_left, width_pad_right], [0, 0]])
+      inputs = self._ApplyCausalPadding(inputs)
 
     # Lambda for computing the actual convolution.
     def ComputeRawConvolution(filter_w):
