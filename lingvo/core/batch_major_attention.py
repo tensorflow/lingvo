@@ -8652,6 +8652,8 @@ class Builder(builder.Base):
         ),
     )
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm. ')
+    p.Define('ln_use_bias', True, 'Whether to use bias in layernorm. When bias'
+             'is not used, it is RMSNorm (https://arxiv.org/abs/1910.07467)')
     p.Define('layernorm_tpl', layers.LayerNorm.Params(), 'Template for the '
              'LayerNorm layers. use_fused_layernorm param above overrides the '
              'layernorm_tpl.use_fused_layernorm for compatibility.')
@@ -8760,6 +8762,7 @@ class Builder(builder.Base):
         name=name,
         input_dim=p.model_dim,
         use_fused_layernorm=p.use_fused_layernorm,
+        bias=p.ln_use_bias,
         fprop_dtype=p.fprop_dtype)
 
   def _ExpandDims(self, name):
