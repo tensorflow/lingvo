@@ -8755,15 +8755,18 @@ class Builder(builder.Base):
                                            residual_weight=residual_weight,
                                            apply_residual=apply_residual)
 
-  def _DefaultLN(self, name):
+  def _DefaultLN(self, name, input_dim=None):
     """Layer norm with default params."""
     p = self.params
+    if input_dim is None:
+      input_dim = p.model_dim
     return p.layernorm_tpl.Copy().Set(
         name=name,
-        input_dim=p.model_dim,
+        input_dim=input_dim,
         use_fused_layernorm=p.use_fused_layernorm,
         bias=p.ln_use_bias,
-        fprop_dtype=p.fprop_dtype)
+        fprop_dtype=p.fprop_dtype,
+    )
 
   def _ExpandDims(self, name):
     return self._Fn(name,
