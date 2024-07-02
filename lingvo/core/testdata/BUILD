@@ -15,3 +15,10 @@ filegroup(
         "en-1k.spm.*",
     ]),
 )
+
+filegroup(
+    name = "quantization_test_data",
+    data = glob([
+        "qat_test_*",
+    ]),
+)

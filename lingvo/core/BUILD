@@ -1475,6 +1475,7 @@ pytype_strict_test(
     size = "medium",
     srcs = ["py_utils_test.py"],
     args = ["--noenable_eager_execution"],
+    data = ["//lingvo/core/testdata:quantization_test_data"],
     deps = [
         ":py_utils_test_lib",
         # Implicit freezegun dependency.
@@ -1487,6 +1488,7 @@ pytype_strict_test(
     name = "py_utils_eager_test",
     srcs = ["py_utils_test.py"],
     args = ["--enable_eager_execution"],
+    data = ["//lingvo/core/testdata:quantization_test_data"],
     main = "py_utils_test.py",
     deps = [
         ":py_utils_test_lib",

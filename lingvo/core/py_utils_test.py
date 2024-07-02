@@ -1352,6 +1352,69 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
       )
       self.assertAllClose(self.evaluate(x), expected)
 
+  @parameterized.named_parameters(
+      (
+          '4bit_weight_qat_output_false',
+          False,
+          'core/testdata/qat_test_4bit_weights.npy',
+          'core/testdata/qat_test_output_4bit_weight_qat_false.npy',
+      ),
+      (
+          '4bit_weight_qat_output_true',
+          True,
+          'core/testdata/qat_test_4bit_weights.npy',
+          'core/testdata/qat_test_output_4bit_weight_qat_true.npy',
+      ),
+      (
+          '8bit_weight_qat_output_false',
+          False,
+          'core/testdata/qat_test_8bit_weights.npy',
+          'core/testdata/qat_test_output_8bit_weight_qat_false.npy',
+      ),
+      (
+          '8bit_weight_qat_output_true',
+          True,
+          'core/testdata/qat_test_8bit_weights.npy',
+          'core/testdata/qat_test_output_8bit_weight_qat_true.npy',
+      ),
+  )
+  def testEinsumQuantization(self, qat_output, weights_path, expected):
+    # num_tasks=1, input_dim=2, output_dim=3
+    weights_path = test_helper.test_src_dir_path(weights_path)
+    weights = tf.convert_to_tensor(np.load(weights_path), tf.float32)
+    bias_path = test_helper.test_src_dir_path('core/testdata/qat_test_bias.npy')
+    bias = tf.convert_to_tensor(np.load(bias_path), tf.float32)
+    inputs_path = test_helper.test_src_dir_path(
+        'core/testdata/qat_test_inputs.npy'
+    )
+    inputs = tf.convert_to_tensor(np.load(inputs_path), tf.float32)
+    output_path = test_helper.test_src_dir_path(expected)
+    output = tf.convert_to_tensor(np.load(output_path), tf.float32)
+
+    quant_layer_p = layers.MultitaskProjectionEinsumLayer.Params()
+    quant_layer_p.name = 'testQAT'
+    quant_layer_p.input_dim = 256
+    quant_layer_p.output_dim = 126
+    quant_layer_p.num_tasks = 8
+
+    with self.session(use_gpu=False):
+      x = self.evaluate(
+          py_utils.MultiTaskProjection(
+              weights=weights,
+              biases=bias,
+              inputs=inputs,
+              tasks=1,
+              einsum_order='select_and_multiply',
+              quant_layer=layers.MultitaskProjectionEinsumLayer(quant_layer_p),
+              w_q_name='w',
+              w_q_domain='default',
+              qat_output=qat_output,
+          )
+      )
+      # different server CPUs produce slightly different results, e-3 is a safe
+      # margin since outputs are in the order of e+4
+      self.assertAllClose(x, output, atol=2.5e-3)
+
   def testShardedFilePatternToGlob(self):
     file_pattern = '/some/path/to/file@8'
     self.assertEqual('/some/path/to/file-?????-of-00008',
