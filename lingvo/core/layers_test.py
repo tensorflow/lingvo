@@ -5495,7 +5495,10 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
                   np.isclose(x_val, 0.0), np.isclose(x_val, 1.0 / 0.7))))
       # Check that values contain 0 but are not all 0.
       self.assertTrue(
-          0 < np.sum(np.cast[np.int32](np.isclose(x_val, 0.0))) < x_val.size)
+          0
+          < np.sum(np.asarray(np.isclose(x_val, 0.0), dtype=np.int32))
+          < x_val.size
+      )
 
       # Different step seed gives different result.
       x_val = self.evaluate(dropout.FPropDefaultTheta(x))
@@ -5555,7 +5558,10 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
                                                              1.0 / 0.7))))
     # Check that values contain 0 but are not all 0.
     self.assertTrue(
-        0 < np.sum(np.cast[np.int32](np.isclose(x_val, 0.0))) < x_val.size)
+        0
+        < np.sum(np.asarray(np.isclose(x_val, 0.0), dtype=np.int32))
+        < x_val.size
+    )
     # Check that each row has the same value.
     self.assertAllClose(np.broadcast_to(x_val[:, :1], x_val.shape), x_val)
 
