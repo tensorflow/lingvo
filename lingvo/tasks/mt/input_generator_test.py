@@ -14,6 +14,7 @@
 # ==============================================================================
 """Tests for input generator."""
 
+import math
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -348,8 +349,9 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
             p.bucket_batch_limit[0] // cluster.params.worker.devices_per_split *
             cluster.params.worker.tpus_per_replica)
         if p.packing_factor is not None:
-          expected_global_batch_size = np.math.floor(
-              expected_global_batch_size * p.packing_factor)
+          expected_global_batch_size = math.floor(
+              expected_global_batch_size * p.packing_factor
+          )
 
         expected_infeed_batch_size = expected_global_batch_size
         if use_per_host_infeed:
@@ -358,8 +360,9 @@ class InputTest(test_utils.TestCase, parameterized.TestCase):
 
         expected_packed_infeed_batch_size = expected_infeed_batch_size
         if p.packing_factor is not None:
-          expected_packed_infeed_batch_size = np.math.floor(
-              expected_infeed_batch_size / p.packing_factor)
+          expected_packed_infeed_batch_size = math.floor(
+              expected_infeed_batch_size / p.packing_factor
+          )
 
         self.assertEqual(expected_global_batch_size, inp.GlobalBatchSize())
         self.assertEqual(expected_infeed_batch_size, inp.InfeedBatchSize())
