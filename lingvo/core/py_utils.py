@@ -1846,8 +1846,14 @@ def MaybeReuseFromVariableStore(next_creator, **kwargs):
           'Expected %s but created variable %s. Did you mean to set reuse=True '
           'or reuse=tf.AUTO_REUSE in VarScope, or did not create a '
           'VariableStore for variable reuse?' % (f'{var_name}/var:0', var.name))
-  tf.logging.vlog(0, 'Creating var %s dtype=%s shape=%s on device %s', var.name,
-                  var.dtype, var.shape, var.device)
+  tf.logging.vlog(
+      1,
+      'Creating var %s dtype=%s shape=%s on device %s',
+      var.name,
+      var.dtype,
+      var.shape,
+      var.device,
+  )
   for col in p.collections:
     tf.add_to_collection(col, var)
   if store is not None:
@@ -1968,9 +1974,12 @@ def _CreateVariableStateful(name,
   seed = p.init.seed
 
   if IsDefaultParamInit(p.init):
-    tf.logging.warning(
+    tf.logging.vlog(
+        1,
         'WARNING!!! var %s is using the default xavier initializer.'
-        ' Make sure this is intended.', name)
+        ' Make sure this is intended.',
+        name,
+    )
 
   with tf.variable_scope(name) as scope:
     var_name = GetVariableName(scope.name)
