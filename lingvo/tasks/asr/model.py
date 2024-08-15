@@ -136,15 +136,20 @@ class AsrModel(base_model.BaseTask):
     encoder_outputs = self.FrontendAndEncoderFProp(theta, input_batch_src)
     tgt = self._GetDecoderTargets(input_batch)
     decoder_theta = self._MakeDecoderTheta(theta, input_batch)
-    predictions = self.decoder.ComputePredictions(decoder_theta,
-                                                  encoder_outputs, tgt)
+    predictions = self.decoder.ComputePredictions(
+        decoder_theta, encoder_outputs, tgt
+    )
     predictions.encoder_outputs = encoder_outputs
     return predictions
 
   def ComputeLoss(self, theta, predictions, input_batch):
     tgt = self._GetDecoderTargets(input_batch)
     decoder_theta = self._MakeDecoderTheta(theta, input_batch)
-    return self.decoder.ComputeLoss(decoder_theta, predictions, tgt)
+    metrics, per_sequence = self.decoder.ComputeLoss(
+        decoder_theta, predictions, tgt
+    )
+    metrics.update(py_utils.GetTpuSummaryTensors())
+    return metrics, per_sequence
 
   def FrontendAndEncoderFProp(self, theta, input_batch_src, initial_state=None):
     """FProps through the frontend and encoder.
