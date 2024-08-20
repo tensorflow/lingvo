@@ -7045,15 +7045,13 @@ def MultiTaskProjection(
   # o - output_dim
 
   if einsum_order == 'select_and_multiply':
+    # Weights quantization:
+    weights = quant_layer.QWeight(weights, domain=w_q_domain)
+    weights = quant_layer.ToAqtWeight(w_q_name, weights, feature_axis=-1)
     # select..
     # [{batch,} {time,} input_dim, output_dim]
     selected_weights = tf.einsum(
         f'{b_task}{t_task}k,kio->{b_task}{t_task}io', tasks_onehot, weights
-    )
-    # Weights quantization:
-    selected_weights = quant_layer.QWeight(selected_weights, domain=w_q_domain)
-    selected_weights = quant_layer.ToAqtWeight(
-        w_q_name, selected_weights, feature_axis=-1
     )
     if qat_output:
       # .. and multiply
