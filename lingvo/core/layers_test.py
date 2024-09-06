@@ -4385,7 +4385,8 @@ class EmbeddingLayerTest(test_utils.TestCase, parameterized.TestCase):
                           math.cos(p / 2 * math.pi)] for p in range(4)]
       self.assertAllClose(actual_position_embs, expected_output)
 
-  def testRotaryPositionalEmbeddingLayer(self):
+  @parameterized.named_parameters(('default', False), ('has_position', True))
+  def testRotaryPositionalEmbeddingLayer(self, has_position=False):
     with self.session(use_gpu=False):
       p = layers.RotaryPositionalEmbeddingLayer.Params()
       p.name = 'position_emb'
@@ -4394,15 +4395,19 @@ class EmbeddingLayerTest(test_utils.TestCase, parameterized.TestCase):
       p.embedding_dim = 4
       seq_length = 5
       inputs = tf.ones([1, seq_length, 1, p.embedding_dim])
+      if has_position:
+        positions = tf.range(seq_length)[tf.newaxis, :]
+      else:
+        positions = None
 
       pos_emb_layer = p.Instantiate()
       self.evaluate(tf.global_variables_initializer())
-      position_embs = pos_emb_layer.FPropDefaultTheta(inputs)
+      position_embs = pos_emb_layer.FPropDefaultTheta(inputs, positions)
       position_embs = tf.squeeze(position_embs, axis=[0, 2])
       actual_position_embs, = self.evaluate([position_embs])
 
       expected_output = [
-          [1., 1., 1., 1.],
+          [1.0, 1.0, 1.0, 1.0],
           [-0.30116868, 0.5603883, 1.3817732, 1.2984471],
           [-1.3254442, 0.04166961, 0.4931506, 1.4135995],
           [-1.1311125, -0.48293126, -0.8488725, 1.3292018],

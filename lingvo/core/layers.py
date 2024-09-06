@@ -3515,7 +3515,9 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
     position = position[:, :, tf.newaxis, tf.newaxis]
     timescale = timescale[tf.newaxis, tf.newaxis, tf.newaxis, :]
 
-    sinusoid_inp = position / tf.cast(timescale, position.dtype)
+    sinusoid_inp = tf.cast(
+        tf.cast(position, timescale.dtype) / timescale, inputs.dtype
+    )
     sin = tf.sin(sinusoid_inp)
     cos = tf.cos(sinusoid_inp)
     first_half, second_half = tf.split(inputs, 2, axis=-1)
