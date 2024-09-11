@@ -8611,6 +8611,7 @@ class Builder(builder.Base):
              'y = x + ff_residual_weight * F(x) in Feedforward layer, else '
              'y = ff_residual_weight * F(x). This is experimental and could be '
              'removed in the future. See b/174568214.')
+    p.Define('ff_use_paddings', True, 'If true, zero out padding tokens in FFN.')
     p.Define('atten_apply_residual', True, 'If true,  '
              'y = x + F(x) in attention layer, else y = F(x). This is '
              'experimental and could be removed in the future. See '
@@ -8883,9 +8884,11 @@ class Builder(builder.Base):
         *sub_list)
 
   def GatedFeedforward(self, name, is_causal=False, ff_hidden_dim=None,
-                       activation_fn=tf.nn.relu, use_paddings=True):
+                       activation_fn=tf.nn.relu, use_paddings=None):
     del is_causal
     p = self.params
+    use_paddings = p.ff_use_paddings if use_paddings is None else use_paddings
+
     if ff_hidden_dim is None:
       ff_hidden_dim = p.ff_hidden_dim
 
@@ -8926,9 +8929,10 @@ class Builder(builder.Base):
         *sub_list)
 
   def Feedforward(self, name, is_causal=False, ff_hidden_dim=None,
-                  qdomain=None, use_paddings=True):
+                  qdomain=None, use_paddings=None):
     del is_causal
     p = self.params
+    use_paddings = p.ff_use_paddings if use_paddings is None else use_paddings
     if ff_hidden_dim is None:
       ff_hidden_dim = p.ff_hidden_dim
     if p.device_mesh is not None:
@@ -8972,7 +8976,7 @@ class Builder(builder.Base):
     if use_paddings:
       sub_list += [
           ('added,i.paddings->o.vec', self._Pad('pad')),
-          ('i.paddings->o.paddings', self._Id('id'))
+          ('i.paddings->o.paddings', self._Id('id')),
       ]
     else:
       sub_list.append(
