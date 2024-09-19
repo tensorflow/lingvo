@@ -1265,6 +1265,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     sum_v = inputs
     if paddings is not None:
       sum_v = py_utils.ApplyPadding(paddings, sum_v)
+    # [B, T, 1, N, 1] or [B, T, N, 1]
     sum_v = tf.reduce_sum(sum_v, reduce_over_dims, keepdims=True)
     sum_v = tf.math.cumsum(sum_v, axis=1)
     sum_v += cached_sum
@@ -1280,6 +1281,7 @@ class GroupNormLayer(base_layer.BaseLayer):
       else:
         count_v = tf.broadcast_to(count_v, shape=[b, t, 1, 1, 1])
 
+    # [B, T, 1, 1, 1] or [B, T, 1, 1]
     count_v = tf.reduce_sum(count_v, reduce_over_dims, keepdims=True)
     count_v = tf.math.cumsum(count_v, axis=1)
     count_v += cached_count
@@ -1291,15 +1293,16 @@ class GroupNormLayer(base_layer.BaseLayer):
     sum_vv = tf.math.squared_difference(inputs, mean)
     if paddings is not None:
       sum_vv = py_utils.ApplyPadding(paddings, sum_vv)
+    # [B, T, 1, N, 1] or [B, T, N, 1]
     sum_vv = tf.reduce_sum(sum_vv, reduce_over_dims, keepdims=True)
     sum_vv = tf.math.cumsum(sum_vv, axis=1)
     sum_vv += cached_var
 
-    # [B, 1, N]
+    # [B, 1, 1, N, 1] or [B, 1, N, 1]
     cached_sum = sum_v[:, -1:]
-    # [B, 1, 1]
+    # [B, 1, 1, 1, 1] or [B, 1, 1, 1]
     cached_count = count_v[:, -1:]
-    # [B, 1, N]
+    # [B, 1, 1, N, 1] or [B, 1, N, 1]
     cached_var = sum_vv[:, -1:]
     if input_rank == 5:
       # [B, 1, N, 1]
