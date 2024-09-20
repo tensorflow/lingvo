@@ -1311,6 +1311,9 @@ class GroupNormLayer(base_layer.BaseLayer):
       cached_count = tf.squeeze(cached_count, 2)
       # [B, 1, N, 1]
       cached_var = tf.squeeze(cached_var, 2)
+    cached_sum = tf.reshape(cached_sum, [b, 1, n, 1])
+    cached_count = tf.reshape(cached_count, [b, 1, 1, 1])
+    cached_var = tf.reshape(cached_var, [b, 1, n, 1])
 
     # [B, T, 1, N, 1] or [B, T, N, 1]
     variance = sum_vv / tf.maximum(count_v, 1.0)
