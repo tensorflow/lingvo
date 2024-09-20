@@ -404,7 +404,7 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
       def _Setter(fig, axes):
         """Configure the plot for precision recall."""
         ticks = np.arange(0, 1.05, 0.1)
-        axes.grid(b=False)
+        axes.grid(visible=False)
         axes.set_xlabel('Recall')
         axes.set_xticks(ticks)
         axes.set_ylabel('Precision')

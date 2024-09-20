@@ -535,7 +535,7 @@ class AUCMetric(BaseMetric):
     def _Setter(fig, axes):
       # 20 ticks betweein 0 and 1.
       ticks = np.arange(0, 1.05, 0.05)
-      axes.grid(b=True)
+      axes.grid(visible=True)
       axes.set_xlabel(self._plot_labels[0])
       axes.set_xticks(ticks)
       axes.set_ylabel(self._plot_labels[1])

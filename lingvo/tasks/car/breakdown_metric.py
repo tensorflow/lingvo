@@ -317,7 +317,7 @@ class ByDistance(BreakdownMetric):
 
     def _Setter(fig, axes):
       """Configure the plot for mAP versus distance."""
-      axes.grid(b=True)
+      axes.grid(visible=True)
       fontsize = 14
       for i, j in enumerate(p.metadata.EvalClassIndices()):
         for d, x in enumerate(self._values):
@@ -423,7 +423,7 @@ class ByNumPoints(BreakdownMetric):
 
     def _Setter(fig, axes):
       """Configure the plot for max recall versus number of points."""
-      axes.grid(b=True)
+      axes.grid(visible=True)
       fontsize = 14
       for i, j in enumerate(p.metadata.EvalClassIndices()):
         for n, x in enumerate(self._values):
@@ -490,7 +490,7 @@ class ByNumPoints(BreakdownMetric):
 
       def _Setter(fig, axes):
         """Configure the plot for CDF of the variate."""
-        axes.grid(b=False)
+        axes.grid(visible=False)
         fontsize = 14
 
         axes.set_ylim([0, 1.05])
@@ -610,7 +610,7 @@ class ByRotation(BreakdownMetric):
 
     def _Setter(fig, axes):
       """Configure the plot for max recall versus distance."""
-      axes.grid(b=True)
+      axes.grid(visible=True)
       fontsize = 14
       for i, j in enumerate(p.metadata.EvalClassIndices()):
         for r, x in enumerate(rotation_in_degrees):
@@ -713,7 +713,7 @@ class ByDifficulty(BreakdownMetric):
       def _PRSetter(fig, axes):
         """Configure the plot for precision recall."""
         ticks = np.arange(0, 1.05, 0.1)
-        axes.grid(b=False)
+        axes.grid(visible=False)
         axes.set_xlabel('Recall')
         axes.set_xticks(ticks)
         axes.set_ylabel('Precision')
