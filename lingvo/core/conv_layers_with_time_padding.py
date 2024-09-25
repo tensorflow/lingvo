@@ -584,7 +584,6 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
 
     with tf.name_scope(p.name):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
-      q = py_utils.GetShape(inputs)[1]
 
       if paddings is not None:
         paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
@@ -600,8 +599,9 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
           padding='VALID')
       if p.bias:
         outputs = tf.nn.bias_add(outputs, theta.b)
-      new_context = tf.slice(concat_inputs, [0, q, 0, 0],
-                             tf.shape(state0.context))
+      state0_context_shape = py_utils.GetShape(state0.context)
+      new_context = concat_inputs[:, -state0_context_shape[1] :]
+      new_context = tf.reshape(new_context, state0_context_shape)
       return outputs, paddings, py_utils.NestedMap(context=new_context)
 
 
@@ -801,7 +801,6 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
 
     with tf.name_scope(p.name):
       inputs = py_utils.HasShape(inputs, [-1, -1, 1, p.filter_shape[2]])
-      q = py_utils.GetShape(inputs)[1]
 
       if paddings is not None:
         paddings = py_utils.HasShape(paddings, py_utils.GetShape(inputs)[:2])
@@ -825,7 +824,8 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
       if p.bias:
         outputs = tf.nn.bias_add(outputs, theta.b)
       state0_context_shape = py_utils.GetShape(state0_context)
-      new_context = tf.slice(concat_inputs, [0, q, 0, 0], state0_context_shape)
+      new_context = concat_inputs[:, -state0_context_shape[1] :]
+      new_context = tf.reshape(new_context, state0_context_shape)
       if p.time_alignment is not None:
         time_size = self._get_time_size()
         aligned_time_size = self._get_aligned_time_size()
