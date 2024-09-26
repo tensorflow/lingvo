@@ -3774,8 +3774,9 @@ def AddVN(p, x, per_step=False, channel_reverse=False):
       return x
   else:
     if not p.vn.global_vn:
-      tf.logging.info('p.vn.global_vn is not set. Not adding global vn to ' +
-                      tensor_name)
+      tf.logging.vlog(
+          1, 'p.vn.global_vn is not set. Not adding global vn to ' + tensor_name
+      )
       return x
 
   tf.logging.info(
