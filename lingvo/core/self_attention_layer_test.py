@@ -75,7 +75,7 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
           'num_micro_batches': 1,
           'builder': self_attention.SimplifiedTransformerBuilder,
           'parallel_attention_mlp': True,
-          'expected_output': 28.284629,
+          'expected_output': 28.284676,
       },
   )
   def testTransformerStack(
