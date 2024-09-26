@@ -243,9 +243,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     params.packed_input = p.packed_input
     return params
 
-  def _GetSourceLength(self, source_paddings):
-    return py_utils.GetShape(source_paddings)[0]
-
   def FProp(self,
             theta,
             query_vec,
@@ -355,10 +352,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
                                        input_after_sublayer)
     if not p.pre_layer_norm:
       h = self.layer_norm.FProp(theta.layer_norm, h)
-    atten_prob = tf.reshape(
-        atten_prob,
-        [target_time, target_bs,
-         self._GetSourceLength(source_paddings)])
+    atten_prob = tf.reshape(atten_prob, [target_time, target_bs, -1])
     if p.memory_augmentation:
       h += self.lsh_mem.FProp(theta.lsh_mem, context_vecs - query_vec)
     return h, atten_prob
@@ -528,10 +522,6 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
     msa.source_atten_tpls = source_atten_tpls
     msa.primary_source_key = 'source_%d' % p.primary_source_index
     return msa
-
-  def _GetSourceLength(self, source_paddings):
-    return py_utils.GetShape(
-        source_paddings['source_%d' % self.params.primary_source_index])[0]
 
 
 class TransformerFeedForwardLayer(base_layer.BaseLayer):
