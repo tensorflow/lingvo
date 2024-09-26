@@ -23,7 +23,6 @@ from lingvo.core import py_utils
 from lingvo.core import saver as custom_saver
 import six
 
-
 tf.flags.DEFINE_boolean('use_custom_saver', True,
                         'Uses customized saver if True.')
 FLAGS = tf.flags.FLAGS
@@ -100,6 +99,7 @@ class SaverWrapper:
           keep_every_n_hours=self._keep_every_n_hours,
           async_save=async_save)
 
+  # TODO(b/369648219): fix copybara problems for lineage.
   def Save(self, sess, gsteps):
     """Save a checkpoint.
 
