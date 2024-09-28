@@ -243,15 +243,17 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     params.packed_input = p.packed_input
     return params
 
-  def FProp(self,
-            theta,
-            query_vec,
-            source_paddings,
-            source_vecs=None,
-            query_segment_id=None,
-            source_segment_id=None,
-            context_vecs=None,
-            **kwargs):
+  def FProp(
+      self,
+      theta: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      source_paddings: Optional[tf.Tensor],
+      source_vecs: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+      source_segment_id: Optional[tf.Tensor] = None,
+      context_vecs: Optional[tf.Tensor] = None,
+      **kwargs
+  ) -> Tuple[tf.Tensor, tf.Tensor]:
     """Transformer attention, residual and normalization layer.
 
     Args:
@@ -1431,8 +1433,8 @@ class TransformerLayer(base_layer.BaseLayer):
       theta: py_utils.NestedMap,
       source_vecs: tf.Tensor,
       source_paddings: tf.Tensor,
-      aux_vecs=None,
-      aux_paddings=None,
+      aux_vecs: Optional[tf.Tensor] = None,
+      aux_paddings: Optional[tf.Tensor] = None,
       source_segment_id: Optional[tf.Tensor] = None,
       aux_segment_id=None,
       **kwargs
