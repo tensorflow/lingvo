@@ -667,9 +667,8 @@ py_library(
     deps = ["//lingvo/core:cluster"],
 )
 
-py_test(
+pytype_strict_test(
     name = "cluster_test",
-    size = "small",
     srcs = ["cluster_test.py"],
     deps = [
         ":cluster",
@@ -698,9 +697,8 @@ py_library(
     ],
 )
 
-py_test(
+py_strict_test(
     name = "datasource_test",
-    size = "small",
     srcs = ["datasource_test.py"],
     deps = [
         ":base_input_generator",
@@ -1037,9 +1035,8 @@ lingvo_cuda_py_test(
     deps = [":layers_test_lib"],
 )
 
-py_test(
+pytype_strict_test(
     name = "layers_eager_test",
-    timeout = "short",
     srcs = ["layers_test.py"],
     args = ["--enable_eager_execution"],
     main = "layers_test.py",
@@ -1112,7 +1109,7 @@ pytype_strict_test(
     ],
 )
 
-py_library(
+pytype_strict_library(
     name = "layers_test_lib",
     testonly = 1,
     srcs = ["layers_test.py"],
@@ -1121,6 +1118,7 @@ py_library(
         ":cluster_factory",
         ":gpipe",
         ":layers",
+        ":py_utils",
         ":quant_utils",
         ":test_utils",
         ":tshape",
