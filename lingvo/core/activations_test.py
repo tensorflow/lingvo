@@ -28,9 +28,11 @@ class ActivationsTest(test_utils.TestCase):
           np.linspace(-10.0, 10.0, num=21, dtype='float32'), dtype=tf.float32)
       grads_gelu = tf.gradients(tf.nn.gelu(inputs), inputs)
       grads_relu = tf.gradients(tf.nn.relu(inputs), inputs)
-
-      self.assertEqual(0.0,
-                       tf.nn.gelu(tf.constant(-10.0, dtype='float32')).eval())
+      # The true value of gelu underflows to zero for float32 at approximately
+      # x = -14.307701750188 (-13.1988706591358576 without gradual underflow).
+      self.assertEqual(
+          0.0, tf.nn.gelu(tf.constant(-15.0, dtype='float32')).eval()
+      )
       self.assertEqual(0.0,
                        tf.nn.gelu(tf.constant(0.0, dtype='float32')).eval())
       self.assertEqual(10.0,
