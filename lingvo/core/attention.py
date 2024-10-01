@@ -15,7 +15,7 @@
 """Attention models."""
 
 import math
-from typing import Optional
+from typing import Optional, Tuple
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -240,12 +240,12 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
   def InitForSourcePacked(
       self,
-      theta,
-      source_vecs,
-      source_contexts,
-      source_padding,
-      source_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_contexts: tf.Tensor,
+      source_padding: tf.Tensor,
+      source_segment_id: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     """Initialize attention for the given source vectors.
 
     Must set `_source_init_done` to True in the function.
@@ -277,12 +277,12 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
   def PackSource(
       self,
-      theta,
-      source_vecs,
-      source_contexts,
-      source_padding,
-      source_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_contexts: tf.Tensor,
+      source_padding: tf.Tensor,
+      source_segment_id: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     """Packs source vectors.
 
     Does not change attention state.
@@ -310,13 +310,13 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
   def ComputeContextVectorWithSource(
       self,
-      theta,
-      packed_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      packed_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[py_utils.NestedMap] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     """Computes the context vector given the current query output.
 
     Args:
@@ -342,12 +342,12 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
   def ComputeContextVector(
       self,
-      theta,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[py_utils.NestedMap] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     """Computes the context vector given the current query output.
 
     Unlike `ComputeContextVectorWithSource` which explicitly asks for the packed
@@ -440,8 +440,11 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     return fns.qsoftmax(padded_logits, qdomain='softmax')
 
   def _UpdatePaddingWithPackedInputMask(
-      self, padding, source_segment_ids, query_segment_ids
-  ):
+      self,
+      padding: tf.Tensor,
+      source_segment_id: tf.Tensor,
+      query_segment_id: tf.Tensor,
+  ) -> tf.Tensor:
     """Creates an attention mask based on source and query segment ids.
 
     This creates a mask that removes invalid attention, where the query vector
@@ -450,19 +453,19 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
     Args:
       padding: Padding for logits, a tensor of shape [time, n, source_batch].
-      source_segment_ids: a tensor of shape [time, source_batch].
-      query_segment_ids: a tensor of shape [target_batch].
+      source_segment_id: a tensor of shape [time, source_batch].
+      query_segment_id: a tensor of shape [target_batch].
 
     Returns:
       Logits with mask applied.
     """
     # Generating packed input mask for attention padding.
-    source_segment_ids = tf.expand_dims(source_segment_ids, 1)
-    query_segment_ids = tf.reshape(
-        query_segment_ids, [1, -1, py_utils.GetShape(source_segment_ids)[2]]
+    source_segment_id = tf.expand_dims(source_segment_id, 1)
+    query_segment_id = tf.reshape(
+        query_segment_id, [1, -1, py_utils.GetShape(source_segment_id)[2]]
     )
     padding = tf.where_v2(
-        tf.equal(source_segment_ids, query_segment_ids),
+        tf.equal(source_segment_id, query_segment_id),
         padding,
         tf.ones([], padding.dtype),
     )
@@ -501,7 +504,7 @@ class AdditiveAttention(BaseAttentionLayer):
     super().__init__(params)
     p = self.params
 
-    def AttenProbs(inputs):
+    def AttenProbs(inputs: py_utils.NestedMap) -> tf.Tensor:
       """Generates probs."""
       source_batch = py_utils.GetShape(inputs.source_padding)[1]
       target_batch = py_utils.GetShape(inputs.per_step_source_padding)[0]
@@ -552,16 +555,16 @@ class AdditiveAttention(BaseAttentionLayer):
 
     # Adds the atten function into the graph's library.
     def Atten(
-        v,
-        w,
-        source_padding,
-        source_segment_id,
-        concated_source_vecs,
-        concated_source_contexts,
-        query_vec,
-        query_segment_id,
-        per_step_source_padding,
-    ):
+        v: tf.Tensor,
+        w: tf.Tensor,
+        source_padding: tf.Tensor,
+        source_segment_id: tf.Tensor,
+        concated_source_vecs: tf.Tensor,
+        concated_source_contexts: tf.Tensor,
+        query_vec: tf.Tensor,
+        query_segment_id: tf.Tensor,
+        per_step_source_padding: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Computes the attention context vector.
 
       Args:
@@ -637,16 +640,16 @@ class AdditiveAttention(BaseAttentionLayer):
 
     # The source batch size equals to the target batch size.
     def AttenSameBatchSize(
-        v,
-        w,
-        source_padding,
-        source_segment_id,
-        concated_source_vecs,
-        concated_source_contexts,
-        query_vec,
-        query_segment_id,
-        per_step_source_padding,
-    ):
+        v: tf.Tensor,
+        w: tf.Tensor,
+        source_padding: tf.Tensor,
+        source_segment_id: tf.Tensor,
+        concated_source_vecs: tf.Tensor,
+        concated_source_contexts: tf.Tensor,
+        query_vec: tf.Tensor,
+        query_segment_id: tf.Tensor,
+        per_step_source_padding: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Computes the attention context vector.
 
       Args:
@@ -671,7 +674,7 @@ class AdditiveAttention(BaseAttentionLayer):
       query_vec = py_utils.Matmul(query_vec, w)
 
       # [sl, b]
-      def AttenProbs(inputs):
+      def AttenProbs(inputs: py_utils.NestedMap) -> tf.Tensor:
         """Calculates atten probs with padding."""
         # tf.tanh(x+y) shape [sl, b, hidden_dim]
         summed = tf.tanh(inputs.x + inputs.y)
@@ -783,12 +786,12 @@ class AdditiveAttention(BaseAttentionLayer):
 
   def PackSource(
       self,
-      theta,
-      source_vecs,
-      source_contexts,
-      source_padding,
-      source_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_contexts: tf.Tensor,
+      source_padding: tf.Tensor,
+      source_segment_id: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     """Packs source vectors.
 
     Does not change attention state.
@@ -825,6 +828,7 @@ class AdditiveAttention(BaseAttentionLayer):
     )
 
   def ZeroAttentionState(self, source_length, decoder_batch_size):
+    del source_length
     p = self.params
     # This is just a dummy state. The first dimension of the state has to match
     # decoder_batch_size.
@@ -833,13 +837,13 @@ class AdditiveAttention(BaseAttentionLayer):
 
   def ComputeContextVectorWithSource(
       self,
-      theta,
-      packed_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      packed_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[py_utils.NestedMap] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     """Computes the context vector given the current query output.
 
     Note: `packed_src.source_vecs` are the vectors that are used to compute the
@@ -943,11 +947,14 @@ class DotProductAttention(BaseAttentionLayer):
     assert p.source_dim == p.query_dim
     assert p.source_dim == p.hidden_dim
 
-    def AttenProbs(inputs):
+    def AttenProbs(
+        inputs: py_utils.NestedMap,
+    ) -> tf.Tensor:
       """Main attention function.
 
-      target_batch = source_batch * n where n is an integer >= 1.
-      In this case inputs.query_vec contains:
+      Assuming target_batch = source_batch * n where n is an integer >= 1,
+      inputs.query_vec contains:
+
               -------------------------
               | instance    1         |
               | instance    2         |
@@ -1051,15 +1058,15 @@ class DotProductAttention(BaseAttentionLayer):
       return probs
 
     def Atten(
-        per_dim_scale,
-        source_padding,
-        source_segment_id,
-        concated_source_vecs,
-        concated_source_contexts,
-        query_vec,
-        query_segment_id,
-        per_step_source_padding,
-    ):
+        per_dim_scale: tf.Tensor,
+        source_padding: tf.Tensor,
+        source_segment_id: tf.Tensor,
+        concated_source_vecs: tf.Tensor,
+        concated_source_contexts: tf.Tensor,
+        query_vec: tf.Tensor,
+        query_segment_id: tf.Tensor,
+        per_step_source_padding: tf.Tensor,
+    ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Main attention function.
 
       Args:
@@ -1165,12 +1172,12 @@ class DotProductAttention(BaseAttentionLayer):
 
   def PackSource(
       self,
-      theta,
-      source_vecs,
-      source_contexts,
-      source_padding,
-      source_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_contexts: tf.Tensor,
+      source_padding: tf.Tensor,
+      source_segment_id: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     """Packs source vectors.
 
     Does not change attention state.
@@ -1209,19 +1216,20 @@ class DotProductAttention(BaseAttentionLayer):
     )
 
   def ZeroAttentionState(self, source_length, decoder_batch_size):
+    del source_length
     p = self.params
     # No states to keep track of currently.
     return tf.zeros([decoder_batch_size, 1], dtype=py_utils.FPropDtype(p))
 
   def ComputeContextVectorWithSource(
       self,
-      theta,
-      packed_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      packed_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[py_utils.NestedMap] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     """Computes the context vector given the current query output.
 
     Args:
@@ -1432,6 +1440,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     if not att_p.name:
       att_p.name = 'inner_att'
     self.CreateChild('atten', att_p)
+    self.atten: BaseAttentionLayer
     if p.attention_head_prob_index >= 0:
       assert p.attention_head_prob_index < p.num_attention_heads
 
@@ -1743,14 +1752,14 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
   @py_utils.NameScopeDecorator('MultiHeadedAttention/ExtendSourcePacked')
   def ExtendSourcePacked(
       self,
-      theta,
-      new_source_vecs,
-      new_source_contexts,
-      new_source_paddings,
-      new_source_segment_ids,
-      cached_packed_src,
-      t=None,
-  ):
+      theta: py_utils.NestedMap,
+      new_source_vecs: tf.Tensor,
+      new_source_contexts: tf.Tensor,
+      new_source_paddings: Optional[tf.Tensor],
+      new_source_segment_id: Optional[tf.Tensor],
+      cached_packed_src: py_utils.NestedMap,
+      t: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     """Extend cached source_vecs and source_contexts by one more timestep.
 
     Args:
@@ -1762,7 +1771,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         source_contexts for the new timestep to be extended.
       new_source_paddings: If not None, a tensor of shape [source_batch].
         source_padding for the new timestep.
-      new_source_segment_ids: If not None, a tensor of shape [source_batch].
+      new_source_segment_id: If not None, a tensor of shape [source_batch].
         source_segment_id for the new timestep.
       cached_packed_src: a `.NestedMap` object, containing already preprocessed
         source_vecs and source_contexts for the previous t-1 steps. To support
@@ -1795,7 +1804,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
 
     Returns:
       Extended cached source_vecs, source_contexts, source_paddings, and
-      source_segment_ids. The time dimension of each cached state is fixed:
+      source_segment_id. The time dimension of each cached state is fixed:
       'extended_source_vec' is of shape [max_sequence_length, batch_size,
       num_heads * dim];
       'extended_source_context' is of shape [max_sequence_length, batch_size,
@@ -1813,8 +1822,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     batch_size = py_utils.GetShape(new_source_vecs)[0]
     if new_source_paddings is None:
       new_source_paddings = tf.zeros([batch_size], dtype=new_source_vecs.dtype)
-    if new_source_segment_ids is None:
-      new_source_segment_ids = tf.zeros(
+    if new_source_segment_id is None:
+      new_source_segment_id = tf.zeros(
           [batch_size], dtype=new_source_vecs.dtype
       )
     processed_packed_src = self.InitForSourcePacked(
@@ -1822,7 +1831,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         tf.expand_dims(new_source_vecs, 0),
         tf.expand_dims(new_source_contexts, 0),
         tf.expand_dims(new_source_paddings, 0),
-        tf.expand_dims(new_source_segment_ids, 0),
+        tf.expand_dims(new_source_segment_id, 0),
     )
     extended_packed_src = py_utils.NestedMap()
     for key in (
@@ -1877,6 +1886,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     return nested_map_zero_att_state
 
   def ProcessProjectionVec(self, theta, projection_vec, projection_type):
+    del theta
+    del projection_type
     # no-op for this class but allows subclasses to override to process
     # projected vectors.
     return projection_vec
@@ -1886,14 +1897,14 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
   )
   def ComputeContextVectorWithSource(
       self,
-      theta,
-      packed_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-      atten_idx=None,
-  ):
+      theta: py_utils.NestedMap,
+      packed_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[py_utils.NestedMap] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+      atten_idx: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     """Computes the context vector given the current query output.
 
     Args:
@@ -1980,10 +1991,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           query_batch_size * num_heads, dtype=source_padding.dtype
       )
     else:
-      query_segment_id_repl = tf.tile(
-          tf.expand_dims(query_segment_id, 1), [1, num_heads]
-      )
-      query_segment_id = tf.reshape(query_segment_id_repl, [-1])
+      query_segment_id = tf.expand_dims(query_segment_id, 1)
+      query_segment_id = tf.tile(query_segment_id, [1, num_heads])
+      query_segment_id = tf.reshape(query_segment_id, [-1])
 
     if per_step_source_padding is None:
       per_step_source_padding = tf.zeros(
@@ -2135,7 +2145,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       ctx_vec_proj = ctx_vec
     return ctx_vec_proj, ctx_vec
 
-  def PackCachedSource(self, cached_src):
+  def PackCachedSource(
+      self, cached_src: py_utils.NestedMap
+  ) -> py_utils.NestedMap:
     p = self.params
     concated_source_vecs = cached_src.source_vecs
     concated_source_contexts = cached_src.source_contexts
@@ -2179,13 +2191,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
   )
   def ComputeContextVectorWithCachedSource(
       self,
-      theta,
-      cached_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      cached_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[py_utils.NestedMap] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     """Same as the ComputeContextVectorWithSource api above, except values ...
 
     in source_vecs, source_contexts and source_padding are ordered differently.
@@ -2316,7 +2328,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       logits = tf.reshape(logits, py_utils.GetShape(summed)[:3])
       return logits
 
-    def AttenLogitsSameBatchSize(inputs):
+    def AttenLogitsSameBatchSize(inputs: py_utils.NestedMap) -> tf.Tensor:
       """Generates logits.
 
       Optimized code path for when the target and the source have the same batch
@@ -2625,12 +2637,12 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
   def PackSource(
       self,
-      theta,
-      source_vecs,
-      source_contexts,
-      source_padding,
-      source_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_contexts: tf.Tensor,
+      source_padding: tf.Tensor,
+      source_segment_id: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
@@ -2674,13 +2686,13 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
   def ComputeContextVectorWithSource(
       self,
-      theta,
-      packed_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      packed_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: tf.Tensor = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, tf.Tensor]:
     """Computes the context vector given the current query output.
 
     Args:
@@ -2941,12 +2953,12 @@ class MonotonicAttention(BaseAttentionLayer):
 
   def PackSource(
       self,
-      theta,
-      source_vecs,
-      source_contexts,
-      source_padding,
-      source_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_contexts: tf.Tensor,
+      source_padding: tf.Tensor,
+      source_segment_id: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
@@ -2981,12 +2993,12 @@ class MonotonicAttention(BaseAttentionLayer):
 
   def ComputeProbabilities(
       self,
-      theta,
-      concated_source_vecs,
-      merged_source_padding,
-      query_vec,
-      attention_state,
-  ):
+      theta: py_utils.NestedMap,
+      concated_source_vecs: tf.Tensor,
+      merged_source_padding: tf.Tensor,
+      query_vec: tf.Tensor,
+      attention_state: py_utils.NestedMap,
+  ) -> Tuple[tf.Tensor, py_utils.NestedMap]:
     """Computes probabilities of emissions."""
 
     # concated_source_contexts is of shape [sb, sl, context_dim]
@@ -2997,7 +3009,7 @@ class MonotonicAttention(BaseAttentionLayer):
 
     p = self.params
 
-    def AttenLogits(inputs):
+    def AttenLogits(inputs: py_utils.NestedMap) -> tf.Tensor:
       """Computes logits from source, query, and variables.
 
       Args:
@@ -3090,13 +3102,13 @@ class MonotonicAttention(BaseAttentionLayer):
 
   def ComputeContextVectorWithSource(
       self,
-      theta,
-      packed_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      packed_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[py_utils.NestedMap] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     """Computes the context vector given the current query output.
 
     Args:
@@ -3343,12 +3355,12 @@ class GmmMonotonicAttention(BaseAttentionLayer):
 
   def PackSource(
       self,
-      theta,
-      source_vecs,
-      source_contexts,
-      source_padding,
-      source_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_contexts: tf.Tensor,
+      source_padding: tf.Tensor,
+      source_segment_id: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
@@ -3370,6 +3382,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     )
 
   def ZeroAttentionState(self, source_length, decoder_batch_size):
+    del source_length
     p = self.params
 
     # [target_batch, num_mixtures]
@@ -3385,13 +3398,13 @@ class GmmMonotonicAttention(BaseAttentionLayer):
 
   def ComputeContextVectorWithSource(
       self,
-      theta,
-      packed_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      packed_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[tf.Tensor] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     """Computes the context vector given the current query output.
 
     Args:
@@ -3802,12 +3815,12 @@ class MultiSourceAttention(BaseAttentionLayer):
 
   def PackSource(
       self,
-      theta,
-      source_vecs,
-      source_contexts,
-      source_padding,
-      source_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      source_vecs: tf.Tensor,
+      source_contexts: tf.Tensor,
+      source_padding: tf.Tensor,
+      source_segment_id: Optional[tf.Tensor] = None,
+  ) -> py_utils.NestedMap:
     p = self.params
     with tf.name_scope(self.params.name):
       packed_src = py_utils.NestedMap()
@@ -3835,13 +3848,13 @@ class MultiSourceAttention(BaseAttentionLayer):
 
   def ComputeContextVectorWithSource(
       self,
-      theta,
-      packed_src,
-      query_vec,
-      attention_state=None,
-      per_step_source_padding=None,
-      query_segment_id=None,
-  ):
+      theta: py_utils.NestedMap,
+      packed_src: py_utils.NestedMap,
+      query_vec: tf.Tensor,
+      attention_state: Optional[py_utils.NestedMap] = None,
+      per_step_source_padding: Optional[tf.Tensor] = None,
+      query_segment_id: Optional[tf.Tensor] = None,
+  ) -> Tuple[tf.Tensor, tf.Tensor, Optional[py_utils.NestedMap]]:
     p = self.params
     assert per_step_source_padding is None
     with tf.name_scope(self.params.name):
