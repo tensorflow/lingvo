@@ -11,7 +11,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Tests for third_party.py.lingvo.core.steps.attention_steps."""
 
 from lingvo import compat as tf
 from lingvo.core import attention
@@ -37,8 +36,7 @@ class AttentionStepsTest(test_utils.TestCase):
       source_contexts = tf.constant(
           np.random.rand(src_length, src_batch_size, src_context_dim),
           dtype=tf.float32)
-      source_padding = tf.zeros([src_length, target_batch_size],
-                                dtype=tf.float32)
+      source_padding = tf.zeros([src_length, src_batch_size], dtype=tf.float32)
       query_vec = tf.constant(
           np.random.rand(target_batch_size, query_dim), dtype=tf.float32)
 
@@ -463,8 +461,7 @@ class AttentionStepsTest(test_utils.TestCase):
       src_dim = context_dim
       source_vecs = tf.constant(
           np.random.rand(src_length, src_batch_size, src_dim), dtype=tf.float32)
-      source_padding = tf.zeros([src_length, target_batch_size],
-                                dtype=tf.float32)
+      source_padding = tf.zeros([src_length, src_batch_size], dtype=tf.float32)
 
       p = attention_steps.AttentionBlockStep.Params()
       p.attention.atten.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
@@ -488,7 +485,7 @@ class AttentionStepsTest(test_utils.TestCase):
                                   state0)
 
       self.evaluate(tf.global_variables_initializer())
-      output, state1 = self.evaluate([output, state1])
+      output, _ = self.evaluate([output, state1])
 
       self.assertAllClose(
           output, {

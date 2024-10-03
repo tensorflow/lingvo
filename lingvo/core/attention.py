@@ -807,6 +807,14 @@ class AdditiveAttention(BaseAttentionLayer):
     Returns:
       A NestedMap containing the packed source.
     """
+    time, batch_size = py_utils.GetShape(source_vecs, 2)
+    source_contexts = py_utils.HasShape(source_contexts, [time, batch_size, -1])
+    source_padding = py_utils.HasShape(source_padding, [time, batch_size])
+    if source_segment_id is not None:
+      source_segment_id = py_utils.HasShape(
+          source_segment_id, [time, batch_size]
+      )
+
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
@@ -1197,6 +1205,14 @@ class DotProductAttention(BaseAttentionLayer):
       [batch_size, time, some_dim] and `source_padding` is a tensor of shape
       [time, batch_size].
     """
+    time, batch_size = py_utils.GetShape(source_vecs, 2)
+    source_contexts = py_utils.HasShape(source_contexts, [time, batch_size, -1])
+    source_padding = py_utils.HasShape(source_padding, [time, batch_size])
+    if source_segment_id is not None:
+      source_segment_id = py_utils.HasShape(
+          source_segment_id, [time, batch_size]
+      )
+
     concated_source_vecs = tf.identity(source_vecs)
     concated_source_contexts = tf.transpose(source_contexts, [1, 0, 2])
     if source_segment_id is None:
@@ -1627,13 +1643,11 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     # Check input tensor shapes
     # [time_steps, batch_size, source_dim]
     source_vecs = py_utils.HasRank(source_vecs, 3)
-    [time_steps, batch_size] = py_utils.GetShape(source_vecs, 2)
-    if p.use_source_vec_as_attention_value:
-      assert source_contexts is not None
-      # [time_steps, batch_size, context_dim]
-      source_contexts = py_utils.HasShape(
-          source_contexts, [time_steps, batch_size, -1]
-      )
+    time_steps, batch_size = py_utils.GetShape(source_vecs, 2)
+    # [time_steps, batch_size, context_dim]
+    source_contexts = py_utils.HasShape(
+        source_contexts, [time_steps, batch_size, -1]
+    )
     source_padding = py_utils.HasShape(source_padding, [time_steps, batch_size])
     if source_segment_id is not None:
       source_segment_id = py_utils.HasShape(
@@ -2643,6 +2657,14 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       source_padding: tf.Tensor,
       source_segment_id: Optional[tf.Tensor] = None,
   ) -> py_utils.NestedMap:
+    time, batch_size = py_utils.GetShape(source_vecs, 2)
+    source_contexts = py_utils.HasShape(source_contexts, [time, batch_size, -1])
+    source_padding = py_utils.HasShape(source_padding, [time, batch_size])
+    if source_segment_id is not None:
+      source_segment_id = py_utils.HasShape(
+          source_segment_id, [time, batch_size]
+      )
+
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
@@ -2959,6 +2981,14 @@ class MonotonicAttention(BaseAttentionLayer):
       source_padding: tf.Tensor,
       source_segment_id: Optional[tf.Tensor] = None,
   ) -> py_utils.NestedMap:
+    time, batch_size = py_utils.GetShape(source_vecs, 2)
+    source_contexts = py_utils.HasShape(source_contexts, [time, batch_size, -1])
+    source_padding = py_utils.HasShape(source_padding, [time, batch_size])
+    if source_segment_id is not None:
+      source_segment_id = py_utils.HasShape(
+          source_segment_id, [time, batch_size]
+      )
+
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
@@ -3361,6 +3391,14 @@ class GmmMonotonicAttention(BaseAttentionLayer):
       source_padding: tf.Tensor,
       source_segment_id: Optional[tf.Tensor] = None,
   ) -> py_utils.NestedMap:
+    time, batch_size = py_utils.GetShape(source_vecs, 2)
+    source_contexts = py_utils.HasShape(source_contexts, [time, batch_size, -1])
+    source_padding = py_utils.HasShape(source_padding, [time, batch_size])
+    if source_segment_id is not None:
+      source_segment_id = py_utils.HasShape(
+          source_segment_id, [time, batch_size]
+      )
+
     with tf.name_scope(self.params.name):
       if source_segment_id is None:
         source_segment_id = tf.zeros_like(source_padding)
