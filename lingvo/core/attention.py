@@ -17,7 +17,6 @@
 import math
 from typing import Optional, Tuple
 
-from absl import logging
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import gshard_utils
@@ -550,11 +549,11 @@ class AdditiveAttention(BaseAttentionLayer):
         )
       else:
         if hasattr(inputs, 'source_segment_id'):
-          logging.warning(
+          tf.logging.warning(
               'packed_input is False but source_segment_id is passed.'
           )
         if hasattr(inputs, 'query_segment_id'):
-          logging.warning(
+          tf.logging.warning(
               'packed_input is False but query_segment_id is passed.'
           )
       # Reshape logits to a matrix of shape [target_batch, source_length] and
@@ -715,11 +714,11 @@ class AdditiveAttention(BaseAttentionLayer):
           source_padding = tf.squeeze(source_padding, 1)
         else:
           if hasattr(inputs, 'source_segment_id'):
-            logging.warning(
+            tf.logging.warning(
                 'packed_input is False but source_segment_id is passed.'
             )
           if hasattr(inputs, 'query_segment_id'):
-            logging.warning(
+            tf.logging.warning(
                 'packed_input is False but query_segment_id is passed.'
             )
         # [b, sl]
@@ -1067,11 +1066,11 @@ class DotProductAttention(BaseAttentionLayer):
         source_padding = tf.transpose(source_padding, [1, 2, 0])
       else:
         if hasattr(inputs, 'source_segment_id'):
-          logging.warning(
+          tf.logging.warning(
               'packed_input is False but source_segment_id is passed.'
           )
         if hasattr(inputs, 'query_segment_id'):
-          logging.warning(
+          tf.logging.warning(
               'packed_input is False but query_segment_id is passed.'
           )
         source_padding = tf.transpose(source_padding, [2, 0, 1])
