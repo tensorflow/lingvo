@@ -17,6 +17,7 @@
 import math
 from typing import Optional, Tuple
 
+from absl import logging
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import gshard_utils
@@ -459,7 +460,9 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
       Logits with mask applied.
     """
     # Generating packed input mask for attention padding.
+    # => [time, 1, source_batch]
     source_segment_id = tf.expand_dims(source_segment_id, 1)
+    # => [1, n, source_batch]
     query_segment_id = tf.reshape(
         query_segment_id, [1, -1, py_utils.GetShape(source_segment_id)[2]]
     )
@@ -540,9 +543,20 @@ class AdditiveAttention(BaseAttentionLayer):
       source_padding = tf.logical_or(source_padding, per_step_source_padding)
 
       if p.packed_input:
+        assert hasattr(inputs, 'source_segment_id')
+        assert hasattr(inputs, 'query_segment_id')
         source_padding = self._UpdatePaddingWithPackedInputMask(
             source_padding, inputs.source_segment_id, inputs.query_segment_id
         )
+      else:
+        if hasattr(inputs, 'source_segment_id'):
+          logging.warning(
+              'packed_input is False but source_segment_id is passed.'
+          )
+        if hasattr(inputs, 'query_segment_id'):
+          logging.warning(
+              'packed_input is False but query_segment_id is passed.'
+          )
       # Reshape logits to a matrix of shape [target_batch, source_length] and
       # takes the softmax to compute the probabilities.
       logits = tf.transpose(tf.reshape(logits, [-1, target_batch]))
@@ -557,11 +571,11 @@ class AdditiveAttention(BaseAttentionLayer):
         v: tf.Tensor,
         w: tf.Tensor,
         source_padding: tf.Tensor,
-        source_segment_id: tf.Tensor,
+        source_segment_id: Optional[tf.Tensor],
         source_vecs: tf.Tensor,
         source_contexts: tf.Tensor,
         query_vec: tf.Tensor,
-        query_segment_id: tf.Tensor,
+        query_segment_id: Optional[tf.Tensor],
         per_step_source_padding: tf.Tensor,
     ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Computes the attention context vector.
@@ -598,19 +612,19 @@ class AdditiveAttention(BaseAttentionLayer):
       query_vec = tf.reshape(
           query_vec, [1, multiplier, source_batch, p.hidden_dim]
       )
-      # probs is of shape [target_batch, source_length]
-      probs = py_utils.CallDefun(
-          AttenProbs,
-          py_utils.NestedMap(
-              source_vecs=source_vecs,
-              source_padding=source_padding,
-              query_vec=query_vec,
-              v=v,
-              per_step_source_padding=per_step_source_padding,
-              source_segment_id=source_segment_id,
-              query_segment_id=query_segment_id,
-          ),
+      args = py_utils.NestedMap(
+          source_vecs=source_vecs,
+          source_padding=source_padding,
+          query_vec=query_vec,
+          v=v,
+          per_step_source_padding=per_step_source_padding,
       )
+      if source_segment_id is not None:
+        args.source_segment_id = source_segment_id
+      if query_segment_id is not None:
+        args.query_segment_id = query_segment_id
+      # probs is of shape [target_batch, source_length]
+      probs = py_utils.CallDefun(AttenProbs, args)
       probs.set_shape(per_step_source_padding.shape)
 
       # Apply dropout to weights if applicable.
@@ -640,11 +654,11 @@ class AdditiveAttention(BaseAttentionLayer):
         v: tf.Tensor,
         w: tf.Tensor,
         source_padding: tf.Tensor,
-        source_segment_id: tf.Tensor,
+        source_segment_id: Optional[tf.Tensor],
         source_vecs: tf.Tensor,
         source_contexts: tf.Tensor,
         query_vec: tf.Tensor,
-        query_segment_id: tf.Tensor,
+        query_segment_id: Optional[tf.Tensor],
         per_step_source_padding: tf.Tensor,
     ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Computes the attention context vector.
@@ -691,12 +705,23 @@ class AdditiveAttention(BaseAttentionLayer):
         source_padding = tf.logical_or(source_padding, per_step_source_padding)
 
         if p.packed_input:
+          assert hasattr(inputs, 'source_segment_id')
+          assert hasattr(inputs, 'query_segment_id')
           source_padding = self._UpdatePaddingWithPackedInputMask(
               tf.expand_dims(source_padding, 1),
               inputs.source_segment_id,
               inputs.query_segment_id,
           )
           source_padding = tf.squeeze(source_padding, 1)
+        else:
+          if hasattr(inputs, 'source_segment_id'):
+            logging.warning(
+                'packed_input is False but source_segment_id is passed.'
+            )
+          if hasattr(inputs, 'query_segment_id'):
+            logging.warning(
+                'packed_input is False but query_segment_id is passed.'
+            )
         # [b, sl]
         source_padding = tf.transpose(source_padding)
         logits = tf.transpose(logits)
@@ -704,18 +729,18 @@ class AdditiveAttention(BaseAttentionLayer):
         probs = self._PaddedSoftmax(logits, source_padding)
         return probs
 
-      probs = py_utils.CallDefun(
-          AttenProbs,
-          py_utils.NestedMap(
-              source_vecs=source_vecs,
-              source_padding=source_padding,
-              query_vec=query_vec,
-              v=v,
-              per_step_source_padding=per_step_source_padding,
-              source_segment_id=source_segment_id,
-              query_segment_id=query_segment_id,
-          ),
+      args = py_utils.NestedMap(
+          source_vecs=source_vecs,
+          source_padding=source_padding,
+          query_vec=query_vec,
+          v=v,
+          per_step_source_padding=per_step_source_padding,
       )
+      if source_segment_id is not None:
+        args.source_segment_id = source_segment_id
+      if query_segment_id is not None:
+        args.query_segment_id = query_segment_id
+      probs = py_utils.CallDefun(AttenProbs, args)
       probs.set_shape(per_step_source_padding.shape)
 
       # contexts[i, :] is a weighted (probs[i, :]) average of
@@ -811,12 +836,10 @@ class AdditiveAttention(BaseAttentionLayer):
       )
 
     with tf.name_scope(self.params.name):
-      if source_segment_id is None:
-        source_segment_id = tf.zeros_like(source_padding)
       source_vecs, source_contexts = self._encode_source(
           theta, source_vecs, source_contexts
       )
-    return py_utils.NestedMap(
+    packed = py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=source_vecs,
         # [batch_size, time, context_dim].
@@ -826,9 +849,11 @@ class AdditiveAttention(BaseAttentionLayer):
         source_contexts=source_contexts,
         # [time, batch_size].
         source_padding=source_padding,
-        # [time, batch_size].
-        source_segment_id=source_segment_id,
     )
+    if source_segment_id is not None:
+      # [time, batch_size].
+      packed.source_segment_id = source_segment_id
+    return packed
 
   def ZeroAttentionState(self, source_length, decoder_batch_size):
     del source_length
@@ -879,7 +904,7 @@ class AdditiveAttention(BaseAttentionLayer):
     source_vecs = packed_src.source_vecs
     source_contexts = packed_src.source_contexts
     source_padding = packed_src.source_padding
-    source_segment_id = packed_src.source_segment_id
+    source_segment_id = packed_src.Get('source_segment_id', None)
     query_batch_size = py_utils.GetShape(query_vec)[0]
     source_length = py_utils.GetShape(source_padding)[0]
     if per_step_source_padding is None:
@@ -891,13 +916,6 @@ class AdditiveAttention(BaseAttentionLayer):
     )
     hidden = self.AddVN(theta.hidden_var, per_step=True)
     query = self.AddVN(theta.query_var, per_step=True)
-
-    if source_segment_id is None:
-      source_segment_id = tf.zeros_like(source_padding)
-    if query_segment_id is None:
-      query_segment_id = tf.zeros(
-          tf.shape(query_vec)[0], dtype=source_padding.dtype
-      )
 
     ctx_vec, prob = self._ctx_vec(
         hidden,
@@ -1040,12 +1058,22 @@ class DotProductAttention(BaseAttentionLayer):
         per_step_source_padding = per_step_source_padding > 0
       source_padding = tf.logical_or(source_padding, per_step_source_padding)
       if p.packed_input:
+        assert hasattr(inputs, 'source_segment_id')
+        assert hasattr(inputs, 'query_segment_id')
         source_padding = tf.transpose(source_padding, [1, 2, 0])
         source_padding = self._UpdatePaddingWithPackedInputMask(
             source_padding, inputs.source_segment_id, inputs.query_segment_id
         )
         source_padding = tf.transpose(source_padding, [1, 2, 0])
       else:
+        if hasattr(inputs, 'source_segment_id'):
+          logging.warning(
+              'packed_input is False but source_segment_id is passed.'
+          )
+        if hasattr(inputs, 'query_segment_id'):
+          logging.warning(
+              'packed_input is False but query_segment_id is passed.'
+          )
         source_padding = tf.transpose(source_padding, [2, 0, 1])
 
       # => [n, source_batch, time]
@@ -1063,11 +1091,11 @@ class DotProductAttention(BaseAttentionLayer):
     def Atten(
         per_dim_scale: tf.Tensor,
         source_padding: tf.Tensor,
-        source_segment_id: tf.Tensor,
+        source_segment_id: Optional[tf.Tensor],
         source_vecs: tf.Tensor,
         source_contexts: tf.Tensor,
         query_vec: tf.Tensor,
-        query_segment_id: tf.Tensor,
+        query_segment_id: Optional[tf.Tensor],
         per_step_source_padding: tf.Tensor,
     ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Main attention function.
@@ -1106,18 +1134,18 @@ class DotProductAttention(BaseAttentionLayer):
       target_batch = py_utils.GetShape(query_vec)[0]
       source_vecs = tf.transpose(source_vecs, [1, 0, 2])
       source_vecs = tf.identity(source_vecs, name='source_vecs')
-      returned_probs = py_utils.CallDefun(
-          AttenProbs,
-          py_utils.NestedMap(
-              per_dim_scale=per_dim_scale,
-              source_padding=source_padding,
-              source_vecs=source_vecs,
-              query_vec=query_vec,
-              per_step_source_padding=per_step_source_padding,
-              source_segment_id=source_segment_id,
-              query_segment_id=query_segment_id,
-          ),
+      args = py_utils.NestedMap(
+          per_dim_scale=per_dim_scale,
+          source_padding=source_padding,
+          source_vecs=source_vecs,
+          query_vec=query_vec,
+          per_step_source_padding=per_step_source_padding,
       )
+      if source_segment_id is not None:
+        args.source_segment_id = source_segment_id
+      if query_segment_id is not None:
+        args.query_segment_id = query_segment_id
+      returned_probs = py_utils.CallDefun(AttenProbs, args)
       returned_probs.set_shape(per_step_source_padding.shape)
 
       # => [n, source_batch, time] where n = target_batch // source_batch
@@ -1205,9 +1233,7 @@ class DotProductAttention(BaseAttentionLayer):
 
     source_vecs = tf.identity(source_vecs)
     source_contexts = tf.transpose(source_contexts, [1, 0, 2])
-    if source_segment_id is None:
-      source_segment_id = tf.zeros_like(source_padding)
-    return py_utils.NestedMap(
+    packed = py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=source_vecs,
         # [batch_size, time, context_dim].
@@ -1217,9 +1243,11 @@ class DotProductAttention(BaseAttentionLayer):
         source_contexts=source_contexts,
         # [time, batch_size].
         source_padding=source_padding,
-        # [time, batch_size].
-        source_segment_id=source_segment_id,
     )
+    if source_segment_id is not None:
+      # [time, batch_size].
+      packed.source_segment_id = source_segment_id
+    return packed
 
   def ZeroAttentionState(self, source_length, decoder_batch_size):
     del source_length
@@ -1265,7 +1293,7 @@ class DotProductAttention(BaseAttentionLayer):
     source_contexts = packed_src.source_contexts
 
     source_padding = packed_src.source_padding
-    source_segment_id = packed_src.source_segment_id
+    source_segment_id = packed_src.Get('source_segment_id', None)
     query_batch_size = py_utils.GetShape(query_vec)[0]
     source_sequence_length = py_utils.GetShape(source_padding)[0]
     if per_step_source_padding is None:
@@ -1275,12 +1303,6 @@ class DotProductAttention(BaseAttentionLayer):
     per_step_source_padding = py_utils.HasShape(
         per_step_source_padding, [query_batch_size, source_sequence_length]
     )
-    if source_segment_id is None:
-      source_segment_id = tf.zeros_like(source_padding)
-    if query_segment_id is None:
-      query_segment_id = tf.zeros(
-          py_utils.GetShape(query_vec)[0], dtype=source_padding.dtype
-      )
 
     def ScaleFn(x):
       return tf.nn.softplus(x) / tf.nn.softplus(tf.constant(0.0, dtype=x.dtype))
@@ -1733,9 +1755,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       source_padding = tf.reshape(source_padding, [-1, batch_size * num_heads])
 
     with tf.name_scope('segment_id'):
-      if source_segment_id is None:
-        source_segment_id = tf.zeros_like(source_padding)
-      else:
+      if source_segment_id is not None:
         # => [time_steps, batch_size, 1]
         source_segment_id = tf.expand_dims(source_segment_id, 2)
         # => [time_steps, batch_size, num_heads]
@@ -1826,16 +1846,14 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     batch_size = py_utils.GetShape(new_source_vecs)[0]
     if new_source_paddings is None:
       new_source_paddings = tf.zeros([batch_size], dtype=new_source_vecs.dtype)
-    if new_source_segment_id is None:
-      new_source_segment_id = tf.zeros(
-          [batch_size], dtype=new_source_vecs.dtype
-      )
+    if new_source_segment_id is not None:
+      new_source_segment_id = tf.expand_dims(new_source_segment_id, 0)
     processed_packed_src = self.InitForSourcePacked(
         theta,
         tf.expand_dims(new_source_vecs, 0),
         tf.expand_dims(new_source_contexts, 0),
         tf.expand_dims(new_source_paddings, 0),
-        tf.expand_dims(new_source_segment_id, 0),
+        new_source_segment_id,
     )
     extended_packed_src = py_utils.NestedMap()
     for key in (
@@ -1982,11 +2000,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           p.activation_split_dims_mapping[1:],
       )
 
-    if query_segment_id is None:
-      query_segment_id = tf.zeros(
-          target_batch * num_heads, dtype=source_padding.dtype
-      )
-    else:
+    if query_segment_id is not None:
       query_segment_id = tf.expand_dims(query_segment_id, 1)
       query_segment_id = tf.tile(query_segment_id, [1, num_heads])
       query_segment_id = tf.reshape(query_segment_id, [-1])
@@ -2148,7 +2162,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     source_vecs = cached_src.source_vecs
     source_contexts = cached_src.source_contexts
     source_padding = cached_src.source_padding
-    source_segment_id = cached_src.source_segment_id
+    source_segment_id = cached_src.Get('source_segment_id', None)
     batch_size = py_utils.GetShape(source_vecs)[1]
     src_seq_len = py_utils.GetShape(source_vecs)[0]
     num_heads = p.num_attention_heads
@@ -2169,12 +2183,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       packed_src.source_padding = tf.zeros(
           [src_seq_len, batch_size * num_heads], dtype=py_utils.FPropDtype(p)
       )
-    if source_segment_id is None:
-      packed_src.source_segment_id = tf.zeros(
-          [src_seq_len, batch_size * num_heads],
-          dtype=packed_src.source_padding.dtype,
-      )
-    else:
+    if source_segment_id is not None:
       packed_src.source_segment_id = tf.reshape(
           source_segment_id, [src_seq_len, batch_size * num_heads]
       )
@@ -2644,12 +2653,10 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       )
 
     with tf.name_scope(self.params.name):
-      if source_segment_id is None:
-        source_segment_id = tf.zeros_like(source_padding)
       source_vecs, source_contexts = self._encode_source(
           theta, source_vecs, source_contexts
       )
-    return py_utils.NestedMap(
+    packed = py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=source_vecs,
         # [batch_size, time, context_dim].
@@ -2659,9 +2666,11 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         source_contexts=source_contexts,
         # [time, batch_size].
         source_padding=source_padding,
-        # [time, batch_size].
-        source_segment_id=source_segment_id,
     )
+    if source_segment_id is not None:
+      # [time, batch_size].
+      packed.source_segment_id = source_segment_id
+    return packed
 
   def ZeroAttentionState(self, source_length, decoder_batch_size):
     p = self.params
@@ -2967,12 +2976,10 @@ class MonotonicAttention(BaseAttentionLayer):
       )
 
     with tf.name_scope(self.params.name):
-      if source_segment_id is None:
-        source_segment_id = tf.zeros_like(source_padding)
       source_vecs, source_contexts = self._encode_source(
           theta, source_vecs, source_contexts
       )
-    return py_utils.NestedMap(
+    packed = py_utils.NestedMap(
         # [time, batch_size, hidden_dim].
         source_vecs=source_vecs,
         # [batch_size, time, context_dim].
@@ -2982,9 +2989,11 @@ class MonotonicAttention(BaseAttentionLayer):
         source_contexts=source_contexts,
         # [time, batch_size].
         source_padding=source_padding,
-        # [time, batch_size].
-        source_segment_id=source_segment_id,
     )
+    if source_segment_id is not None:
+      # [time, batch_size].
+      packed.source_segment_id = source_segment_id
+    return packed
 
   def ZeroAttentionState(self, source_length, decoder_batch_size):
     p = self.params
@@ -3372,12 +3381,10 @@ class GmmMonotonicAttention(BaseAttentionLayer):
       )
 
     with tf.name_scope(self.params.name):
-      if source_segment_id is None:
-        source_segment_id = tf.zeros_like(source_padding)
       source_vecs, source_contexts = self._encode_source(
           source_vecs, source_contexts
       )
-    return py_utils.NestedMap(
+    packed = py_utils.NestedMap(
         # [source_length, source_batch, hidden_dim].
         source_vecs=source_vecs,
         # [source_batch, source_length, context_dim].
@@ -3387,9 +3394,11 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         source_contexts=source_contexts,
         # [source_length, source_batch].
         source_padding=source_padding,
-        # [source_length, source_batch].
-        source_segment_id=source_segment_id,
     )
+    if source_segment_id is not None:
+      # [source_length, source_batch].
+      packed.source_segment_id = source_segment_id
+    return packed
 
   def ZeroAttentionState(self, source_length, decoder_batch_size):
     del source_length

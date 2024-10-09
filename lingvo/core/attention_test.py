@@ -256,14 +256,27 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(use_gpu=True, graph=tf.Graph()):
       tf.random.set_seed(398847392)
       params, tensors = self._AdditiveAttentionInputs(packed_inputs, tgt_bs=3)
-      source_vecs, source_contexts, source_padding, _, query_vec, _ = tensors
+      (
+          source_vecs,
+          source_contexts,
+          source_padding,
+          source_segment_id,
+          query_vec,
+          query_segment_id,
+      ) = tensors
       params.same_batch_size = same_batch_size
 
       atten = attention.AdditiveAttention(params)
-      atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
-                                source_padding)
+      atten.InitForSourcePacked(
+          atten.theta,
+          source_vecs,
+          source_contexts,
+          source_padding,
+          source_segment_id,
+      )
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
-          atten.theta, query_vec)
+          atten.theta, query_vec, query_segment_id=query_segment_id
+      )
 
       self._CheckStaticShapes(
           atten_vec,

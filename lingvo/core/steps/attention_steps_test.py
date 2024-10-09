@@ -47,7 +47,6 @@ class AttentionStepsTest(test_utils.TestCase):
       p.atten.hidden_dim = query_dim
       p.atten.vn.global_vn = False
       p.atten.vn.per_step_vn = False
-      p.atten.packed_input = True
       step = p.Instantiate()
 
       external_inputs = py_utils.NestedMap(
@@ -130,7 +129,6 @@ class AttentionStepsTest(test_utils.TestCase):
       add_atten_params.hidden_dim = query_dim
       add_atten_params.vn.global_vn = False
       add_atten_params.vn.per_step_vn = False
-      add_atten_params.packed_input = True
 
       p.atten.source_atten_tpls = [('source_0', add_atten_params),
                                    ('source_1', add_atten_params)]
@@ -217,7 +215,6 @@ class AttentionStepsTest(test_utils.TestCase):
       gmm_atten_params.hidden_dim = query_dim
       gmm_atten_params.vn.global_vn = False
       gmm_atten_params.vn.per_step_vn = False
-      gmm_atten_params.packed_input = True
 
       p.atten.source_atten_tpls = [('source_0', gmm_atten_params),
                                    ('source_1', gmm_atten_params)]
@@ -362,7 +359,6 @@ class AttentionStepsTest(test_utils.TestCase):
       add_atten_params.hidden_dim = query_dim
       add_atten_params.vn.global_vn = False
       add_atten_params.vn.per_step_vn = False
-      add_atten_params.packed_input = True
 
       gmm_atten_params = attention.GmmMonotonicAttention.Params()
       gmm_atten_params.params_init = py_utils.WeightInit.Gaussian(0.1, 12345)
@@ -371,7 +367,6 @@ class AttentionStepsTest(test_utils.TestCase):
       gmm_atten_params.hidden_dim = query_dim
       gmm_atten_params.vn.global_vn = False
       gmm_atten_params.vn.per_step_vn = False
-      gmm_atten_params.packed_input = True
 
       p.atten.source_atten_tpls = [('source_0', add_atten_params),
                                    ('source_1', gmm_atten_params)]
@@ -470,7 +465,6 @@ class AttentionStepsTest(test_utils.TestCase):
       p.attention.atten.hidden_dim = hidden_dim
       p.attention.atten.vn.global_vn = False
       p.attention.atten.vn.per_step_vn = False
-      p.attention.atten.packed_input = True
       p.query_generator.step_input_dim = context_dim
       p.query_generator.rnn_cell_dim = query_dim
       step = p.Instantiate()
