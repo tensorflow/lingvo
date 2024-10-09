@@ -508,8 +508,8 @@ class AdditiveAttention(BaseAttentionLayer):
     def AttenProbs(inputs: py_utils.NestedMap) -> tf.Tensor:
       """Generates probs."""
       source_batch = py_utils.GetShape(inputs.source_padding)[1]
-      target_batch = py_utils.GetShape(inputs.per_step_source_padding)[0]
-      multiplier = target_batch // source_batch
+      multiplier = py_utils.GetShape(inputs.query_vec)[1]
+      target_batch = multiplier * source_batch
 
       # Shape of summed is [sl, tb/sb, sb, hidden_dim].
       summed = tf.tanh(inputs.source_vecs + inputs.query_vec)
@@ -526,20 +526,25 @@ class AdditiveAttention(BaseAttentionLayer):
       )
       logits = tf.reshape(logits, tf.shape(summed)[:3])
       # Take out the padding states.
-      # _source_padding is of shape [source_length, source_batch].
-      # reshaped to [source_length, 1, source_batch].
-      # per_step_source_padding is reshaped to the same but with 'multiplier'
-      # for the second dim.
+      # [source_length, 1, source_batch]
       source_padding = tf.expand_dims(inputs.source_padding, 1)
-      per_step_source_padding = tf.reshape(
-          tf.transpose(inputs.per_step_source_padding),
-          [-1, multiplier, source_batch],
-      )
       if source_padding.dtype != tf.bool:
         source_padding = source_padding > 0
-      if per_step_source_padding.dtype != tf.bool:
-        per_step_source_padding = per_step_source_padding > 0
-      source_padding = tf.logical_or(source_padding, per_step_source_padding)
+
+      per_step_source_padding = inputs.Get('per_step_source_padding', None)
+      if per_step_source_padding is not None:
+        # [source_length, target_batch]
+        per_step_source_padding = tf.transpose(per_step_source_padding)
+        # [source_length, multiplier, source_batch]
+        per_step_source_padding = tf.reshape(
+            per_step_source_padding, [-1, multiplier, source_batch]
+        )
+        if per_step_source_padding.dtype != tf.bool:
+          per_step_source_padding = per_step_source_padding > 0
+        source_padding = tf.logical_or(source_padding, per_step_source_padding)
+      else:
+        # [source_length, multiplier, source_batch]
+        source_padding = tf.tile(source_padding, [1, multiplier, 1])
 
       if p.packed_input:
         assert hasattr(inputs, 'source_segment_id')
@@ -556,12 +561,14 @@ class AdditiveAttention(BaseAttentionLayer):
           tf.logging.warning(
               'packed_input is False but query_segment_id is passed.'
           )
-      # Reshape logits to a matrix of shape [target_batch, source_length] and
-      # takes the softmax to compute the probabilities.
-      logits = tf.transpose(tf.reshape(logits, [-1, target_batch]))
-      source_padding = tf.transpose(
-          tf.reshape(source_padding, [-1, target_batch])
-      )
+      source_padding = tf.reshape(source_padding, [-1, target_batch])
+      source_padding = tf.transpose(source_padding)
+
+      # [source_length, target_batch]
+      logits = tf.reshape(logits, [-1, target_batch])
+      # [target_batch, source_length]
+      logits = tf.transpose(logits)
+      # take the softmax to compute the probabilities.
       probs = self._PaddedSoftmax(logits, source_padding)
       return probs
 
@@ -575,7 +582,7 @@ class AdditiveAttention(BaseAttentionLayer):
         source_contexts: tf.Tensor,
         query_vec: tf.Tensor,
         query_segment_id: Optional[tf.Tensor],
-        per_step_source_padding: tf.Tensor,
+        per_step_source_padding: Optional[tf.Tensor],
     ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Computes the attention context vector.
 
@@ -599,7 +606,7 @@ class AdditiveAttention(BaseAttentionLayer):
       Returns:
         attention context vectors and probabilities.
       """
-      source_batch = py_utils.GetShape(source_vecs)[1]
+      source_length, source_batch = py_utils.GetShape(source_vecs, 2)
       target_batch = py_utils.GetShape(query_vec)[0]
       multiplier = target_batch // source_batch
       # source_vecs is reshaped to [source_length, 1, source_batch, hidden_dims]
@@ -616,15 +623,16 @@ class AdditiveAttention(BaseAttentionLayer):
           source_padding=source_padding,
           query_vec=query_vec,
           v=v,
-          per_step_source_padding=per_step_source_padding,
       )
+      if per_step_source_padding is not None:
+        args.per_step_source_padding = per_step_source_padding
       if source_segment_id is not None:
         args.source_segment_id = source_segment_id
       if query_segment_id is not None:
         args.query_segment_id = query_segment_id
       # probs is of shape [target_batch, source_length]
       probs = py_utils.CallDefun(AttenProbs, args)
-      probs.set_shape(per_step_source_padding.shape)
+      probs = py_utils.HasShape(probs, [target_batch, source_length])
 
       # Apply dropout to weights if applicable.
       if not self.do_eval:
@@ -658,7 +666,7 @@ class AdditiveAttention(BaseAttentionLayer):
         source_contexts: tf.Tensor,
         query_vec: tf.Tensor,
         query_segment_id: Optional[tf.Tensor],
-        per_step_source_padding: tf.Tensor,
+        per_step_source_padding: Optional[tf.Tensor],
     ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Computes the attention context vector.
 
@@ -680,6 +688,8 @@ class AdditiveAttention(BaseAttentionLayer):
       if p.atten_dropout_prob != 0:
         raise NotImplementedError('dropout is not supported')
 
+      sl, b = py_utils.GetShape(source_vecs, 2)
+
       # [b, hidden_dim]
       query_vec = py_utils.Matmul(query_vec, w)
 
@@ -696,12 +706,17 @@ class AdditiveAttention(BaseAttentionLayer):
         logits = tf.reshape(res, tf.shape(summed)[:2])
         # Take out the padding states. _source_padding is of shape [sl, b].
         source_padding = inputs.source_padding
-        per_step_source_padding = tf.transpose(inputs.per_step_source_padding)
         if source_padding.dtype != tf.bool:
           source_padding = source_padding > 0
-        if per_step_source_padding.dtype != tf.bool:
-          per_step_source_padding = per_step_source_padding > 0
-        source_padding = tf.logical_or(source_padding, per_step_source_padding)
+
+        per_step_source_padding = inputs.Get('per_step_source_padding', None)
+        if per_step_source_padding is not None:
+          per_step_source_padding = tf.transpose(per_step_source_padding)
+          if per_step_source_padding.dtype != tf.bool:
+            per_step_source_padding = per_step_source_padding > 0
+          source_padding = tf.logical_or(
+              source_padding, per_step_source_padding
+          )
 
         if p.packed_input:
           assert hasattr(inputs, 'source_segment_id')
@@ -733,14 +748,15 @@ class AdditiveAttention(BaseAttentionLayer):
           source_padding=source_padding,
           query_vec=query_vec,
           v=v,
-          per_step_source_padding=per_step_source_padding,
       )
+      if per_step_source_padding is not None:
+        args.per_step_source_padding = per_step_source_padding
       if source_segment_id is not None:
         args.source_segment_id = source_segment_id
       if query_segment_id is not None:
         args.query_segment_id = query_segment_id
       probs = py_utils.CallDefun(AttenProbs, args)
-      probs.set_shape(per_step_source_padding.shape)
+      probs = py_utils.HasShape(probs, [b, sl])
 
       # contexts[i, :] is a weighted (probs[i, :]) average of
       # source_vecs[i, :, :].
@@ -906,13 +922,10 @@ class AdditiveAttention(BaseAttentionLayer):
     source_segment_id = packed_src.Get('source_segment_id', None)
     query_batch_size = py_utils.GetShape(query_vec)[0]
     source_length = py_utils.GetShape(source_padding)[0]
-    if per_step_source_padding is None:
-      per_step_source_padding = tf.zeros(
-          [query_batch_size, source_length], source_padding.dtype
+    if per_step_source_padding is not None:
+      per_step_source_padding = py_utils.HasShape(
+          per_step_source_padding, [query_batch_size, source_length]
       )
-    per_step_source_padding = py_utils.HasShape(
-        per_step_source_padding, [query_batch_size, source_length]
-    )
     hidden = self.AddVN(theta.hidden_var, per_step=True)
     query = self.AddVN(theta.query_var, per_step=True)
 
@@ -1001,14 +1014,13 @@ class DotProductAttention(BaseAttentionLayer):
           * source_padding:          [time, source_batch].
           * source_vecs:             [source_batch, time, source_dim].
           * query_vec:               [target_batch, source_dim].
-          * per_step_source_padding: [target_batch, source_length]
+          * per_step_source_padding: [target_batch, time]
           * source_segment_id:       [time, source_batch].
           * query_segment_id:        [target_batch].
 
       Returns:
         logits [target_batch, source_time].
       """
-      source_padding = tf.transpose(inputs.source_padding)
       source_vecs = inputs.source_vecs
 
       logit_scale = tf.stop_gradient(
@@ -1019,7 +1031,7 @@ class DotProductAttention(BaseAttentionLayer):
               )
           )
       )
-      source_batch, _, source_dim = py_utils.GetShape(source_vecs)
+      source_batch, time, source_dim = py_utils.GetShape(source_vecs)
       target_batch = py_utils.GetShape(inputs.query_vec)[0]
       query_vec = inputs.query_vec * inputs.per_dim_scale
       # The n here refers to the "n" described in the comment above.
@@ -1027,13 +1039,6 @@ class DotProductAttention(BaseAttentionLayer):
       query_vec = tf.reshape(query_vec, [-1, source_batch, source_dim])
       # => [source_batch, source_dim, n]
       query_vec = tf.transpose(query_vec, [1, 2, 0])
-      source_length = py_utils.GetShape(inputs.per_step_source_padding)[1]
-      # => [n, source_batch, source_length]
-      per_step_source_padding = tf.reshape(
-          inputs.per_step_source_padding, [-1, source_batch, source_length]
-      )
-      # => [source_batch, source_length, n]
-      per_step_source_padding = tf.transpose(per_step_source_padding, [1, 2, 0])
       # Dot-product part.
       # Calls batch_mat_mul since dim > 2 for per-instance matmul.
       # [source_batch, time, source_dim] * [source_batch, source_dim, n]
@@ -1049,13 +1054,29 @@ class DotProductAttention(BaseAttentionLayer):
 
       logits *= logit_scale
       # Exclude padding frames.
-      # [source_batch, time] => [source_batch, time, 1]
+      # [source_batch, time]
+      source_padding = tf.transpose(inputs.source_padding)
+      # [source_batch, time, 1]
       source_padding = tf.expand_dims(source_padding, 2)
       if source_padding.dtype != tf.bool:
         source_padding = source_padding > 0
-      if per_step_source_padding.dtype != tf.bool:
-        per_step_source_padding = per_step_source_padding > 0
-      source_padding = tf.logical_or(source_padding, per_step_source_padding)
+
+      per_step_source_padding = inputs.Get('per_step_source_padding', None)
+      if per_step_source_padding is not None:
+        # => [n, source_batch, time]
+        per_step_source_padding = tf.reshape(
+            per_step_source_padding, [-1, source_batch, time]
+        )
+        # => [source_batch, time, n]
+        per_step_source_padding = tf.transpose(
+            per_step_source_padding, [1, 2, 0]
+        )
+        if per_step_source_padding.dtype != tf.bool:
+          per_step_source_padding = per_step_source_padding > 0
+        source_padding = tf.logical_or(source_padding, per_step_source_padding)
+      else:
+        n = target_batch // source_batch
+        source_padding = tf.tile(source_padding, [1, 1, n])
       if p.packed_input:
         assert hasattr(inputs, 'source_segment_id')
         assert hasattr(inputs, 'query_segment_id')
@@ -1095,7 +1116,7 @@ class DotProductAttention(BaseAttentionLayer):
         source_contexts: tf.Tensor,
         query_vec: tf.Tensor,
         query_segment_id: Optional[tf.Tensor],
-        per_step_source_padding: tf.Tensor,
+        per_step_source_padding: Optional[tf.Tensor],
     ) -> Tuple[tf.Tensor, tf.Tensor]:
       """Main attention function.
 
@@ -1107,7 +1128,7 @@ class DotProductAttention(BaseAttentionLayer):
         source_contexts:          [source_batch, time, context_dim].
         query_vec:                [target_batch, source_dim].
         query_segment_id:         [target_batch].
-        per_step_source_padding:  [target_batch, source_length]
+        per_step_source_padding:  [target_batch, time]
 
       Note: source_vecs are the vectors that are used to compute the attention
         score between the query_vec and each source_vec. The source_contexts are
@@ -1138,14 +1159,15 @@ class DotProductAttention(BaseAttentionLayer):
           source_padding=source_padding,
           source_vecs=source_vecs,
           query_vec=query_vec,
-          per_step_source_padding=per_step_source_padding,
       )
+      if per_step_source_padding is not None:
+        args.per_step_source_padding = per_step_source_padding
       if source_segment_id is not None:
         args.source_segment_id = source_segment_id
       if query_segment_id is not None:
         args.query_segment_id = query_segment_id
       returned_probs = py_utils.CallDefun(AttenProbs, args)
-      returned_probs.set_shape(per_step_source_padding.shape)
+      returned_probs = py_utils.HasShape(returned_probs, [target_batch, time])
 
       # => [n, source_batch, time] where n = target_batch // source_batch
       probs = tf.reshape(returned_probs, [-1, source_batch, time])
@@ -1295,13 +1317,10 @@ class DotProductAttention(BaseAttentionLayer):
     source_segment_id = packed_src.Get('source_segment_id', None)
     query_batch_size = py_utils.GetShape(query_vec)[0]
     source_sequence_length = py_utils.GetShape(source_padding)[0]
-    if per_step_source_padding is None:
-      per_step_source_padding = tf.zeros(
-          [query_batch_size, source_sequence_length], dtype=source_padding.dtype
+    if per_step_source_padding is not None:
+      per_step_source_padding = py_utils.HasShape(
+          per_step_source_padding, [query_batch_size, source_sequence_length]
       )
-    per_step_source_padding = py_utils.HasShape(
-        per_step_source_padding, [query_batch_size, source_sequence_length]
-    )
 
     def ScaleFn(x):
       return tf.nn.softplus(x) / tf.nn.softplus(tf.constant(0.0, dtype=x.dtype))
@@ -2004,16 +2023,14 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       query_segment_id = tf.tile(query_segment_id, [1, num_heads])
       query_segment_id = tf.reshape(query_segment_id, [-1])
 
-    if per_step_source_padding is None:
-      per_step_source_padding = tf.zeros(
-          [target_batch, source_seq_len], dtype=source_padding.dtype
+    if per_step_source_padding is not None:
+      per_step_source_padding = py_utils.HasShape(
+          per_step_source_padding, [target_batch, source_seq_len]
       )
-    per_step_source_padding = py_utils.HasShape(
-        per_step_source_padding, [target_batch, source_seq_len]
-    )
-    per_step_source_padding = tf.reshape(
-        tf.tile(per_step_source_padding, [1, num_heads]), [-1, source_seq_len]
-    )
+      per_step_source_padding = tf.tile(per_step_source_padding, [1, num_heads])
+      per_step_source_padding = tf.reshape(
+          per_step_source_padding, [-1, source_seq_len]
+      )
     attention_state = _RecursiveReshape(
         attention_state, [target_batch * num_heads, -1]
     )
