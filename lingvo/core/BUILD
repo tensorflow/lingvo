@@ -41,7 +41,7 @@ lingvo_cuda_py_test(
     ],
 )
 
-pytype_library(
+pytype_strict_library(
     name = "attention",
     srcs = ["attention.py"],
     deps = [
@@ -62,6 +62,7 @@ lingvo_cuda_py_test(
     shard_count = 5,
     deps = [
         ":attention",
+        ":layers",
         ":py_utils",
         ":quant_utils",
         ":test_utils",

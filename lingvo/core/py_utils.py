@@ -726,22 +726,6 @@ def SetProcessFPropResultsInEager(process_fprop_results=True):
   _RUN_PROCESS_FPROP_IN_EAGER = process_fprop_results
 
 
-# TODO(b/227528061): `alias_inplace_update` is deprecated and has
-# non-deterministic results when running on CPU/GPU. We have observed incorrect
-# results when running the op in TF2 on CPU.
-# Used for tests only.
-_REPLACE_ALIAS_INPLACE_UPDATE_IN_ATTENTION = False
-
-
-def SetReplaceAliasInplaceUpdateInAttention(replace_op=True):
-  global _REPLACE_ALIAS_INPLACE_UPDATE_IN_ATTENTION
-  _REPLACE_ALIAS_INPLACE_UPDATE_IN_ATTENTION = replace_op
-
-
-def ReplaceAliasInplaceUpdateInAttention():
-  return _REPLACE_ALIAS_INPLACE_UPDATE_IN_ATTENTION
-
-
 # Defaults to True.
 # Set to false for already existing Eager mode tests.
 _EAGER_RNG_ADAPTATION = True
