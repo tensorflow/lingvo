@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests for attention."""
-
 import math
 from absl.testing import parameterized
 import lingvo.compat as tf
@@ -720,9 +718,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self, additive_attention=False):
     # source_batch:3, target_batch:6. Test n = 2 case.
     with self.session(use_gpu=True):
-      (source_vecs, source_contexts, _, _, query_vec, _,
-       _) = self._MultiHeadedAttentionInputs()
-      source_padding = tf.zeros([6, 3])
+      (source_vecs, source_contexts, _, _, query_vec, _, _) = (
+          self._MultiHeadedAttentionInputs()
+      )
       if additive_attention:
         iap = attention.AdditiveAttention.Params()
         iap.name = 'add_atten'
@@ -738,8 +736,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           num_attention_heads=2,
           use_source_vec_as_attention_value=False)
       atten = params.Instantiate()
-      packed_src1 = atten.InitForSourcePacked(atten.theta, source_vecs,
-                                              source_contexts, source_padding)
+      packed_src1 = atten.InitForSourcePacked(
+          atten.theta, source_vecs, source_contexts, None
+      )
       cached_src = py_utils.NestedMap(
           source_vecs=tf.zeros([0, 3, 4], dtype=packed_src1.source_vecs.dtype),
           source_contexts=tf.zeros([0, 3, 6],
@@ -960,8 +959,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_state = atten.ZeroAttentionState(2, 6)
       print('atten_state:', atten_state)
 
-      atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
-          atten.theta, query_vec, atten_state)
+      atten_vec, atten_prob, _ = atten.ComputeContextVector(
+          atten.theta, query_vec, atten_state
+      )
 
       self.evaluate(tf.global_variables_initializer())
       atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
@@ -1324,8 +1324,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = self.evaluate(
-          [atten_vec, atten_prob, atten_init_state, atten_state])
+      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = (
+          self.evaluate([atten_vec, atten_prob, atten_init_state, atten_state])
+      )
 
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)
 
@@ -1462,8 +1463,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = self.evaluate(
-          [atten_vec, atten_prob, atten_init_state, atten_state])
+      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = (
+          self.evaluate([atten_vec, atten_prob, atten_init_state, atten_state])
+      )
 
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)
       return atten_vec_out, prob_out, atten_init_state_out, atten_state_out
@@ -1556,8 +1558,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = self.evaluate(
-          [atten_vec, atten_prob, atten_init_state, atten_state])
+      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = (
+          self.evaluate([atten_vec, atten_prob, atten_init_state, atten_state])
+      )
 
       self.assertEqual(atten_init_state_out.emit_probs.shape,
                        atten_state_out.emit_probs.shape)
@@ -1631,8 +1634,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       query_vec = tf.constant(
           np.random.randn(batch_size, query_dim), dtype=tf.float32)
       # Feed state back in
-      _, atten_prob, atten_state = atten.ComputeContextVector(
-          atten.theta, query_vec, atten_state_out)
+      _, atten_prob, _ = atten.ComputeContextVector(
+          atten.theta, query_vec, atten_state_out
+      )
       prob_out2 = self.evaluate(atten_prob)
       print(['hard monotonic prob2', np.array_repr(prob_out2)])
       # Get indices of where attention was assigned at each output timestep
@@ -1894,8 +1898,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = self.evaluate(
-          [atten_vec, atten_prob, atten_init_state, atten_state])
+      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = (
+          self.evaluate([atten_vec, atten_prob, atten_init_state, atten_state])
+      )
 
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)
       self.assertEqual(atten_init_state_out.shape, (6, 2, 4))
