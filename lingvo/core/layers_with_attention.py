@@ -1500,7 +1500,6 @@ class TransformerLayer(base_layer.BaseLayer):
 
     if p.has_aux_atten:
       assert aux_vecs is not None
-      assert aux_paddings is not None
       with tf.name_scope('aux_atten'):
         atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
                                                  aux_paddings, aux_vecs,
@@ -1550,7 +1549,6 @@ class TransformerLayer(base_layer.BaseLayer):
 
     if p.has_aux_atten:
       assert aux_vecs is not None
-      assert aux_paddings is not None
 
     batch_size = py_utils.GetShape(source_vecs)[0]
 
