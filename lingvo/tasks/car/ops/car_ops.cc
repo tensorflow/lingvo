@@ -57,7 +57,7 @@ REGISTER_OP("PointToGrid")
       c->set_output(0, c->MakeShape({gx, gy, gz, n, feature_dim}));
       c->set_output(1, c->MakeShape({gx, gy, gz, 3}));
       c->set_output(2, c->MakeShape({gx, gy, gz}));
-      return ::tensorflow::Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Re-organize input points into equally spaced grids. Points in each grid cell are
