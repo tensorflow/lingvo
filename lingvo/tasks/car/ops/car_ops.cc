@@ -26,7 +26,7 @@ REGISTER_OP("PairwiseIou3D")
     .SetShapeFn([](tensorflow::shape_inference::InferenceContext* c) {
       c->set_output(
           0, c->MakeShape({c->Dim(c->input(0), 0), c->Dim(c->input(1), 0)}));
-      return tensorflow::Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Calculate pairwise IoUs between two set of 3D bboxes. Every bbox is represented
@@ -112,7 +112,7 @@ REGISTER_OP("NonMaxSuppression3D")
       c->set_output(0, output_shape);
       c->set_output(1, output_shape);
       c->set_output(2, output_shape);
-      return tensorflow::Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Greedily selects the top subset of 3D (7 DOF format) bounding boxes per class.
@@ -215,7 +215,7 @@ REGISTER_OP("SamplePoints")
       c->set_output(1, c->MakeShape({batch_size, num_centers}));
       c->set_output(2, c->MakeShape({batch_size, num_centers, num_neighbors}));
       c->set_output(3, c->MakeShape({batch_size, num_centers, num_neighbors}));
-      return ::tensorflow::Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Sample points among 'points'.
