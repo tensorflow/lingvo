@@ -123,7 +123,7 @@ Status MatchParallelFilePattern(const string& parallel_file_pattern,
         expanded_file_pattern, &filenames_per_pattern));
     if (filenames_per_pattern.empty()) {
       return tensorflow::errors::InvalidArgument(
-          "Found no files at ", expanded_file_pattern);
+          "Found no files at '", expanded_file_pattern, "'.");
     }
     if (parallel_filenames.empty()) {
       parallel_filenames.swap(filenames_per_pattern);
