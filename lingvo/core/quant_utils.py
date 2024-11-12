@@ -1103,7 +1103,7 @@ class FakeQDomain(QDomain):
   def _MaybeNarrowToAsymBitDepth(self, qmin, qmax):
     if self.params.narrow_to_asym_bit_depth:
       qrange = qmax - qmin
-      qmax = qmin + qrange * (2**self.bits - 1) / (2**self.bits)
+      qmax = qmin + qrange * (2**self.bits - 1) / (2**self.bits)  # pytype: disable=unsupported-operands
     return qmin, qmax
 
   def QRAct(self, act, dist: QDistribution):
