@@ -176,7 +176,7 @@ class BaseRunner:
     pass
 
   def _ShouldEarlyStop(self, sess: Optional[tf.Session] = None) -> bool:
-    return self._early_stop and self._early_stop.Stop(sess)
+    return self._early_stop and self._early_stop.Stop(sess)  # pytype: disable=bad-return-type
 
   def _ShouldStop(self, sess=None, step=None, check_early_stop=True) -> bool:
     """Check if the runner should stop.
