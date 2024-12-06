@@ -552,33 +552,21 @@ class AdditiveAttention(BaseAttentionLayer):
 
       if source_padding is not None:
         # source_padding is [source_length, multiplier, source_batch] now
-        has_source_segment_id = hasattr(inputs, 'source_segment_id')
-        has_query_segment_id = hasattr(inputs, 'query_segment_id')
-        if has_source_segment_id != has_query_segment_id:
-          raise ValueError(
-              'source_segment_id and query_segment_id must be supplied at the'
-              ' same time, but source_segment_id is %s and query_segment_id'
-              ' is %s.'
-              % (
-                  'present' if has_source_segment_id else 'unavailable',
-                  'present' if has_query_segment_id else 'unavailable',
-              )
-          )
-        elif p.packed_input and has_source_segment_id:
+        if p.packed_input:
+          assert hasattr(inputs, 'source_segment_id')
+          assert hasattr(inputs, 'query_segment_id')
           source_padding = self._UpdatePaddingWithPackedInputMask(
               source_padding, inputs.source_segment_id, inputs.query_segment_id
           )
-        elif p.packed_input or has_source_segment_id:
-          tf.logging.warning(
-              'packed_input is %s but both source_segment_id and'
-              ' query_segment_id are %s in the inputs map. ID tensors should be'
-              ' supplied if and only if packed_input is set. Continuing without'
-              ' updating the padding tensor.'
-              % (
-                  p.packed_input,
-                  'present' if has_source_segment_id else 'unavailable',
-              )
-          )
+        else:
+          if hasattr(inputs, 'source_segment_id'):
+            tf.logging.warning(
+                'packed_input is False but source_segment_id is passed.'
+            )
+          if hasattr(inputs, 'query_segment_id'):
+            tf.logging.warning(
+                'packed_input is False but query_segment_id is passed.'
+            )
         source_padding = tf.transpose(source_padding, [1, 2, 0])
 
       # [multiplier, source_batch, source_length]
@@ -740,19 +728,9 @@ class AdditiveAttention(BaseAttentionLayer):
           source_padding = per_step_source_padding
 
         if source_padding is not None:
-          has_source_segment_id = hasattr(inputs, 'source_segment_id')
-          has_query_segment_id = hasattr(inputs, 'query_segment_id')
-          if has_source_segment_id != has_query_segment_id:
-            raise ValueError(
-                'source_segment_id and query_segment_id must be supplied at the'
-                ' same time, but source_segment_id is %s and query_segment_id'
-                ' is %s.'
-                % (
-                    'present' if has_source_segment_id else 'unavailable',
-                    'present' if has_query_segment_id else 'unavailable',
-                )
-            )
-          elif p.packed_input and has_source_segment_id:
+          if p.packed_input:
+            assert hasattr(inputs, 'source_segment_id')
+            assert hasattr(inputs, 'query_segment_id')
             source_padding = tf.expand_dims(source_padding, 1)
             source_padding = self._UpdatePaddingWithPackedInputMask(
                 source_padding,
@@ -760,17 +738,15 @@ class AdditiveAttention(BaseAttentionLayer):
                 inputs.query_segment_id,
             )
             source_padding = tf.squeeze(source_padding, 1)
-          elif p.packed_input or has_source_segment_id:
-            tf.logging.warning(
-                'packed_input is %s but both source_segment_id and'
-                ' query_segment_id are %s in the inputs map. ID tensors should'
-                ' be supplied if and only if packed_input is set. Continuing'
-                ' without updating the padding tensor.'
-                % (
-                    p.packed_input,
-                    'present' if has_source_segment_id else 'unavailable',
-                )
-            )
+          else:
+            if hasattr(inputs, 'source_segment_id'):
+              tf.logging.warning(
+                  'packed_input is False but source_segment_id is passed.'
+              )
+            if hasattr(inputs, 'query_segment_id'):
+              tf.logging.warning(
+                  'packed_input is False but query_segment_id is passed.'
+              )
           # [b, sl]
           source_padding = tf.transpose(source_padding)
         logits = tf.transpose(logits)
@@ -1125,35 +1101,24 @@ class DotProductAttention(BaseAttentionLayer):
         source_padding = per_step_source_padding
 
       if source_padding is not None:
-        source_padding = tf.transpose(source_padding, [1, 2, 0])
-        has_source_segment_id = hasattr(inputs, 'source_segment_id')
-        has_query_segment_id = hasattr(inputs, 'query_segment_id')
-        if has_source_segment_id != has_query_segment_id:
-          raise ValueError(
-              'source_segment_id and query_segment_id must be supplied at the'
-              ' same time, but source_segment_id is %s and query_segment_id'
-              ' is %s.'
-              % (
-                  'present' if has_source_segment_id else 'unavailable',
-                  'present' if has_query_segment_id else 'unavailable',
-              )
-          )
-        elif p.packed_input and has_source_segment_id:
+        if p.packed_input:
+          assert hasattr(inputs, 'source_segment_id')
+          assert hasattr(inputs, 'query_segment_id')
+          source_padding = tf.transpose(source_padding, [1, 2, 0])
           source_padding = self._UpdatePaddingWithPackedInputMask(
               source_padding, inputs.source_segment_id, inputs.query_segment_id
           )
-        elif p.packed_input or has_source_segment_id:
-          tf.logging.warning(
-              'packed_input is %s but both source_segment_id and'
-              ' query_segment_id are %s in the inputs map. ID tensors should be'
-              ' supplied if and only if packed_input is set. Continuing without'
-              ' updating the padding tensor.'
-              % (
-                  p.packed_input,
-                  'present' if has_source_segment_id else 'unavailable',
-              )
-          )
-        source_padding = tf.transpose(source_padding, [1, 2, 0])
+          source_padding = tf.transpose(source_padding, [1, 2, 0])
+        else:
+          if hasattr(inputs, 'source_segment_id'):
+            tf.logging.warning(
+                'packed_input is False but source_segment_id is passed.'
+            )
+          if hasattr(inputs, 'query_segment_id'):
+            tf.logging.warning(
+                'packed_input is False but query_segment_id is passed.'
+            )
+          source_padding = tf.transpose(source_padding, [2, 0, 1])
 
       # => [n, source_batch, time]
       logits = tf.transpose(logits, [2, 0, 1])
