@@ -473,6 +473,72 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     )
     return padding
 
+  def _GetSourceAndQuerySegmentIds(
+      self, inputs: py_utils.NestedMap
+  ) -> Tuple[Optional[tf.Tensor], Optional[tf.Tensor]]:
+    """Gets the values of `source_segment_id` and `query_segment_id`.
+
+    Emits warnings if they are provided inconsistently with `p.params_input`.
+
+    Returns `None` if `packed_input` is `False`, or if `source_padding` is not
+    available. The returned values are not consumed in these cases.
+
+    Otherwise returns an appropriate-sized zero tensor if one of them is not
+    supplied.
+
+    Args:
+      inputs: A `NestedMap` object containing the source and query segment ids.
+
+    Returns:
+      A tuple of 2 elements.
+
+      - The source segment id tensor: [time, batch_size].
+      - The query segment id tensor: [batch_size].
+    """
+    p = self.params
+    if p.packed_input:
+      source_padding = inputs.Get('source_padding', None)
+      if hasattr(inputs, 'source_segment_id'):
+        source_segment_id = inputs.source_segment_id
+      else:
+        tf.logging.warning(
+            'packed_input is True but source_segment_id is not passed.'
+            ' Using a default all-zero value instead, packed_input will be'
+            ' ineffective.'
+        )
+        if source_padding is not None:
+          source_segment_id = tf.zeros_like(source_padding)
+        else:
+          source_segment_id = None
+      if hasattr(inputs, 'query_segment_id'):
+        query_segment_id = inputs.query_segment_id
+      else:
+        tf.logging.warning(
+            'packed_input is True but query_segment_id is not passed. Using'
+            ' a default all-zero value instead, packed_input will be'
+            ' ineffective.'
+        )
+        if source_padding is not None:
+          query_segment_id = tf.zeros(
+              tf.shape(inputs.query_vec)[0], dtype=source_padding.dtype
+          )
+        else:
+          query_segment_id = None
+    else:
+      if hasattr(inputs, 'source_segment_id'):
+        tf.logging.warning(
+            'packed_input is False but source_segment_id is passed. The passed'
+            ' value will be ignored.'
+        )
+      source_segment_id = None
+      if hasattr(inputs, 'query_segment_id'):
+        tf.logging.warning(
+            'packed_input is False but query_segment_id is passed. The passed'
+            ' value will be ignored.'
+        )
+      query_segment_id = None
+    return source_segment_id, query_segment_id
+
 
 class AdditiveAttention(BaseAttentionLayer):
   """Implements additive attention (also known as "Bahdanau Attention").
@@ -526,6 +592,9 @@ class AdditiveAttention(BaseAttentionLayer):
 
       # Take out the padding states.
       source_padding = inputs.Get('source_padding', None)
+      source_segment_id, query_segment_id = self._GetSourceAndQuerySegmentIds(
+          inputs
+      )
       if source_padding is not None:
         # [source_length, 1, source_batch]
         source_padding = tf.expand_dims(source_padding, 1)
@@ -553,20 +622,9 @@ class AdditiveAttention(BaseAttentionLayer):
       if source_padding is not None:
         # source_padding is [source_length, multiplier, source_batch] now
         if p.packed_input:
-          assert hasattr(inputs, 'source_segment_id')
-          assert hasattr(inputs, 'query_segment_id')
           source_padding = self._UpdatePaddingWithPackedInputMask(
-              source_padding, inputs.source_segment_id, inputs.query_segment_id
+              source_padding, source_segment_id, query_segment_id
           )
-        else:
-          if hasattr(inputs, 'source_segment_id'):
-            tf.logging.warning(
-                'packed_input is False but source_segment_id is passed.'
-            )
-          if hasattr(inputs, 'query_segment_id'):
-            tf.logging.warning(
-                'packed_input is False but query_segment_id is passed.'
-            )
         source_padding = tf.transpose(source_padding, [1, 2, 0])
 
       # [multiplier, source_batch, source_length]
@@ -710,6 +768,9 @@ class AdditiveAttention(BaseAttentionLayer):
 
         # Take out the padding states. _source_padding is of shape [sl, b].
         source_padding = inputs.Get('source_padding', None)
+        source_segment_id, query_segment_id = self._GetSourceAndQuerySegmentIds(
+            inputs
+        )
         if source_padding is not None:
           if source_padding.dtype != tf.bool:
             source_padding = source_padding > 0
@@ -729,24 +790,13 @@ class AdditiveAttention(BaseAttentionLayer):
 
         if source_padding is not None:
           if p.packed_input:
-            assert hasattr(inputs, 'source_segment_id')
-            assert hasattr(inputs, 'query_segment_id')
             source_padding = tf.expand_dims(source_padding, 1)
             source_padding = self._UpdatePaddingWithPackedInputMask(
                 source_padding,
-                inputs.source_segment_id,
-                inputs.query_segment_id,
+                source_segment_id,
+                query_segment_id,
             )
             source_padding = tf.squeeze(source_padding, 1)
-          else:
-            if hasattr(inputs, 'source_segment_id'):
-              tf.logging.warning(
-                  'packed_input is False but source_segment_id is passed.'
-              )
-            if hasattr(inputs, 'query_segment_id'):
-              tf.logging.warning(
-                  'packed_input is False but query_segment_id is passed.'
-              )
           # [b, sl]
           source_padding = tf.transpose(source_padding)
         logits = tf.transpose(logits)
@@ -1071,6 +1121,9 @@ class DotProductAttention(BaseAttentionLayer):
 
       # Exclude padding frames.
       source_padding = inputs.Get('source_padding', None)
+      source_segment_id, query_segment_id = self._GetSourceAndQuerySegmentIds(
+          inputs
+      )
       if source_padding is not None:
         # [source_batch, time]
         source_padding = tf.transpose(inputs.source_padding)
@@ -1102,22 +1155,12 @@ class DotProductAttention(BaseAttentionLayer):
 
       if source_padding is not None:
         if p.packed_input:
-          assert hasattr(inputs, 'source_segment_id')
-          assert hasattr(inputs, 'query_segment_id')
           source_padding = tf.transpose(source_padding, [1, 2, 0])
           source_padding = self._UpdatePaddingWithPackedInputMask(
-              source_padding, inputs.source_segment_id, inputs.query_segment_id
+              source_padding, source_segment_id, query_segment_id
           )
           source_padding = tf.transpose(source_padding, [1, 2, 0])
         else:
-          if hasattr(inputs, 'source_segment_id'):
-            tf.logging.warning(
-                'packed_input is False but source_segment_id is passed.'
-            )
-          if hasattr(inputs, 'query_segment_id'):
-            tf.logging.warning(
-                'packed_input is False but query_segment_id is passed.'
-            )
           source_padding = tf.transpose(source_padding, [2, 0, 1])
 
       # => [n, source_batch, time]
