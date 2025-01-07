@@ -16,9 +16,9 @@ limitations under the License.
 #include <fstream>
 #include <iostream>
 #include <string>
-#include <unordered_set>
 
 #include "google/protobuf/descriptor.h"
+#include "absl/container/flat_hash_set.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"
@@ -39,11 +39,11 @@ void WriteDotProto(const google::protobuf::FileDescriptor* dot_proto,
 
 void GenerateProtoDef(const google::protobuf::FileDescriptor* dot_proto,
                       const char* output_dirpath,
-                      std::unordered_set<std::string>* printed_files) {
+                      absl::flat_hash_set<std::string>* printed_files) {
   if (printed_files->find(dot_proto->name()) != printed_files->end()) {
     return;
   }
-  printed_files->insert(dot_proto->name());
+  printed_files->emplace(dot_proto->name());
   WriteDotProto(dot_proto, output_dirpath);
   for (int k = 0; k < dot_proto->dependency_count(); ++k)
     GenerateProtoDef(dot_proto->dependency(k), output_dirpath, printed_files);
@@ -51,7 +51,7 @@ void GenerateProtoDef(const google::protobuf::FileDescriptor* dot_proto,
 
 // Regurgitate the text definitions from binary.
 void GenerateProtoDefs(const char* output_dirpath) {
-  std::unordered_set<std::string> printed_files;
+  absl::flat_hash_set<std::string> printed_files;
   GenerateProtoDef(tensorflow::GraphDef::descriptor()->file(), output_dirpath,
                    &printed_files);
   GenerateProtoDef(tensorflow::DataType_descriptor()->file(), output_dirpath,
