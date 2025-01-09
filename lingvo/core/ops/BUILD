@@ -32,6 +32,10 @@ cc_library(
 gen_op_cclib(
     name = "x_ops",
     srcs = ["x_ops.cc"],
+    features = select({
+        "//tools/cc_target_os:android": ["-layering_check"],
+        "//conditions:default": [],
+    }),
     nonportable_deps = [
         # Implicit tensorflow C++ proto dependency.
     ],
@@ -248,6 +252,10 @@ py_test(
 custom_kernel_library(
     name = "assert_kernels",
     srcs = ["assert_kernels.cc"],
+    features = select({
+        "//tools/cc_target_os:android": ["-layering_check"],
+        "//conditions:default": [],
+    }),
     op_def_lib = [":x_ops"],
 )
 
