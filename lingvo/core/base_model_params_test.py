@@ -53,7 +53,7 @@ class BaseModelParamsTest(test_utils.TestCase):
 
   def testGetDatasetParams_NotImplementedError(self):
     dummy_model = TestModelParams()
-    with self.assertRaisesRegexp(NotImplementedError, 'test error'):
+    with self.assertRaisesRegex(NotImplementedError, 'test error'):
       dummy_model.GetDatasetParams('Train')
 
   def testGetDatasetParams_PartialDatasetParams(self):

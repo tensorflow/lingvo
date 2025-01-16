@@ -129,8 +129,9 @@ class InputExtractorTest(test_utils.TestCase):
 
     # Test that a missing key in input for ProcessFeatures() raises
     # the right extra exception info.
-    with self.assertRaisesRegexp(
-        RuntimeError, 'Failed running extractor E1WithCheck: KeyError'):
+    with self.assertRaisesRegex(
+        RuntimeError, 'Failed running extractor E1WithCheck: KeyError'
+    ):
       _, result = extractor.ProcessFeatures({})
 
   def testBatchedInterface(self):
