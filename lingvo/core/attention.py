@@ -492,8 +492,8 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     Returns:
       A tuple of 2 elements.
 
-      - The source segment id tensor: [time, batch_size].
-      - The query segment id tensor: [batch_size].
+      - The source segment id tensor: [time, source_batch].
+      - The query segment id tensor: [target_batch].
     """
     p = self.params
     if p.packed_input:
@@ -518,9 +518,13 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
             ' a default all-zero value instead, packed_input will be'
             ' ineffective.'
         )
-        if source_padding is not None:
+        if source_padding is not None and inputs.query_vec is not None:
+          # query_vec.shape could be different from [target_batch, query_dim]
+          # because of potential reshape,e.g. reshaped to
+          # [1, target_batch/source_batch, source_batch, hidden_dims].
+          target_batch = inputs.query_vec.shape.num_elements() // p.hidden_dim
           query_segment_id = tf.zeros(
-              tf.shape(inputs.query_vec)[0], dtype=source_padding.dtype
+              [target_batch], dtype=source_padding.dtype
           )
         else:
           query_segment_id = None
