@@ -826,7 +826,7 @@ class GroupPairAUCMetric(AUCMetric):
   be treated as a separate 3rd group rather than part of the 1st group.
   """
 
-  def UpdateRaw(self, group_ids, target, logits, weight=None):
+  def UpdateRaw(self, group_ids, target, logits, weight=None, ignore_ids=None):
     """Updates the metrics.
 
     Args:
@@ -834,7 +834,16 @@ class GroupPairAUCMetric(AUCMetric):
       target: An array to specify the groundtruth float values.
       logits: An array to specify the raw prediction logits.
       weight: An array to specify the sample weight for the auc computation.
+      ignore_ids: An array to specify the indexes to ignore.
     """
+
+    if ignore_ids is not None:
+      mask = np.asarray(ignore_ids) == 0
+      group_ids = (np.asarray(group_ids)[mask]).tolist()
+      target = (np.asarray(target)[mask]).tolist()
+      logits = (np.asarray(logits)[mask]).tolist()
+      if weight is not None:
+        weight = (np.asarray(weight)[mask]).tolist()
 
     assert self._samples <= 0
 
