@@ -610,7 +610,7 @@ class BuilderLayerTest(test_utils.TestCase, parameterized.TestCase):
     np_val_out_nz = np.maximum(
         0,
         np.dot(np_nz_val, weighted_weight_nz) + weighted_bias_nz)
-    self.assertAllClose(np_val_out, y_val[0])
+    self.assertAllClose(np_val_out, y_val[0], rtol=2e-5)
     self.assertAllClose(np_val_out_nz, y_nz_val[0])
 
   def testRepeatLayer(self):

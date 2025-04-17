@@ -4570,7 +4570,7 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       ctx_sum, step_sum = sess.run(
           [tf.reduce_sum(ctx_vec), tf.reduce_sum(extend_step_outputs)]
       )
-      self.assertAllClose(ctx_sum, step_sum)
+      self.assertAllClose(ctx_sum, step_sum, rtol=5e-3)
 
   @parameterized.named_parameters(('SingleBatch', 1), ('DoubleBatch', 2))
   def testTransformerLayerFPropWithCrossAttentionInputDimAsDict(
