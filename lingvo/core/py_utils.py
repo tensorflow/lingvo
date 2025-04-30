@@ -960,7 +960,7 @@ def ToStaticShape(shape):
   """Converts 'shape' to a static shape."""
   if isinstance(shape, (list, tuple)):
     shape = [
-        dim.value if isinstance(dim, tf.Dimension) else dim for dim in shape
+        dim.value if isinstance(dim, tf.Dimension) else dim for dim in shape  # pytype: disable=attribute-error
     ]
     static_shape = []
     for dim in shape:
