@@ -50,12 +50,6 @@ from tensorflow import _major_api_version  # Used in this file only
 # pylint: enable=g-direct-tensorflow-import, line-too-long
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
-if executing_eagerly():
-  logging.info(
-      "Lingvo with eager execution is in early development. "
-      "Please reach out to go/lingvo-eager-migration with bugs. "
-      "Eager mode can be disable with tf.compat.v1.disable_eager_execution().")
-
 
 def _clone_module(m):
   """Shallow clone of module `m`."""
