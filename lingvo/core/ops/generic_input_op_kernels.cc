@@ -17,6 +17,7 @@ limitations under the License.
 #include <memory>
 
 #include "absl/memory/memory.h"
+#include "absl/synchronization/notification.h"
 #include "lingvo/core/ops/input_common.h"
 #include "lingvo/core/ops/thread_local_runner.h"
 #include "tensorflow/core/common_runtime/function.h"
@@ -107,7 +108,7 @@ class ProcessorFn {
     opts.runner = ThreadLocalRunner::PerThread().runner();
 
     Status status;
-    Notification done;
+    absl::Notification done;
     flib_->Run(opts, handle_, args, output, [&](const Status& s) {
       status = s;
       done.Notify();

@@ -367,6 +367,7 @@ custom_kernel_library(
         ":input_common",
         ":thread_local_runner",
         # Implicit absl.memory dependency.
+        # Implicit absl.synchronization dependency.
     ],
 )
 
