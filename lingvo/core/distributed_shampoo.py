@@ -332,7 +332,7 @@ class DistributedShampoo(optimizer.Optimizer):
       if self._momentum > 0.0:
         self.make_named_zeros_slot(v, "momentum")
       shape = np.array(v.get_shape())
-      self._partitioner_metadata[v] = TensorPartitioner.partition_metadata(
+      self._partitioner_metadata[v.ref()] = TensorPartitioner.partition_metadata(
           v, self._partition_info)
       partitioned_v = TensorPartitioner.partition_tensor(
           v, self._partition_info)
@@ -581,7 +581,7 @@ class DistributedShampoo(optimizer.Optimizer):
       partitioned_preconditioned_grads.append(precond_grad)
     return TensorPartitioner.reform_tensor(
         partitioned_preconditioned_grads,
-        self._partitioner_metadata[var].num_splits_per_dim)
+        self._partitioner_metadata[var.ref()].num_splits_per_dim)
 
   def _preconditioned_update(self, var, partitioned_grads,
                              diagonal_grad_update):
