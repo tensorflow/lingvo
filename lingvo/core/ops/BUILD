@@ -107,6 +107,14 @@ lingvo_cc_library(
     hdrs = ["simple_vocab.h"],
 )
 
+lingvo_cc_test(
+    name = "simple_vocab_cc_test",
+    srcs = ["simple_vocab_cc_test.cc"],
+    deps = [
+        ":simple_vocab",
+    ],
+)
+
 custom_kernel_library(
     name = "ml_perf_subword_op",
     srcs = ["ml_perf_subword_op.cc"],

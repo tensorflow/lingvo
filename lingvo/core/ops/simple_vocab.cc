@@ -15,6 +15,8 @@ limitations under the License.
 
 #include "lingvo/core/ops/simple_vocab.h"
 
+#include <algorithm>
+
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/strings/str_util.h"
@@ -80,6 +82,7 @@ Status Vocab::Load(const string& vocab_glob, bool load_token_ids) {
 Status Vocab::Load(const std::vector<string>& lines, bool load_token_ids) {
   id_to_token_.clear();
   token_to_id_.clear();
+  max_token_id_ = -1;
   int32 next_id = 0;
   for (StringPiece line : lines) {
     if (line.empty()) continue;
@@ -89,12 +92,20 @@ Status Vocab::Load(const std::vector<string>& lines, bool load_token_ids) {
     if (!load_token_ids) {
       token_to_id_[tok] = next_id;
       id_to_token_[next_id] = tok;
+      max_token_id_ = std::max(max_token_id_, next_id);
       next_id++;
     } else {
       CHECK_GE(parts.size(), 2);
       const int32 id = std::stoi(parts[1]);
+      if (id < 0 && str_util::StartsWith(tok, kBowStr)) {
+        return errors::InvalidArgument("BOW token ", tok,
+                                       " has negative id ", id, ".");
+      }
       token_to_id_[tok] = id;
       id_to_token_[id] = tok;
+      if (id >= 0) {
+        max_token_id_ = std::max(max_token_id_, id);
+      }
     }
     VLOG(2) << "Vocab " << token_to_id_[tok] << " " << tok;
   }
