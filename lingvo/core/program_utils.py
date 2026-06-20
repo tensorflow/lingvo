@@ -67,23 +67,34 @@ class DecodeStatusCache:
         if content:
           self.ckpt_key = content[0]
         if len(content) > 1:
-          self.decoded_datasets = content[1:]
+          for dataset_name in content[1:]:
+            self._AddDecodedDataset(dataset_name)
+
+  def _AddDecodedDataset(self, dataset_name):
+    if dataset_name and dataset_name not in self.decoded_datasets:
+      self.decoded_datasets.append(dataset_name)
+
+  def _WriteStatusFile(self):
+    content = '\n'.join([self.ckpt_key] + self.decoded_datasets) + '\n'
+    tmp_status_file = self.status_file + '.tmp'
+    with tf.io.gfile.GFile(tmp_status_file, 'w') as f:
+      f.write(content)
+    tf.io.gfile.rename(tmp_status_file, self.status_file, overwrite=True)
 
   def UpdateCkpt(self, ckpt_key):
     """Update checkpoint key in the status."""
     if ckpt_key != self.ckpt_key:
       self.ckpt_key = ckpt_key
       self.decoded_datasets = []
-      with tf.io.gfile.GFile(self.status_file, 'w') as f:
-        f.write(self.ckpt_key)
+      self._WriteStatusFile()
 
   def UpdateDataset(self, dataset_name, summaries):
     """Update decoded dataset in the status."""
     cache_file = os.path.join(self.cache_dir, f'{dataset_name}.csv')
     with tf.io.gfile.GFile(cache_file, 'w') as f:
       f.write(SummaryToCsv(summaries))
-    with tf.io.gfile.GFile(self.status_file, 'w+') as f:
-      f.write(f.read().strip() + '\n' + dataset_name)
+    self._AddDecodedDataset(dataset_name)
+    self._WriteStatusFile()
 
   def TryLoadCache(self, ckpt_key, dataset_name):
     """Try load summary cache for ckpt_key, dataset_name.
@@ -102,8 +113,6 @@ class DecodeStatusCache:
         return None
       with tf.io.gfile.GFile(cache_file, 'r') as f:
         summaries = CsvToSummary(f.read())
-      with tf.io.gfile.GFile(self.status_file, 'w+') as f:
-        f.write(f.read().strip() + '\n' + dataset_name)
       return summaries
     return None
 
