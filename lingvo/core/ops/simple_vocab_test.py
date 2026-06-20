@@ -14,11 +14,24 @@
 # ==============================================================================
 """Tests for simple_vocab."""
 
+from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
 
 
 class VocabOpsTest(test_utils.TestCase):
+
+  def _AssertInvalidVocab(self,
+                          vocab,
+                          error_message,
+                          load_token_ids_from_vocab=False):
+    with self.session(use_gpu=False):
+      with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
+                                  error_message):
+        ops.vocab_token_to_id(
+            '<S>',
+            vocab=vocab,
+            load_token_ids_from_vocab=load_token_ids_from_vocab).eval()
 
   def testVocabTokenToId(self):
     with self.session(use_gpu=False):
@@ -155,6 +168,49 @@ class VocabOpsTest(test_utils.TestCase):
       self.assertTrue(
           ops.token_in_vocab(['b c d e', '♣'], vocab=vocab).eval().all())
       self.assertFalse(ops.token_in_vocab('unknown', vocab=vocab).eval())
+
+  def testVocabTokenToIdRejectsMissingLowercaseSos(self):
+    vocab = [
+        '</s>',
+        '<unk>',
+        '<epsilon>',
+        'a',
+    ]
+    self._AssertInvalidVocab(vocab, '<s> is not found in the vocab.')
+
+  def testVocabTokenToIdRejectsMissingUppercaseSos(self):
+    vocab = [
+        '</S>',
+        '<UNK>',
+        '<epsilon>',
+        'a',
+    ]
+    self._AssertInvalidVocab(vocab, '<S> is not found in the vocab.')
+
+  def testVocabTokenToIdRejectsMixedSpecialTokenCasing(self):
+    vocab = [
+        '<S>',
+        '</S>',
+        '<UNK>',
+        '<s>',
+        '<epsilon>',
+        'a',
+    ]
+    self._AssertInvalidVocab(
+        vocab, 'Mixed lower-case and upper-case special tokens')
+
+  def testVocabTokenToIdRejectsDuplicateSpecialTokenIds(self):
+    vocab = [
+        '<S>	3',
+        '</S>	3',
+        '<UNK>	7',
+        '<epsilon>	9',
+        'a	2',
+    ]
+    self._AssertInvalidVocab(
+        vocab,
+        'Special tokens <S> and </S> must have different ids',
+        load_token_ids_from_vocab=True)
 
 
 if __name__ == '__main__':
