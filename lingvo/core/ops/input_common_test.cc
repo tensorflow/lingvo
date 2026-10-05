@@ -29,9 +29,9 @@ TEST(CreatePerFileYielderOptionsTest, SourceIdOffset) {
   BasicRecordYielder::Options opts_tpl;
   opts_tpl.source_id = OFFSET;
 
-  std::vector<string> file_patterns;
+  std::vector<std::string> file_patterns;
   for (int i = 0; i < NUM_FILES; ++i) {
-    file_patterns.push_back(strings::StrCat("file_", i));
+    file_patterns.push_back(absl::StrCat("file_", i));
   }
 
   std::vector<BasicRecordYielder::Options> per_file_options =

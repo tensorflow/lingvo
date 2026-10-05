@@ -13,6 +13,7 @@ py_library(
     name = "codelab",
     srcs = ["codelab.py"],
     data = [":brown_corpus_wpm_data"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo:model_registry",
@@ -27,6 +28,7 @@ py_library(
 py_library(
     name = "params",
     srcs = ["params.py"],
+    strict_deps = False,
     tags = ["keep_dep"],
     deps = [
         ":codelab",

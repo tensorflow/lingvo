@@ -38,7 +38,7 @@ class TestUtilsEagerTest(test_utils.TestCase):
       a = tf.Variable(1.0)
       traced = False
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def func():
         nonlocal traced
         b = tf.constant(2.0)
@@ -57,7 +57,7 @@ class TestUtilsEagerTest(test_utils.TestCase):
       b = tf.placeholder(tf.float32)
       traced = False
 
-      @test_utils.DefineAndTrace(b)
+      @test_utils.DefineAndTrace(b)  # pyrefly: ignore[bad-argument-type]
       def func(b):
         nonlocal traced
         c = a + b

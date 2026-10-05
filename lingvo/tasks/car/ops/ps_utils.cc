@@ -47,7 +47,7 @@ int FindBucket(const float val, const float min_val,
 // from the sequence.
 class UniformSampler {
  public:
-  explicit UniformSampler(int k, uint64 seed) : k_(k), rnd_(seed) {
+  explicit UniformSampler(int k, uint64_t seed) : k_(k), rnd_(seed) {
     CHECK_GT(k, 0);
     ids_.reserve(k_);
   }
@@ -77,9 +77,9 @@ class UniformSampler {
   }
 
  private:
-  const int32 k_;
+  const int32_t k_;
   std::mt19937 rnd_;
-  int32 num_ = 0;
+  int32_t num_ = 0;
   std::vector<Item> ids_;
 };
 
@@ -87,7 +87,7 @@ class UniformSampler {
 // the smallest scores.
 class TopKSampler {
  public:
-  explicit TopKSampler(int k, uint64 unused_seed) : k_(k) { CHECK_GT(k, 0); }
+  explicit TopKSampler(int k, uint64_t unused_seed) : k_(k) { CHECK_GT(k, 0); }
 
   void Add(int id, float score) {
     if (selected_ && score > items_[k_ - 1].score) {
@@ -138,7 +138,7 @@ class TopKSampler {
 // Uniform center selection among n points (w/o replacement).
 class UniformSelector {
  public:
-  UniformSelector(const std::vector<bool>& candidates, uint64 seed) {
+  UniformSelector(const std::vector<bool>& candidates, uint64_t seed) {
     for (int i = 0; i < candidates.size(); ++i) {
       if (candidates[i]) {
         ids_.push_back(i);
@@ -165,7 +165,7 @@ class UniformSelector {
 // Select the point farthest from selected centers so far.
 class FarthestSelector {
  public:
-  FarthestSelector(std::vector<bool> candidates, uint64 seed)
+  FarthestSelector(std::vector<bool> candidates, uint64_t seed)
       : num_(candidates.size()),
         candidates_(std::move(candidates)),
         min_dist_sq_(DT_FLOAT, {num_}),
@@ -221,8 +221,8 @@ class RNG {
  public:
   RNG() : rng_(std::random_device("/dev/urandom")()) {}
 
-  uint64 Get() {
-    absl::MutexLock l(&mu_);
+  uint64_t Get() {
+    absl::MutexLock l(mu_);
     return rng_();
   }
 
@@ -233,7 +233,7 @@ class RNG {
 
 }  // namespace
 
-uint64 PSUtils::Seed() const {
+uint64_t PSUtils::Seed() const {
   if (opts_.random_seed != -1) {
     return opts_.random_seed;
   }
@@ -249,7 +249,7 @@ T Square(T x) {
 template <typename Selector, typename Sampler>
 PSUtils::Result PSUtils::DoSampling(const Tensor& points,
                                     const Tensor& points_padding,
-                                    const int32 num_seeded_points) const {
+                                    const int32_t num_seeded_points) const {
   // Points must be of rank 3, and padding must be a matrix.
   DCHECK_EQ(points.dims(), 3);
   DCHECK_EQ(points_padding.dims(), 2);
@@ -271,10 +271,10 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
   result.indices_padding =
       Tensor(DT_FLOAT, {batch_size, opts_.num_centers, opts_.num_neighbors});
 
-  auto center_t = result.center.matrix<int32>();
+  auto center_t = result.center.matrix<int32_t>();
   center_t.setConstant(0);
   auto center_padding_t = result.center_padding.matrix<float>();
-  auto indices_t = result.indices.tensor<int32, 3>();
+  auto indices_t = result.indices.tensor<int32_t, 3>();
   indices_t.setConstant(0);
   auto padding_t = result.indices_padding.tensor<float, 3>();
   padding_t.setConstant(1.0);
@@ -453,7 +453,7 @@ PSUtils::Result PSUtils::DoSampling(const Tensor& points,
   return result;
 }
 
-string PSUtils::Options::DebugString() const {
+std::string PSUtils::Options::DebugString() const {
   // clang-format off
   return strings::Printf(
       "cmethod/#centers/zmin/zmax/nmethod/#neighbors/maxdist/seed "
@@ -470,7 +470,7 @@ string PSUtils::Options::DebugString() const {
 
 PSUtils::Result PSUtils::Sample(const Tensor& points,
                                 const Tensor& points_padding,
-                                const int32 num_seeded_points) const {
+                                const int32_t num_seeded_points) const {
   if (opts_.cmethod == Options::C_UNIFORM &&
       opts_.nmethod == Options::N_UNIFORM) {
     CHECK_EQ(num_seeded_points, 0)

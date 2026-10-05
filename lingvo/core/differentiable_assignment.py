@@ -168,7 +168,7 @@ def max_assignment(score: tf.Tensor,
   for cur_iter in tf.range(num_iterations):
     prev_eps, prev_u, prev_v, prev_w = eps, u, v, w
     eps, u, v, w = do_updates(cur_iter, eps, u, v, w)
-  delta = compute_relative_changes(prev_eps, prev_u, prev_v, prev_w, eps, u, v,
+  delta = compute_relative_changes(prev_eps, prev_u, prev_v, prev_w, eps, u, v,  # pyrefly: ignore[unbound-name]
                                    w)
   cur_iter = num_iterations
   assignment = tf.exp((score_ + u + v + w) / eps)

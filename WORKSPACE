@@ -5,8 +5,8 @@ load("//lingvo:repo.bzl", "cc_tf_configure", "icu", "lingvo_protoc_deps", "lingv
 
 http_archive(
     name = "org_tensorflow",
-    strip_prefix = "tensorflow-2.13.0",
-    urls = ["https://github.com/tensorflow/tensorflow/archive/v2.13.0.zip"],
+    strip_prefix = "tensorflow-2.17.0",
+    urls = ["https://github.com/tensorflow/tensorflow/archive/v2.17.0.zip"],
 )
 
 # This import (along with the org_tensorflow archive) is necessary to provide the devtoolset-9 toolchain

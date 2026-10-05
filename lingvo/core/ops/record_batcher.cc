@@ -82,7 +82,7 @@ BucketAdjuster::BucketAdjuster(const int64_t max_bucket_key,
       length_histogram_(max_bucket_key + 1, 0) {}
 
 void BucketAdjuster::IncrementHistogram(const int64_t bucket) {
-  absl::MutexLock lock(&mu_);
+  absl::MutexLock lock(mu_);
   if (bucket > max_bucket_key_) return;
   length_histogram_[bucket]++;
 }
@@ -90,7 +90,7 @@ void BucketAdjuster::IncrementHistogram(const int64_t bucket) {
 void BucketAdjuster::AdjustBuckets(std::vector<int64_t>& bucket_upper_bound) {
   // The length histogram is too big to compute with quickly.
   // We distill it down to a histogram with bins of equal cost (equal area).
-  absl::MutexLock lock(&mu_);
+  absl::MutexLock lock(mu_);
   int64_t ideal_cost = 0;
   for (int i = 0; i < length_histogram_.size(); i++) {
     ideal_cost += length_histogram_[i] * i;
@@ -196,12 +196,12 @@ void BucketAdjuster::AdjustBuckets(std::vector<int64_t>& bucket_upper_bound) {
   std::vector<string> bucket_strings;
   for (int i = 0; i < buckets.size() - 1; i++) {
     bucket_upper_bound[i] = compact_histogram[buckets[i]].first;
-    bucket_strings.push_back(strings::StrCat(bucket_upper_bound[i]));
+    bucket_strings.push_back(absl::StrCat(bucket_upper_bound[i]));
   }
-  bucket_strings.push_back(strings::StrCat(bucket_upper_bound.back()));
+  bucket_strings.push_back(absl::StrCat(bucket_upper_bound.back()));
 
   // Compute the amount of padding waste from choosing this bucket assignment.
-  LOG(INFO) << "Buckets: [" << str_util::Join(bucket_strings, ", ") << "] "
+  LOG(INFO) << "Buckets: [" << absl::StrJoin(bucket_strings, ", ") << "] "
             << "Waste: "
             << (best_cost - static_cast<float>(ideal_cost)) / best_cost;
 }
@@ -228,20 +228,20 @@ RecordBatcher::RecordBatcher(const Options& opts, RecordYielder* yielder,
   buckets_.resize(opts_.bucket_upper_bound.size());
   start_time_ = std::time(nullptr);
   {
-    absl::MutexLock l(&mu_);
+    absl::MutexLock l(mu_);
     last_log_update_time_ = start_time_;
   }
 
   merger_thread_->Schedule([this]() {
     MergerLoop();
-    absl::MutexLock l(&mu_);
+    absl::MutexLock l(mu_);
     merger_loop_done_ = true;
   });
 }
 
 RecordBatcher::~RecordBatcher() {
   {
-    absl::MutexLock l(&mu_);
+    absl::MutexLock l(mu_);
     stop_ = true;
   }
   delete processor_thread_;
@@ -250,26 +250,26 @@ RecordBatcher::~RecordBatcher() {
   delete processor_;
 }
 
-Status RecordBatcher::EnsureInitialized(OpKernelContext* ctx) {
+absl::Status RecordBatcher::EnsureInitialized(OpKernelContext* ctx) {
   if (is_initialized_) {
-    return Status();
+    return absl::Status();
   }
   TF_RETURN_IF_ERROR(processor_->Initialize(ctx));
   for (int i = 0; i < opts_.num_threads; i++) {
     processor_thread_->Schedule([this]() {
       ProcessorLoop();
-      absl::MutexLock l(&mu_);
+      absl::MutexLock l(mu_);
       processor_loop_done_count_++;
     });
   }
   is_initialized_ = true;
   LOG(INFO) << "batcher initialized";
-  return Status();
+  return absl::Status();
 }
 
-Status RecordBatcher::GetNext(OpKernelContext* ctx, int64_t* bucket,
-                              TensorVec* batch) {
-  absl::MutexLock l(&mu_);
+absl::Status RecordBatcher::GetNext(OpKernelContext* ctx, int64_t* bucket,
+                                    TensorVec* batch) {
+  absl::MutexLock l(mu_);
   TF_RETURN_IF_ERROR(EnsureInitialized(ctx));
   // Wait for either curr to be non-empty, or for the merger thread to be
   // complete.
@@ -287,7 +287,7 @@ Status RecordBatcher::GetNext(OpKernelContext* ctx, int64_t* bucket,
   using std::swap;
   swap(*(batch), curr_);
   curr_.clear();
-  return Status();
+  return absl::Status();
 }
 
 void RecordBatcher::IncrementHistogram(int64_t bucket) {
@@ -315,7 +315,7 @@ void RecordBatcher::ProcessorLoop() {
   std::vector<int64_t> out_of_range_buckets;
   while (true) {
     {
-      absl::MutexLock l(&mu_);
+      absl::MutexLock l(mu_);
       if (stop_) {
         return;
       }
@@ -324,12 +324,12 @@ void RecordBatcher::ProcessorLoop() {
     // Get the next record.
     Record record;
     record.source_id = kDefaultSourceId;
-    Status s = yielder_->Yield(&record);
+    absl::Status s = yielder_->Yield(&record);
     // yielder may return OutOfRange to indicate end-of-epoch.
     // Set the out status appropriately and return.
     if (absl::IsOutOfRange(s)) {
       LOG(INFO) << "Yielder out of range: " << s;
-      absl::MutexLock l(&mu_);
+      absl::MutexLock l(mu_);
       stop_status_ = s;
       stop_ = true;
       return;
@@ -349,7 +349,7 @@ void RecordBatcher::ProcessorLoop() {
       // that are filtered out. Print only first 10 such errors.
       if (absl::IsCancelled(s)) {
         {
-          absl::MutexLock l(&mu_);
+          absl::MutexLock l(mu_);
           ++total_records_skipped_;
 
           static int log_counter = 0;
@@ -375,7 +375,7 @@ void RecordBatcher::ProcessorLoop() {
         } else {
           LOG(WARNING) << s;
           {
-            absl::MutexLock l(&mu_);
+            absl::MutexLock l(mu_);
             ++total_records_skipped_;
           }
         }
@@ -383,7 +383,7 @@ void RecordBatcher::ProcessorLoop() {
       continue;
     }
 
-    absl::MutexLock l(&mu_);
+    absl::MutexLock l(mu_);
 
     if (opts_.bucket_adjust_every_n > 0) {
       const int64_t records_processed =
@@ -463,7 +463,7 @@ void RecordBatcher::MergerLoop() {
   bool continue_loop = true;
   while (continue_loop) {
     {
-      absl::MutexLock l(&mu_);
+      absl::MutexLock l(mu_);
       WaitForToFlushNonEmpty();
       if (stop_ && stop_status_.ok()) {
         // The object is being destroyed, just exit.
@@ -493,13 +493,14 @@ void RecordBatcher::MergerLoop() {
         samples.push_back(std::move(processed.sample));
       }
       merged.clear();
-      Status s = processor_->Merge(bucket_upper_bound_[id], samples, &merged);
+      absl::Status s =
+          processor_->Merge(bucket_upper_bound_[id], samples, &merged);
       samples.clear();
       if (!s.ok()) {
         LOG(WARNING) << "Failed to create a batch: " << s;
       } else {
         merged.push_back(bucket_keys);
-        absl::MutexLock l(&mu_);
+        absl::MutexLock l(mu_);
         WaitForCurrEmpty();
 
         // If stopped due to destructor, just exit, since there should be no

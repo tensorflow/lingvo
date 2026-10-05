@@ -303,7 +303,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     with self._cluster:
       with tf.container(self._container_id), contextlib.ExitStack() as stack:
         if not py_utils.IsEagerMode():
-          stack.enter_context(self._graph.as_default())
+          stack.enter_context(self._graph.as_default())  # pyrefly: ignore[missing-attribute]
         ema_decay_var = py_utils.CreateEMADecayVar(train_cfg)
       executor_ema = base_model.ExecutorEma(
           py_utils.CreateEMAForModel(train_cfg, self._global_step_var,
@@ -347,13 +347,13 @@ class ExecutorTpu(base_runner.BaseRunner):
          tf.container(self._container_id), \
          contextlib.ExitStack() as stack:
       if not py_utils.IsEagerMode():
-        stack.enter_context(self._graph.as_default())
+        stack.enter_context(self._graph.as_default())  # pyrefly: ignore[missing-attribute]
 
         if _USE_TPU_MIRRORED_VARS.value:
           resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
               FLAGS.tf_master, job_name=FLAGS.worker_job[len('/job:'):])
           self._tpu_strategy = tf.distribute.TPUStrategy(
-              resolver, experimental_device_assignment=device_assignment)
+              resolver, experimental_device_assignment=device_assignment)  # pyrefly: ignore[unbound-name]
           stack.enter_context(self._tpu_strategy.scope())
           stack.enter_context(
               tpu_strategy._TPUReplicaContext(self._tpu_strategy))
@@ -395,7 +395,7 @@ class ExecutorTpu(base_runner.BaseRunner):
   def logdir(self) -> epath.Path:
     return epath.Path(self._logdir)
 
-  def _CreateCheckpointer(self, train_params):
+  def _CreateCheckpointer(self, train_params):  # pyrefly: ignore[bad-override]
     """Creates one of several checkpointer versions.
 
     Args:
@@ -456,7 +456,7 @@ class ExecutorTpu(base_runner.BaseRunner):
          tf.container(self._container_id), \
          contextlib.ExitStack() as stack:
       if not py_utils.IsEagerMode():
-        stack.enter_context(self._graph.as_default())
+        stack.enter_context(self._graph.as_default())  # pyrefly: ignore[missing-attribute]
         stack.enter_context(tf.device(self._cluster.GetPlacer()))
       with py_utils.VariableStore():
         with py_utils.VariableRenameScope(self._variable_renaming_rules):
@@ -540,9 +540,9 @@ class ExecutorTpu(base_runner.BaseRunner):
         future.get()
 
       if not py_utils.IsEagerMode():
-        sess.run(self._initialize_tables)
-        sess.run(self._initialize_local_vars)
-        sess.run(self._load_ops)
+        sess.run(self._initialize_tables)  # pyrefly: ignore[missing-attribute]
+        sess.run(self._initialize_local_vars)  # pyrefly: ignore[missing-attribute]
+        sess.run(self._load_ops)  # pyrefly: ignore[missing-attribute]
 
       program_schedule = None
       # Threadpool to run code in programs async with TF Sessions (on TPUs).

@@ -84,7 +84,7 @@ class GetPreconditioners : public OpKernel {
       if (ok) {
         output_list.set(i, output);
       } else {
-        auto shape_t = shapes[i].flat<int32>();
+        auto shape_t = shapes[i].flat<int32_t>();
         TensorShape shape;
         TF_CHECK_OK(TensorShapeUtils::MakeShape(shape_t.data(), shape_t.size(),
                                                 &shape));
@@ -102,7 +102,7 @@ class GetPreconditioners : public OpKernel {
   // Options for preconditioner.
   PreconditionerCaptainOptions options_;
   // Keys for the tensors.
-  std::vector<string> keys_;
+  std::vector<std::string> keys_;
 };
 
 REGISTER_KERNEL_BUILDER(Name("GetPreconditioners").Device(DEVICE_CPU),
@@ -140,7 +140,7 @@ class ComputePreconditionersOp : public OpKernel {
   // Options for preconditioner.
   PreconditionerCaptainOptions options_;
   // Keys for the tensors.
-  std::vector<string> keys_;
+  std::vector<std::string> keys_;
   // Whether to run preconditioner synchronously.
   bool sync_ = false;
 };

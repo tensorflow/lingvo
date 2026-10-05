@@ -331,7 +331,7 @@ class TFRecordIterator : public RecordIterator {
 class IotaIterator : public RecordIterator {
  public:
   IotaIterator(const string& filename) {
-    if (filename.empty() || !strings::safe_strto64(filename, &max_)) {
+    if (filename.empty() || !absl::SimpleAtoi(filename, &max_)) {
       max_ = std::numeric_limits<int64_t>::max();
     }
   }

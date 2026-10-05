@@ -191,7 +191,7 @@ def _ComputeConvOutputPaddingV2(paddings,
         'MAX',
         padding=padding_algorithm,
         strides=[stride])
-  out_paddings = tf.squeeze(out_paddings, -1)
+  out_paddings = tf.squeeze(out_paddings, -1)  # pyrefly: ignore[unbound-name]
   if stride > 1:
     slice_end = py_utils.GetShape(out_paddings)[1] - slice_len
     out_paddings = out_paddings[:, :slice_end]

@@ -82,7 +82,7 @@ class BaseRunner:
     self._daemon = False
     self._verbose_enqueue_logging = False
 
-    self._checkpointer: checkpointer.Checkpointer = None
+    self._checkpointer: checkpointer.Checkpointer = None  # pyrefly: ignore[bad-assignment]
     self._should_report_metrics = False
 
     self._graph = None if py_utils.IsEagerMode() else tf.Graph()
@@ -176,7 +176,7 @@ class BaseRunner:
     pass
 
   def _ShouldEarlyStop(self, sess: Optional[tf.Session] = None) -> bool:
-    return self._early_stop and self._early_stop.Stop(sess)  # pytype: disable=bad-return-type
+    return self._early_stop and self._early_stop.Stop(sess)  # pyrefly: ignore[bad-return]
 
   def _ShouldStop(self, sess=None, step=None, check_early_stop=True) -> bool:
     """Check if the runner should stop.
@@ -196,7 +196,7 @@ class BaseRunner:
       if py_utils.IsEagerMode():
         step = py_utils.GetGlobalStep().numpy()
       else:
-        step = sess.run(py_utils.GetGlobalStep())
+        step = sess.run(py_utils.GetGlobalStep())  # pyrefly: ignore[missing-attribute]
 
     if step >= self.params.train.max_steps:
       tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d', step,
@@ -230,7 +230,7 @@ class BaseRunner:
     if not path:
       raise RuntimeError('No check point is found in %s' %
                          self._checkpointer.checkpoint_dir)
-    if path in processed_ckpts:
+    if path in processed_ckpts:  # pyrefly: ignore[not-iterable]
       raise RuntimeError('No new check point is found: %s' % path)
     return path
 
@@ -288,7 +288,7 @@ class BaseRunner:
         # Could potentially be None in the case of early stopping.
         break
 
-      runner_fn(sess, ckpt_path)
+      runner_fn(sess, ckpt_path)  # pyrefly: ignore[not-callable]
       py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)
       processed_ckpts.add(ckpt_path)
       if self._ShouldStop(sess):
@@ -320,7 +320,7 @@ class BaseRunner:
         # Process the checkpoints sequentially.
         ckpt_path = checkpointer.SortCheckpointPaths(unprocessed_ckpts)[0]
         try:
-          runner_fn(sess, ckpt_path)
+          runner_fn(sess, ckpt_path)  # pyrefly: ignore[not-callable]
           py_utils.UpdateProcessedCheckpoints(runner_dir, ckpt_path)
           processed_ckpts.add(ckpt_path)
         except tf.errors.NotFoundError as e:
@@ -377,7 +377,7 @@ class BaseRunner:
         if py_utils.IsEagerMode():
           global_step = py_utils.GetGlobalStep().numpy
         else:
-          global_step = sess.run(py_utils.GetGlobalStep())
+          global_step = sess.run(py_utils.GetGlobalStep())  # pyrefly: ignore[missing-attribute]
       except tf.errors.FailedPreconditionError as e:
         tf.logging.info('%s: Probably the expected race on global_step: %s',
                         self._job_name, e)
@@ -387,7 +387,7 @@ class BaseRunner:
       if start_up_delay_steps:
         if global_step < start_up_delay_steps:
           msg = 'global step (%d) has not reached start up delay steps (%d)' % (
-              global_step, self._start_up_delay_steps)
+              global_step, self._start_up_delay_steps)  # pyrefly: ignore[missing-attribute]
           tf.logging.info('%s: %s', self._job_name, msg)
           raise tf.errors.FailedPreconditionError(
               node_def=None, op=None, message=msg)
@@ -540,7 +540,7 @@ class BaseRunner:
     with tf.container(self._container_id), sess:
       if self._initialize_tables is not None:
         sess.run(self._initialize_tables)
-      for task in self._model.tasks:
+      for task in self._model.tasks:  # pyrefly: ignore[missing-attribute]
         task.input.Initialize(sess)
       local_enqueue_steps = 0
 
@@ -642,7 +642,7 @@ class BaseRunner:
     if FLAGS.disable_tf2_summary:
       return
     if not py_utils.IsEagerMode():
-      sess.run(self._tf2_summary_writer.init())
+      sess.run(self._tf2_summary_writer.init())  # pyrefly: ignore[missing-attribute]
 
   def _RunTF2SummaryOps(self, sess):
     if FLAGS.disable_tf2_summary or py_utils.IsEagerMode():
@@ -704,7 +704,7 @@ class BaseRunner:
     if summary_str is None:
       return
 
-    if global_enqueue_steps % self._input_stats_summary_interval_steps == 0:
+    if global_enqueue_steps % self._input_stats_summary_interval_steps == 0:  # pyrefly: ignore[missing-attribute]
       self._summary_writer.add_summary(summary_str, global_enqueue_steps)
       self._summary_writer.flush()
 

@@ -10,6 +10,7 @@ licenses(["notice"])
 py_library(
     name = "frontend",
     srcs = ["frontend.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -23,6 +24,7 @@ py_test(
     data = [
         "//lingvo/tools/testdata:audio_data",
     ],
+    strict_deps = False,
     deps = [
         ":frontend",
         # Additional FFT kernels dependency.
@@ -38,6 +40,7 @@ py_test(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -49,6 +52,7 @@ py_library(
 py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
+    strict_deps = False,
     deps = [
         ":input_generator",
         #internal proto upb dep
@@ -61,6 +65,7 @@ py_test(
 py_library(
     name = "encoder",
     srcs = ["encoder.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -78,6 +83,7 @@ py_library(
 py_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
+    strict_deps = False,
     deps = [
         ":encoder",
         #internal proto upb dep
@@ -101,6 +107,7 @@ pytype_strict_library(
 py_test(
     name = "eos_normalization_test",
     srcs = ["eos_normalization_test.py"],
+    strict_deps = False,
     deps = [
         ":eos_normalization",
         # Implicit absl.testing.parameterized dependency.
@@ -114,6 +121,7 @@ py_test(
 py_library(
     name = "fusion",
     srcs = ["fusion.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -126,6 +134,7 @@ py_library(
 py_library(
     name = "decoder_utils",
     srcs = ["decoder_utils.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -138,6 +147,7 @@ py_library(
 py_test(
     name = "decoder_utils_test",
     srcs = ["decoder_utils_test.py"],
+    strict_deps = False,
     deps = [
         ":decoder",
         ":decoder_utils",
@@ -152,6 +162,7 @@ py_test(
 py_library(
     name = "contextualizer_base",
     srcs = ["contextualizer_base.py"],
+    strict_deps = False,
     deps = [
         "//lingvo/core:base_layer",
     ],
@@ -160,6 +171,7 @@ py_library(
 py_library(
     name = "decoder",
     srcs = ["decoder.py"],
+    strict_deps = False,
     deps = [
         ":contextualizer_base",
         ":decoder_utils",
@@ -184,6 +196,7 @@ py_test(
     size = "large",
     srcs = ["decoder_test.py"],
     shard_count = 10,
+    strict_deps = False,
     deps = [
         ":decoder",
         # Implicit python proto dependency.
@@ -202,6 +215,7 @@ py_test(
 py_library(
     name = "model_test_input_generator",
     srcs = ["model_test_input_generator.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -228,6 +242,7 @@ pytype_strict_library(
 py_library(
     name = "model",
     srcs = ["model.py"],
+    strict_deps = False,
     deps = [
         ":decoder",
         ":decoder_metrics",
@@ -247,6 +262,7 @@ py_test(
     srcs = ["model_test.py"],
     data = ["//lingvo/tools/testdata:audio_data"],
     shard_count = 15,
+    strict_deps = False,
     deps = [
         ":decoder",
         ":input_generator",

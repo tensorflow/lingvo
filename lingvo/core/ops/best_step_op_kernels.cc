@@ -46,7 +46,7 @@ class BestStepOp : public OpKernel {
   void ExtractValueFromOneTfEvent(OpKernelContext* ctx, const string& filename,
                                   std::map<int, float>* step_value,
                                   const string& metric, bool minimize) {
-    const Status status = ctx->env()->FileExists(filename);
+    const absl::Status status = ctx->env()->FileExists(filename);
     if (status.ok()) {
       ::std::unique_ptr<RandomAccessFile> file;
       OP_REQUIRES_OK(ctx, ctx->env()->NewRandomAccessFile(filename, &file));
@@ -85,7 +85,8 @@ class BestStepOp : public OpKernel {
   void ExtractValueFromTfEvents(OpKernelContext* ctx, const string& filename,
                                 std::map<int, float>* step_value) {
     std::vector<string> tf_events;
-    const Status status = ctx->env()->GetMatchingPaths(filename, &tf_events);
+    const absl::Status status =
+        ctx->env()->GetMatchingPaths(filename, &tf_events);
     if (!tf_events.empty()) {
       for (const auto& fname : tf_events) {
         // Loop through all found tf events files.
@@ -99,7 +100,7 @@ class BestStepOp : public OpKernel {
 
   void ExtractValueFromTxt(OpKernelContext* ctx, const string& filename,
                            std::map<int, float>* step_value) {
-    const Status status = ctx->env()->FileExists(filename);
+    const absl::Status status = ctx->env()->FileExists(filename);
     if (status.ok()) {
       std::unique_ptr<RandomAccessFile> file;
       OP_REQUIRES_OK(ctx, ctx->env()->NewRandomAccessFile(filename, &file));
@@ -108,16 +109,16 @@ class BestStepOp : public OpKernel {
       io::BufferedInputStream in(input_stream.get(), 4 << 10);
       string line;
       while (true) {
-        const Status s = in.ReadLine(&line);
+        const absl::Status s = in.ReadLine(&line);
         if (absl::IsOutOfRange(s)) break;
         TF_CHECK_OK(s);
         std::vector<string> split_line = str_util::Split(line, ' ');
         CHECK_EQ(split_line.size(), 2);
 
         int x;
-        CHECK(strings::safe_strto32(split_line[0], &x));
+        CHECK(absl::SimpleAtoi(split_line[0], &x));
         float y;
-        CHECK(strings::safe_strtof(split_line[1], &y));
+        CHECK(absl::SimpleAtof(split_line[1], &y));
 
         if (minimize_) {
           step_value->insert(std::pair<int, float>(x, y));

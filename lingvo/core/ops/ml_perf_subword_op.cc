@@ -26,44 +26,44 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-Status MlPerfSubword::Load(const string& vocab_glob) {
-  std::vector<string> vocab_filenames;
+absl::Status MlPerfSubword::Load(const std::string& vocab_glob) {
+  std::vector<std::string> vocab_filenames;
   TF_CHECK_OK(Env::Default()->GetMatchingPaths(vocab_glob, &vocab_filenames))
       << "Unable to match vocab pattern: " << vocab_glob;
   CHECK_EQ(vocab_filenames.size(), 1)
       << "Did not match exactly one file with pattern: " << vocab_glob;
-  const string& vocab_filename = vocab_filenames[0];
+  const std::string& vocab_filename = vocab_filenames[0];
 
-  string content;
+  std::string content;
   TF_RETURN_IF_ERROR(
       ReadFileToString(Env::Default(), vocab_filename, &content));
 
   return LoadLines(str_util::Split(content, '\n'));
 }
 
-Status MlPerfSubword::LoadLines(const std::vector<string>& lines) {
-  for (StringPiece line : lines) {
+absl::Status MlPerfSubword::LoadLines(const std::vector<std::string>& lines) {
+  for (absl::string_view line : lines) {
     if (line.empty()) continue;
     // Strip surrounding single quotes.
     auto len = line.size();
     CHECK_GT(line.size(), 2);
-    auto subtoken = string(line.substr(1, len - 2));
+    auto subtoken = std::string(line.substr(1, len - 2));
     id_to_token_.push_back(subtoken);
   }
-  return Status();
+  return absl::Status();
 }
 
 // This is a direct port of the tokenizer decode method in the MLPerf
 // reference implementation for Translate/Transformer.
-void MlPerfSubword::Decode(const std::vector<int32>& ids, string* out) {
-  std::vector<string> subtokens_raw;
+void MlPerfSubword::Decode(const std::vector<int32_t>& ids, std::string* out) {
+  std::vector<std::string> subtokens_raw;
   subtokens_raw.reserve(ids.size());
   for (const auto& id : ids) {
     CHECK_LT(id, id_to_token_.size())
         << "Id out of range: " << id << " " << id_to_token_.size();
     subtokens_raw.emplace_back(id_to_token_[id]);
   }
-  string inter = absl::StrJoin(subtokens_raw, "");
+  std::string inter = absl::StrJoin(subtokens_raw, "");
 
   std::vector<std::string> subtokens = absl::StrSplit(inter, '_');
 
@@ -74,7 +74,7 @@ void MlPerfSubword::Decode(const std::vector<int32>& ids, string* out) {
     U8_NEXT(token, token_end, token.length(), c);
     token_is_alnum.push_back(u_isalnum(c));
   }
-  std::vector<string> ret;
+  std::vector<std::string> ret;
 
   for (int i = 0; i < subtokens.size(); ++i) {
     const auto& token = subtokens[i];
@@ -90,7 +90,7 @@ class MlPerfSubwordIdToStringOp : public OpKernel {
  public:
   explicit MlPerfSubwordIdToStringOp(OpKernelConstruction* ctx)
       : OpKernel(ctx) {
-    string vocab_filepath;
+    std::string vocab_filepath;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab_filepath", &vocab_filepath));
     OP_REQUIRES_OK(ctx, vocab_.Load(vocab_filepath));
   }
@@ -115,17 +115,17 @@ class MlPerfSubwordIdToStringOp : public OpKernel {
                                 "seq_lengths"));
     Tensor* out;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({batch}), &out));
-    const auto& t_ids = token_ids->matrix<int32>();
-    const auto& t_seq_lens = seq_lengths->vec<int32>();
+    const auto& t_ids = token_ids->matrix<int32_t>();
+    const auto& t_seq_lens = seq_lengths->vec<int32_t>();
     auto t_out = out->template vec<tstring>();
 
     for (int i = 0; i < batch; ++i) {
       const int len_i = std::max(0, t_seq_lens(i));
-      std::vector<int32> ids_i(len_i);
+      std::vector<int32_t> ids_i(len_i);
       for (int j = 0; j < len_i; ++j) {
         ids_i[j] = t_ids(i, j);
       }
-      string decode_output;
+      std::string decode_output;
       vocab_.Decode(ids_i, &decode_output);
       t_out(i) = decode_output;
     }

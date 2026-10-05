@@ -40,7 +40,7 @@ typedef std::function<void()> Closure;
 typedef std::function<void(Closure)> Runner;
 // Creates a self-contained function library definition.
 // This allows us to e.g. call functions when invoked from a tf.data.Dataset.
-Status CreateFunctionLibraryDefinition(
+absl::Status CreateFunctionLibraryDefinition(
     const FunctionLibraryDefinition* lib_def, const string& func_name,
     std::unique_ptr<FunctionLibraryDefinition>* result) {
   DCHECK(lib_def != nullptr);
@@ -59,8 +59,8 @@ class ProcessorFn {
  public:
   // Creates a user-supplied function that can be invoked from a cloned
   // runtime, with a self-contained function library definition.
-  static Status Create(OpKernelContext* ctx, const NameAttrList* func,
-                       std::unique_ptr<ProcessorFn>* out_function) {
+  static absl::Status Create(OpKernelContext* ctx, const NameAttrList* func,
+                             std::unique_ptr<ProcessorFn>* out_function) {
     std::unique_ptr<FunctionLibraryDefinition> dummy_fld;
     std::unique_ptr<ProcessFunctionLibraryRuntime> pflr;
     FunctionLibraryRuntime* cloned_flib = nullptr;
@@ -82,11 +82,11 @@ class ProcessorFn {
     // Using `new` to access a non-public constructor.
     *out_function = absl::WrapUnique(
         new ProcessorFn{cloned_flib, std::move(fld), std::move(pflr), handle});
-    return Status();
+    return absl::Status();
   }
 
   // Executes the user-defined function.
-  Status Run(TensorVec&&args, TensorVec* output) {
+  absl::Status Run(TensorVec&& args, TensorVec* output) {
     // We expect that this input processor is used in conjunction with
     // RecordBatcher, which uses multiple threads to call this input
     // processor's Process(). Therefore, there is not much need for
@@ -107,9 +107,9 @@ class ProcessorFn {
     opts.step_container = &step_container;
     opts.runner = ThreadLocalRunner::PerThread().runner();
 
-    Status status;
+    absl::Status status;
     absl::Notification done;
-    flib_->Run(opts, handle_, args, output, [&](const Status& s) {
+    flib_->Run(opts, handle_, args, output, [&](const absl::Status& s) {
       status = s;
       done.Notify();
     });
@@ -165,14 +165,14 @@ class GenericInputProcessor : public RecordProcessor {
     dynamic_padding_constants_ = dynamic_padding_constants;
   }
 
-  Status Initialize(OpKernelContext* ctx) override {
+  absl::Status Initialize(OpKernelContext* ctx) override {
     return ProcessorFn::Create(ctx, &func_, &processor_fn_);
   }
 
   ~GenericInputProcessor() { delete merger_; }
 
-  Status Process(const Record& record, int64_t* bucket_key,
-                 TensorVec* sample) override {
+  absl::Status Process(const Record& record, int64_t* bucket_key,
+                       TensorVec* sample) override {
     // Generates <source_id, record> pair as the resulting Tensors.
     TensorVec args(2);
     args[0] = Tensor(DT_INT32, {});
@@ -199,11 +199,11 @@ class GenericInputProcessor : public RecordProcessor {
           strings::StrCat("Batch has negative bucket key: ", *bucket_key));
     }
     sample->pop_back();
-    return Status();
+    return absl::Status();
   }
 
-  Status Merge(int64_t bucket_size, const std::vector<TensorVec>& samples,
-               TensorVec* batch) override {
+  absl::Status Merge(int64_t bucket_size, const std::vector<TensorVec>& samples,
+                     TensorVec* batch) override {
     CHECK(!samples.empty());
     const auto num_samples = samples.size();
     const auto num_outs = samples[0].size();
@@ -311,7 +311,7 @@ class GenericInputProcessor : public RecordProcessor {
       }
     }
     // If there is just one sample, 'batch' already has the copy.
-    if (num_samples == 1) return Status();
+    if (num_samples == 1) return absl::Status();
 
     Sharder::Do(
         num_samples /* total */, 1000 /* cost_per_unit */,
@@ -342,7 +342,7 @@ class GenericInputProcessor : public RecordProcessor {
           }
         },
         merger_runner_, 1 + num_merger_threads_);
-    return Status();
+    return absl::Status();
   }
 
  private:

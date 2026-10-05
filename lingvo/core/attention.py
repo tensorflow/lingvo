@@ -1622,7 +1622,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       )
       self.CreateVariable('source_proj', pc)
       if p.use_bias:
-        self.CreateVariable('source_proj_b', pc_bias)
+        self.CreateVariable('source_proj_b', pc_bias)  # pyrefly: ignore[bad-argument-type]
     else:
       assert p.source_dim == p.hidden_dim
 
@@ -1637,7 +1637,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       )
       self.CreateVariable('query_proj', pc)
       if p.use_bias:
-        self.CreateVariable('query_proj_b', pc_bias)
+        self.CreateVariable('query_proj_b', pc_bias)  # pyrefly: ignore[bad-argument-type]
     else:
       assert p.query_dim == p.hidden_dim
 
@@ -1653,7 +1653,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       )
       self.CreateVariable('ctx_proj', pc)
       if p.use_bias:
-        self.CreateVariable('ctx_proj_b', pc_bias)
+        self.CreateVariable('ctx_proj_b', pc_bias)  # pyrefly: ignore[bad-argument-type]
 
     if p.enable_ctx_post_proj:
       assert p.ctx_post_proj_dim
@@ -2205,7 +2205,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       selected_prob_head = multi_headed_atten_prob[
           :, p.attention_head_prob_index, :
       ]
-      att_state.selected_attention_head_probs = selected_prob_head
+      att_state.selected_attention_head_probs = selected_prob_head  # pyrefly: ignore[missing-attribute]
     att_state = _RecursiveReshape(att_state, [target_batch, -1])
     return ctx_vec, prob, att_state
 
@@ -3246,7 +3246,7 @@ class MonotonicAttention(BaseAttentionLayer):
         source_vecs,
         merged_source_padding,
         query_vec,
-        attention_state,
+        attention_state,  # pyrefly: ignore[bad-argument-type]
     )
 
     with tf.name_scope('sum'):
@@ -3575,7 +3575,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     else:
       position_offset = tf.exp(position_offset_logits)
 
-    new_position = attention_state[:, :, 0] + position_offset
+    new_position = attention_state[:, :, 0] + position_offset  # pyrefly: ignore[unsupported-operation]
 
     # Tile and reshape encoder_positions to [source_batch, source_length]
     # so that it can be evaluated by locations GMMs in a vectorized way.

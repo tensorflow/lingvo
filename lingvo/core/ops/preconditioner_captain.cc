@@ -87,9 +87,9 @@ void PreconditionerCaptain::InsertGradientStatistics(const std::string& key,
         ++active_preconditioners_;
       }
 
-      Status status;
+      absl::Status status;
       std::vector<Tensor> outputs;
-      std::vector<std::pair<string, Tensor>> inputs;
+      std::vector<std::pair<std::string, Tensor>> inputs;
       inputs.push_back(std::make_pair("input", statistics));
       inputs.push_back(std::make_pair("exponent", exponent));
       do {

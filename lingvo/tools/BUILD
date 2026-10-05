@@ -15,6 +15,7 @@ licenses(["notice"])
 py_binary(
     name = "gke_launch",
     srcs = ["gke_launch.py"],
+    strict_deps = False,
     deps = [
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
@@ -26,6 +27,7 @@ py_binary(
 py_binary(
     name = "keras2ckpt",
     srcs = ["keras2ckpt.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
     ],
@@ -34,12 +36,14 @@ py_binary(
 py_binary(
     name = "bpe_word_tokenizer",
     srcs = ["bpe_word_tokenizer.py"],
+    strict_deps = False,
     deps = ["//lingvo:compat"],
 )
 
 py_binary(
     name = "wpm_encode_file",
     srcs = ["wpm_encode_file.py"],
+    strict_deps = False,
     deps = [
         ":wpm_encode_file_lib",
         # Implicit six dependency.
@@ -49,6 +53,7 @@ py_binary(
 py_library(
     name = "wpm_encode_file_lib",
     srcs = ["wpm_encode_file.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:wpm_encoder",
@@ -60,6 +65,7 @@ py_library(
 py_binary(
     name = "print_tf_records",
     srcs = ["print_tf_records.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         # Implicit six dependency.
@@ -69,6 +75,7 @@ py_binary(
 py_binary(
     name = "compute_stats",
     srcs = ["compute_stats.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -78,6 +85,7 @@ py_binary(
 py_library(
     name = "audio_lib",
     srcs = ["audio_lib.py"],
+    strict_deps = False,
     deps = [
         # Additional FFT kernels dependency.
         "//lingvo:compat",
@@ -89,12 +97,14 @@ py_library(
 py_library(
     name = "beam_utils",
     srcs = ["beam_utils.py"],
+    strict_deps = False,
 )
 
 py_test(
     name = "beam_utils_test",
     srcs = ["beam_utils_test.py"],
     data = ["//lingvo/tasks/mt/testdata:wmt14_ende_tfexample"],
+    strict_deps = False,
     deps = [
         ":beam_utils",
         # Implicit apache_beam dependency.
@@ -108,6 +118,7 @@ py_test(
 py_binary(
     name = "count_records",
     srcs = ["count_records.py"],
+    strict_deps = False,
     deps = [
         ":beam_utils",
         # Implicit network file system dependency.
@@ -121,6 +132,7 @@ py_test(
     data = [
         "//lingvo/tools/testdata:audio_data",
     ],
+    strict_deps = False,
     deps = [
         ":audio_lib",
         #internal proto upb dep
@@ -133,6 +145,7 @@ py_test(
 py_library(
     name = "compare_params_lib",
     srcs = ["compare_params.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo:model_registry",
@@ -143,6 +156,7 @@ py_library(
 py_test(
     name = "compare_params_test",
     srcs = ["compare_params_test.py"],
+    strict_deps = False,
     deps = [
         ":compare_params_lib",
         #internal proto upb dep
@@ -155,6 +169,7 @@ py_test(
 py_binary(
     name = "create_asr_features",
     srcs = ["create_asr_features.py"],
+    strict_deps = False,
     deps = [
         ":audio_lib",
         "//lingvo:compat",
@@ -166,8 +181,8 @@ lingvo_cc_binary(
     name = "generate_proto_def",
     srcs = ["generate_proto_def.cc"],
     deps = [
-        # Implicit proto dependency.
         # Implicit absl.container.flat_hash_set dependency.
+        "//third_party/protobuf",
         # Implicit tensorflow C++ proto dependency.
     ],
 )

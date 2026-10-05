@@ -13,6 +13,7 @@ licenses(["notice"])
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
+    strict_deps = False,
     deps = [
         ":tokenizer",
         "//lingvo:compat",
@@ -31,6 +32,7 @@ py_test(
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
     ],
+    strict_deps = False,
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -42,6 +44,7 @@ py_test(
 py_library(
     name = "layers",
     srcs = ["layers.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -72,6 +75,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
+    strict_deps = False,
     deps = [
         ":layers",
         "//lingvo:compat",
@@ -89,6 +93,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/lm/testdata:small_word_vocab",
     ],
+    strict_deps = False,
     deps = [
         ":input_generator",
         ":model",
@@ -102,6 +107,7 @@ py_test(
 py_library(
     name = "tokenizer",
     srcs = ["tokenizer.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",

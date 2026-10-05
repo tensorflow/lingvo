@@ -2211,7 +2211,7 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
     params.name = 'adapters'
     self.CreateChild('adapters', params)
 
-  def FProp(self,
+  def FProp(self,  # pyrefly: ignore[bad-override]
             theta,
             source_vecs,
             source_paddings,
@@ -2249,11 +2249,11 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
     # Assumes the same task_id for the entire sequence during eval or when
     # not using packed_input.
     if not p.packed_input and not self.do_eval:
-      source_task_id = source_task_id[0, :]
+      source_task_id = source_task_id[0, :]  # pyrefly: ignore[unsupported-operation]
     hidden = self.adapters.FProp(theta.adapters, hidden, source_task_id)
     return hidden, atten_prob
 
-  def ExtendStep(
+  def ExtendStep(  # pyrefly: ignore[bad-override]
       self,
       theta,
       source_vecs,

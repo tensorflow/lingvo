@@ -36,50 +36,55 @@ class AP3DOp final : public OpKernel {
  public:
   explicit AP3DOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("num_recall_points", &num_recall_points_));
-    string ap_algorithm_name;
+    std::string ap_algorithm_name;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("algorithm", &ap_algorithm_name));
     if (ap_algorithm_name == "KITTI") {
       ap_algorithm_ = APAlgorithm::kKITTI;
     } else if (ap_algorithm_name == "VOC") {
       ap_algorithm_ = APAlgorithm::kVOC;
     } else {
-      OP_REQUIRES(
-          ctx, false,
-          errors::InvalidArgument("algorithm must be one of \"KITTI\", \"VOC\","
-                                  "but got ",
-                                  ap_algorithm_name));
+      OP_REQUIRES(ctx, false,
+                  absl::InvalidArgumentError(absl::StrCat(
+                      "algorithm must be one of \"KITTI\", \"VOC\","
+                      "but got ",
+                      ap_algorithm_name)));
     }
 
-    OP_REQUIRES(
-        ctx, num_recall_points_ > 0,
-        errors::InvalidArgument("num_recall_points must be positive but get ",
-                                num_recall_points_));
+    OP_REQUIRES(ctx, num_recall_points_ > 0,
+                absl::InvalidArgumentError(
+                    absl::StrCat("num_recall_points must be positive but get ",
+                                 num_recall_points_)));
   }
 
   void Compute(OpKernelContext* ctx) override {
     const Tensor* gt_bbox = nullptr;
     OP_REQUIRES_OK(ctx, ctx->input("groundtruth_bbox", &gt_bbox));
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(gt_bbox->shape()),
-                errors::InvalidArgument("bbox must be a matrix, but get ",
-                                        gt_bbox->shape().DebugString()));
-    OP_REQUIRES(ctx, gt_bbox->dim_size(1) == 7,
-                errors::InvalidArgument("bbox must be [:, 7], but get ",
-                                        gt_bbox->shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("bbox must be a matrix, but get ",
+                                 gt_bbox->shape().DebugString())));
+    OP_REQUIRES(
+        ctx, gt_bbox->dim_size(1) == 7,
+        absl::InvalidArgumentError(absl::StrCat(
+            "bbox must be [:, 7], but get ", gt_bbox->shape().DebugString())));
     const int n = gt_bbox->dim_size(0);
 
     const Tensor* gt_imageid = nullptr;
     OP_REQUIRES_OK(ctx, ctx->input("groundtruth_imageid", &gt_imageid));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(gt_imageid->shape()),
-                errors::InvalidArgument("imageid must be a vector, but get ",
-                                        gt_imageid->shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("imageid must be a vector, but get ",
+                                 gt_imageid->shape().DebugString())));
     OP_REQUIRES(ctx, gt_imageid->dim_size(0) == n,
-                errors::InvalidArgument("imageid shape mismatch, get ",
-                                        gt_imageid->shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("imageid shape mismatch, get ",
+                                 gt_imageid->shape().DebugString())));
     const Tensor* gt_ignore = nullptr;
     OP_REQUIRES_OK(ctx, ctx->input("groundtruth_ignore", &gt_ignore));
-    OP_REQUIRES(ctx, gt_imageid->shape().IsSameSize(gt_ignore->shape()),
-                errors::InvalidArgument("gt_ignore shape mismatch: ",
-                                        gt_ignore->shape().DebugString()));
+    OP_REQUIRES(
+        ctx, gt_imageid->shape().IsSameSize(gt_ignore->shape()),
+        absl::InvalidArgumentError(absl::StrCat(
+            "gt_ignore shape mismatch: ", gt_ignore->shape().DebugString())));
 
     std::vector<image::Detection<box::Upright3DBox>> groundtruth;
     std::vector<box::Upright3DBox> groundtruth_boxes =
@@ -89,53 +94,60 @@ class AP3DOp final : public OpKernel {
     for (int i = 0; i < n; ++i) {
       image::Detection<box::Upright3DBox> g;
       g.difficult = false;
-      g.imgid = gt_imageid->flat<int32>()(i);
+      g.imgid = gt_imageid->flat<int32_t>()(i);
       g.score = 1.0;
       g.box = groundtruth_boxes[i];
-      g.ignore = static_cast<image::IgnoreType>(gt_ignore->flat<int32>()(i));
+      g.ignore = static_cast<image::IgnoreType>(gt_ignore->flat<int32_t>()(i));
       groundtruth.push_back(g);
     }
 
     const Tensor* pd_bbox = nullptr;
     OP_REQUIRES_OK(ctx, ctx->input("prediction_bbox", &pd_bbox));
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(pd_bbox->shape()),
-                errors::InvalidArgument("bbox must be a matrix, but get ",
-                                        pd_bbox->shape().DebugString()));
-    OP_REQUIRES(ctx, pd_bbox->dim_size(1) == 7,
-                errors::InvalidArgument("bbox must be [:, 7], but get ",
-                                        pd_bbox->shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("bbox must be a matrix, but get ",
+                                 pd_bbox->shape().DebugString())));
+    OP_REQUIRES(
+        ctx, pd_bbox->dim_size(1) == 7,
+        absl::InvalidArgumentError(absl::StrCat(
+            "bbox must be [:, 7], but get ", pd_bbox->shape().DebugString())));
     const int m = pd_bbox->dim_size(0);
 
     const Tensor* pd_imageid = nullptr;
     OP_REQUIRES_OK(ctx, ctx->input("prediction_imageid", &pd_imageid));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(pd_imageid->shape()),
-                errors::InvalidArgument("imageid must be a vector, but get ",
-                                        pd_imageid->shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("imageid must be a vector, but get ",
+                                 pd_imageid->shape().DebugString())));
     OP_REQUIRES(ctx, pd_imageid->dim_size(0) == m,
-                errors::InvalidArgument("imageid shape mismatch, get ",
-                                        pd_imageid->shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("imageid shape mismatch, get ",
+                                 pd_imageid->shape().DebugString())));
 
     const Tensor* pd_score = nullptr;
     OP_REQUIRES_OK(ctx, ctx->input("prediction_score", &pd_score));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(pd_score->shape()),
-                errors::InvalidArgument("score must be a vector, but get ",
-                                        pd_score->shape().DebugString()));
-    OP_REQUIRES(ctx, pd_score->dim_size(0) == m,
-                errors::InvalidArgument("score shape mismatch, get ",
-                                        pd_score->shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("score must be a vector, but get ",
+                                 pd_score->shape().DebugString())));
+    OP_REQUIRES(
+        ctx, pd_score->dim_size(0) == m,
+        absl::InvalidArgumentError(absl::StrCat(
+            "score shape mismatch, get ", pd_score->shape().DebugString())));
 
     const Tensor* pd_ignore = nullptr;
     OP_REQUIRES_OK(ctx, ctx->input("prediction_ignore", &pd_ignore));
-    OP_REQUIRES(ctx, pd_imageid->shape().IsSameSize(pd_ignore->shape()),
-                errors::InvalidArgument("pt_ignore shape mismatch: ",
-                                        pd_ignore->shape().DebugString()));
+    OP_REQUIRES(
+        ctx, pd_imageid->shape().IsSameSize(pd_ignore->shape()),
+        absl::InvalidArgumentError(absl::StrCat(
+            "pt_ignore shape mismatch: ", pd_ignore->shape().DebugString())));
 
     const Tensor* iou_threshold = nullptr;
     OP_REQUIRES_OK(ctx, ctx->input("iou_threshold", &iou_threshold));
-    OP_REQUIRES(
-        ctx, TensorShapeUtils::IsScalar(iou_threshold->shape()),
-        errors::InvalidArgument("iou_threshold must be a scalar, but get ",
-                                iou_threshold->shape().DebugString()));
+    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(iou_threshold->shape()),
+                absl::InvalidArgumentError(
+                    absl::StrCat("iou_threshold must be a scalar, but get ",
+                                 iou_threshold->shape().DebugString())));
 
     std::vector<image::Detection<box::Upright3DBox>> prediction;
     std::vector<box::Upright3DBox> prediction_boxes =
@@ -145,10 +157,10 @@ class AP3DOp final : public OpKernel {
     for (int i = 0; i < m; ++i) {
       image::Detection<box::Upright3DBox> p;
       p.difficult = false;
-      p.imgid = pd_imageid->flat<int32>()(i);
+      p.imgid = pd_imageid->flat<int32_t>()(i);
       p.score = pd_score->flat<float>()(i);
       p.box = prediction_boxes[i];
-      p.ignore = static_cast<image::IgnoreType>(pd_ignore->flat<int32>()(i));
+      p.ignore = static_cast<image::IgnoreType>(pd_ignore->flat<int32_t>()(i));
       prediction.push_back(p);
     }
 

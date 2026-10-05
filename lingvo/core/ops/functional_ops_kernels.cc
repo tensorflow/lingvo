@@ -53,7 +53,7 @@ class CachedCallOp : public AsyncOpKernel {
   ~CachedCallOp() override {}
 
   void ComputeAsync(OpKernelContext* ctx, DoneCallback done) override {
-    mu_.Lock();
+    mu_.lock();
 
     while (true) {
       // First call.
@@ -67,7 +67,7 @@ class CachedCallOp : public AsyncOpKernel {
         for (int i = 0; i < rets_.size(); ++i) {
           ctx->set_output(i, rets_[i]);
         }
-        mu_.Unlock();
+        mu_.unlock();
         done();
         return;
       }
@@ -77,20 +77,20 @@ class CachedCallOp : public AsyncOpKernel {
     }
 
     state_ = INITING;
-    mu_.Unlock();
+    mu_.unlock();
 
     // Call f once and cache the result.
     SetRunOptions(ctx, &opts_, true /* always_collect_stats */);
     flib_->Run(opts_, handle_, args_, &rets_,
                // Done callback
-               [this, ctx, done](Status s) {
+               [this, ctx, done](absl::Status s) {
                  ctx->SetStatus(s);
                  for (int i = 0; i < rets_.size(); ++i) {
                    ctx->set_output(i, rets_[i]);
                  }
                  done();
 
-                 absl::MutexLock l(&mu_);
+                 absl::MutexLock l(mu_);
                  status_ = s;
                  state_ = INITED;
                });
@@ -115,7 +115,7 @@ class CachedCallOp : public AsyncOpKernel {
     INITED,
   };
   State state_ = UNINIT;
-  Status status_;
+  absl::Status status_;
   std::vector<Tensor> args_;
   std::vector<Tensor> rets_;
 };

@@ -1,6 +1,6 @@
 # buildifier: disable=same-origin-load
 load("//lingvo:lingvo.bzl", "pytype_strict_library")
-load("//lingvo:lingvo.bzl", "py_strict_test")
+# Placeholder: load py_test
 
 package(default_visibility = ["//visibility:public"])
 
@@ -55,7 +55,7 @@ pytype_strict_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "generic_datasets_test",
     srcs = ["generic_datasets_test.py"],
     deps = [

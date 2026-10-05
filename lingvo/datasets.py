@@ -154,7 +154,7 @@ def GetDatasetsAst(base_dir: str, model: str) -> List[str]:
                 GetDatasetsAst(base_dir, '.'.join(parts + [base.id])))
           elif isinstance(base, ast.Attribute):
             # A superclass in a different file.
-            if base.value.id == 'base_model_params':
+            if base.value.id == 'base_model_params':  # pyrefly: ignore[missing-attribute]
               continue
             self.datasets |= set(
                 GetDatasetsAst(

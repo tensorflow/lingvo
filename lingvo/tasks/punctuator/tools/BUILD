@@ -7,6 +7,7 @@ licenses(["notice"])
 py_binary(
     name = "download_brown_corpus",
     srcs = ["download_brown_corpus.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
     ],

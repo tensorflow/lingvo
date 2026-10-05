@@ -30,7 +30,7 @@ try:
   from tensorflow.python.compiler.xla.experimental import xla_sharding
 except ImportError:
   # OSS backward compatibility, can be removed when TF is updated.
-  from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding  # pytype: disable=import-error
+  from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding  # pyrefly: ignore[missing-import]
 # pylint: enable=g-direct-tensorflow-import
 
 ThreadLocalStack = thread_local_utils.ThreadLocalStack
@@ -297,10 +297,10 @@ class TensorShardingSpec:
       return full_shape
 
     shard_shape = list(full_shape)
-    for i in range(len(self._split_dims_mapping)):
-      if self._split_dims_mapping[i] >= 0:
+    for i in range(len(self._split_dims_mapping)):  # pyrefly: ignore[bad-argument-type]
+      if self._split_dims_mapping[i] >= 0:  # pyrefly: ignore[unsupported-operation]
         partitions = self._checked_device_mesh.shape[
-            self._split_dims_mapping[i]
+            self._split_dims_mapping[i]  # pyrefly: ignore[unsupported-operation]
         ]
         shard_shape[i] = (full_shape[i] + partitions - 1) // partitions
     return shard_shape
@@ -309,10 +309,10 @@ class TensorShardingSpec:
     """Converts manually sharded tensor to full-size for auto partitioning."""
     full_shape = list(tensor.shape)
     if not self.is_replicated:
-      for i in range(len(self._split_dims_mapping)):
-        if self._split_dims_mapping[i] >= 0:
+      for i in range(len(self._split_dims_mapping)):  # pyrefly: ignore[bad-argument-type]
+        if self._split_dims_mapping[i] >= 0:  # pyrefly: ignore[unsupported-operation]
           full_shape[i] *= self._checked_device_mesh.shape[
-              self._split_dims_mapping[i]
+              self._split_dims_mapping[i]  # pyrefly: ignore[unsupported-operation]
           ]
         if self._uneven_padding is not None and self._uneven_padding[i] > 0:
           full_shape[i] -= self._uneven_padding[i]
@@ -331,7 +331,7 @@ class TensorShardingSpec:
   def ToXlaOpSharding(self) -> xla_data_pb2.OpSharding:
     if self.is_replicated:
       return xla_sharding.Sharding.replicate().proto
-    dims_mapping = _MESH_SPLIT_DIM_PREFIXES.stack + self.split_dims_mapping
+    dims_mapping = _MESH_SPLIT_DIM_PREFIXES.stack + self.split_dims_mapping  # pyrefly: ignore[unsupported-operation]
     return xla_sharding.mesh_split_sharding(self.device_mesh,
                                             dims_mapping).proto
 
@@ -360,7 +360,7 @@ class TensorShardingSpec:
       return self
     new_padding = (None if self._uneven_padding is None else [0] * num_dims +
                    self._uneven_padding)
-    return TensorShardingSpec([-1] * num_dims + self._split_dims_mapping,
+    return TensorShardingSpec([-1] * num_dims + self._split_dims_mapping,  # pyrefly: ignore[unsupported-operation]
                               self.device_mesh, new_padding)
 
   def RemoveLeadingDims(self, num_dims: int = 1) -> 'TensorShardingSpec':
@@ -368,7 +368,7 @@ class TensorShardingSpec:
       return self
     new_padding = (None if self._uneven_padding is None else
                    self._uneven_padding[num_dims:])
-    return TensorShardingSpec(self._split_dims_mapping[num_dims:],
+    return TensorShardingSpec(self._split_dims_mapping[num_dims:],  # pyrefly: ignore[unsupported-operation]
                               self.device_mesh, new_padding)
 
   def RemoveDim(self, dim) -> 'TensorShardingSpec':
@@ -376,13 +376,13 @@ class TensorShardingSpec:
     if self.is_replicated:
       return self
     if dim < 0:
-      num_dims = len(self._split_dims_mapping)
+      num_dims = len(self._split_dims_mapping)  # pyrefly: ignore[bad-argument-type]
       dim = num_dims + dim
-    assert dim >= 0 and dim < len(self._split_dims_mapping)
+    assert dim >= 0 and dim < len(self._split_dims_mapping)  # pyrefly: ignore[bad-argument-type]
     new_padding = (None if self._uneven_padding is None else
                    self._uneven_padding[:dim] + self._uneven_padding[dim + 1:])
     split_dims_mapping = (
-        self._split_dims_mapping[:dim] + self._split_dims_mapping[dim + 1:])
+        self._split_dims_mapping[:dim] + self._split_dims_mapping[dim + 1:])  # pyrefly: ignore[unsupported-operation]
     return TensorShardingSpec(split_dims_mapping, self.device_mesh, new_padding)
 
   @classmethod
@@ -402,7 +402,7 @@ class TensorShardingSpec:
     if self.device_mesh is None or self.split_dims_mapping is None:
       return True
     for mesh_dim in self.split_dims_mapping:
-      if mesh_dim >= 0 and self.device_mesh.shape[mesh_dim] > 1:  # pytype: disable=attribute-error  # always-use-return-annotations
+      if mesh_dim >= 0 and self.device_mesh.shape[mesh_dim] > 1:
         return False
     return True
 
@@ -411,9 +411,9 @@ class TensorShardingSpec:
     mapping = {}
     if self.is_replicated:
       return mapping
-    for i in range(len(self.split_dims_mapping)):
-      if self.split_dims_mapping[i] >= 0:
-        mapping[self.split_dims_mapping[i]] = i
+    for i in range(len(self.split_dims_mapping)):  # pyrefly: ignore[bad-argument-type]
+      if self.split_dims_mapping[i] >= 0:  # pyrefly: ignore[unsupported-operation]
+        mapping[self.split_dims_mapping[i]] = i  # pyrefly: ignore[unsupported-operation]
     return mapping
 
   @property
@@ -438,8 +438,8 @@ def GetVarSharding(var: tf.Variable) -> TensorShardingSpec:
   spec_without_padding = TensorShardingSpec.FromXlaOpSharding(proto)
   # Consider uneven padding.
   return TensorShardingSpec.FromFullShape(
-      [int(d) for d in var.shape], spec_without_padding.split_dims_mapping,
-      spec_without_padding.device_mesh)
+      [int(d) for d in var.shape], spec_without_padding.split_dims_mapping,  # pyrefly: ignore[bad-argument-type]
+      spec_without_padding.device_mesh)  # pyrefly: ignore[bad-argument-type]
 
 
 _spm_cache = {}

@@ -462,7 +462,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
         self.evaluate(tf.global_variables_initializer())
 
         # pylint: disable=cell-var-from-loop
-        @test_utils.DefineAndTrace()
+        @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
         def _Grad():
           xent_loss = softmax.XentLoss(
               inputs, class_weights=class_weights, class_ids=class_ids
@@ -482,7 +482,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
             x = tf.TensorSpec(shape=var.shape, dtype=var.dtype)
 
             # pylint: disable=cell-var-from-loop
-            @test_utils.DefineAndTrace(x)
+            @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
             def _TotalXent(x):
               var.assign(x)
               xent_loss = softmax.XentLoss(
@@ -878,7 +878,7 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
         softmax_vars = softmax.vars.Flatten()
         self.evaluate(tf.global_variables_initializer())
         # pylint: disable=cell-var-from-loop
-        @test_utils.DefineAndTrace()
+        @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
         def _Grad():
           xent_loss = softmax.FProp(
               softmax.theta,
@@ -898,7 +898,7 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
           for var, grad_x in zip(softmax_vars, grads):
             x = tf.TensorSpec(shape=var.shape, dtype=var.dtype)
             # pylint: disable=cell-var-from-loop
-            @test_utils.DefineAndTrace(x)
+            @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
             def _TotalXent(x):
               var.assign(x)
               xent_loss = softmax.FProp(

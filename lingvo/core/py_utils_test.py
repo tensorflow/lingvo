@@ -510,7 +510,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
   def testSave(self):
     with self.session() as sess:
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         x = tf.constant([[1, 2], [3, 4]])
         y = tf.constant([10] * 4)
@@ -540,7 +540,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
     c = tf.placeholder(tf.int32, shape=None)
 
-    @test_utils.DefineAndTrace(c)
+    @test_utils.DefineAndTrace(c)  # pyrefly: ignore[bad-argument-type]
     def Func(c):
       return py_utils.HasAtLeastRank(c, 3)
 
@@ -554,7 +554,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     with flagsaver.flagsaver(enable_asserts=False):
       c = tf.placeholder(tf.int32, shape=None)
 
-      @test_utils.DefineAndTrace(c)
+      @test_utils.DefineAndTrace(c)  # pyrefly: ignore[bad-argument-type]
       def Func(c):
         return py_utils.HasAtLeastRank(c, 3)
 
@@ -582,7 +582,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
     d = tf.placeholder(tf.float32, shape=(1, None))
 
-    @test_utils.DefineAndTrace(d)
+    @test_utils.DefineAndTrace(d)  # pyrefly: ignore[bad-argument-type]
     def Func(d):
       self.assertEqual(py_utils.GetShape(d)[0], 1)
       self.assertIsInstance(py_utils.GetShape(d)[1], tf.Tensor)
@@ -595,7 +595,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
     f = tf.placeholder(tf.float32)
 
-    @test_utils.DefineAndTrace(f)
+    @test_utils.DefineAndTrace(f)  # pyrefly: ignore[bad-argument-type]
     def Func1(f):
       self.assertIsNone(f.shape.ndims)
       # GetShape() will return a Tensor.
@@ -611,7 +611,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     d = tf.placeholder(tf.float32, shape=(1, None))
     shape = tf.placeholder(tf.int32)
 
-    @test_utils.DefineAndTrace(d, shape)
+    @test_utils.DefineAndTrace(d, shape)  # pyrefly: ignore[bad-argument-type]
     def Func(d, shape):
       self.assertIsInstance(py_utils.GetSize(d), tf.Tensor)
       f = py_utils.GetSize(tf.reshape(d, shape))
@@ -654,7 +654,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
     d = tf.placeholder(tf.float32, shape=(1, None))
 
-    @test_utils.DefineAndTrace(d)
+    @test_utils.DefineAndTrace(d)  # pyrefly: ignore[bad-argument-type]
     def Func(d):
       self.assertEqual(py_utils.GetRank(d), 2)
 
@@ -663,7 +663,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
     f = tf.placeholder(tf.float32)
 
-    @test_utils.DefineAndTrace(f)
+    @test_utils.DefineAndTrace(f)  # pyrefly: ignore[bad-argument-type]
     def Func1(f):
       self.assertIsNone(f.shape.ndims)
       # GetRank() will return a Tensor.
@@ -684,7 +684,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
   def testOpportunisticReuse(self):
     with self.session():
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         pc = py_utils.WeightParams([3, 3])
         v1 = py_utils.CreateVariable('v1', pc)
@@ -719,7 +719,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
   def testCreateLocalTheta(self):
 
-    @test_utils.DefineAndTrace()
+    @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
     def Func():
       methods = [py_utils.WeightInit.Gaussian, py_utils.WeightInit.Uniform]
       dtypes = [tf.float32, tf.complex64]
@@ -749,7 +749,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
   def testComputeGradient(self):
     with self.session(use_gpu=False):
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         a = tf.get_variable('a', [])
         b = tf.get_variable('b', [], trainable=False)
@@ -797,7 +797,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
   def testMaskGradient(self):
     with self.session(use_gpu=False) as sess:
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         a = tf.get_variable('a', [])
         b = tf.get_variable('b', [])
@@ -833,7 +833,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
   def testSkipL2Regularization(self):
     with self.session(use_gpu=False) as sess:
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         beta = tf.get_variable(
             'beta',
@@ -884,7 +884,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
       for mode in ('NestedMap', 'list'):
 
-        @test_utils.DefineAndTrace()
+        @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
         def Func():
           act = tf.gather(emb, [2, 5, 2, 2, 5])
           pred = tf.matmul(act, weight) + tf.stop_gradient(bias)
@@ -933,7 +933,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
   def testSkipL1Regularization(self):
     with self.session(use_gpu=False) as sess:
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         beta = tf.get_variable(
             'beta',
@@ -969,7 +969,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
   def testAdjustGradientsWithL1Loss(self):
     with self.session(use_gpu=False) as sess:
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         emb = tf.get_variable(
             'emb',
@@ -1058,7 +1058,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
 
   def testFindNeeded(self):
 
-    @test_utils.DefineAndTrace()
+    @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
     def Func():
       phs = [
           tf.zeros((), dtype=tf.float32, name='p%d' % (i + 1)) for i in range(4)
@@ -1112,7 +1112,7 @@ class PyUtilsTest(test_utils.TestCase, parameterized.TestCase):
     with self.session():
       x = tf.placeholder(tf.float32, shape=(None, 5))
 
-      @test_utils.DefineAndTrace(x)
+      @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
       def Func(x):
         with self.assertRaisesRegex(ValueError,
                                     'Shape of x must be fully defined.'):
@@ -1839,7 +1839,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
     with self.session(use_gpu=False) as sess:
       shape = tf.placeholder(tf.int32)
 
-      @test_utils.DefineAndTrace(shape)
+      @test_utils.DefineAndTrace(shape)  # pyrefly: ignore[bad-argument-type]
       def Func(shape):
         x = tf.random.normal(shape=shape, seed=123456)
         length = 6
@@ -2043,7 +2043,7 @@ class PadOrTrimToTest(test_utils.TestCase):
     with self.session(use_gpu=False) as sess:
       y = tf.placeholder(dtype=tf.float32)
 
-      @test_utils.DefineAndTrace(y)
+      @test_utils.DefineAndTrace(y)  # pyrefly: ignore[bad-argument-type]
       def Func(y):
         x = tf.random.normal(shape=(3, 3), seed=123456)
         padded_x = py_utils.PadOrTrimTo(x, tf.shape(y), pad_val=0)
@@ -2083,7 +2083,7 @@ class PadOrTrimToTest(test_utils.TestCase):
       x = tf.placeholder(dtype=tf.float32)
       target_rank = tf.placeholder(dtype=tf.int32)
 
-      @test_utils.DefineAndTrace(x, target_rank)
+      @test_utils.DefineAndTrace(x, target_rank)  # pyrefly: ignore[bad-argument-type]
       def Func(x, target_rank):
         return py_utils.ExpandTo(x, target_rank)
 
@@ -2113,7 +2113,7 @@ class PadOrTrimToTest(test_utils.TestCase):
       x = tf.placeholder(dtype=tf.float32)
       target_shape = tf.placeholder(dtype=tf.int32)
 
-      @test_utils.DefineAndTrace(x, target_shape)
+      @test_utils.DefineAndTrace(x, target_shape)  # pyrefly: ignore[bad-argument-type]
       def Func(x, target_shape):
         return py_utils.ExpandAndPadOrTrimTo(x, target_shape)
 
@@ -2271,7 +2271,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
           [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
       ])
 
-      @test_utils.DefineAndTrace(shape)
+      @test_utils.DefineAndTrace(shape)  # pyrefly: ignore[bad-argument-type]
       def Func(shape):
         x = tf.random.normal(shape=shape, seed=123456)
         trimmed_x, trimmed_padding = py_utils.TrimTrailingPaddings(
@@ -2452,7 +2452,7 @@ class RetryTest(test_utils.TestCase):
     except Exception as e:  # pylint: disable=broad-except
       tf.logging.error('%s', e)
 
-    self.assertEqual(1 + max_retries, state['count'])
+    self.assertEqual(1 + max_retries, state['count'])  # pyrefly: ignore[unbound-name]
 
 
 class MixByWeightTest(test_utils.TestCase):
@@ -2467,7 +2467,7 @@ class MixByWeightTest(test_utils.TestCase):
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         op, _ = py_utils.MixByWeight(
             [_AddFn(var_a), _AddFn(var_b)], [0.7, 0.3], seed=12345)
@@ -2491,7 +2491,7 @@ class MixByWeightTest(test_utils.TestCase):
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         op, _ = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], var_w)
         return op
@@ -2522,7 +2522,7 @@ class MixByWeightTest(test_utils.TestCase):
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         op, bprop = py_utils.MixByWeight(
             [_AddFn(var_a), _AddFn(var_b)], [1.0, 0.0])
@@ -2535,7 +2535,7 @@ class MixByWeightTest(test_utils.TestCase):
       self.assertEqual(0, b)
       self.assertAllClose(np.array([1, 0]), np.squeeze(bprop_v))
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func1():
         op, bprop = py_utils.MixByWeight(
             [_AddFn(var_a), _AddFn(var_b)], [0.0, 1.0])
@@ -2782,7 +2782,7 @@ class RematerializeFnTest(test_utils.TestCase):
         e = tf.nn.tanh(c)
         return d, e
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         d1, e1 = Fn(a, b)
         d2, e2 = py_utils.RematerializeFn(Fn, a, b)
@@ -3107,7 +3107,7 @@ class FocalLossTest(parameterized.TestCase, test_utils.TestCase):
   def testSoftmaxCrossEntropyFocalLossGradients(self,
                                                 stop_gradient_on_coefficient):
 
-    @test_utils.DefineAndTrace()
+    @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
     def Func():
       label_ids = [0, 1]
       logits = tf.constant([[1e30, 0., 0.], [0., -1e30, 0.]], dtype=tf.float32)
@@ -3126,7 +3126,7 @@ class FocalLossTest(parameterized.TestCase, test_utils.TestCase):
         self.assertAllClose([[0., 0., 0.], [0.5, -1., 0.5]], dlogits)
       else:
         # Gradients will contain nan.
-        self.assertTrue(any(math.isnan(x)) for x in dlogits.flatten())
+        self.assertTrue(any(math.isnan(x)) for x in dlogits.flatten())  # pyrefly: ignore[bad-argument-type]
 
 
 class UniformSamplerTest(test_utils.TestCase):
@@ -3219,7 +3219,7 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
       for fwd in [Fwd, FwdWithBak]:
         self.assertEqual(tf.float32, fwd.output_dtypes)
 
-        @test_utils.DefineAndTrace()
+        @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
         def Func():
           x = tf.constant(3.0)
           y = fwd(x)  # pylint: disable=cell-var-from-loop
@@ -3256,7 +3256,7 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
       for fwd in [Fwd, FwdWithBak]:
         self.assertEqual([tf.float32], fwd.output_dtypes)
 
-        @test_utils.DefineAndTrace()
+        @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
         def Func():
           xs = [tf.constant(a), tf.constant(b)]
           ys = fwd(xs)  # pylint: disable=cell-var-from-loop
@@ -3298,7 +3298,7 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
       for fwd in [Fwd, FwdWithBak]:
         self.assertEqual(py_utils.NestedMap(y=tf.float32), fwd.output_dtypes)
 
-        @test_utils.DefineAndTrace()
+        @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
         def Func():
           xs = py_utils.NestedMap(w=tf.constant(a), x=tf.constant(b))
           ys = fwd(xs)  # pylint: disable=cell-var-from-loop
@@ -3346,7 +3346,7 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
         self.assertEqual([w], fwd.captured_inputs)
         self.assertEqual(py_utils.NestedMap(y=tf.float32), fwd.output_dtypes)
 
-        @test_utils.DefineAndTrace()
+        @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
         def Func():
           xs = py_utils.NestedMap(x=tf.constant(b, dtype=tf.float32))
           ys = fwd(xs)  # pylint: disable=cell-var-from-loop
@@ -3462,7 +3462,7 @@ class FunctionTest(test_utils.TestCase, parameterized.TestCase):
         # Set the global step tensor when calling the function.
         with py_utils.GlobalStepContext(tf.constant(1, dtype=tf.int32)):
 
-          @test_utils.DefineAndTrace()
+          @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
           def Func():
             x = tf.constant(3.0)
             y = fwd(x)  # pylint: disable=cell-var-from-loop
@@ -3648,7 +3648,7 @@ class TpuSummaryTensorsTest(test_utils.TestCase):
   def testTpuSummaryTensors(self):
     with self.session() as sess:
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         with tf.name_scope('fprop'):
           with tf.name_scope('tower_0_0'):
@@ -3679,7 +3679,7 @@ class HasShapeTest(test_utils.TestCase):
     x_pl = tf.placeholder(tf.float32)
     y_pl = tf.placeholder(tf.float32)
 
-    @test_utils.DefineAndTrace(x_pl, y_pl)
+    @test_utils.DefineAndTrace(x_pl, y_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl, y_pl):
       x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
       return x
@@ -3696,7 +3696,7 @@ class HasShapeTest(test_utils.TestCase):
     x_pl = tf.placeholder(tf.float32)
     y_pl = tf.placeholder(tf.float32)
 
-    @test_utils.DefineAndTrace(x_pl, y_pl)
+    @test_utils.DefineAndTrace(x_pl, y_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl, y_pl):
       x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
       return x
@@ -3715,7 +3715,7 @@ class HasShapeTest(test_utils.TestCase):
     x_pl = tf.placeholder(tf.float32)
     y_pl = tf.placeholder(tf.float32)
 
-    @test_utils.DefineAndTrace(x_pl, y_pl)
+    @test_utils.DefineAndTrace(x_pl, y_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl, y_pl):
       x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
       return x
@@ -3733,7 +3733,7 @@ class HasShapeTest(test_utils.TestCase):
   def testFullyConstantShapesMatchesOk(self):
     x_pl = tf.placeholder(tf.float32)
 
-    @test_utils.DefineAndTrace(x_pl)
+    @test_utils.DefineAndTrace(x_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl):
       x = py_utils.HasShape(x_pl, tf.constant([1, 2, -1]))
       return x
@@ -3747,7 +3747,7 @@ class HasShapeTest(test_utils.TestCase):
   def testFullyConstantShapesMismatchRaisesError(self):
     x_pl = tf.placeholder(tf.float32)
 
-    @test_utils.DefineAndTrace(x_pl)
+    @test_utils.DefineAndTrace(x_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl):
       x = py_utils.HasShape(x_pl, tf.constant([1, 2, -1]))
       return x
@@ -3795,7 +3795,7 @@ class HasShapeTest(test_utils.TestCase):
     with self.assertRaisesRegex(
         ValueError, r'Tensor does not match expected shape on dimension 1.*'):
 
-      @test_utils.DefineAndTrace(x_pl, y_pl)
+      @test_utils.DefineAndTrace(x_pl, y_pl)  # pyrefly: ignore[bad-argument-type]
       def Func(x_pl, y_pl):
         py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
 
@@ -3803,7 +3803,7 @@ class HasShapeTest(test_utils.TestCase):
     x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
     y_pl = tf.placeholder(tf.float32, (3, 2, None, None))
 
-    @test_utils.DefineAndTrace(x_pl, y_pl)
+    @test_utils.DefineAndTrace(x_pl, y_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl, y_pl):
       x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
       return x
@@ -3819,7 +3819,7 @@ class HasShapeTest(test_utils.TestCase):
   def testTensorShapeMatchesWithMinus1Ok(self):
     x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
 
-    @test_utils.DefineAndTrace(x_pl)
+    @test_utils.DefineAndTrace(x_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl):
       x = py_utils.HasShape(x_pl, [-1, -1, 3, -1])
       return x
@@ -3833,7 +3833,7 @@ class HasShapeTest(test_utils.TestCase):
   def testTensorShapeWithMinus1MismatchRaises(self):
     x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
 
-    @test_utils.DefineAndTrace(x_pl)
+    @test_utils.DefineAndTrace(x_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl):
       x = py_utils.HasShape(x_pl, [-1, -1, 3, 5])
       return x
@@ -3849,7 +3849,7 @@ class HasShapeTest(test_utils.TestCase):
   def testTensorShapeMatchesWithTensorExpectedShape(self):
     x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
 
-    @test_utils.DefineAndTrace(x_pl)
+    @test_utils.DefineAndTrace(x_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl):
       x = py_utils.HasShape(x_pl, tf.constant([-1, -1, 3, -1]))
       return x
@@ -3863,7 +3863,7 @@ class HasShapeTest(test_utils.TestCase):
   def testTensorShapeMismatchWithTensorExpectedShapeRaises(self):
     x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
 
-    @test_utils.DefineAndTrace(x_pl)
+    @test_utils.DefineAndTrace(x_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl):
       x = py_utils.HasShape(x_pl, [-1, tf.constant(-1), 3, tf.constant(5)])
       return x
@@ -3880,7 +3880,7 @@ class HasShapeTest(test_utils.TestCase):
     x_pl = tf.placeholder(tf.float32, (None, None, 2, 3, None))
     y_pl = tf.placeholder(tf.float32, (None, 3, 2, None, None))
 
-    @test_utils.DefineAndTrace(x_pl, y_pl)
+    @test_utils.DefineAndTrace(x_pl, y_pl)  # pyrefly: ignore[bad-argument-type]
     def Func(x_pl, y_pl):
       x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
       return x
@@ -3955,7 +3955,7 @@ class DivideNoNanTest(test_utils.TestCase, parameterized.TestCase):
   def testGradient(self):
     with self.session(use_gpu=False) as sess:
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def Func():
         x = tf.get_variable('x', initializer=[-2., 1., 0., 0.])
         y = tf.get_variable('y', initializer=[-2., 0., 1., 0.])
@@ -3977,7 +3977,7 @@ class MergeDuplicateIdsTest(test_utils.TestCase):
     paddings_p = tf.placeholder(tf.float32, (None, None))
     f_p = tf.placeholder(tf.float32, (None, None, None))
 
-    @test_utils.DefineAndTrace(ids_p, paddings_p, f_p)
+    @test_utils.DefineAndTrace(ids_p, paddings_p, f_p)  # pyrefly: ignore[bad-argument-type]
     def Func(ids_p, paddings_p, f_p):
       ret_ids, ret_paddings, ret_tensors = py_utils.MergeDuplicateIds(
           ids_p, paddings_p, py_utils.NestedMap(f=f_p))
@@ -4019,7 +4019,7 @@ class MergeDuplicateIdsTest(test_utils.TestCase):
     paddings_p = tf.placeholder(tf.float32, (None, None))
     f_p = tf.placeholder(tf.float32, (None, None, None))
 
-    @test_utils.DefineAndTrace(ids_p, paddings_p, f_p)
+    @test_utils.DefineAndTrace(ids_p, paddings_p, f_p)  # pyrefly: ignore[bad-argument-type]
     def Func(ids_p, paddings_p, f_p):
       ret_ids, ret_paddings, ret_tensors = py_utils.MergeDuplicateIds(
           ids_p, paddings_p, py_utils.NestedMap(f=f_p))

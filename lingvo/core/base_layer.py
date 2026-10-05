@@ -179,9 +179,9 @@ class BaseLayerMeta(type):
     if '__init__' not in dct:
 
       def TrivialInit(self, params):
-        super(cls, self).__init__(params)  # pylint: disable=bad-super-call
+        super(cls, self).__init__(params)  # pylint: disable=bad-super-call  # pyrefly: ignore[invalid-argument]
 
-      cls.__init__ = TrivialInit
+      cls.__init__ = TrivialInit  # pyrefly: ignore[bad-assignment]
 
     cls.__init__ = _BaseLayerInitWrapper(cls.__init__)
     return cls
@@ -498,7 +498,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   def path(self) -> str:
     """Returns a '.'-separated string with all layer names from the root."""
     if self.parent:
-      return self.parent.path + '.' + self.params.name  # pytype: disable=attribute-error  # always-use-return-annotations
+      return self.parent.path + '.' + self.params.name
     else:
       return self.params.name
 
@@ -543,10 +543,10 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       TypeError: if attempting to index a BaseLayer as though it were a list.
     """
     if not path:
-      return self
+      return self  # pyrefly: ignore[bad-return]
 
     sub = self
-    path = path.split('.')
+    path = path.split('.')  # pyrefly: ignore[bad-assignment]
     for i, child_name in enumerate(path):
       # If child_name is being indexed as a list then we separate the name and
       # the index.
@@ -581,7 +581,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
               f"Index {index} out of range for sub-layer '{sub_path}' with "
               f'{len(sub_list)} elements.') from e
 
-    return sub
+    return sub  # pyrefly: ignore[bad-return]
 
   @property
   def ema(self) -> tf.train.ExponentialMovingAverage:
@@ -590,7 +590,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # inside an EMA-disabled sub-model created by the main model, None will be
     # returned.
     root = self
-    while root.parent:  # pytype: disable=attribute-error  # py310-upgrade
+    while root.parent:
       root = root.parent
     # pylint: disable=protected-access
     # Note: 'root' may not be a BaseModel, but we want it to be. So to avoid

@@ -26,41 +26,42 @@ namespace tensorflow {
 namespace lingvo {
 namespace {
 
-const string& FindOrDie(const std::unordered_map<int32, string>& m, int32 k) {
+const std::string& FindOrDie(const std::unordered_map<int32_t, std::string>& m,
+                             int32_t k) {
   const auto it = m.find(k);
   CHECK(it != m.end());
   return it->second;
 }
 
-const int32 kUnkId = 0;
-const int32 kSOSId = 1;
-const int32 kEOSId = 2;
-const int32 kEOWId = 3;
-const int32 kNoiseId = 4;
-const int32 kEpsilonId = 73;
-const int32 kTextOnlyId = 74;
-const int32 kSORWId = 75;  // indicator for start of rare word
-const int32 kMaxTokenId = 75;
+const int32_t kUnkId = 0;
+const int32_t kSOSId = 1;
+const int32_t kEOSId = 2;
+const int32_t kEOWId = 3;
+const int32_t kNoiseId = 4;
+const int32_t kEpsilonId = 73;
+const int32_t kTextOnlyId = 74;
+const int32_t kSORWId = 75;  // indicator for start of rare word
+const int32_t kMaxTokenId = 75;
 
 struct CharTokenizer {
-  std::unordered_map<string, int32> token_to_id;
-  std::unordered_map<int32, string> id_to_token;
+  std::unordered_map<std::string, int32_t> token_to_id;
+  std::unordered_map<int32_t, std::string> id_to_token;
 
-  string epsilon_token;
-  string unk_token;
-  string noise_token;
-  string eos_token;
-  string sos_token;
-  string text_only_token;
-  string sorw_token;
+  std::string epsilon_token;
+  std::string unk_token;
+  std::string noise_token;
+  std::string eos_token;
+  std::string sos_token;
+  std::string text_only_token;
+  std::string sorw_token;
 
-  string IdToToken(int32 id) const {
+  std::string IdToToken(int32_t id) const {
     const auto it = id_to_token.find(id);
     if (it != id_to_token.end()) return it->second;
     return unk_token;
   }
 
-  int32 TokenToId(const string& tok) const {
+  int32_t TokenToId(const std::string& tok) const {
     const auto it = token_to_id.find(tok);
     if (it != token_to_id.end()) return it->second;
     return kUnkId;
@@ -96,7 +97,7 @@ const CharTokenizer* CreateTokenizer() {
                      {72, "}"},     {73, "<epsilon>"}, {74, "<text_only>"},
                      {75, "<sorw>"}};
   // kEpsilonWord: end-of-block for neural transducer.
-  for (const std::pair<const int32, string>& p : ct->id_to_token) {
+  for (const std::pair<const int32_t, std::string>& p : ct->id_to_token) {
     CHECK_LE(p.first, kMaxTokenId);
     CHECK(ct->token_to_id.insert({p.second, p.first}).second);
   }
@@ -117,21 +118,21 @@ const CharTokenizer* GetTokenizer() {
 
 }  // namespace
 
-string AsciiTokenizer::ConvertString(const string& transcript) {
-  string result = transcript;
+std::string AsciiTokenizer::ConvertString(const std::string& transcript) {
+  std::string result = transcript;
   std::transform(result.begin(), result.end(), result.begin(), ::tolower);
   return result;
 }
 
-int32 AsciiTokenizer::NumTokens() { return kMaxTokenId + 1; }
+int32_t AsciiTokenizer::NumTokens() { return kMaxTokenId + 1; }
 
-std::vector<int32> AsciiTokenizer::StringToIds(const string& label) {
+std::vector<int32_t> AsciiTokenizer::StringToIds(const std::string& label) {
   const CharTokenizer* tokenizer = GetTokenizer();
-  const string converted = ConvertString(label);
-  const StringPiece converted_view(converted);
+  const std::string converted = ConvertString(label);
+  const absl::string_view converted_view(converted);
 
-  std::vector<int32> ids;
-  const std::vector<std::pair<string, const int32>> special_token_ids{
+  std::vector<int32_t> ids;
+  const std::vector<std::pair<std::string, const int32_t>> special_token_ids{
       {tokenizer->unk_token, kUnkId},
       {tokenizer->noise_token, kNoiseId},
       {tokenizer->sos_token, kSOSId},
@@ -144,7 +145,7 @@ std::vector<int32> AsciiTokenizer::StringToIds(const string& label) {
   for (int i = 0; i < converted.size(); ++i) {
     bool is_special_token = false;
     for (const auto& token_id : special_token_ids) {
-      if (str_util::StartsWith(converted_view.substr(i), token_id.first)) {
+      if (absl::StartsWith(converted_view.substr(i), token_id.first)) {
         ids.push_back(token_id.second);
         i += token_id.first.size() - 1;
         is_special_token = true;
@@ -152,23 +153,24 @@ std::vector<int32> AsciiTokenizer::StringToIds(const string& label) {
       }
     }
     if (!is_special_token) {
-      ids.push_back(tokenizer->TokenToId(string(1, converted[i])));
+      ids.push_back(tokenizer->TokenToId(std::string(1, converted[i])));
     }
   }
   return ids;
 }
 
-std::vector<string> AsciiTokenizer::IdToStrings(const std::vector<int32>& ids) {
+std::vector<std::string> AsciiTokenizer::IdToStrings(
+    const std::vector<int32_t>& ids) {
   const CharTokenizer* tokenizer = GetTokenizer();
-  std::vector<string> out_strings(ids.size());
+  std::vector<std::string> out_strings(ids.size());
   for (int i = 0; i < ids.size(); ++i) {
     out_strings[i] = tokenizer->IdToToken(ids[i]);
   }
   return out_strings;
 }
 
-string AsciiTokenizer::JoinLabels(const std::vector<string>& labels) {
-  return str_util::Join(labels, "");
+std::string AsciiTokenizer::JoinLabels(const std::vector<std::string>& labels) {
+  return absl::StrJoin(labels, "");
 }
 
 }  // namespace lingvo

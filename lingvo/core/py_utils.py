@@ -313,9 +313,9 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
       caller_var = match.groups()[0]
     if more:
       more_vars = (
-          re.compile(r'more=\[(.*?)\].*$')
+          re.compile(r'more=\[(.*?)\].*$')  # pyrefly: ignore[missing-attribute]
           .search(caller.code_context[0])
-          .groups()[0]  # pytype: disable=attribute-error  # re-none
+          .groups()[0]
       )
       if more_vars:
         caller_more_vars = more_vars.split(',')
@@ -960,7 +960,7 @@ def ToStaticShape(shape):
   """Converts 'shape' to a static shape."""
   if isinstance(shape, (list, tuple)):
     shape = [
-        dim.value if isinstance(dim, tf.Dimension) else dim for dim in shape  # pytype: disable=attribute-error
+        dim.value if isinstance(dim, tf.Dimension) else dim for dim in shape
     ]
     static_shape = []
     for dim in shape:
@@ -3994,7 +3994,7 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
     InvalidArgumentError: if keep_prob is invalid.
   """
   if isinstance(keep_prob, numbers.Real):
-    if keep_prob <= 0 or keep_prob > 1:
+    if keep_prob <= 0 or keep_prob > 1:  # pyrefly: ignore[unsupported-operation]
       raise tf.errors.InvalidArgumentError(
           'keep_prob must be in range (0, 1]. Value: {}'.format(keep_prob))
 

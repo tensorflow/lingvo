@@ -12,6 +12,7 @@ licenses(["notice"])
 py_binary(
     name = "kitti_exporter",
     srcs = ["kitti_exporter.py"],
+    strict_deps = False,
     deps = [
         ":kitti_data",
         # Implicit network file system dependency.
@@ -29,6 +30,7 @@ py_binary(
     srcs = [
         "create_kitti_crop_dataset.py",
     ],
+    strict_deps = False,
     deps = [
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
@@ -48,6 +50,7 @@ py_binary(
 py_library(
     name = "kitti_data",
     srcs = ["kitti_data.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -60,6 +63,7 @@ py_test(
     data = [
         "//lingvo/tasks/car/testdata:kitti_raw",
     ],
+    strict_deps = False,
     deps = [
         ":kitti_data",
         #internal proto upb dep
@@ -74,6 +78,7 @@ py_test(
 py_library(
     name = "export_kitti_detection_lib",
     srcs = ["export_kitti_detection.py"],
+    strict_deps = False,
     deps = [
         ":kitti_data",
         # Implicit absl.flags dependency.
@@ -87,6 +92,7 @@ py_library(
 py_binary(
     name = "export_kitti_detection",
     srcs = ["export_kitti_detection.py"],
+    strict_deps = False,
     deps = [":export_kitti_detection_lib"],
 )
 
@@ -94,6 +100,7 @@ py_binary(
     name = "compare_params",
     srcs = ["compare_params_main.py"],
     main = "compare_params_main.py",
+    strict_deps = False,
     deps = [
         # Implicit absl.flags dependency.
         "//lingvo:compat",

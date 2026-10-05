@@ -38,7 +38,7 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
   GeneratePlainTextTestData("yielder2", N, M);
 
   BasicRecordYielder::Options opts1;
-  opts1.file_pattern = strings::StrCat(
+  opts1.file_pattern = absl::StrCat(
       "text:", io::JoinPath("/tmp", "yielder1.*"));
   opts1.seed = 301;
   opts1.bufsize = 2000;
@@ -46,7 +46,7 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
   BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
-  opts2.file_pattern = strings::StrCat(
+  opts2.file_pattern = absl::StrCat(
       "text:", io::JoinPath("/tmp", "yielder2.*"));
   opts2.seed = 301;
   opts2.bufsize = 2000;
@@ -55,13 +55,13 @@ TEST(RecordYielderTest, WeightedMixerBasicTest) {
   WeightedMixRecordYielder* yielder =
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.5, 0.5});
 
-  std::vector<string> vals;
+  std::vector<std::string> vals;
   Record record;
   record.source_id = kDefaultSourceId;
   for (int i = 0; i < 2 * N * M; ++i) {
     TF_CHECK_OK(yielder->Yield(&record));
     VLOG(1) << i << " " << record.value;
-    vals.emplace_back(string(record.value));
+    vals.emplace_back(std::string(record.value));
   }
 
   auto input_source_distribution = ComputeInputSourceDistribution(vals);
@@ -85,7 +85,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   GeneratePlainTextTestData("yielder2", N, M);
 
   BasicRecordYielder::Options opts1;
-  opts1.file_pattern = strings::StrCat(
+  opts1.file_pattern = absl::StrCat(
       "text:", io::JoinPath("/tmp", "yielder1.*"));
   opts1.seed = 301;
   opts1.bufsize = 2000;
@@ -94,7 +94,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
-  opts2.file_pattern = strings::StrCat(
+  opts2.file_pattern = absl::StrCat(
       "text:", io::JoinPath("/tmp", "yielder2.*"));
   opts2.seed = 301;
   opts2.bufsize = 2000;
@@ -104,14 +104,14 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   WeightedMixRecordYielder* yielder =
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.3, 0.7});
 
-  std::vector<string> vals;
+  std::vector<std::string> vals;
   std::vector<int> source_ids;
   Record record;
   record.source_id = kDefaultSourceId;
   for (int i = 0; i < 2 * N * M; ++i) {
     TF_CHECK_OK(yielder->Yield(&record));
     VLOG(1) << i << " " << record.value;
-    vals.emplace_back(string(record.value));
+    vals.emplace_back(std::string(record.value));
     source_ids.emplace_back(record.source_id);
   }
 
@@ -119,7 +119,8 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   ASSERT_NEAR(input_source_distribution["yielder1"], 0.3, 0.01);
   ASSERT_NEAR(input_source_distribution["yielder2"], 0.7, 0.01);
 
-  int32 sum_of_elems = std::accumulate(source_ids.begin(), source_ids.end(), 0);
+  int32_t sum_of_elems =
+      std::accumulate(source_ids.begin(), source_ids.end(), 0);
   float ratio = (float)(sum_of_elems) / (float)(source_ids.size());
   ASSERT_NEAR(ratio, 0.7, 0.01);
 
@@ -127,7 +128,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenMixTest) {
   // same distribution.
   for (int i = 0; i < 5; ++i) {
     auto batch_input_source_distribution =
-        ComputeInputSourceDistribution(std::vector<string>(
+        ComputeInputSourceDistribution(std::vector<std::string>(
             vals.begin() + i * 1024, vals.begin() + (i + 1) * 1024));
     ASSERT_NEAR(input_source_distribution["yielder1"], 0.3, 0.01);
     ASSERT_NEAR(input_source_distribution["yielder2"], 0.7, 0.01);
@@ -144,7 +145,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
   GeneratePlainTextTestData("yielder2", 4 * N, M);
 
   BasicRecordYielder::Options opts1;
-  opts1.file_pattern = strings::StrCat(
+  opts1.file_pattern = absl::StrCat(
       "text:", io::JoinPath("/tmp", "yielder1.*"));
   opts1.seed = 301;
   opts1.bufsize = 2000;
@@ -152,7 +153,7 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
   BasicRecordYielder* yielder1 = BasicRecordYielder::New(opts1);
 
   BasicRecordYielder::Options opts2;
-  opts2.file_pattern = strings::StrCat(
+  opts2.file_pattern = absl::StrCat(
       "text:", io::JoinPath("/tmp", "yielder2.*"));
   opts2.seed = 301;
   opts2.bufsize = 2000;
@@ -161,14 +162,14 @@ TEST(RecordYielderTest, WeightedMixerUnevenInputSourcesTest) {
   WeightedMixRecordYielder* yielder =
       WeightedMixRecordYielder::New(301, {yielder1, yielder2}, {0.5, 0.5});
 
-  std::vector<string> vals;
+  std::vector<std::string> vals;
   Record record;
   record.source_id = kDefaultSourceId;
   // Iterate 8 times the total record count.
   for (int i = 0; i < 8 * 5 * N * M; ++i) {
     TF_CHECK_OK(yielder->Yield(&record));
     VLOG(1) << i << " " << record.value;
-    vals.emplace_back(string(record.value));
+    vals.emplace_back(std::string(record.value));
   }
   auto input_source_distribution = ComputeInputSourceDistribution(vals);
   ASSERT_NEAR(input_source_distribution["yielder1"], 0.5, 0.01);
@@ -195,13 +196,13 @@ TEST(RecordYielderTest, RecordYielderRetryLoop) {
   // Each of them yields max of 5 records and then saturates.
   EXPECT_CALL(yielder1, Yield(testing::_))
       .Times(5)
-      .WillRepeatedly(testing::Return(Status()));
+      .WillRepeatedly(testing::Return(absl::Status()));
   EXPECT_CALL(yielder2, Yield(testing::_))
       .Times(5)
-      .WillRepeatedly(testing::Return(Status()));
+      .WillRepeatedly(testing::Return(absl::Status()));
   EXPECT_CALL(yielder2, Yield(testing::_))
       .Times(3)
-      .WillRepeatedly(testing::Return(Status(
+      .WillRepeatedly(testing::Return(absl::Status(
           static_cast<::absl::StatusCode>(error::DEADLINE_EXCEEDED), "")))
       .RetiresOnSaturation();
 

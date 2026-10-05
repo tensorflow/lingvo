@@ -42,7 +42,7 @@ class RandomPermutationSequenceOp : public OpKernel {
   }
 
   void Compute(OpKernelContext* ctx) override {
-    absl::MutexLock l(&mu_);
+    absl::MutexLock l(mu_);
     OP_REQUIRES(ctx, !ids_.empty() || repeat_,
                 errors::OutOfRange("Epoch ended."));
     if (ids_.empty()) Fill();
@@ -54,7 +54,7 @@ class RandomPermutationSequenceOp : public OpKernel {
     const int out_size = repeat_ ? batch_ : n;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({out_size}), &out));
     for (int i = 0; i < n; ++i) {
-      out->flat<int32>()(i) = ids_[ids_.size() - 1 - i];
+      out->flat<int32_t>()(i) = ids_[ids_.size() - 1 - i];
     }
     ids_.resize(ids_.size() - n);
     start += n;
@@ -63,7 +63,7 @@ class RandomPermutationSequenceOp : public OpKernel {
       Fill();
       n = std::min<int>(batch_ - start, ids_.size());
       for (int i = 0; i < n; ++i) {
-        out->flat<int32>()(start + i) = ids_[ids_.size() - 1 - i];
+        out->flat<int32_t>()(start + i) = ids_[ids_.size() - 1 - i];
       }
       ids_.resize(ids_.size() - n);
       start += n;
@@ -71,20 +71,20 @@ class RandomPermutationSequenceOp : public OpKernel {
   }
 
  private:
-  int32 num_;
-  int32 batch_;
+  int32_t num_;
+  int32_t batch_;
   bool repeat_;
 
   absl::Mutex mu_;
   std::mt19937 rnd_;
-  std::vector<int32> ids_;
+  std::vector<int32_t> ids_;
 
   void Fill() {
     CHECK(ids_.empty());
     ids_.resize(num_);
     for (int i = 0; i < num_; ++i) ids_[i] = i;
     for (int i = num_ - 1; i > 0; --i) {
-      const int32 pos = rnd_() % i;
+      const int32_t pos = rnd_() % i;
       std::swap(ids_[i], ids_[pos]);
     }
   }

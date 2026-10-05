@@ -304,10 +304,10 @@ class Params:
     return len(self._params)
 
   # Note: This gets called by _Param.__eq__() on nested Params objects.
-  def __eq__(self, other: 'Params') -> bool:
+  def __eq__(self, other: 'Params') -> bool:  # pyrefly: ignore[bad-override]
     return isinstance(other, Params) and self._params == other._params  # pylint: disable=protected-access
 
-  def __ne__(self, other: 'Params') -> bool:
+  def __ne__(self, other: 'Params') -> bool:  # pyrefly: ignore[bad-override]
     return not self == other
 
   def __str__(self) -> str:
@@ -417,13 +417,13 @@ class Params:
         # pylint: disable=protected-access
         curr = curr._params[part].Get()
         if is_list_or_dict:
-          curr = curr[list_index]
+          curr = curr[list_index]  # pyrefly: ignore[unbound-name]
       except KeyError:
         raise AttributeError('.'.join(parts[:i + 1]))
       assert isinstance(curr, Params), ('Cannot introspect %s for %s' %
                                         (type(curr), '.'.join(parts[:i + 1])))
 
-    return curr, parts[-1]
+    return curr, parts[-1]  # pyrefly: ignore[bad-return]
 
   def Set(self: ParamsT, **kwargs: Any) -> ParamsT:
     """Sets multiple parameters.
@@ -555,7 +555,7 @@ class Params:
         val_cls = type(val)
         items = val.__dict__.items() if dataclasses.is_dataclass(
             val) else val._asdict().items()
-        param_pb.named_tuple_val.type = inspect.getmodule(
+        param_pb.named_tuple_val.type = inspect.getmodule(  # pyrefly: ignore[missing-attribute]
             val_cls).__name__ + '/' + val_cls.__name__
         param_pb.named_tuple_val.items.extend(
             [_ToParamValue(f'{key}[{k}]', v) for k, v in items])
@@ -565,7 +565,7 @@ class Params:
         for k, v in val.items():
           param_pb.dict_val.items[k].CopyFrom(_ToParamValue(f'{key}[{k}]', v))
       elif isinstance(val, type) or isinstance(val, types.FunctionType):
-        param_pb.type_val = inspect.getmodule(val).__name__ + '/' + val.__name__
+        param_pb.type_val = inspect.getmodule(val).__name__ + '/' + val.__name__  # pyrefly: ignore[missing-attribute]
       elif isinstance(val, tf.DType):
         param_pb.dtype_val = val.name
       elif isinstance(val, str):
@@ -578,12 +578,12 @@ class Params:
         param_pb.float_val = val
       elif isinstance(val, enum.Enum):
         enum_cls = type(val)
-        param_pb.enum_val.type = inspect.getmodule(
+        param_pb.enum_val.type = inspect.getmodule(  # pyrefly: ignore[missing-attribute]
             enum_cls).__name__ + '/' + enum_cls.__name__
         param_pb.enum_val.name = val.name
       elif isinstance(val, message.Message):
         proto_cls = type(val)
-        param_pb.proto_val.type = inspect.getmodule(
+        param_pb.proto_val.type = inspect.getmodule(  # pyrefly: ignore[missing-attribute]
             proto_cls).__name__ + '/' + proto_cls.__name__
         param_pb.proto_val.val = val.SerializeToString()
       elif symbolic.IsExpr(val):
@@ -679,7 +679,7 @@ class Params:
       for k in param_pb.items:
         if k != 'cls':
           params.Define(k, _FromParamValue(param_pb.items[k]), '')
-      return params
+      return params  # pyrefly: ignore[bad-return]
 
     return _FromParam(param_pb)
 
@@ -823,10 +823,10 @@ class Params:
         return val.name
       if isinstance(val, message.Message):
         proto_str = text_format.MessageToString(val, as_one_line=True)
-        return 'proto/%s/%s/%s' % (inspect.getmodule(val).__name__,
+        return 'proto/%s/%s/%s' % (inspect.getmodule(val).__name__,  # pyrefly: ignore[missing-attribute]
                                    type(val).__name__, proto_str)
       if isinstance(val, type) or isinstance(val, types.FunctionType):
-        return 'type/' + inspect.getmodule(val).__name__ + '/' + val.__name__
+        return 'type/' + inspect.getmodule(val).__name__ + '/' + val.__name__  # pyrefly: ignore[missing-attribute]
       return type(val).__name__
 
     def _Enter(key: str, p: Any) -> bool:

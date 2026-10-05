@@ -51,14 +51,14 @@ void SetUpVocab(const string& vocab_filename) {
 string IdsToStr(const std::vector<int32>& ids) {
   if (vocab != nullptr) {
     const std::vector<string> toks = vocab->IdsToTokens(ids);
-    return str_util::Join(toks, " ");
+    return absl::StrJoin(toks, " ");
   } else {
-    return str_util::Join(ids, " ");
+    return absl::StrJoin(ids, " ");
   }
 }
 }  // namespace debug
 
-Status Vocab::Load(const string& vocab_glob, bool load_token_ids) {
+absl::Status Vocab::Load(const string& vocab_glob, bool load_token_ids) {
   std::vector<string> vocab_filenames;
   TF_RETURN_IF_ERROR(
       Env::Default()->GetMatchingPaths(vocab_glob, &vocab_filenames));
@@ -77,11 +77,12 @@ Status Vocab::Load(const string& vocab_glob, bool load_token_ids) {
   return Load(str_util::Split(content, '\n'), load_token_ids);
 }
 
-Status Vocab::Load(const std::vector<string>& lines, bool load_token_ids) {
+absl::Status Vocab::Load(const std::vector<string>& lines,
+                         bool load_token_ids) {
   id_to_token_.clear();
   token_to_id_.clear();
   int32 next_id = 0;
-  for (StringPiece line : lines) {
+  for (absl::string_view line : lines) {
     if (line.empty()) continue;
     const std::vector<string> parts = str_util::Split(line, '\t');
     CHECK_GE(parts.size(), 1);
@@ -125,7 +126,7 @@ Status Vocab::Load(const std::vector<string>& lines, bool load_token_ids) {
   sow_id_ = TokenToId(sow_token());
   eow_id_ = TokenToId(eow_token());
   unk_id_ = TokenToId(unk_token());
-  return Status();
+  return absl::Status();
 }
 
 const char* Vocab::sos_token() const {

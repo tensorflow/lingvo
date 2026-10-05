@@ -17,8 +17,8 @@ limitations under the License.
 #include <iostream>
 #include <string>
 
-#include "google/protobuf/descriptor.h"
 #include "absl/container/flat_hash_set.h"
+#include "third_party/protobuf/descriptor.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/types.pb.h"
 #include "tensorflow/core/protobuf/meta_graph.pb.h"

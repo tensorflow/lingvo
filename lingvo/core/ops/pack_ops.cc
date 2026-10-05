@@ -84,7 +84,7 @@ class PackSequencesOp : public OpKernel {
       return;
     }
 
-    const auto input_num = ctx->input(0).vec<int32>().size();
+    const auto input_num = ctx->input(0).vec<int32_t>().size();
     std::vector<PackRecord> pack_records;
     pack_records.reserve(input_num);
     const int output_num = PackEntireInputs(ctx, &pack_records);
@@ -108,7 +108,7 @@ class PackSequencesOp : public OpKernel {
 
   // Allocates (and zero initializes) all outputs.
   void AllocateOutputs(OpKernelContext* ctx, PackSequencesOutputs* outputs,
-                       const int32 packed_batch_size);
+                       int32_t packed_batch_size);
 
   // Pack entire inputs. Returns the number of rows needed to pack all of input
   // sequences. Also outputs the packing records.
@@ -167,7 +167,7 @@ void PackSequencesOp::ValidateInputs(OpKernelContext* ctx) {
 
 void PackSequencesOp::AllocateOutputs(OpKernelContext* ctx,
                                       PackSequencesOutputs* outputs,
-                                      const int32 packed_batch_size) {
+                                      const int32_t packed_batch_size) {
   TensorShape packed_src_shape({packed_batch_size, packed_src_seq_len_});
   TensorShape packed_tgt_shape({packed_batch_size, packed_tgt_seq_len_});
 
@@ -178,9 +178,9 @@ void PackSequencesOp::AllocateOutputs(OpKernelContext* ctx,
                                            &outputs->src_segment_pos));
   OP_REQUIRES_OK(ctx, ctx->allocate_output(output_id++, packed_src_shape,
                                            &outputs->src_indices_in_input));
-  outputs->src_segment_ids->matrix<int32>().setZero();
-  outputs->src_segment_pos->matrix<int32>().setZero();
-  outputs->src_indices_in_input->matrix<int32>().setZero();
+  outputs->src_segment_ids->matrix<int32_t>().setZero();
+  outputs->src_segment_pos->matrix<int32_t>().setZero();
+  outputs->src_indices_in_input->matrix<int32_t>().setZero();
 
   OP_REQUIRES_OK(ctx, ctx->allocate_output(output_id++, packed_tgt_shape,
                                            &outputs->tgt_segment_ids));
@@ -188,15 +188,15 @@ void PackSequencesOp::AllocateOutputs(OpKernelContext* ctx,
                                            &outputs->tgt_segment_pos));
   OP_REQUIRES_OK(ctx, ctx->allocate_output(output_id++, packed_tgt_shape,
                                            &outputs->tgt_indices_in_input));
-  outputs->tgt_segment_ids->matrix<int32>().setZero();
-  outputs->tgt_segment_pos->matrix<int32>().setZero();
-  outputs->tgt_indices_in_input->matrix<int32>().setZero();
+  outputs->tgt_segment_ids->matrix<int32_t>().setZero();
+  outputs->tgt_segment_pos->matrix<int32_t>().setZero();
+  outputs->tgt_indices_in_input->matrix<int32_t>().setZero();
 }
 
 int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
                                       std::vector<PackRecord>* pack_records) {
-  const auto& src_actual_seq_len = ctx->input(0).vec<int32>();
-  const auto& tgt_actual_seq_len = ctx->input(1).vec<int32>();
+  const auto& src_actual_seq_len = ctx->input(0).vec<int32_t>();
+  const auto& tgt_actual_seq_len = ctx->input(1).vec<int32_t>();
   const auto input_num = src_actual_seq_len.size();
 
   // We ask for a sufficiently large output batch size to pack all input
@@ -237,7 +237,7 @@ int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
   }
   int num_packed_records = max_output_batch_idx + 1;
   {
-    absl::MutexLock l(&mu_);
+    absl::MutexLock l(mu_);
     total_src_tokens_ += total_src_seq_len;
     total_tgt_tokens_ += total_tgt_seq_len;
     total_examples_ += input_num;
@@ -278,7 +278,7 @@ bool PackSequencesOp::DropPackedRows(
     std::uniform_int_distribution<> distribution(0, i);
     int j;  // Uniformly picked on [0, i].
     {
-      absl::MutexLock l(&mu_);
+      absl::MutexLock l(mu_);
       j = distribution(rnd_);
     }
     if (j < packed_batch_size_) {
@@ -295,15 +295,15 @@ void PackSequencesOp::WriteOutputs(
     OpKernelContext* ctx, const std::vector<PackRecord>& pack_records,
     bool dropping_inputs, const absl::flat_hash_map<int, int>* new_indices,
     PackSequencesOutputs* outputs) {
-  const auto& src_actual_seq_len = ctx->input(0).vec<int32>();
-  const auto& tgt_actual_seq_len = ctx->input(1).vec<int32>();
+  const auto& src_actual_seq_len = ctx->input(0).vec<int32_t>();
+  const auto& tgt_actual_seq_len = ctx->input(1).vec<int32_t>();
 
-  auto src_segment_ids = outputs->src_segment_ids->matrix<int32>();
-  auto src_segment_pos = outputs->src_segment_pos->matrix<int32>();
-  auto src_indices_in_input = outputs->src_indices_in_input->matrix<int32>();
-  auto tgt_segment_ids = outputs->tgt_segment_ids->matrix<int32>();
-  auto tgt_segment_pos = outputs->tgt_segment_pos->matrix<int32>();
-  auto tgt_indices_in_input = outputs->tgt_indices_in_input->matrix<int32>();
+  auto src_segment_ids = outputs->src_segment_ids->matrix<int32_t>();
+  auto src_segment_pos = outputs->src_segment_pos->matrix<int32_t>();
+  auto src_indices_in_input = outputs->src_indices_in_input->matrix<int32_t>();
+  auto tgt_segment_ids = outputs->tgt_segment_ids->matrix<int32_t>();
+  auto tgt_segment_pos = outputs->tgt_segment_pos->matrix<int32_t>();
+  auto tgt_indices_in_input = outputs->tgt_indices_in_input->matrix<int32_t>();
 
   for (const auto& p : pack_records) {
     int output_idx = p.packing.batch;
@@ -345,7 +345,7 @@ class PackSingleSequenceOp : public OpKernel {
 
   void Compute(OpKernelContext* ctx) override {
     const Tensor& input_lengths_t = ctx->input(0);
-    const auto& input_lengths = input_lengths_t.vec<int32>();
+    const auto& input_lengths = input_lengths_t.vec<int32_t>();
     const int batch_size = input_lengths.dimension(0);
 
     for (int i = 0; i < batch_size; ++i) {
@@ -358,7 +358,7 @@ class PackSingleSequenceOp : public OpKernel {
     }
 
     // The index of the output to write to.
-    std::vector<int32> output_index;
+    std::vector<int32_t> output_index;
     int packed_batch_size = ComputeOutputIndex(input_lengths_t, &output_index);
 
     Tensor* segment_ids_t = nullptr;
@@ -371,15 +371,15 @@ class PackSingleSequenceOp : public OpKernel {
         ctx, ctx->allocate_output(1, {packed_batch_size, max_packed_length_},
                                   &indices_in_input_t));
 
-    auto segment_ids = segment_ids_t->matrix<int32>();
+    auto segment_ids = segment_ids_t->matrix<int32_t>();
     segment_ids.setZero();
-    auto indices_in_input = indices_in_input_t->matrix<int32>();
+    auto indices_in_input = indices_in_input_t->matrix<int32_t>();
     indices_in_input.setConstant(-1);
 
     // Current lengths for each packed sequence.
-    std::vector<int32> current_lengths(packed_batch_size, 0);
+    std::vector<int32_t> current_lengths(packed_batch_size, 0);
     // Current segment id for each packed sequence.
-    std::vector<int32> current_segment_id(packed_batch_size, 1);
+    std::vector<int32_t> current_segment_id(packed_batch_size, 1);
 
     for (int i = 0; i < batch_size; ++i) {
       int idx = output_index[i];
@@ -403,19 +403,19 @@ class PackSingleSequenceOp : public OpKernel {
   // Populates output_index with the index that each input example should be
   // placed into, and returns the total number of bins used.
   int ComputeOutputIndex(const Tensor& input_lengths_t,
-                         std::vector<int32>* output_index);
+                         std::vector<int32_t>* output_index);
 
   TF_DISALLOW_COPY_AND_ASSIGN(PackSingleSequenceOp);
 };
 
-int PackSingleSequenceOp::ComputeOutputIndex(const Tensor& input_lengths_t,
-                                             std::vector<int32>* output_index) {
-  const auto& input_lengths = input_lengths_t.vec<int32>();
+int PackSingleSequenceOp::ComputeOutputIndex(
+    const Tensor& input_lengths_t, std::vector<int32_t>* output_index) {
+  const auto& input_lengths = input_lengths_t.vec<int32_t>();
   const int batch_size = input_lengths.dimension(0);
   output_index->resize(batch_size);
 
   // Current lengths for each packed sequence.
-  std::vector<int32> current_lengths;
+  std::vector<int32_t> current_lengths;
 
   if (require_sequential_order_) {
     // Append each input in sequence to the last element.
@@ -441,7 +441,7 @@ int PackSingleSequenceOp::ComputeOutputIndex(const Tensor& input_lengths_t,
     });
     // Best Fit Decreasing as it is easiest to implement in nlogn.
     // Maintain a Binary Search Tree of (remaining_space, bin_id).
-    std::multiset<std::pair<int32, int32>> lookup;
+    std::multiset<std::pair<int32_t, int32_t>> lookup;
     for (int i = 0; i < batch_size; ++i) {
       // First element with remaining_space >= input_length.
       auto it = lookup.lower_bound(std::make_pair(input_lengths(idx[i]), -1));
@@ -512,8 +512,8 @@ class ApplyPackingOp : public OpKernel {
     const auto input_rows = input.dimension(0);
     const auto input_columns = input.dimension(1);
     const auto input_dim = input.dimension(2);
-    const auto& segment_ids = ctx->input(2).matrix<int32>();
-    const auto& indices_in_input = ctx->input(3).matrix<int32>();
+    const auto& segment_ids = ctx->input(2).matrix<int32_t>();
+    const auto& indices_in_input = ctx->input(3).matrix<int32_t>();
     auto output_3d = output->flat_outer_dims<T, 3>();
     const int64_t rows = output->dim_size(0);
     const int64_t columns = output->dim_size(1);
@@ -565,8 +565,8 @@ class ApplyPackingOp : public OpKernel {
   void ApplyVector(OpKernelContext* ctx, Tensor* output) {
     const auto& input = ctx->input(0).vec<T>();
     const auto num_input_rows = ctx->input(0).dim_size(0);
-    const auto& segment_ids = ctx->input(2).matrix<int32>();
-    const auto& indices_in_input = ctx->input(3).matrix<int32>();
+    const auto& segment_ids = ctx->input(2).matrix<int32_t>();
+    const auto& indices_in_input = ctx->input(3).matrix<int32_t>();
     auto output_vec = output->vec<T>();
     for (int i = 0; i < output->dim_size(0); ++i) {
       // input_rows condenses row i of indices_in_input, e.g. from
@@ -646,8 +646,8 @@ class ApplyPackingOp<::tensorflow::tstring> : public OpKernel {
   void Apply(OpKernelContext* ctx, Tensor* output) {
     const auto& input = ctx->input(0).vec<::tensorflow::tstring>();
     const auto num_input_rows = ctx->input(0).dim_size(0);
-    const auto& segment_ids = ctx->input(2).matrix<int32>();
-    const auto& indices_in_input = ctx->input(3).matrix<int32>();
+    const auto& segment_ids = ctx->input(2).matrix<int32_t>();
+    const auto& indices_in_input = ctx->input(3).matrix<int32_t>();
     auto output_vec = output->vec<::tensorflow::tstring>();
     const auto& sep = ctx->input(1).scalar<::tensorflow::tstring>()();
     for (int i = 0; i < output->dim_size(0); ++i) {

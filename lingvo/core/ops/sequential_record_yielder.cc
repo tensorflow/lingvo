@@ -27,12 +27,12 @@ namespace {
 constexpr int kInfinite = -1;
 }  // namespace
 
-SequentialRecordYielder::SequentialRecordYielder(const string& file_pattern,
-                                                 const int64_t repeat_count)
+SequentialRecordYielder::SequentialRecordYielder(
+    const std::string& file_pattern, const int64_t repeat_count)
     : file_type_(RecordIterator::GetFilePatternPrefix(file_pattern)),
       repeat_count_(repeat_count) {
   LOG(INFO) << this << "Sequential record yielder start";
-  string mutable_file_pattern(file_pattern);
+  std::string mutable_file_pattern(file_pattern);
   if (!file_type_.empty()) {
     mutable_file_pattern.erase(0, file_type_.size() + 1);
   }
@@ -53,7 +53,7 @@ SequentialRecordYielder::SequentialRecordYielder(const string& file_pattern,
 }
 
 SequentialRecordYielder* SequentialRecordYielder::New(
-    const string& file_pattern, const int64_t repeat_count) {
+    const std::string& file_pattern, const int64_t repeat_count) {
   return new SequentialRecordYielder(file_pattern, repeat_count);
 }
 
@@ -64,10 +64,10 @@ void SequentialRecordYielder::Close() {
   delete this;
 }
 
-Status SequentialRecordYielder::Yield(Record* record) {
-  string key;
+absl::Status SequentialRecordYielder::Yield(Record* record) {
+  std::string key;
   if (record_iterator_->Next(&key, &record->value)) {
-    return Status();
+    return absl::Status();
   }
 
   // No more records from current iterator, advance to next iterator.

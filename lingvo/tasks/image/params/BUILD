@@ -7,6 +7,7 @@ licenses(["notice"])
 py_library(
     name = "mnist",
     srcs = ["mnist.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
@@ -19,6 +20,7 @@ py_library(
 py_library(
     name = "params",
     srcs = ["params.py"],
+    strict_deps = False,
     tags = ["keep_dep"],
     deps = [
         ":mnist",

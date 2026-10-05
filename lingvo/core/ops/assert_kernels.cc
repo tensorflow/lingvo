@@ -42,8 +42,8 @@ class AssertShapeMatchOp : public OpKernel {
     if (x.NumElements() != y.NumElements()) {
       match = false;
     } else {
-      auto Tx = x.flat<int32>();
-      auto Ty = y.flat<int32>();
+      auto Tx = x.flat<int32_t>();
+      auto Ty = y.flat<int32_t>();
       for (int i = 0; i < x.NumElements(); ++i) {
         if ((Tx(i) != kUnknown) && (Ty(i) != kUnknown) && (Tx(i) != Ty(i))) {
           match = false;
@@ -57,7 +57,7 @@ class AssertShapeMatchOp : public OpKernel {
   }
 
  private:
-  string msg_;
+  std::string msg_;
 };
 REGISTER_KERNEL_BUILDER(Name("AssertShapeMatch").Device(DEVICE_CPU),
                         AssertShapeMatchOp);
@@ -98,7 +98,7 @@ class AssertSameDim0Op : public OpKernel {
   }
 
  private:
-  string msg_;
+  std::string msg_;
 };
 REGISTER_KERNEL_BUILDER(Name("AssertSameDim0").Device(DEVICE_CPU),
                         AssertSameDim0Op);

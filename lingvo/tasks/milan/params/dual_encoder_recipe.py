@@ -114,7 +114,7 @@ class DualEncoderRecipe(base_model_params.SingleTaskModelParams):
 
   @property
   def encoder_configs(self):
-    return self.task_params.dual_encoder.encoder_configs
+    return self.task_params.dual_encoder.encoder_configs  # pyrefly: ignore[missing-attribute]
 
   def AddModality(self, name: str, **kwargs):
     config = dual_encoder.EncoderConfig().Set(**kwargs)
@@ -122,7 +122,7 @@ class DualEncoderRecipe(base_model_params.SingleTaskModelParams):
     return config
 
   def AddPreprocessor(self, input_feature, preprocessor):
-    self.input_params.preprocessors[input_feature] = preprocessor.Copy()
+    self.input_params.preprocessors[input_feature] = preprocessor.Copy()  # pyrefly: ignore[missing-attribute]
 
   def StartFromCheckpoint(self, checkpoint_path: str):
     """Configures the recipe to start training from the given model checkpoint.
@@ -136,7 +136,7 @@ class DualEncoderRecipe(base_model_params.SingleTaskModelParams):
     Args:
       checkpoint_path: Path of the checkpoint to start training from.
     """
-    self.task_params.train.init_from_checkpoint_rules = {
+    self.task_params.train.init_from_checkpoint_rules = {  # pyrefly: ignore[missing-attribute]
         checkpoint_path: (
             [('(.*)', '%s')],
             # Don't load vars matching these regexes.
@@ -149,33 +149,33 @@ class DualEncoderRecipe(base_model_params.SingleTaskModelParams):
   def GetAllDatasetParams(self):
     return {
         'Train':
-            self.input_params.Copy().Set(
+            self.input_params.Copy().Set(  # pyrefly: ignore[missing-attribute]
                 name='Train',
                 dataset_fn=functools.partial(
-                    self.dataset.Read,
+                    self.dataset.Read,  # pyrefly: ignore[missing-attribute]
                     split=constants.Split.TRAIN,
                     shuffle_buffer_size=1024)),
         'Dev':
-            self.input_params.Copy().Set(
+            self.input_params.Copy().Set(  # pyrefly: ignore[missing-attribute]
                 name='Dev',
                 dataset_fn=functools.partial(
-                    self.dataset.Read,
+                    self.dataset.Read,  # pyrefly: ignore[missing-attribute]
                     split=constants.Split.DEV,
                     shuffle_buffer_size=0)),
         'Test':
-            self.input_params.Copy().Set(
+            self.input_params.Copy().Set(  # pyrefly: ignore[missing-attribute]
                 name='Test',
                 dataset_fn=functools.partial(
-                    self.dataset.Read,
+                    self.dataset.Read,  # pyrefly: ignore[missing-attribute]
                     split=constants.Split.TEST,
                     shuffle_buffer_size=0)),
     }
 
   def Task(self):
-    task_params = self.task_params.Copy()
+    task_params = self.task_params.Copy()  # pyrefly: ignore[missing-attribute]
     if not task_params.dual_encoder.encoder_configs:
       raise RecipeError('Must configure at least one encoder.')
 
     assert task_params.dual_encoder.label_fn is None
-    task_params.dual_encoder.label_fn = self.dataset.Label
+    task_params.dual_encoder.label_fn = self.dataset.Label  # pyrefly: ignore[missing-attribute]
     return task_params

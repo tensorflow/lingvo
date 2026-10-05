@@ -65,7 +65,7 @@ def assertNestedMapEqual(  # pylint: disable=invalid-name
   if not hasattr(expected, 'DebugString'):
     expected = py_utils.NestedMap(expected)
 
-  self.assertMultiLineEqual(expected.DebugString(), actual.DebugString())
+  self.assertMultiLineEqual(expected.DebugString(), actual.DebugString())  # pyrefly: ignore[missing-attribute]
 # pyformat: enable
 
 

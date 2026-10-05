@@ -1,6 +1,5 @@
 # buildifier: disable=same-origin-load
 load("//lingvo:lingvo.bzl", "pytype_library", "pytype_strict_library", "pytype_strict_test")
-load("//lingvo:lingvo.bzl", "py_strict_test")
 
 # Placeholder: load py_library
 # Placeholder: load py_test
@@ -20,6 +19,7 @@ licenses(["notice"])
 py_library(
     name = "activations",
     srcs = ["activations.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -75,6 +75,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "base_decoder",
     srcs = ["base_decoder.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":beam_search_helper",
@@ -87,6 +88,7 @@ py_library(
 py_test(
     name = "base_decoder_test",
     srcs = ["base_decoder_test.py"],
+    strict_deps = False,
     deps = [
         ":base_decoder",
         ":test_utils",
@@ -126,6 +128,7 @@ pytype_library(
 py_library(
     name = "batch_utils",
     srcs = ["batch_utils.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         ":py_utils",
@@ -135,6 +138,7 @@ py_library(
 py_test(
     name = "batch_utils_test",
     srcs = ["batch_utils_test.py"],
+    strict_deps = False,
     deps = [
         ":batch_utils",
         ":cluster_factory",
@@ -149,6 +153,7 @@ py_library(
     srcs = [
         "beam_search_helper.py",
     ],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -160,6 +165,7 @@ py_library(
 py_test(
     name = "beam_search_helper_test",
     srcs = ["beam_search_helper_test.py"],
+    strict_deps = False,
     deps = [
         ":beam_search_helper",
         ":py_utils",
@@ -172,6 +178,7 @@ py_test(
 py_library(
     name = "bfloat16_variables",
     srcs = ["bfloat16_variables.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
     ],
@@ -180,6 +187,7 @@ py_library(
 py_test(
     name = "bfloat16_variables_test",
     srcs = ["bfloat16_variables_test.py"],
+    strict_deps = False,
     deps = [
         ":bfloat16_variables",
         ":test_utils",
@@ -190,11 +198,13 @@ py_test(
 py_library(
     name = "constants",
     srcs = ["constants.py"],
+    strict_deps = False,
 )
 
 py_library(
     name = "conformer_layer",
     srcs = ["conformer_layer.py"],
+    strict_deps = False,
     deps = [
         ":activations",
         ":base_layer",
@@ -219,6 +229,7 @@ py_test(
     timeout = "long",
     srcs = ["conformer_layer_test.py"],
     shard_count = 8,
+    strict_deps = False,
     deps = [
         ":bn_layers",
         ":conformer_layer",
@@ -233,11 +244,13 @@ py_test(
 py_library(
     name = "lazy_loader",
     srcs = ["lazy_loader.py"],
+    strict_deps = False,
 )
 
 py_library(
     name = "stream_step_test_base",
     srcs = ["stream_step_test_base.py"],
+    strict_deps = False,
     deps = [
         ":bn_layers",
         ":py_utils",
@@ -252,6 +265,7 @@ py_library(
     srcs = [
         "target_sequence_sampler.py",
     ],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -263,6 +277,7 @@ py_library(
 py_test(
     name = "target_sequence_sampler_test",
     srcs = ["target_sequence_sampler_test.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         ":target_sequence_sampler",
@@ -275,6 +290,7 @@ py_test(
 py_library(
     name = "base_input_generator",
     srcs = ["base_input_generator.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":batch_utils",
@@ -298,6 +314,7 @@ py_test(
     srcs = ["base_input_generator_test.py"],
     args = ["--enable_eager_execution"],
     main = "base_input_generator_test.py",
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":cluster_factory",
@@ -315,6 +332,7 @@ py_test(
 py_test(
     name = "base_input_generator_test",
     srcs = ["base_input_generator_test.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":cluster_factory",
@@ -334,6 +352,7 @@ py_test(
     timeout = "long",
     srcs = ["batch_major_attention_test.py"],
     shard_count = 4,
+    strict_deps = False,
     deps = [
         ":attention",
         ":attention_util",
@@ -378,6 +397,7 @@ py_test(
     size = "small",
     srcs = ["base_layer_test.py"],
     args = ["--noenable_eager_execution"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":hyperparams",
@@ -393,6 +413,7 @@ py_test(
     srcs = ["base_layer_test.py"],
     args = ["--enable_eager_execution"],
     main = "base_layer_test.py",
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":hyperparams",
@@ -405,6 +426,7 @@ py_test(
 py_library(
     name = "favor_attention",
     srcs = ["favor_attention.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -417,6 +439,7 @@ py_test(
     srcs = [
         "favor_attention_test.py",
     ],
+    strict_deps = False,
     deps = [
         ":favor_attention",
         ":test_utils",
@@ -430,6 +453,7 @@ py_test(
 py_library(
     name = "flat_beam_search_helper",
     srcs = ["flat_beam_search_helper.py"],
+    strict_deps = False,
     deps = [
         ":tpu_summary",
         "//lingvo:compat",
@@ -439,6 +463,7 @@ py_library(
 py_test(
     name = "flat_beam_search_helper_test",
     srcs = ["flat_beam_search_helper_test.py"],
+    strict_deps = False,
     deps = [
         ":flat_beam_search_helper",
         ":test_utils",
@@ -451,6 +476,7 @@ py_test(
 py_library(
     name = "reversible_layers",
     srcs = ["reversible_layers.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -461,6 +487,7 @@ py_library(
 py_test(
     name = "reversible_layers_test",
     srcs = ["reversible_layers_test.py"],
+    strict_deps = False,
     deps = [
         ":layers",
         ":py_utils",
@@ -475,6 +502,7 @@ py_test(
 py_library(
     name = "decoder_lib",
     srcs = ["decoder_lib.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -512,6 +540,7 @@ py_test(
     name = "base_model_test",
     srcs = ["base_model_test.py"],
     args = ["--noenable_eager_execution"],
+    strict_deps = False,
     deps = [
         ":base_decoder",
         ":base_input_generator",
@@ -536,6 +565,7 @@ py_test(
     srcs = ["base_model_test.py"],
     args = ["--enable_eager_execution"],
     main = "base_model_test.py",
+    strict_deps = False,
     deps = [
         ":base_decoder",
         ":base_input_generator",
@@ -558,6 +588,7 @@ py_test(
 py_library(
     name = "base_model_params",
     srcs = ["base_model_params.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -570,6 +601,7 @@ py_library(
 py_test(
     name = "base_model_params_test",
     srcs = ["base_model_params_test.py"],
+    strict_deps = False,
     deps = [
         ":base_model_params",
         ":test_utils",
@@ -580,6 +612,7 @@ py_test(
 py_library(
     name = "build_data",
     srcs = ["build_data.py"],
+    strict_deps = False,
     deps = [
         ":hyperparams",
         # Implicit build_data dependency.
@@ -589,6 +622,7 @@ py_library(
 py_library(
     name = "builder",
     srcs = ["builder.py"],
+    strict_deps = False,
     deps = [
         ":activations",
         ":builder_layers",
@@ -603,6 +637,7 @@ py_library(
 py_library(
     name = "builder_layers",
     srcs = ["builder_layers.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":computation_cost",
@@ -619,6 +654,7 @@ py_library(
 py_test(
     name = "builder_layers_test",
     srcs = ["builder_layers_test.py"],
+    strict_deps = False,
     deps = [
         ":builder_layers",
         ":cluster_factory",
@@ -636,6 +672,7 @@ py_test(
 py_test(
     name = "builder_test",
     srcs = ["builder_test.py"],
+    strict_deps = False,
     deps = [
         ":builder",
         ":cluster_factory",
@@ -652,6 +689,7 @@ py_test(
 py_library(
     name = "cluster",
     srcs = ["cluster.py"],
+    strict_deps = False,
     deps = [
         ":hyperparams",
         ":lazy_loader",
@@ -665,6 +703,7 @@ py_library(
 py_library(
     name = "cluster_factory",
     srcs = ["cluster_factory.py"],
+    strict_deps = False,
     deps = ["//lingvo/core:cluster"],
 )
 
@@ -689,6 +728,7 @@ pytype_strict_library(
 py_library(
     name = "datasource",
     srcs = ["datasource.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":batch_utils",
@@ -698,7 +738,7 @@ py_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "datasource_test",
     srcs = ["datasource_test.py"],
     deps = [
@@ -722,6 +762,7 @@ py_test(
         "DatasourceTest.testCrossBatchMixingDataSourceSucceedsWithListFilesAndWeights",
     ],
     main = "datasource_test.py",
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":cluster_factory",
@@ -739,6 +780,7 @@ py_test(
 py_library(
     name = "datasource_tfds",
     srcs = ["datasource_tfds.py"],
+    strict_deps = False,
     deps = [
         ":datasource",
         # Implicit tensorflow_datasets dependency.
@@ -749,6 +791,7 @@ py_test(
     name = "datasource_tfds_test",
     size = "small",
     srcs = ["datasource_tfds_test.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":datasource_tfds",
@@ -762,6 +805,7 @@ py_test(
 py_library(
     name = "matrix_functions",
     srcs = ["matrix_functions.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core/ops",
@@ -773,6 +817,7 @@ py_test(
     name = "matrix_functions_test",
     size = "small",
     srcs = ["matrix_functions_test.py"],
+    strict_deps = False,
     deps = [
         ":distributed_shampoo",
         ":test_utils",
@@ -783,6 +828,7 @@ py_test(
 py_library(
     name = "distributed_shampoo",
     srcs = ["distributed_shampoo.py"],
+    strict_deps = False,
     deps = [
         ":matrix_functions",
         "//lingvo:compat",
@@ -795,6 +841,7 @@ py_test(
     name = "distributed_shampoo_test",
     size = "small",
     srcs = ["distributed_shampoo_test.py"],
+    strict_deps = False,
     deps = [
         ":distributed_shampoo",
         ":test_utils",
@@ -805,6 +852,7 @@ py_test(
 py_library(
     name = "early_stop",
     srcs = ["early_stop.py"],
+    strict_deps = False,
     deps = [
         ":hyperparams",
         ":py_utils",
@@ -820,6 +868,7 @@ py_test(
     data = [
         "//lingvo/core/ops/testdata:best_step_testdata",
     ],
+    strict_deps = False,
     deps = [
         ":early_stop",
         ":hyperparams",
@@ -867,6 +916,7 @@ lingvo_proto_py(
 py_test(
     name = "hyperparams_test",
     srcs = ["hyperparams_test.py"],
+    strict_deps = False,
     deps = [
         ":hyperparams",
         ":hyperparams_py_pb2",
@@ -879,6 +929,7 @@ py_test(
 py_library(
     name = "inference_graph_exporter",
     srcs = ["inference_graph_exporter.py"],
+    strict_deps = False,
     deps = [
         ":base_model",
         ":bfloat16_variables",
@@ -894,6 +945,7 @@ py_library(
 py_test(
     name = "inference_graph_exporter_test",
     srcs = ["inference_graph_exporter_test.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -911,6 +963,7 @@ py_test(
 py_library(
     name = "input_generator_helper",
     srcs = ["input_generator_helper.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -920,6 +973,7 @@ py_library(
 py_test(
     name = "input_generator_helper_test",
     srcs = ["input_generator_helper_test.py"],
+    strict_deps = False,
     deps = [
         ":input_generator_helper",
         ":test_utils",
@@ -931,11 +985,13 @@ py_test(
 py_library(
     name = "inspect_utils",
     srcs = ["inspect_utils.py"],
+    strict_deps = False,
 )
 
 py_test(
     name = "inspect_utils_test",
     srcs = ["inspect_utils_test.py"],
+    strict_deps = False,
     deps = [
         ":hyperparams",
         ":inspect_utils",
@@ -971,6 +1027,7 @@ pytype_library(
 py_library(
     name = "learner",
     srcs = ["learner.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":optimizer",
@@ -985,6 +1042,7 @@ py_library(
 py_test(
     name = "learner_test",
     srcs = ["learner_test.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":gradient_combiner",
@@ -1017,6 +1075,7 @@ pytype_strict_library(
 py_library(
     name = "conv_layers_builder",
     srcs = ["conv_layers_builder.py"],
+    strict_deps = False,
     deps = [
         ":activations",
         ":base_layer",
@@ -1133,6 +1192,7 @@ pytype_strict_library(
 py_library(
     name = "saver",
     srcs = ["saver.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         # Implicit python proto dependency.
@@ -1144,6 +1204,7 @@ py_library(
 py_library(
     name = "schedule",
     srcs = ["schedule.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":early_stop",
@@ -1156,6 +1217,7 @@ py_library(
 py_test(
     name = "saver_test",
     srcs = ["saver_test.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         ":py_utils",
@@ -1173,6 +1235,7 @@ py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["schedule_test.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         ":early_stop",
@@ -1188,6 +1251,7 @@ py_test(
 py_library(
     name = "metrics",
     srcs = ["metrics.py"],
+    strict_deps = False,
     deps = [
         ":hyperparams",
         ":plot",
@@ -1202,6 +1266,7 @@ py_library(
 py_library(
     name = "ml_perf_bleu_metric",
     srcs = ["ml_perf_bleu_metric.py"],
+    strict_deps = False,
     deps = [
         ":metrics",
         "//lingvo:compat",
@@ -1213,6 +1278,7 @@ py_library(
 py_test(
     name = "ml_perf_bleu_metric_test",
     srcs = ["ml_perf_bleu_metric_test.py"],
+    strict_deps = False,
     deps = [
         ":ml_perf_bleu_metric",
         ":test_utils",
@@ -1223,6 +1289,7 @@ py_test(
 py_test(
     name = "metrics_test",
     srcs = ["metrics_test.py"],
+    strict_deps = False,
     deps = [
         ":metrics",
         ":py_utils",
@@ -1235,6 +1302,7 @@ py_test(
 py_library(
     name = "multitask_model",
     srcs = ["multitask_model.py"],
+    strict_deps = False,
     deps = [
         ":base_model",
         ":py_utils",
@@ -1244,6 +1312,7 @@ py_library(
 py_test(
     name = "multitask_model_test",
     srcs = ["multitask_model_test.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":base_layer",
@@ -1262,6 +1331,7 @@ py_library(
     srcs = [
         "adagraft.py",
     ],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core/ops",
@@ -1273,6 +1343,7 @@ py_test(
     name = "adagraft_test",
     size = "small",
     srcs = ["adagraft_test.py"],
+    strict_deps = False,
     deps = [
         ":adagraft",
         ":test_utils",
@@ -1283,6 +1354,7 @@ py_test(
 py_library(
     name = "optimizer",
     srcs = ["optimizer.py"],
+    strict_deps = False,
     deps = [
         ":adagraft",
         ":base_layer",
@@ -1298,6 +1370,7 @@ py_test(
     name = "optimizer_test",
     size = "small",
     srcs = ["optimizer_test.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         ":layers",
@@ -1314,6 +1387,7 @@ py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["optimizer_eager_test.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         ":layers",
@@ -1328,6 +1402,7 @@ py_test(
 py_library(
     name = "plot",
     srcs = ["plot.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -1340,6 +1415,7 @@ py_library(
 py_test(
     name = "plot_test",
     srcs = ["plot_test.py"],
+    strict_deps = False,
     deps = [
         ":plot",
         ":test_utils",
@@ -1351,6 +1427,7 @@ py_test(
 py_library(
     name = "predictor_lib",
     srcs = ["predictor.py"],
+    strict_deps = False,
     deps = [
         ":inference_graph_py_pb2",
         ":py_utils",
@@ -1377,6 +1454,7 @@ py_test(
     name = "predictor_test",
     size = "medium",
     srcs = ["predictor_test.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -1391,6 +1469,7 @@ py_test(
 py_library(
     name = "predictor_runner_base",
     srcs = ["predictor_runner_base.py"],
+    strict_deps = False,
     deps = [
         ":predictor_lib",
         ":py_utils",
@@ -1403,6 +1482,7 @@ py_library(
 py_library(
     name = "pruning_utils",
     srcs = ["pruning_utils.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         # Implicit model_pruning.pruning dependency.
@@ -1413,6 +1493,7 @@ py_library(
 py_library(
     name = "py_utils_flags",
     srcs = ["py_utils_flags.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         "//lingvo:compat",
@@ -1447,6 +1528,7 @@ py_library(
     data = [
         "//lingvo/core/testdata:lenet_test_model",
     ],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":builder_layers",
@@ -1513,6 +1595,7 @@ pytype_library(
 py_library(
     name = "quant_test_lib",
     srcs = ["quant_test_lib.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         ":quant_utils",
@@ -1526,6 +1609,7 @@ py_test(
     name = "quant_utils_test",
     size = "small",
     srcs = ["quant_utils_test.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         ":quant_test_lib",
@@ -1537,6 +1621,7 @@ py_test(
 py_library(
     name = "layers_with_gpipe",
     srcs = ["layers_with_gpipe.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":batch_major_attention",
@@ -1554,6 +1639,7 @@ py_test(
     size = "large",
     srcs = ["layers_with_gpipe_test.py"],
     shard_count = 15,
+    strict_deps = False,
     deps = [
         ":layers_with_gpipe",
         ":py_utils",
@@ -1567,6 +1653,7 @@ py_test(
 py_library(
     name = "spectrum_augmenter",
     srcs = ["spectrum_augmenter.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1578,6 +1665,7 @@ py_test(
     name = "spectrum_augmenter_test",
     srcs = ["spectrum_augmenter_test.py"],
     shard_count = 1,
+    strict_deps = False,
     deps = [
         ":py_utils",
         ":spectrum_augmenter",
@@ -1590,6 +1678,7 @@ py_test(
 py_library(
     name = "spectrum_augmenter_on_device",
     srcs = ["spectrum_augmenter_on_device.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1602,6 +1691,7 @@ py_test(
     name = "spectrum_augmenter_on_device_test",
     srcs = ["spectrum_augmenter_on_device_test.py"],
     shard_count = 1,
+    strict_deps = False,
     deps = [
         ":spectrum_augmenter",
         ":spectrum_augmenter_on_device",
@@ -1614,6 +1704,7 @@ py_test(
 py_library(
     name = "generic_input",
     srcs = ["generic_input.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -1625,6 +1716,7 @@ py_library(
 py_test(
     name = "generic_input_test",
     srcs = ["generic_input_test.py"],
+    strict_deps = False,
     deps = [
         ":generic_input",
         ":py_utils",
@@ -1639,6 +1731,7 @@ py_test(
     name = "generic_input_tf2_test",
     timeout = "long",
     srcs = ["generic_input_tf2_test.py"],
+    strict_deps = False,
     deps = [
         ":generic_input",
         ":py_utils",
@@ -1652,6 +1745,7 @@ py_test(
 py_library(
     name = "gpipe",
     srcs = ["gpipe.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":builder_layers",
@@ -1665,6 +1759,7 @@ py_library(
 py_test(
     name = "gpipe_test",
     srcs = ["gpipe_test.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":gpipe",
@@ -1679,6 +1774,7 @@ py_test(
 py_library(
     name = "recurrent",
     srcs = ["recurrent.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         ":py_utils",
@@ -1712,6 +1808,7 @@ py_library(
     name = "recurrent_test_lib",
     testonly = 1,
     srcs = ["recurrent_test.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":layers",
@@ -1729,6 +1826,7 @@ py_library(
 py_library(
     name = "attention_util",
     srcs = ["attention_util.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1741,6 +1839,7 @@ py_library(
 py_library(
     name = "retry",
     srcs = ["retry.py"],
+    strict_deps = False,
     deps = [
         # Implicit retry dependency.
     ],
@@ -1749,6 +1848,7 @@ py_library(
 py_test(
     name = "attention_util_test",
     srcs = ["attention_util_test.py"],
+    strict_deps = False,
     deps = [
         ":attention_util",
         ":test_utils",
@@ -1761,6 +1861,7 @@ py_test(
 py_test(
     name = "retry_test",
     srcs = ["retry_test.py"],
+    strict_deps = False,
     deps = [
         ":retry",
         ":test_utils",
@@ -1771,6 +1872,7 @@ py_test(
 py_library(
     name = "self_attention_layer",
     srcs = ["self_attention_layer.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":batch_major_attention",
@@ -1781,6 +1883,7 @@ py_library(
 py_library(
     name = "sendrecv",
     srcs = ["sendrecv.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
     ],
@@ -1790,6 +1893,7 @@ py_test(
     name = "self_attention_layer_test",
     timeout = "long",
     srcs = ["self_attention_layer_test.py"],
+    strict_deps = False,
     deps = [
         ":batch_major_attention",
         ":py_utils",
@@ -1804,6 +1908,7 @@ py_test(
 py_test(
     name = "sendrecv_test",
     srcs = ["sendrecv_test.py"],
+    strict_deps = False,
     deps = [
         ":sendrecv",
         ":test_utils",
@@ -1815,6 +1920,7 @@ py_test(
 py_library(
     name = "summary_utils",
     srcs = ["summary_utils.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":cluster_factory",
@@ -1828,6 +1934,7 @@ py_library(
 py_library(
     name = "task_scheduler",
     srcs = ["task_scheduler.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":early_stop",
@@ -1839,6 +1946,7 @@ py_library(
 py_test(
     name = "task_scheduler_test",
     srcs = ["task_scheduler_test.py"],
+    strict_deps = False,
     deps = [
         ":early_stop",
         ":task_scheduler",
@@ -1851,6 +1959,7 @@ py_test(
 py_library(
     name = "test_helper",
     srcs = ["test_helper.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
     ],
@@ -1895,6 +2004,7 @@ pytype_strict_test(
 py_library(
     name = "trainer_test_utils",
     srcs = ["trainer_test_utils.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -1911,6 +2021,7 @@ py_library(
 py_library(
     name = "test_trainer_utils",
     srcs = ["test_trainer_utils.py"],
+    strict_deps = False,
     deps = [
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
@@ -1922,6 +2033,7 @@ py_library(
 py_library(
     name = "wpm_encoder",
     srcs = ["wpm_encoder.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -1933,6 +2045,7 @@ py_library(
 py_test(
     name = "wpm_encoder_test",
     srcs = ["wpm_encoder_test.py"],
+    strict_deps = False,
     deps = [
         ":test_utils",
         ":wpm_encoder",
@@ -1943,6 +2056,7 @@ py_test(
 py_library(
     name = "tokenizers",
     srcs = ["tokenizers.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1960,6 +2074,7 @@ py_test(
     data = [
         "//lingvo/core/testdata:en_1k_spm",
     ],
+    strict_deps = False,
     deps = [
         ":test_helper",
         ":test_utils",
@@ -1971,6 +2086,7 @@ py_test(
 py_library(
     name = "tpu_summary",
     srcs = ["tpu_summary.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -1983,6 +2099,7 @@ py_test(
     data = [
         "//lingvo/tasks/mt:wpm_ende",
     ],
+    strict_deps = False,
     deps = [
         ":test_helper",
         ":test_utils",
@@ -1995,6 +2112,7 @@ py_test(
 py_library(
     name = "routing_config_helper",
     srcs = ["routing_config_helper.py"],
+    strict_deps = False,
     deps = [
         ":batch_major_attention",
     ],
@@ -2003,6 +2121,7 @@ py_library(
 py_test(
     name = "routing_config_helper_test",
     srcs = ["routing_config_helper_test.py"],
+    strict_deps = False,
     deps = [
         ":routing_config_helper",
     ],
@@ -2011,6 +2130,7 @@ py_test(
 py_library(
     name = "rnn_cell",
     srcs = ["rnn_cell.py"],
+    strict_deps = False,
     deps = [
         ":hyperparams",
         ":layers",
@@ -2063,6 +2183,7 @@ py_test(
     size = "large",
     srcs = ["layers_with_attention_test.py"],
     shard_count = 3,
+    strict_deps = False,
     deps = [
         ":gshard_builder",
         ":layers",
@@ -2079,6 +2200,7 @@ py_test(
 py_library(
     name = "rnn_layers",
     srcs = ["rnn_layers.py"],
+    strict_deps = False,
     deps = [
         ":attention",
         ":base_layer",
@@ -2103,6 +2225,7 @@ py_library(
     name = "rnn_layers_test_lib",
     testonly = 1,
     srcs = ["rnn_layers_test.py"],
+    strict_deps = False,
     deps = [
         ":attention",
         ":base_layer",
@@ -2121,6 +2244,7 @@ py_library(
 py_library(
     name = "lstm_frnn_layer",
     srcs = ["lstm_frnn_layer.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":recurrent",
@@ -2134,6 +2258,7 @@ py_library(
 py_test(
     name = "lstm_frnn_layer_test",
     srcs = ["lstm_frnn_layer_test.py"],
+    strict_deps = False,
     deps = [
         ":lstm_frnn_layer",
         ":py_utils",
@@ -2146,6 +2271,7 @@ py_test(
 py_library(
     name = "scorers",
     srcs = ["scorers.py"],
+    strict_deps = False,
     deps = [
         # Implicit six dependency.
     ],
@@ -2155,6 +2281,7 @@ py_test(
     name = "scorers_test",
     srcs = ["scorers_test.py"],
     data = ["//lingvo/core/ops/testdata:wmt"],
+    strict_deps = False,
     deps = [
         ":scorers",
         ":test_helper",
@@ -2166,7 +2293,8 @@ py_test(
 py_library(
     name = "entmax",
     srcs = ["entmax.py"],
-    visibility = [":__subpackages__"],
+    strict_deps = False,
+    visibility = ["//visibility:private"],
     deps = [
         ":py_utils",
         ":test_utils",
@@ -2177,6 +2305,7 @@ py_library(
 py_test(
     name = "entmax_test",
     srcs = ["entmax_test.py"],
+    strict_deps = False,
     deps = [
         ":entmax",
         ":test_utils",
@@ -2187,6 +2316,7 @@ py_test(
 py_library(
     name = "model_helper",
     srcs = ["model_helper.py"],
+    strict_deps = False,
     deps = [
         ":rnn_layers",
         "//lingvo:compat",
@@ -2196,6 +2326,7 @@ py_library(
 py_library(
     name = "gshard_builder",
     srcs = ["gshard_builder.py"],
+    strict_deps = False,
     deps = [
         ":base_model",
         ":builder",
@@ -2214,6 +2345,7 @@ py_library(
 py_test(
     name = "gshard_builder_test",
     srcs = ["gshard_builder_test.py"],
+    strict_deps = False,
     deps = [
         ":gshard_builder",
         ":gshard_layers",
@@ -2226,6 +2358,7 @@ py_test(
 py_library(
     name = "gshard_layers",
     srcs = ["gshard_layers.py"],
+    strict_deps = False,
     deps = [
         ":activations",
         ":base_layer",
@@ -2244,6 +2377,7 @@ py_library(
 py_test(
     name = "gshard_layers_test",
     srcs = ["gshard_layers_test.py"],
+    strict_deps = False,
     deps = [
         ":gshard_builder",
         ":gshard_layers",
@@ -2256,6 +2390,7 @@ py_test(
 py_test(
     name = "gshard_gating_test",
     srcs = ["gshard_gating_test.py"],
+    strict_deps = False,
     deps = [
         ":gshard_layers",
         ":test_utils",
@@ -2280,6 +2415,7 @@ pytype_library(
 py_library(
     name = "gshard_decode",
     srcs = ["gshard_decode.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         ":gshard_utils",
@@ -2291,6 +2427,7 @@ py_library(
 py_library(
     name = "tshape",
     srcs = ["tshape.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         # Implicit sympy dependency.
@@ -2300,6 +2437,7 @@ py_library(
 py_test(
     name = "tpu_summary_test",
     srcs = ["tpu_summary_test.py"],
+    strict_deps = False,
     deps = [
         ":test_utils",
         ":tpu_summary",
@@ -2310,6 +2448,7 @@ py_test(
 py_test(
     name = "tshape_test",
     srcs = ["tshape_test.py"],
+    strict_deps = False,
     deps = [
         ":test_utils",
         ":tshape",
@@ -2320,6 +2459,7 @@ py_test(
 py_library(
     name = "symbolic",
     srcs = ["symbolic.py"],
+    strict_deps = False,
     deps = [
         # Implicit sympy dependency.
     ],
@@ -2328,6 +2468,7 @@ py_library(
 py_test(
     name = "symbolic_test",
     srcs = ["symbolic_test.py"],
+    strict_deps = False,
     deps = [
         ":symbolic",
         ":test_utils",
@@ -2339,6 +2480,7 @@ py_test(
 py_library(
     name = "insertion",
     srcs = ["insertion.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -2358,6 +2500,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "computation_cost",
     srcs = ["computation_cost.py"],
+    strict_deps = False,
     deps = [
         ":bn_layers",
         "//lingvo:compat",
@@ -2367,6 +2510,7 @@ py_library(
 py_library(
     name = "checkpointer_lib",
     srcs = ["checkpointer.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         ":saver",
@@ -2378,6 +2522,7 @@ py_library(
 py_library(
     name = "program_utils",
     srcs = ["program_utils.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
     ],
@@ -2386,6 +2531,7 @@ py_library(
 py_library(
     name = "program_lib",
     srcs = ["program.py"],
+    strict_deps = False,
     deps = [
         ":base_model",
         ":cluster_factory",
@@ -2407,6 +2553,7 @@ py_library(
 py_library(
     name = "step",
     srcs = ["step.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":builder_layers",
@@ -2420,6 +2567,7 @@ py_test(
     name = "step_test",
     size = "small",
     srcs = ["step_test.py"],
+    strict_deps = False,
     deps = [
         ":builder_layers",
         ":py_utils",
@@ -2432,6 +2580,7 @@ py_test(
 py_test(
     name = "summary_utils_test",
     srcs = ["summary_utils_test.py"],
+    strict_deps = False,
     deps = [
         ":cluster_factory",
         ":summary_utils",
@@ -2443,6 +2592,7 @@ py_test(
 py_test(
     name = "checkpointer_test",
     srcs = ["checkpointer_test.py"],
+    strict_deps = False,
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -2495,6 +2645,7 @@ pytype_strict_test(
 py_library(
     name = "ml_perf_tokenizer",
     srcs = ["ml_perf_tokenizer.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -2508,11 +2659,13 @@ py_library(
 py_library(
     name = "ml_perf_log",
     srcs = ["ml_perf_log.py"],
+    strict_deps = False,
 )
 
 py_test(
     name = "ml_perf_log_test",
     srcs = ["ml_perf_log_test.py"],
+    strict_deps = False,
     deps = [
         ":ml_perf_log",
         "//lingvo:compat",
@@ -2524,6 +2677,7 @@ py_library(
     srcs = [
         "egdd.py",
     ],
+    strict_deps = False,
     deps = [
         # Implicit numpy dependency.
         # Implicit tensorflow dependency.
@@ -2534,6 +2688,7 @@ py_test(
     name = "egdd_test",
     size = "large",
     srcs = ["egdd_test.py"],
+    strict_deps = False,
     deps = [
         ":egdd",
         ":test_utils",
@@ -2544,6 +2699,7 @@ py_test(
 py_library(
     name = "distillation_task",
     srcs = ["distillation_task.py"],
+    strict_deps = False,
     deps = [
         ":base_model",
         ":py_utils",
@@ -2555,12 +2711,14 @@ py_library(
 py_library(
     name = "gradient_combiner",
     srcs = ["gradient_combiner.py"],
+    strict_deps = False,
     deps = [":base_layer"],
 )
 
 py_library(
     name = "tpu_embedding_layers",
     srcs = ["tpu_embedding_layers.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":hyperparams",
@@ -2572,6 +2730,7 @@ py_library(
 py_library(
     name = "tpu_embedding_layers_v1",
     srcs = ["tpu_embedding_layers_v1.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -2610,6 +2769,7 @@ pytype_strict_library(
 py_library(
     name = "graddrop",
     srcs = ["graddrop.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -2621,6 +2781,7 @@ py_library(
 py_test(
     name = "graddrop_test",
     srcs = ["graddrop_test.py"],
+    strict_deps = False,
     deps = [
         ":builder_layers",
         ":graddrop",
@@ -2632,6 +2793,7 @@ py_test(
 py_library(
     name = "input_policy",
     srcs = ["input_policy.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
     ],
@@ -2640,6 +2802,7 @@ py_library(
 py_library(
     name = "thread_local_utils",
     srcs = ["thread_local_utils.py"],
+    strict_deps = False,
     deps = [
     ],
 )
@@ -2666,6 +2829,7 @@ pytype_strict_test(
 py_library(
     name = "repeat_layer",
     srcs = ["repeat_layer.py"],
+    strict_deps = False,
     deps = [
         ":base_layer",
         ":py_utils",
@@ -2677,6 +2841,7 @@ py_library(
 py_library(
     name = "scatter_update",
     srcs = ["scatter_update.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         ":thread_local_utils",
@@ -2687,6 +2852,7 @@ py_library(
 py_library(
     name = "var_tmp_wrappers",
     srcs = ["var_tmp_wrappers.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
     ],
@@ -2695,6 +2861,7 @@ py_library(
 py_test(
     name = "var_tmp_wrappers_test",
     srcs = ["var_tmp_wrappers_test.py"],
+    strict_deps = False,
     deps = [
         ":py_utils",
         ":test_utils",
@@ -2703,7 +2870,7 @@ py_test(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "checkpointer_eager_test",
     srcs = ["checkpointer_eager_test.py"],
     args = ["--enable_eager_execution"],
@@ -2733,7 +2900,7 @@ pytype_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "differentiable_assignment_test",
     srcs = ["differentiable_assignment_test.py"],
     deps = [

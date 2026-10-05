@@ -12,6 +12,7 @@ py_library(
         "wmtm16_en_de.py",
         "xendec/wmt14_en_de.py",
     ],
+    strict_deps = False,
     tags = ["keep_dep"],
     deps = [
         "//lingvo:model_registry",

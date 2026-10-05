@@ -37,6 +37,8 @@ A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
 
 PyPI Version | Commit
 ------------ | ----------------------------------------
+0.14.0       | --
+0.13.1       | --
 0.12.4       | --
 0.11.0       | 6fae10077756f54beacd5c454959f20b33fd65e2
 0.10.0       | 075fd1d88fa6f92681f58a2383264337d0e737ee
@@ -64,6 +66,12 @@ guarantees regarding backwards compatibility.**
 #### HEAD
 
 Nothing here.
+
+#### 0.14.0
+
+*   **General**
+    *   Python 3.11+ support added (`python_requires='>=3.9'`).
+    *   Python 3.8 support has been removed.
 
 #### 0.12.0
 

@@ -1,6 +1,6 @@
 # buildifier: disable=same-origin-load
 load("//lingvo:lingvo.bzl", "pytype_strict_library")
-load("//lingvo:lingvo.bzl", "py_strict_test")
+# Placeholder: load py_test
 
 # Multimodal representation learning.
 package(default_visibility = ["//visibility:public"])
@@ -99,7 +99,7 @@ pytype_strict_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "labels_test",
     srcs = ["labels_test.py"],
     deps = [
@@ -111,7 +111,7 @@ py_strict_test(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "score_functions_test",
     srcs = ["score_functions_test.py"],
     deps = [
@@ -133,7 +133,7 @@ pytype_strict_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "tf_hub_layers_test",
     srcs = ["tf_hub_layers_test.py"],
     deps = [
@@ -146,7 +146,7 @@ py_strict_test(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "tpu_utils_test",
     srcs = ["tpu_utils_test.py"],
     deps = [
@@ -159,7 +159,7 @@ py_strict_test(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "transformers_test",
     srcs = ["transformers_test.py"],
     deps = [
@@ -181,7 +181,7 @@ pytype_strict_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "utils_test",
     srcs = ["utils_test.py"],
     deps = [
@@ -214,7 +214,7 @@ pytype_strict_library(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "dataset_spec_test",
     srcs = ["dataset_spec_test.py"],
     deps = [
@@ -225,7 +225,7 @@ py_strict_test(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "dual_encoder_test",
     srcs = ["dual_encoder_test.py"],
     deps = [
@@ -240,7 +240,7 @@ py_strict_test(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "image_preprocessor_test",
     srcs = ["image_preprocessor_test.py"],
     deps = [
@@ -253,7 +253,7 @@ py_strict_test(
     ],
 )
 
-py_strict_test(
+py_test(
     name = "input_generator_test",
     size = "medium",
     srcs = ["input_generator_test.py"],

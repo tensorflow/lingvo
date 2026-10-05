@@ -56,9 +56,9 @@ class MassOp : public OpKernel {
                      const Tensor& weights, const Tensor& actual_seq_len);
 
   template <typename T>
-  void CopyTensorToMutableOutput(const TensorShape& shape, const string& name,
-                                 const Tensor& source, OpKernelContext* ctx,
-                                 Tensor** out) {
+  void CopyTensorToMutableOutput(const TensorShape& shape,
+                                 const std::string& name, const Tensor& source,
+                                 OpKernelContext* ctx, Tensor** out) {
     OP_REQUIRES_OK(ctx, ctx->allocate_output(name, shape, out));
     (*out)->flat<T>() = source.flat<T>();
   }
@@ -98,24 +98,26 @@ void MassOp::ValidateInput(OpKernelContext* ctx, const Tensor& ids,
                            const Tensor& actual_seq_len) {
   // Verify shapes and sizes
   OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(ids.shape()),
-              errors::InvalidArgument("ids must be matrix, but got ",
-                                      ids.shape().DebugString()));
-  OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(weights.shape()),
-              errors::InvalidArgument("weights must be matrix, but got ",
-                                      weights.shape().DebugString()));
+              absl::InvalidArgumentError(absl::StrCat(
+                  "ids must be matrix, but got ", ids.shape().DebugString())));
+  OP_REQUIRES(
+      ctx, TensorShapeUtils::IsMatrix(weights.shape()),
+      absl::InvalidArgumentError(absl::StrCat(
+          "weights must be matrix, but got ", weights.shape().DebugString())));
   OP_REQUIRES(ctx, TensorShapeUtils::IsVector(actual_seq_len.shape()),
-              errors::InvalidArgument("actual_seq_len must be vector, but got ",
-                                      actual_seq_len.shape().DebugString()));
+              absl::InvalidArgumentError(
+                  absl::StrCat("actual_seq_len must be vector, but got ",
+                               actual_seq_len.shape().DebugString())));
   OP_REQUIRES(ctx, ids.dim_size(0) > 0,
-              errors::InvalidArgument("batch size must be > 0"));
+              absl::InvalidArgumentError("batch size must be > 0"));
   OP_REQUIRES(ctx, ids.dim_size(1) > 0,
-              errors::InvalidArgument("max seq length must be > 0"));
+              absl::InvalidArgumentError("max seq length must be > 0"));
   OP_REQUIRES(ctx, ids.dim_size(0) == weights.dim_size(0),
-              errors::InvalidArgument("inconsistent batch size"));
+              absl::InvalidArgumentError("inconsistent batch size"));
   OP_REQUIRES(ctx, ids.dim_size(0) == actual_seq_len.dim_size(0),
-              errors::InvalidArgument("inconsistent batch size"));
+              absl::InvalidArgumentError("inconsistent batch size"));
   OP_REQUIRES(ctx, ids.dim_size(1) == weights.dim_size(1),
-              errors::InvalidArgument("inconsistent seq length"));
+              absl::InvalidArgumentError("inconsistent seq length"));
 }
 
 void MassOp::GenerateMask(std::vector<int>* mask) {
@@ -174,7 +176,7 @@ void MassOp::Compute(OpKernelContext* ctx) {
   const Tensor& ids = ctx->input(0);
   const Tensor& weights = ctx->input(1);
   const Tensor& actual_seq_len = ctx->input(2);
-  auto Tactual_seq_len = actual_seq_len.vec<int32>();
+  auto Tactual_seq_len = actual_seq_len.vec<int32_t>();
   ValidateInput(ctx, ids, weights, actual_seq_len);
   OP_REQUIRES_OK(ctx, ctx->status());
 
@@ -186,16 +188,16 @@ void MassOp::Compute(OpKernelContext* ctx) {
   Tensor* tgt_ids;
   Tensor* tgt_weights;
   Tensor* tgt_labels;
-  CopyTensorToMutableOutput<int32>(TensorShape({batch_size, max_seq_len}),
-                                   "src_ids", ids, ctx, &src_ids);
-  CopyTensorToMutableOutput<int32>(TensorShape({batch_size, max_seq_len}),
-                                   "tgt_ids", ids, ctx, &tgt_ids);
+  CopyTensorToMutableOutput<int32_t>(TensorShape({batch_size, max_seq_len}),
+                                     "src_ids", ids, ctx, &src_ids);
+  CopyTensorToMutableOutput<int32_t>(TensorShape({batch_size, max_seq_len}),
+                                     "tgt_ids", ids, ctx, &tgt_ids);
   CopyTensorToMutableOutput<float>(TensorShape({batch_size, max_seq_len}),
                                    "tgt_weights", weights, ctx, &tgt_weights);
-  CopyTensorToMutableOutput<int32>(TensorShape({batch_size, max_seq_len}),
-                                   "tgt_labels", ids, ctx, &tgt_labels);
-  auto Tsrc_ids = src_ids->matrix<int32>();
-  auto Ttgt_ids = tgt_ids->matrix<int32>();
+  CopyTensorToMutableOutput<int32_t>(TensorShape({batch_size, max_seq_len}),
+                                     "tgt_labels", ids, ctx, &tgt_labels);
+  auto Tsrc_ids = src_ids->matrix<int32_t>();
+  auto Ttgt_ids = tgt_ids->matrix<int32_t>();
   auto Ttgt_weights = tgt_weights->matrix<float>();
 
   // for each example, mask the source and target to implement MASS.

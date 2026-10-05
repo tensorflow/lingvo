@@ -426,7 +426,7 @@ def ReplaceGoldenStackAnalysis(new_float_value):
   runfiles_pattern = 'runfiles/[^/]+/'
   fpath = src_file_frame[1].split(runfiles_pattern)[-1]
   line_num = src_file_frame[2] - 1
-  old_line = src_file_frame[4][0]
+  old_line = src_file_frame[4][0]  # pyrefly: ignore[unsupported-operation]
   new_line = ReplaceGoldenSingleFloat(old_line, new_float_value)
   return fpath, line_num, old_line, new_line
 

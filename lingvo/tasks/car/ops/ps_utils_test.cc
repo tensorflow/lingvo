@@ -72,9 +72,9 @@ void Log(const Tensor& points, const PSUtils::Result& result) {
   CHECK_EQ(result.indices_padding.dim_size(2), m);
 
   auto points_t = points.tensor<float, 3>();
-  auto center_t = result.center.matrix<int32>();
+  auto center_t = result.center.matrix<int32_t>();
   auto center_padding_t = result.center_padding.matrix<float>();
-  auto indices_t = result.indices.tensor<int32, 3>();
+  auto indices_t = result.indices.tensor<int32_t, 3>();
   auto indices_padding_t = result.indices_padding.tensor<float, 3>();
   for (int cur_batch = 0; cur_batch < batch_size; ++cur_batch) {
     fprintf(stdout, "batch id %d\n", cur_batch);
@@ -106,9 +106,9 @@ std::vector<int> GetCenters(const Tensor& points,
   CHECK_EQ(result.indices_padding.dim_size(2), m);
 
   auto points_t = points.tensor<float, 3>();
-  auto center_t = result.center.matrix<int32>();
+  auto center_t = result.center.matrix<int32_t>();
   auto center_padding_t = result.center_padding.matrix<float>();
-  auto indices_t = result.indices.tensor<int32, 3>();
+  auto indices_t = result.indices.tensor<int32_t, 3>();
   std::vector<int> centers;
   for (int cur_batch = 0; cur_batch < batch_size; ++cur_batch) {
     for (int i = 0; i < n; ++i) {
@@ -310,7 +310,7 @@ TEST(PSUtilsTest, TestSeeded) {
   // The first two are always chosen, and then the next one is 5, since it is
   // the farthest from 0 and 1.  The remaining is the middle point between 1 and
   // 5.
-  auto center_t = ret.center.matrix<int32>();
+  auto center_t = ret.center.matrix<int32_t>();
   EXPECT_EQ(points_t(0, center_t(0, 0), 0), 0.);
   EXPECT_EQ(points_t(0, center_t(0, 1), 0), 1.);
   EXPECT_EQ(points_t(0, center_t(0, 2), 0), 5.);
@@ -318,13 +318,13 @@ TEST(PSUtilsTest, TestSeeded) {
 
   // Seeded points are not neighbors; the closest neighbor of the seeded
   // point is 2., not 1.
-  auto indices_t = ret.indices.tensor<int32, 3>();
+  auto indices_t = ret.indices.tensor<int32_t, 3>();
   EXPECT_EQ(points_t(0, indices_t(0, 0, 0), 0), 2.);
 }
 
 void BenchmarkFarthestPoint(benchmark::State& state, PSUtils::Options opts) {
-  state.SetLabel(strings::Printf("#Centers=%4d #Neighbors=%4d",
-                                    opts.num_centers, opts.num_neighbors));
+  state.SetLabel(absl::StrFormat("#Centers=%4d #Neighbors=%4d",
+                                 opts.num_centers, opts.num_neighbors));
   PSUtils fu(opts);
   Tensor points;
   Tensor points_padding;

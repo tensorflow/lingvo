@@ -13,6 +13,7 @@ licenses(["notice"])
 py_test(
     name = "waymo_ap_metric_test",
     srcs = ["waymo_ap_metric_test.py"],
+    strict_deps = False,
     # TODO(b/208324211): Skip until waymo-open-dataset-2-7-0 is released.
     tags = ["manual"],
     deps = [
@@ -31,6 +32,7 @@ py_test(
 py_test(
     name = "waymo_open_input_generator_test",
     srcs = ["waymo_open_input_generator_test.py"],
+    strict_deps = False,
     deps = [
         ":waymo_open_input_generator",
         #internal proto upb dep
@@ -46,6 +48,7 @@ py_library(
     srcs = [
         "waymo_ap_metric.py",
     ],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -63,6 +66,7 @@ py_library(
 py_library(
     name = "waymo_decoder",
     srcs = ["waymo_decoder.py"],
+    strict_deps = False,
     deps = [
         ":waymo_ap_metric",
         ":waymo_metadata",
@@ -81,6 +85,7 @@ py_library(
     srcs = [
         "waymo_metadata.py",
     ],
+    strict_deps = False,
     deps = [
         "//lingvo/tasks/car:evaluation_metadata",
     ],
@@ -89,6 +94,7 @@ py_library(
 py_library(
     name = "waymo_open_input_generator",
     srcs = ["waymo_open_input_generator.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:datasource",
@@ -105,6 +111,7 @@ py_library(
 py_library(
     name = "export_to_submission_format_lib",
     srcs = ["export_to_submission_format.py"],
+    strict_deps = False,
     deps = [
         # Implicit absl.flags dependency.
         "//lingvo:compat",
@@ -116,5 +123,6 @@ py_library(
 py_binary(
     name = "export_to_submission_format",
     srcs = ["export_to_submission_format.py"],
+    strict_deps = False,
     deps = [":export_to_submission_format_lib"],
 )

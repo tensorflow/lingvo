@@ -28,16 +28,16 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-void GenerateTestData(const string& filename, int n, bool random_value) {
+void GenerateTestData(const std::string& filename, int n, bool random_value) {
   std::unique_ptr<WritableFile> file;
   TF_CHECK_OK(Env::Default()->NewWritableFile(filename, &file));
   io::RecordWriter writer(file.get());
   for (int i = 0; i < n; ++i) {
     if (random_value) {
-      const string val(1 + (i % 100), 'x');  // Length of [1 .. 100]
+      const std::string val(1 + (i % 100), 'x');  // Length of [1 .. 100]
       TF_CHECK_OK(writer.WriteRecord(val));
     } else {
-      const string val = strings::Printf("%010d", i);
+      const std::string val = absl::StrFormat("%010d", i);
       TF_CHECK_OK(writer.WriteRecord(val));
     }
   }
@@ -49,9 +49,9 @@ class TestRP : public RecordProcessor {
 
   ~TestRP() override {}
 
-  Status Process(const Record& record, int64_t* bucket_key,
-                 TensorVec* sample) override {
-    const string val = string(record.value);
+  absl::Status Process(const Record& record, int64_t* bucket_key,
+                       TensorVec* sample) override {
+    const std::string val = std::string(record.value);
     *bucket_key = val.size();
     Tensor t(DT_STRING, {});
     t.scalar<tstring>()().append(std::string(record.value));
@@ -61,11 +61,11 @@ class TestRP : public RecordProcessor {
     sample->clear();
     sample->push_back(std::move(t));
     sample->push_back(std::move(ids));
-    return Status();
+    return absl::Status();
   }
 
-  Status Merge(int64_t bucket_size, const std::vector<TensorVec>& samples,
-               TensorVec* batch) override {
+  absl::Status Merge(int64_t bucket_size, const std::vector<TensorVec>& samples,
+                     TensorVec* batch) override {
     const int64_t n = samples.size();
     Tensor t(DT_STRING, {n});
     Tensor source_ids(DT_STRING, {n});
@@ -76,17 +76,17 @@ class TestRP : public RecordProcessor {
     batch->clear();
     batch->push_back(std::move(t));
     batch->push_back(std::move(source_ids));
-    return Status();
+    return absl::Status();
   }
 };
 
 TEST(RecordBatcher, Basic) {
-  const string filename =
+  const std::string filename =
       io::JoinPath("/tmp", "basic");
   GenerateTestData(filename, 1000, true /* random_value */);
 
   BasicRecordYielder::Options yopts;
-  yopts.file_pattern = strings::StrCat("tfrecord:", filename);
+  yopts.file_pattern = absl::StrCat("tfrecord:", filename);
   yopts.seed = 301;
   yopts.bufsize = 10;
   yopts.parallelism = 1;
@@ -123,12 +123,12 @@ TEST(RecordBatcher, Basic) {
 }
 
 TEST(RecordBatcher, BasicMultiThread) {
-  const string filename =
+  const std::string filename =
       io::JoinPath("/tmp", "basic");
   GenerateTestData(filename, 1000, true /* random_value */);
 
   BasicRecordYielder::Options yopts;
-  yopts.file_pattern = strings::StrCat("tfrecord:", filename);
+  yopts.file_pattern = absl::StrCat("tfrecord:", filename);
   yopts.seed = 301;
   yopts.bufsize = 10;
   yopts.parallelism = 1;
@@ -162,12 +162,12 @@ TEST(RecordBatcher, BasicMultiThread) {
 }
 
 TEST(RecordBatcher, LearnBuckets) {
-  const string filename =
+  const std::string filename =
       io::JoinPath("/tmp", "basic");
   GenerateTestData(filename, 1000, true /* random_value */);
 
   BasicRecordYielder::Options yopts;
-  yopts.file_pattern = strings::StrCat("tfrecord:", filename);
+  yopts.file_pattern = absl::StrCat("tfrecord:", filename);
   yopts.seed = 301;
   yopts.bufsize = 10;
   yopts.parallelism = 1;
@@ -223,12 +223,12 @@ TEST(RecordBatcher, LearnBuckets) {
 
 TEST(RecordBatcher, FullEpoch) {
   const int N = 1000;
-  const string filename =
+  const std::string filename =
       io::JoinPath("/tmp", "full_epoch");
   GenerateTestData(filename, N, false /* random_value */);
 
   BasicRecordYielder::Options yopts;
-  yopts.file_pattern = strings::StrCat("tfrecord:", filename);
+  yopts.file_pattern = absl::StrCat("tfrecord:", filename);
   yopts.seed = 301;
   yopts.bufsize = 10;
   yopts.parallelism = 1;
@@ -241,7 +241,7 @@ TEST(RecordBatcher, FullEpoch) {
   RecordBatcher batcher(bopts, BasicRecordYielder::New(yopts), new TestRP());
   int64_t bucket_id;
   TensorVec batch;
-  std::vector<string> records;
+  std::vector<std::string> records;
   while (records.size() < N) {
     TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
     const Tensor& t = batch[0];
@@ -253,13 +253,13 @@ TEST(RecordBatcher, FullEpoch) {
   // We expect to see exactly non-duplicated N records.
   std::sort(records.begin(), records.end());
   for (int i = 0; i < N; ++i) {
-    EXPECT_EQ(strings::Printf("%010d", i), records[i]);
+    EXPECT_EQ(absl::StrFormat("%010d", i), records[i]);
   }
 }
 
 TEST(RecordBatcher, CaptureYielderStatus) {
   const int N = 50;
-  const string filename =
+  const std::string filename =
       io::JoinPath("/tmp", "full_epoch");
   GenerateTestData(filename, N, false /* random_value */);
 
@@ -268,14 +268,14 @@ TEST(RecordBatcher, CaptureYielderStatus) {
   bopts.bucket_batch_limit = {1};
   bopts.num_threads = 1;
 
-  const string file_pattern = strings::StrCat("tfrecord:", filename);
+  const std::string file_pattern = absl::StrCat("tfrecord:", filename);
   const int num_epochs = 2;
   RecordBatcher batcher(bopts,
                         SequentialRecordYielder::New(file_pattern, num_epochs),
                         new TestRP());
   int64_t bucket_id;
   TensorVec batch;
-  std::vector<string> records;
+  std::vector<std::string> records;
   // Fetch N * num_epochs worth of data, which should all be there.
   // Note that when there are multiple streams, we need repeat it
   // (batch.size() - 1) times.
@@ -294,12 +294,12 @@ TEST(RecordBatcher, CaptureYielderStatus) {
   // With a sequential record yielder, the next call will exhaust the
   // repeat count of the iterator, and so we should expect that no more
   // data can be yielded.
-  Status s = batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch);
+  absl::Status s = batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch);
   ASSERT_TRUE(absl::IsOutOfRange(s));
 }
 
 TEST(RecordBatcher, SequentialEoFImmediately) {
-  const string filename =
+  const std::string filename =
       io::JoinPath("/tmp", "full_epoch");
   // Generate no data.
   GenerateTestData(filename, 0, false /* random_value */);
@@ -308,14 +308,14 @@ TEST(RecordBatcher, SequentialEoFImmediately) {
   bopts.bucket_upper_bound = {1000000000};
   bopts.bucket_batch_limit = {1};
   bopts.num_threads = 1;
-  const string file_pattern = strings::StrCat("tfrecord:", filename);
+  const std::string file_pattern = absl::StrCat("tfrecord:", filename);
   const int num_epochs = 1;
   RecordBatcher batcher(bopts,
                         SequentialRecordYielder::New(file_pattern, num_epochs),
                         new TestRP());
   int64_t bucket_id;
   TensorVec batch;
-  Status s = batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch);
+  absl::Status s = batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch);
   ASSERT_TRUE(absl::IsOutOfRange(s));
 }
 

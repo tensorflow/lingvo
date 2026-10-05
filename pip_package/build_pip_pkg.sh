@@ -55,6 +55,7 @@ function main() {
   echo $(date) : "=== Building wheel"
 
   ${PYTHON} setup.py bdist_wheel --project_name lingvo > /dev/null
+  ${PYTHON} -m wheel tags --python-tag py3 --abi-tag none --platform-tag manylinux_2_17_x86_64.manylinux2014_x86_64 dist/*.whl > /dev/null
   cp dist/*.whl "${DEST}"
   popd
   rm -rf ${TMPDIR}

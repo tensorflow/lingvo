@@ -440,7 +440,7 @@ class BaseTask(base_layer.BaseLayer):
         self._SetLearnerFromLegacyParams(tp)
         if tp.learner is not None:
           if isinstance(tp.learner, (list, tuple)):
-            self.CreateChildren('learners', tp.learner)
+            self.CreateChildren('learners', tp.learner)  # pyrefly: ignore[bad-argument-type]
           else:
             self.CreateChildren('learners', [tp.learner])
 
@@ -812,7 +812,7 @@ class BaseTask(base_layer.BaseLayer):
       elif manager := tpu_embedding_layers_v1.TpuEmbeddingCollection.Get():
         summaries = manager.summary_tensors
 
-      for name, value, weight in summaries:
+      for name, value, weight in summaries:  # pyrefly: ignore[unbound-name]
         self.AddEvalMetric(name, value, weight, raise_if_already_added=False)
 
     if not py_utils.IsEagerMode():
@@ -1380,7 +1380,7 @@ class SingleTaskModel(SingleTaskBase):
   """Model that consists of a single task."""
 
   @classmethod
-  def Params(cls, task_params):
+  def Params(cls, task_params):  # pyrefly: ignore[bad-override]
     p = super().Params()
     p.Define(
         'task', None,
@@ -1459,7 +1459,7 @@ class MultiTaskSubModel(SingleTaskBase):
     super().__init__(params, **kwargs)
     p = self.params
     self._model = shared_model
-    self._task = self._model.children.Get(p.task_name)
+    self._task = self._model.children.Get(p.task_name)  # pyrefly: ignore[missing-attribute]
     # TODO(laigd): EMA for MultiTaskSubModel is likely broken, investigate and
     # fix it.
     if self._ema:

@@ -67,10 +67,10 @@ void WeightedMixRecordYielder::Close() {
   delete this;
 }
 
-Status WeightedMixRecordYielder::Yield(Record* record) {
+absl::Status WeightedMixRecordYielder::Yield(Record* record) {
   size_t yielder_idx = 0;
   {
-    absl::MutexLock l(&mu_);
+    absl::MutexLock l(mu_);
     yielder_idx = sample_distribution_(rnd_);
     // Release the lock immediately once we fix which yielder to use.
   }
@@ -78,7 +78,7 @@ Status WeightedMixRecordYielder::Yield(Record* record) {
     // Retry indefinitely until we get an Ok status from the specific yielder.
     // This will stall the training if there is any unrecoverable error with
     // the child yielder.
-    Status s = yielders_.at(yielder_idx)->Yield(record);
+    absl::Status s = yielders_.at(yielder_idx)->Yield(record);
     if (!s.ok()) {
       LOG(WARNING) << s;
       continue;

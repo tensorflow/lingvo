@@ -716,7 +716,7 @@ class QuantizableLayer(base_layer.BaseLayer):
         if qout_name is not None:
           y = self.QAct(qout_name, y)
         else:
-          y = self.QRAct(y, dist, qdomain)  # pytype: disable=wrong-arg-types  # dynamic-method-lookup
+          y = self.QRAct(y, dist, qdomain)  # pyrefly: ignore[bad-argument-type]
         return y
 
       self.AddFunction(op_name, Wrapped)
@@ -1103,7 +1103,7 @@ class FakeQDomain(QDomain):
   def _MaybeNarrowToAsymBitDepth(self, qmin, qmax):
     if self.params.narrow_to_asym_bit_depth:
       qrange = qmax - qmin
-      qmax = qmin + qrange * (2**self.bits - 1) / (2**self.bits)  # pytype: disable=unsupported-operands
+      qmax = qmin + qrange * (2**self.bits - 1) / (2**self.bits)
     return qmin, qmax
 
   def QRAct(self, act, dist: QDistribution):

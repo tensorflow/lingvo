@@ -37,6 +37,7 @@ pytype_library(
 py_library(
     name = "base_trial",
     srcs = ["base_trial.py"],
+    strict_deps = False,
     deps = [
         "//lingvo/core:hyperparams",
     ],
@@ -45,6 +46,7 @@ py_library(
 py_library(
     name = "compat",
     srcs = ["compat.py"],
+    strict_deps = False,
     deps = [
         # Implicit absl.flags dependency.
         # Implicit absl.logging dependency.
@@ -55,6 +57,7 @@ py_library(
 py_test(
     name = "compat_test",
     srcs = ["compat_test.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         #internal proto upb dep
@@ -64,12 +67,14 @@ py_test(
 py_library(
     name = "model_imports_no_params",
     srcs = ["model_imports.py"],
+    strict_deps = False,
 )
 
 # Depend on this for access to the model registry with params for all tasks as
 # transitive deps.  Only py_binary should depend on this target.
 py_library(
     name = "model_imports",
+    strict_deps = False,
     deps = [
         ":model_imports_no_params",
         "//lingvo/tasks:all_params",
@@ -79,6 +84,7 @@ py_library(
 py_test(
     name = "model_import_test",
     srcs = ["model_import_test.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         ":model_imports_no_params",
@@ -90,6 +96,7 @@ py_library(
     name = "models_test_helper",
     testonly = 1,
     srcs = ["models_test_helper.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         ":datasets_lib",
@@ -106,6 +113,7 @@ py_library(
 py_test(
     name = "models_test",
     srcs = ["models_test.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         ":model_imports",
@@ -120,6 +128,7 @@ py_test(
 py_library(
     name = "model_registry",
     srcs = ["model_registry.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         ":model_imports_no_params",
@@ -131,6 +140,7 @@ py_library(
 py_test(
     name = "model_registry_test",
     srcs = ["model_registry_test.py"],
+    strict_deps = False,
     deps = [
         ":model_registry_test_lib",
         #internal proto upb dep
@@ -141,6 +151,7 @@ py_library(
     name = "model_registry_test_lib",
     testonly = 1,
     srcs = ["model_registry_test.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         ":model_registry",
@@ -165,6 +176,7 @@ pytype_strict_library(
 py_test(
     name = "datasets_test",
     srcs = ["datasets_test.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         ":datasets_lib",
@@ -177,6 +189,7 @@ py_test(
 py_library(
     name = "runners",
     srcs = ["runners.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         ":pdb_wrapper",
@@ -198,6 +211,7 @@ py_library(
 py_library(
     name = "eager_runners",
     srcs = ["eager_runners.py"],
+    strict_deps = False,
     deps = [
         ":compat",
         "//lingvo:base_runner",
@@ -252,6 +266,7 @@ py_test(
     timeout = "long",
     srcs = ["trainer_test.py"],
     shard_count = 12,
+    strict_deps = False,
     tags = [
         "noasan",
         "nomsan",
@@ -286,6 +301,7 @@ py_library(
     name = "trainer_test_lib",
     testonly = 1,
     srcs = ["trainer_test.py"],
+    strict_deps = False,
     tags = [
         "noasan",
         "nomsan",
@@ -319,6 +335,7 @@ lingvo_py_binary(
     data = [
         "//lingvo/tasks/punctuator/tools:download_brown_corpus",
     ],
+    strict_deps = False,
     deps = [
         ":model_imports",  # BC internal suffix.
         ":trainer_lib",  # BC internal suffix.
@@ -369,12 +386,14 @@ pytype_library(
 py_library(
     name = "trainer_utils",
     srcs = ["trainer_utils.py"],
+    strict_deps = False,
     deps = [":compat"],
 )
 
 py_library(
     name = "pdb_wrapper",
     srcs = ["pdb_wrapper.py"],
+    strict_deps = False,
     deps = [
         # Implicit pdb dependency.
         # Implicit absl.flags dependency.

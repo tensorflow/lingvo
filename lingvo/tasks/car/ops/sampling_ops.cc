@@ -24,10 +24,11 @@ namespace car {
 class SamplePointsOp : public OpKernel {
  public:
   explicit SamplePointsOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    string method;
+    std::string method;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("center_selector", &method));
-    OP_REQUIRES(ctx, method == "uniform" || method == "farthest",
-                errors::InvalidArgument(method, " is not valid."));
+    OP_REQUIRES(
+        ctx, method == "uniform" || method == "farthest",
+        absl::InvalidArgumentError(absl::StrCat(method, " is not valid.")));
     if (method == "uniform") {
       opts_.cmethod = PSUtils::Options::C_UNIFORM;
     } else {
@@ -35,8 +36,9 @@ class SamplePointsOp : public OpKernel {
       opts_.cmethod = PSUtils::Options::C_FARTHEST;
     }
     OP_REQUIRES_OK(ctx, ctx->GetAttr("neighbor_sampler", &method));
-    OP_REQUIRES(ctx, method == "uniform" || method == "closest",
-                errors::InvalidArgument(method, " is not valid."));
+    OP_REQUIRES(
+        ctx, method == "uniform" || method == "closest",
+        absl::InvalidArgumentError(absl::StrCat(method, " is not valid.")));
     if (method == "uniform") {
       opts_.nmethod = PSUtils::Options::N_UNIFORM;
     } else {
@@ -45,9 +47,9 @@ class SamplePointsOp : public OpKernel {
     }
 
     OP_REQUIRES_OK(ctx, ctx->GetAttr("neighbor_algorithm", &method));
-    OP_REQUIRES(
-        ctx, method == "auto" || method == "hash",
-        errors::InvalidArgument(method, " is not a valid neighbor algorithm."));
+    OP_REQUIRES(ctx, method == "auto" || method == "hash",
+                absl::InvalidArgumentError(absl::StrCat(
+                    method, " is not a valid neighbor algorithm.")));
     if (method == "hash") {
       opts_.neighbor_search_algorithm = PSUtils::Options::N_HASH;
     }
@@ -64,7 +66,7 @@ class SamplePointsOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override {
     PSUtils ps(opts_);
     auto ret = ps.Sample(ctx->input(0), ctx->input(1),
-                         ctx->input(2).scalar<int32>()());
+                         ctx->input(2).scalar<int32_t>()());
     ctx->set_output(0, ret.center);
     ctx->set_output(1, ret.center_padding);
     ctx->set_output(2, ret.indices);

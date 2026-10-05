@@ -62,6 +62,7 @@ gen_op_pylib(
 py_library(
     name = "ops",
     srcs = ["__init__.py"],
+    strict_deps = False,
     deps = [
         ":py_x_ops",  # buildcleaner: keep
         "//lingvo:compat",
@@ -120,6 +121,7 @@ custom_kernel_library(
 py_test(
     name = "simple_vocab_test",
     srcs = ["simple_vocab_test.py"],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -247,6 +249,7 @@ custom_kernel_library(
 py_test(
     name = "static_map_op_test",
     srcs = ["static_map_op_test.py"],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -268,6 +271,7 @@ custom_kernel_library(
 py_test(
     name = "assert_ops_test",
     srcs = ["assert_ops_test.py"],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -298,6 +302,7 @@ lingvo_cc_test(
 py_test(
     name = "beam_search_step_op_test",
     srcs = ["beam_search_step_op_test.py"],
+    strict_deps = False,
     deps = [
         ":hyps_py_pb2",
         ":ops",
@@ -326,6 +331,7 @@ py_test(
     data = [
         "//lingvo/core/ops/testdata:best_step_testdata",
     ],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -348,6 +354,7 @@ custom_kernel_library(
 py_test(
     name = "functional_ops_test",
     srcs = ["functional_ops_test.py"],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -389,6 +396,7 @@ custom_kernel_library(
 py_test(
     name = "random_ops_test",
     srcs = ["random_ops_test.py"],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -420,6 +428,7 @@ custom_kernel_library(
 py_test(
     name = "preconditioner_op_kernels_test",
     srcs = ["preconditioner_op_kernels_test.py"],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -456,6 +465,7 @@ py_test(
         "//lingvo/core/ops/testdata:test_ngrams",
         "//lingvo/core/ops/testdata:test_vocab",
     ],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -480,6 +490,7 @@ custom_kernel_library(
 py_test(
     name = "pack_ops_test",
     srcs = ["pack_ops_test.py"],
+    strict_deps = False,
     deps = [
         ":ops",
         # Implicit absl.testing.parameterized dependency.
@@ -499,6 +510,7 @@ custom_kernel_library(
 py_test(
     name = "mass_op_test",
     srcs = ["mass_op_test.py"],
+    strict_deps = False,
     deps = [
         ":ops",
         #internal proto upb dep
@@ -531,12 +543,6 @@ lingvo_proto_cc(
 lingvo_proto_cc(
     name = "versioned_file_set_proto",
     src = "versioned_file_set.proto",
-)
-
-lingvo_proto_py(
-    name = "versioned_file_set_py_pb2",
-    src = "versioned_file_set.proto",
-    deps = [":versioned_file_set_proto"],
 )
 
 lingvo_proto_py(

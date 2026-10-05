@@ -37,7 +37,7 @@ class _BaseImageTextRecipe(dual_encoder_recipe.DualEncoderRecipe):
 
   def __init__(self):
     super().__init__()
-    self.task_params.dual_encoder.loss_weights = {
+    self.task_params.dual_encoder.loss_weights = {  # pyrefly: ignore[missing-attribute]
         (IMAGE, TEXT): 0.5,
         (TEXT, IMAGE): 0.5
     }
@@ -45,7 +45,7 @@ class _BaseImageTextRecipe(dual_encoder_recipe.DualEncoderRecipe):
   def AddEfficientNetB4ImageEncoder(self,
                                     image_feature='image/encoded',
                                     id_feature='image/id'):
-    self.input_params.features_to_read += [image_feature, id_feature]
+    self.input_params.features_to_read += [image_feature, id_feature]  # pyrefly: ignore[missing-attribute]
     self.AddPreprocessor(
         image_feature,
         image_preprocessor.ImagePreprocessor.Params().Set(
@@ -65,10 +65,10 @@ class _BaseImageTextRecipe(dual_encoder_recipe.DualEncoderRecipe):
       id_feature='text/id',
       output_dim=768):
 
-    self.input_params.features_to_read += [
+    self.input_params.features_to_read += [  # pyrefly: ignore[missing-attribute]
         bert_embeddings_feature, lengths_feature, id_feature
     ]
-    input_embedding_dim = self.dataset.meta.features[
+    input_embedding_dim = self.dataset.meta.features[  # pyrefly: ignore[missing-attribute]
         bert_embeddings_feature].shape[-1]
 
     self.AddModality(

@@ -8,7 +8,7 @@
 #   ❯ ./pip_package/invoke_build_per_interpreter.sh
 
 
-ARG base_image="tensorflow/build:2.13-python3.9"
+ARG base_image="tensorflow/build:2.17-python3.11"
 FROM $base_image
 LABEL maintainer="Lingvo team <lingvo-bot@google.com>"
 
@@ -42,8 +42,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
     zlib1g-dev
 
 
-# 3.9 is the built-in interpreter version in this image.
-RUN for v in 3.8.15 3.10.0; do \
+# 3.11 is the built-in interpreter version in this image.
+RUN for v in 3.10.14 3.12.7; do \
     wget "https://www.python.org/ftp/python/$v/Python-${v}.tar.xz" && \
     rm -rf "/tmp/python${v}" && mkdir -p "/tmp/python${v}" && \
     tar xvf "Python-${v}.tar.xz" -C "/tmp/python${v}" && \
@@ -54,14 +54,13 @@ RUN for v in 3.8.15 3.10.0; do \
   done
 
 # For each python interpreter, install pip dependencies needed for lingvo
-# TF version is fixed at 2.13.
+# TF version is fixed at 2.17.
 RUN --mount=type=cache,target=/root/.cache \
-  for p in 3.8 3.9 3.10; do \
+  for p in 3.10 3.11 3.12; do \
     python${p} -m pip install -U pip && \
     python${p} -m pip install -U \
       attrs \
       apache-beam \
-  	  backports.lzma \
       contextlib2 \
       dataclasses \
       google-api-python-client \
@@ -90,9 +89,9 @@ RUN --mount=type=cache,target=/root/.cache \
       sphinx_rtd_theme \
       sympy \
       setuptools \
-      sympy \
       twine \
-      tensorflow~=2.13.0 tensorflow-text~=2.13.0 tensorflow-datasets tensorflow-probability; \
+      wheel \
+      tensorflow~=2.17.0 tensorflow-text~=2.17.0 tensorflow-datasets tensorflow-probability; \
   done
 
 COPY pip_package/devel.bashrc /root/devel.bashrc

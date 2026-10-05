@@ -49,26 +49,27 @@ class PointToGridOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->GetAttr("z_range", &z_range_));
 
     OP_REQUIRES(ctx, x_intervals_ > 0 && y_intervals_ > 0 && z_intervals_ > 0,
-                errors::InvalidArgument("intervals must be positive."));
+                absl::InvalidArgumentError("intervals must be positive."));
     OP_REQUIRES(
         ctx,
         x_range_.size() == 2 && y_range_.size() == 2 && z_range_.size() == 2,
-        errors::InvalidArgument("intervals must be tuple or list of two."));
+        absl::InvalidArgumentError("intervals must be tuple or list of two."));
     OP_REQUIRES(
         ctx,
         x_range_[0] < x_range_[1] && y_range_[0] < y_range_[1] &&
             z_range_[0] < z_range_[1],
-        errors::InvalidArgument(
+        absl::InvalidArgumentError(
             "intervals must have lower bounds smaller than upper bounds."));
   }
 
   void Compute(OpKernelContext* ctx) override {
     const Tensor& input_points = ctx->input(0);
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(input_points.shape()),
-                errors::InvalidArgument("points must be a matrix, but get ",
-                                        input_points.shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("points must be a matrix, but get ",
+                                 input_points.shape().DebugString())));
     OP_REQUIRES(ctx, input_points.dim_size(1) >= 3,
-                errors::InvalidArgument(
+                absl::InvalidArgumentError(
                     "points must have at least 3 on 2nd dimension."));
 
     const float xmin_ = x_range_[0];
@@ -135,7 +136,7 @@ class PointToGridOp : public OpKernel {
 
     auto t_output_points = output_points->tensor<float, 5>();
     auto t_grid_centers = grid_centers->tensor<float, 4>();
-    auto t_num_points = num_points->tensor<int32, 3>();
+    auto t_num_points = num_points->tensor<int32_t, 3>();
 
     // Padded points will be set to 0. Users can compute the mean by taking
     // the sum and dividing by effective number of points.

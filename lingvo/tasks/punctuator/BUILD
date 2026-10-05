@@ -9,6 +9,7 @@ licenses(["notice"])
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -27,6 +28,7 @@ py_test(
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
     shard_count = 3,
+    strict_deps = False,
     deps = [
         ":input_generator",
         #internal proto upb dep
@@ -40,6 +42,7 @@ py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -56,6 +59,7 @@ py_test(
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
     shard_count = 4,
+    strict_deps = False,
     deps = [
         ":input_generator",
         ":model",

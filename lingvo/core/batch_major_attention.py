@@ -2350,7 +2350,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
       A Tensor of shape [S, B, N]
     """
     p = self.params
-    synced_time_step = time_step.shape.ndims == 0  # pytype: disable=attribute-error
+    synced_time_step = time_step.shape.ndims == 0  # pyrefly: ignore[missing-attribute]
     s, _, _, _ = py_utils.GetShape(key, 4)
 
     # Transformer_XL relative attention.
@@ -3737,13 +3737,13 @@ class LocalSelfAttention(MultiHeadedAttention):
       )
       if p.right_context > 0:
         state1.query = tf.slice(
-            concat_query, [0, q, 0, 0], tf.shape(state0.query)
+            concat_query, [0, q, 0, 0], tf.shape(state0.query)  # pyrefly: ignore[unbound-name]
         )
         state1.out_masks = tf.slice(
-            concat_out_masks, [0, q], tf.shape(state0.out_masks)
+            concat_out_masks, [0, q], tf.shape(state0.out_masks)  # pyrefly: ignore[unbound-name]
         )
       if p.rope_tpl:
-        state1.rope_step = time_step
+        state1.rope_step = time_step  # pyrefly: ignore[unbound-name]
       return output, out_paddings, state1
 
   @classmethod
@@ -4758,7 +4758,7 @@ class RoutingAttention(MultiHeadedAttention):
     encoded = self.post.FProp(theta.post, encoded)
     return encoded, updated_states
 
-  def _DotAttenOneStep(
+  def _DotAttenOneStep(  # pyrefly: ignore[bad-override]
       self, theta, query, states, query_paddings, key_paddings, time_step
   ):
     """Dot attention function for queries with 1 time step.
@@ -7505,8 +7505,8 @@ class StackedTransformerLayers(base_layer.BaseLayer):
         decoder_input = decoder_output
 
       if p.final_layer_norm:
-        decoder_output = self.final_ln.FProp(theta.final_ln, decoder_output)
-    return decoder_output, updated_states
+        decoder_output = self.final_ln.FProp(theta.final_ln, decoder_output)  # pyrefly: ignore[unbound-name]
+    return decoder_output, updated_states  # pyrefly: ignore[unbound-name]
 
 
 class PipelinedTransformerLayers(base_layer.BaseLayer):
@@ -7790,12 +7790,12 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
       params.input_dim = p.input_dim
       self.CreateChild('layer_norm', params)
 
-  def FProp(
+  def FProp(  # pyrefly: ignore[bad-override]
       self,
       theta,
       source_vecs,
       source_paddings,
-      target_vecs,  # pytype: disable=signature-mismatch
+      target_vecs,
       target_paddings,
       encoder_self_atten_segment_mask,
       decoder_self_atten_segment_mask,
@@ -7894,8 +7894,8 @@ class GPipeBatchMajorTransformerLayer(TransformerLayer):
     )
     return params
 
-  def ExtendStep(
-      self,  # pytype: disable=signature-mismatch
+  def ExtendStep(  # pyrefly: ignore[bad-override]
+      self,
       theta,
       query_vec,
       aux_vec,
@@ -8211,7 +8211,7 @@ class FunnelPoolingLayer(StrideLayer):
     p = self.params
     p.pool_window = p.pool_window or p.stride
 
-  def FProp(
+  def FProp(  # pyrefly: ignore[bad-override]
       self,
       theta: py_utils.NestedMap,
       inputs: tf.Tensor,
@@ -8339,13 +8339,13 @@ class FunnelPoolingLayer(StrideLayer):
 
     if p.begin_intact > 0:
       pooled_tensor = tf.concat(
-          [intact_inputs, pooled_tensor],
+          [intact_inputs, pooled_tensor],  # pyrefly: ignore[unbound-name]
           axis=1,
           name='concat_intact_pooled_tensor',
       )
       if pooled_paddings is not None:
         pooled_paddings = tf.concat(
-            [intact_paddings, pooled_paddings],
+            [intact_paddings, pooled_paddings],  # pyrefly: ignore[unbound-name]
             axis=1,
             name='concat_intact_pooled_paddings',
         )
@@ -8532,7 +8532,7 @@ class FunnelUpsampleLayer(base_layer.BaseLayer):
       else:
         upsampled = upsampled[:, :-sep_len]
       upsampled = tf.concat(
-          [intact, upsampled], axis=1, name='concat_upsampled'
+          [intact, upsampled], axis=1, name='concat_upsampled'  # pyrefly: ignore[unbound-name]
       )
 
     if p.shortcut_index is not None:
@@ -8739,7 +8739,7 @@ class Builder(builder.Base):
       assert p.deterministic_dropout
     assert p.atten_tpl is not None, 'atten_tpl must be set.'
 
-  def _Dropout(self, name, drop_prob):
+  def _Dropout(self, name, drop_prob):  # pyrefly: ignore[bad-override]
     """Returns a DropoutLayer Params."""
     return super()._Dropout(name, keep_prob=1.0 - drop_prob)
 
@@ -9020,7 +9020,7 @@ class Builder(builder.Base):
     if p.norm_layer_tpl:
       conv_builder_params.norm_layer_tpl = p.norm_layer_tpl
     conv_builder = conv_builder_params.Instantiate()
-    return conv_builder.DepthwiseConv2D(  # pytype: disable=attribute-error  # compare-and-match
+    return conv_builder.DepthwiseConv2D(
         name=name,
         in_dim=p.model_dim,
         depth_multiplier=1,
@@ -9036,7 +9036,7 @@ class Builder(builder.Base):
     p = self.params
     conv_builder_params = conv_layers.Builder.Params()
     conv_builder = conv_builder_params.Instantiate()
-    return conv_builder.NormalizedDepthwiseConv2D(  # pytype: disable=attribute-error  # compare-and-match
+    return conv_builder.NormalizedDepthwiseConv2D(
         name=name,
         kernel_size=kernel_size,
         num_heads=p.num_heads,
@@ -9425,7 +9425,7 @@ class Builder(builder.Base):
 
     s_layers = [self._FunnelAttention('self_atten', stride=stride,
                                       first_n=first_n, num_heads=num_heads, layer_idx=layer_idx),
-                moe_p if use_moe else ff_layer]
+                moe_p if use_moe else ff_layer]  # pyrefly: ignore[unbound-name]
     if num_ffns > 1:
       for ffn_id in range(1, num_ffns):
         s_layers.append(ff_layer.Copy().Set(name='ff%d' % ffn_id))
@@ -9718,8 +9718,8 @@ class SketchMemTransformerBuilder(Builder):
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
     return atten_p
 
-  def Feedforward(
-      self,  # pytype: disable=signature-mismatch
+  def Feedforward(  # pyrefly: ignore[bad-override]
+      self,
       name,
       is_causal=False,
       ff_hidden_dim=None,
@@ -9818,8 +9818,8 @@ class SketchMemTransformerBuilder(Builder):
         activation_fn=lambda x: tf.nn.gelu(x, approximate=True),
     )
 
-  def GatedFeedforward(
-      self,  # pytype: disable=signature-mismatch
+  def GatedFeedforward(  # pyrefly: ignore[bad-override]
+      self,
       name,
       is_causal=False,
       ff_hidden_dim=None,
@@ -9926,7 +9926,7 @@ class LmBuilder(Builder):
         mesh_split=mesh_split,
     )
 
-  def _Linear(self, name, input_dim, output_dim, mesh_split, qdomain=None):  # pytype: disable=signature-mismatch
+  def _Linear(self, name, input_dim, output_dim, mesh_split, qdomain=None):  # pyrefly: ignore[bad-override]
     if qdomain is not None:
       raise NotImplementedError(
           'Quantization support is not implemented for LmBuilder._Linear.'
@@ -9958,7 +9958,7 @@ class LmBuilder(Builder):
         )],
     )
 
-  def _Bias(self, name, dim):
+  def _Bias(self, name, dim):  # pyrefly: ignore[bad-override]
     return self._Graph(
         name,
         ['inputs'],
@@ -9970,7 +9970,7 @@ class LmBuilder(Builder):
         ),
     )
 
-  def Feedforward(self, name):  # pytype: disable=signature-mismatch
+  def Feedforward(self, name):  # pyrefly: ignore[bad-override]
     p = self.params
 
     ff_list = [
@@ -10077,7 +10077,7 @@ class LmBuilder(Builder):
         ('i.paddings->o.paddings', self._Id('id')),
     )
 
-  def TransformerEncoderLayer(self, name, is_causal=True, layer_idx=None):
+  def TransformerEncoderLayer(self, name, is_causal=True, layer_idx=None):  # pyrefly: ignore[bad-override]
     """(inputs, paddings) -> (encoded, paddings).
 
     Args:

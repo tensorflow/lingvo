@@ -271,7 +271,7 @@ class NestedMap(Dict[str, Any]):
     sliced = NestedMap()
     for k in keys:
       sliced.Set(k, self.GetItem(k))
-    return sliced
+    return sliced  # pyrefly: ignore[bad-return]
 
   def Keys(self) -> List[str]:
     """Returns a list of all the keys in nested/array-style form if needed."""
@@ -361,14 +361,14 @@ class NestedMap(Dict[str, Any]):
     """Like dict.update, adds/replaces values from other."""
     for k, v in other.FlattenItems():
       self.Set(k, v)
-    return self
+    return self  # pyrefly: ignore[bad-return]
 
   def Union(self, other: NestedMapT) -> NestedMapT:
     """Like dict.union, returns a new map with contents from self | other."""
     ret = NestedMap()
     ret.Update(self)
     ret.Update(other)
-    return ret
+    return ret  # pyrefly: ignore[bad-return]
 
   @typing.overload
   def _RecursiveMap(
@@ -534,4 +534,4 @@ class NestedMap(Dict[str, Any]):
   def __dir__(self) -> List[str]:
     """dir() that includes flattened keys in returned output."""
     keys = self._RecursiveMap(lambda k, v: k, flatten=True)
-    return keys + super().__dir__()  # pytype: disable=attribute-error
+    return keys + super().__dir__()  # pyrefly: ignore[unsupported-operation]

@@ -12,6 +12,7 @@ py_library(
         "synthetic_packed_input.py",
         "wiki_bert.py",
     ],
+    strict_deps = False,
     deps = [
         "//lingvo:compat",
         "//lingvo:model_registry",

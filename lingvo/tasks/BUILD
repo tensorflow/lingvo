@@ -6,6 +6,7 @@ licenses(["notice"])
 
 py_library(
     name = "all_params",
+    strict_deps = False,
     # LINT.IfChange(task_dirs)
     deps = [
         "//lingvo/tasks/asr/params",

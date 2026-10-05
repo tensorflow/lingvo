@@ -21,10 +21,10 @@ limitations under the License.
 namespace tensorflow {
 namespace lingvo {
 
-std::vector<string> VerifyAndSplitFilePattern(
-    const string& file_pattern,
+std::vector<std::string> VerifyAndSplitFilePattern(
+    const std::string& file_pattern,
     const std::vector<float>& input_source_weights) {
-  std::vector<string> file_patterns;
+  std::vector<std::string> file_patterns;
   if (input_source_weights.empty()) {
     LOG(INFO) << "Input source weights are empty, fall back to legacy "
               << "behavior.";
@@ -41,7 +41,7 @@ std::vector<string> VerifyAndSplitFilePattern(
 }
 
 std::vector<BasicRecordYielder::Options> CreatePerFileYielderOptions(
-    const std::vector<string>& file_patterns,
+    const std::vector<std::string>& file_patterns,
     const BasicRecordYielder::Options& yopts_tpl) {
   std::vector<BasicRecordYielder::Options> yielder_options;
   yielder_options.reserve(file_patterns.size());
@@ -53,7 +53,7 @@ std::vector<BasicRecordYielder::Options> CreatePerFileYielderOptions(
       yopts.seed = 0;  // Let the yielder pick a random seed.
     } else {
       yopts.seed =
-          (yopts_tpl.seed + i) % (std::numeric_limits<int32>::max() - 1);
+          (yopts_tpl.seed + i) % (std::numeric_limits<int32_t>::max() - 1);
       if (yopts.seed == 0) {
         // Add 1 to avoid 0.
         ++yopts.seed;
@@ -85,12 +85,12 @@ RecordYielder* ConstructMixYielderFromOptions(
   return yielder;
 }
 
-RecordYielder* ConstructYielder(const string& file_pattern,
+RecordYielder* ConstructYielder(const std::string& file_pattern,
                                 const std::vector<float>& input_source_weights,
                                 const BasicRecordYielder::Options& yopts_tpl,
                                 bool require_sequential_order,
                                 int64_t repeat_count) {
-  std::vector<string> file_patterns =
+  std::vector<std::string> file_patterns =
       VerifyAndSplitFilePattern(file_pattern, input_source_weights);
 
   if (require_sequential_order) {

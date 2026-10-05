@@ -130,7 +130,7 @@ class FileBasedDatasetSpec(DatasetSpec):
     self._transform = transform
     self._meta = metadata or Metadata()
 
-  def Read(self,
+  def Read(self,  # pyrefly: ignore[bad-override]
            split: str,
            batch_size: Optional[int] = None,
            input_filepattern=None,

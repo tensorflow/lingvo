@@ -29,9 +29,9 @@ namespace lingvo {
 namespace {
 
 struct PairHashFn {
-  size_t operator()(const std::pair<int32, int32>& pair) const {
-    return std::hash<uint64>{}((static_cast<uint64>(pair.first) << 32) |
-                               static_cast<uint64>(pair.second));
+  size_t operator()(const std::pair<int32_t, int32_t>& pair) const {
+    return std::hash<uint64_t>{}((static_cast<uint64_t>(pair.first) << 32) |
+                                 static_cast<uint64_t>(pair.second));
   }
 };
 
@@ -48,30 +48,34 @@ class NonMaxSuppression3DOp : public OpKernel {
     const Tensor& nms_iou_threshold = ctx->input(2);
     const Tensor& score_threshold = ctx->input(3);
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(bboxes_3d.shape()),
-                errors::InvalidArgument("In[0] must be a matrix, but get ",
-                                        bboxes_3d.shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("In[0] must be a matrix, but get ",
+                                 bboxes_3d.shape().DebugString())));
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(class_scores.shape()),
-                errors::InvalidArgument("In[1] must be a matrix, but get ",
-                                        class_scores.shape().DebugString()));
-    OP_REQUIRES(
-        ctx, TensorShapeUtils::IsVector(nms_iou_threshold.shape()),
-        errors::InvalidArgument("In[2] must be a vector, but get ",
-                                nms_iou_threshold.shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("In[1] must be a matrix, but get ",
+                                 class_scores.shape().DebugString())));
+    OP_REQUIRES(ctx, TensorShapeUtils::IsVector(nms_iou_threshold.shape()),
+                absl::InvalidArgumentError(
+                    absl::StrCat("In[2] must be a vector, but get ",
+                                 nms_iou_threshold.shape().DebugString())));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(score_threshold.shape()),
-                errors::InvalidArgument("In[3] must be a vector, but get ",
-                                        score_threshold.shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("In[3] must be a vector, but get ",
+                                 score_threshold.shape().DebugString())));
     OP_REQUIRES(ctx, bboxes_3d.dim_size(1) == 7,
-                errors::InvalidArgument("bboxes must be of shape [-1, 7]. Is: ",
-                                        bboxes_3d.shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("bboxes must be of shape [-1, 7]. Is: ",
+                                 bboxes_3d.shape().DebugString())));
     const int num_classes = class_scores.dim_size(1);
     OP_REQUIRES(ctx, nms_iou_threshold.dim_size(0) == num_classes,
-                errors::InvalidArgument(
+                absl::InvalidArgumentError(absl::StrCat(
                     "nms_iou_threshold must be of shape [num_classes]. Is: ",
-                    nms_iou_threshold.shape().DebugString()));
+                    nms_iou_threshold.shape().DebugString())));
     OP_REQUIRES(ctx, score_threshold.dim_size(0) == num_classes,
-                errors::InvalidArgument(
+                absl::InvalidArgumentError(absl::StrCat(
                     "score_threshold must be of shape [num_classes]. Is: ",
-                    nms_iou_threshold.shape().DebugString()));
+                    nms_iou_threshold.shape().DebugString())));
   }
 
   void Compute(OpKernelContext* ctx) override {
@@ -121,9 +125,11 @@ class NonMaxSuppression3DOp : public OpKernel {
     // Create cache for IoU calculations
     // Keys are pairs of box ids where the first id is always less than the
     // second id due to symmetry in the calculation.
-    std::unordered_map<std::pair<int32, int32>, float, PairHashFn> iou_cache;
-    auto get_iou = [&iou_cache, &boxes](int32 idx1, int32 idx2) {
-      std::pair<int32, int32> key{std::min(idx1, idx2), std::max(idx1, idx2)};
+    std::unordered_map<std::pair<int32_t, int32_t>, float, PairHashFn>
+        iou_cache;
+    auto get_iou = [&iou_cache, &boxes](int32_t idx1, int32_t idx2) {
+      std::pair<int32_t, int32_t> key{std::min(idx1, idx2),
+                                      std::max(idx1, idx2)};
       auto it = iou_cache.find(key);
       if (it != iou_cache.end()) {
         return it->second;

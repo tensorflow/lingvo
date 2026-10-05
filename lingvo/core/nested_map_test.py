@@ -590,7 +590,7 @@ foo[2][0]     32"""
 
     # 'get' is a reserved key.
     with self.assertRaisesRegex(AssertionError, 'is a reserved key'):
-      a.get = 10
+      a.get = 10  # pyrefly: ignore[bad-assignment]
     with self.assertRaisesRegex(AssertionError, 'is a reserved key'):
       a['get'] = 10
     with self.assertRaisesRegex(AssertionError, 'is a reserved key'):

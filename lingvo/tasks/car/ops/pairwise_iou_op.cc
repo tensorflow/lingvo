@@ -32,18 +32,22 @@ class PairwiseIoUOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override {
     const Tensor& a = ctx->input(0);
     const Tensor& b = ctx->input(1);
-    OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(a.shape()),
-                errors::InvalidArgument("In[0] must be a matrix, but get ",
-                                        a.shape().DebugString()));
-    OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(b.shape()),
-                errors::InvalidArgument("In[0] must be a matrix, but get ",
-                                        b.shape().DebugString()));
-    OP_REQUIRES(ctx, 7 == a.dim_size(1),
-                errors::InvalidArgument("Matrix size-incompatible: In[0]: ",
-                                        a.shape().DebugString()));
-    OP_REQUIRES(ctx, 7 == b.dim_size(1),
-                errors::InvalidArgument("Matrix size-incompatible: In[1]: ",
-                                        b.shape().DebugString()));
+    OP_REQUIRES(
+        ctx, TensorShapeUtils::IsMatrix(a.shape()),
+        absl::InvalidArgumentError(absl::StrCat(
+            "In[0] must be a matrix, but get ", a.shape().DebugString())));
+    OP_REQUIRES(
+        ctx, TensorShapeUtils::IsMatrix(b.shape()),
+        absl::InvalidArgumentError(absl::StrCat(
+            "In[0] must be a matrix, but get ", b.shape().DebugString())));
+    OP_REQUIRES(
+        ctx, 7 == a.dim_size(1),
+        absl::InvalidArgumentError(absl::StrCat(
+            "Matrix size-incompatible: In[0]: ", a.shape().DebugString())));
+    OP_REQUIRES(
+        ctx, 7 == b.dim_size(1),
+        absl::InvalidArgumentError(absl::StrCat(
+            "Matrix size-incompatible: In[1]: ", b.shape().DebugString())));
 
     const int n_a = a.dim_size(0);
     const int n_b = b.dim_size(0);

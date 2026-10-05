@@ -18,11 +18,11 @@
 #  'auditwheel repair requires patchelf >= 0.14'
 pip install patchelf
 
+PYTHON_MINOR_VERSION=12 pip_package/build.sh \
+	--crosstool_top=@sigbuild-r2.17-python3.12_config_cuda//crosstool:toolchain
+
+PYTHON_MINOR_VERSION=11 pip_package/build.sh \
+	--crosstool_top=@sigbuild-r2.17-python3.11_config_cuda//crosstool:toolchain
+
 PYTHON_MINOR_VERSION=10 pip_package/build.sh \
-	--crosstool_top=@sigbuild-r2.13-python3.10_config_cuda//crosstool:toolchain
-
-PYTHON_MINOR_VERSION=9 pip_package/build.sh \
-	--crosstool_top=@sigbuild-r2.13-python3.9_config_cuda//crosstool:toolchain
-
-PYTHON_MINOR_VERSION=8 pip_package/build.sh \
-	--crosstool_top=@sigbuild-r2.13-python3.8_config_cuda//crosstool:toolchain
+	--crosstool_top=@sigbuild-r2.17-python3.10_config_cuda//crosstool:toolchain
