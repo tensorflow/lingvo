@@ -14,13 +14,17 @@
 # ==============================================================================
 """Tokenizers."""
 
+from typing import Any
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import wpm_encoder
 
-import tensorflow_text as tf_text
+try:
+  import tensorflow_text as tf_text  # pylint: disable=g-import-not-at-top
+except ImportError:
+  tf_text: Any = None
 
 
 class BaseTokenizer(base_layer.BaseLayer):

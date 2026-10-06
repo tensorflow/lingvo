@@ -20,7 +20,7 @@ from setuptools import setup
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__version__ = '0.14.0'
+__version__ = '0.14.2'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -31,7 +31,6 @@ if '--project_name' in sys.argv:
 REQUIRED_PACKAGES = [
     'attrs',
     'apache-beam',
-    'backports.lzma; python_version < "3.11"',
     'etils',
     'graph-compression-google-research',
     'ipykernel',
@@ -43,12 +42,23 @@ REQUIRED_PACKAGES = [
     'protobuf',
     'scikit-learn',
     'sentencepiece',
+    'setuptools<81; python_version >= "3.12"',
     'sympy',
+    'tensorboard',
     'tensorflow-datasets',
     'tensorflow-hub',
     'tensorflow-probability',
-    'tensorflow-text>=2.13.0',
-    'tensorflow>=2.13.0',
+    'tensorflow-text>=2.13.0,<2.14.0; python_version < "3.10"',
+    (
+        'tensorflow-text>=2.21.0,<2.22.0; python_version >= "3.10" and'
+        ' python_version < "3.14"'
+    ),
+    'tensorflow>=2.13.0,<2.14.0; python_version < "3.10"',
+    (
+        'tensorflow>=2.21.0,<2.22.0; python_version >= "3.10" and'
+        ' python_version < "3.14"'
+    ),
+    'tensorflow>=2.22.0rc0; python_version >= "3.14"',
 ]
 
 

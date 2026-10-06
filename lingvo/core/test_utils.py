@@ -20,7 +20,7 @@ import inspect
 import re
 import sys
 import typing
-from typing import Callable, List, Optional, overload, Sequence
+from typing import Any, Callable, List, Optional, Sequence, overload
 
 from etils import epath
 import lingvo.compat as tf
@@ -28,8 +28,13 @@ from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import pytypes
 import numpy as np
-from tensorboard.backend.event_processing import event_accumulator as ea
-from tensorboard.backend.event_processing import event_file_inspector
+
+try:
+  from tensorboard.backend.event_processing import event_accumulator as ea  # pylint: disable=g-import-not-at-top
+  from tensorboard.backend.event_processing import event_file_inspector  # pylint: disable=g-import-not-at-top
+except ImportError:
+  ea: Any = None
+  event_file_inspector: Any = None
 
 tf.flags.DEFINE_bool('enable_eager_execution', False,
                      'Whether to enable eager execution.')

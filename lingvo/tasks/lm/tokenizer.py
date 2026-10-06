@@ -14,11 +14,15 @@
 # ==============================================================================
 """Tokenizers."""
 
+from typing import Any
 from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
 
-import tensorflow_text as tf_text
+try:
+  import tensorflow_text as tf_text  # pylint: disable=g-import-not-at-top
+except ImportError:
+  tf_text: Any = None
 
 
 class BertTokenizer(tokenizers.BaseTokenizer):

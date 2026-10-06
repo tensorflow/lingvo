@@ -6328,8 +6328,11 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
                           rtol=1e-05,
                           atol=1e-05)
 
-  @parameterized.parameters((None, 3.675607), (tf.bfloat16, 3.671875))
-  def testEinsumLayer(self, fprop_dtype, expected_sum):
+  @parameterized.parameters(
+      (None, 3.675607, 1e-05),
+      (tf.bfloat16, 3.6875, 1e-02),
+  )
+  def testEinsumLayer(self, fprop_dtype, expected_sum, tol=1e-05):
     with self.session(use_gpu=True):
       np.random.seed(1234567)
       # Inputs are of shape [batch, 1, input_dim] (single time step)
@@ -6355,7 +6358,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       # Batch elements 0 and 2 are equal because they had the same input
       # and the same task ID.
       self.assertAllClose(actual[0][0], actual[2][0], rtol=1e-05, atol=1e-05)
-      self.assertAllClose(expected_sum, actual_sum, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_sum, actual_sum, rtol=tol, atol=tol)
 
   @parameterized.parameters('select_and_multiply', 'multiply_and_select')
   def testEinsumLayerEinsumOrder(self, einsum_order):

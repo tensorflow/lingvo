@@ -30,7 +30,7 @@ $ prepare_coco --splits=train,dev,test --output_dir=/my/output/directory
 """
 
 import os
-from typing import Dict, Iterator
+from typing import Any, Dict, Iterator
 
 from absl import app
 from absl import flags
@@ -40,8 +40,15 @@ from lingvo import compat as tf
 from lingvo.core import base_layer
 import numpy as np
 import tensorflow_datasets as tfds
-import tensorflow_hub as hub
-import tensorflow_text  # pylint: disable=unused-import
+
+try:
+  import tensorflow_hub as hub  # pylint: disable=g-import-not-at-top
+except (ImportError, AttributeError):
+  hub: Any = None
+try:
+  import tensorflow_text  # pylint: disable=unused-import,g-import-not-at-top
+except ImportError:
+  tensorflow_text: Any = None
 
 flags.DEFINE_list('splits', 'train,dev,test', 'Data splits to prepare.')
 flags.DEFINE_string('output_dir', None, 'Output directory.')

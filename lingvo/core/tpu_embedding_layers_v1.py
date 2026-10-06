@@ -13,17 +13,21 @@
 # limitations under the License.
 # ==============================================================================
 """TPU embedding layers."""
-import abc
+from __future__ import annotations
 
-from typing import AbstractSet, Dict, Mapping, Sequence, Tuple
+import abc
+from typing import AbstractSet, Any, Dict, Mapping, Sequence, Tuple
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import tpu_embedding_layers
 
-# pylint:disable=g-direct-tensorflow-import
-from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
-# pylint:enable=g-direct-tensorflow-import
+# pylint:disable=g-direct-tensorflow-import,g-import-not-at-top
+try:
+  from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
+except ImportError:
+  tpu_embedding_lib: Any = None
+# pylint:enable=g-direct-tensorflow-import,g-import-not-at-top
 
 
 def _RemovePrivateVar(layer, var_name):

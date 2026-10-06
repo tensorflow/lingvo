@@ -222,7 +222,7 @@ class RNG {
   RNG() : rng_(std::random_device("/dev/urandom")()) {}
 
   uint64_t Get() {
-    absl::MutexLock l(mu_);
+    absl::MutexLock l(&mu_);
     return rng_();
   }
 

@@ -18,7 +18,7 @@ import collections
 import dataclasses
 import functools
 import re
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -36,9 +36,14 @@ from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 from lingvo.core import tpu_embedding_layers_v1
 from lingvo.core import tpu_embedding_layers_v2
+
 from lingvo.core import decoder_lib
 from lingvo.core import input_policy
-from model_pruning.python import pruning
+
+try:
+  from model_pruning.python import pruning  # pylint: disable=g-import-not-at-top
+except (ImportError, AttributeError):
+  pruning: Any = None
 
 
 class DecodeFinalizeArgs(

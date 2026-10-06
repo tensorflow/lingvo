@@ -37,7 +37,7 @@ from lingvo.core import lazy_loader
 data_structures = lazy_loader.LazyLoader(
     'data_structures',
     globals(),
-    'tensorflow.python.training.tracking.data_structures',
+    'tensorflow.python.trackable.data_structures',
 )
 
 _NAME_PATTERN = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')

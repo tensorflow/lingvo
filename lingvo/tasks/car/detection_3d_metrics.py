@@ -14,6 +14,7 @@
 # ==============================================================================
 """Metrics for 3D detection problems."""
 
+from typing import Any
 from lingvo import compat as tf
 from lingvo.core import metrics
 from lingvo.core import plot
@@ -25,7 +26,11 @@ import matplotlib.patches as matplotlib_patches
 import matplotlib.patheffects as path_effects
 import numpy as np
 import PIL
-from tensorboard.plugins.mesh import summary as mesh_summary
+
+try:
+  from tensorboard.plugins.mesh import summary as mesh_summary  # pylint: disable=g-import-not-at-top
+except ImportError:
+  mesh_summary: Any = None
 
 
 class TopDownVisualizationMetric(metrics.BaseMetric):

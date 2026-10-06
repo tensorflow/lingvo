@@ -14,10 +14,14 @@
 # ==============================================================================
 """Utilities for pruning."""
 
+from typing import Any
 import lingvo.compat as tf
 from lingvo.core import py_utils
 
-from model_pruning.python import pruning
+try:
+  from model_pruning.python import pruning  # pylint: disable=g-import-not-at-top
+except (ImportError, AttributeError):
+  pruning: Any = None
 
 
 def _IsInCollection(node, collection):

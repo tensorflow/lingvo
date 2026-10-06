@@ -42,7 +42,7 @@ class RandomPermutationSequenceOp : public OpKernel {
   }
 
   void Compute(OpKernelContext* ctx) override {
-    absl::MutexLock l(mu_);
+    absl::MutexLock l(&mu_);
     OP_REQUIRES(ctx, !ids_.empty() || repeat_,
                 errors::OutOfRange("Epoch ended."));
     if (ids_.empty()) Fill();

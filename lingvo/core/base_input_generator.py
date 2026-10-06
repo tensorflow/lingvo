@@ -28,9 +28,11 @@ There are three types of batch sizes:
   otherwise num_infeed_hosts is 1.
 """
 
+from __future__ import annotations
+
 import functools
 import inspect
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -48,11 +50,15 @@ from lingvo.core import tpu_embedding_layers_v1
 
 import numpy as np
 
-# pylint: disable=g-direct-tensorflow-import
+# pylint: disable=g-direct-tensorflow-import,g-import-not-at-top
 from tensorflow.python.ops import io_ops
-from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 from tensorflow.python.tpu import tpu_feed
-# pylint: enable=g-direct-tensorflow-import
+
+try:
+  from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
+except ImportError:
+  tpu_embedding_lib: Any = None
+# pylint: enable=g-direct-tensorflow-import,g-import-not-at-top
 
 DEFAULT_TOKENIZER_KEY = 'default'
 INPUT_DATA_STATS_SUMMARIES_COLLECTION = 'INPUT_DATA_STATS_SUMMARIES'

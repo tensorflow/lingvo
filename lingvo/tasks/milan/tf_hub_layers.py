@@ -14,11 +14,15 @@
 # ==============================================================================
 """Milan layers."""
 
-from typing import Collection, List
+from typing import Any, Collection, List
 
 from lingvo import compat as tf
 from lingvo.core import base_layer
-import tensorflow_hub as hub
+
+try:
+  import tensorflow_hub as hub  # pylint: disable=g-import-not-at-top
+except (ImportError, AttributeError):
+  hub: Any = None
 
 
 def _WrapNonLingvoVars(dest_layer: base_layer.BaseLayer,

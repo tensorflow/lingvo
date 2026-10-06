@@ -237,7 +237,7 @@ int PackSequencesOp::PackEntireInputs(OpKernelContext* ctx,
   }
   int num_packed_records = max_output_batch_idx + 1;
   {
-    absl::MutexLock l(mu_);
+    absl::MutexLock l(&mu_);
     total_src_tokens_ += total_src_seq_len;
     total_tgt_tokens_ += total_tgt_seq_len;
     total_examples_ += input_num;
@@ -278,7 +278,7 @@ bool PackSequencesOp::DropPackedRows(
     std::uniform_int_distribution<> distribution(0, i);
     int j;  // Uniformly picked on [0, i].
     {
-      absl::MutexLock l(mu_);
+      absl::MutexLock l(&mu_);
       j = distribution(rnd_);
     }
     if (j < packed_batch_size_) {

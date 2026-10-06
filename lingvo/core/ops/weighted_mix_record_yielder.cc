@@ -70,7 +70,7 @@ void WeightedMixRecordYielder::Close() {
 absl::Status WeightedMixRecordYielder::Yield(Record* record) {
   size_t yielder_idx = 0;
   {
-    absl::MutexLock l(mu_);
+    absl::MutexLock l(&mu_);
     yielder_idx = sample_distribution_(rnd_);
     // Release the lock immediately once we fix which yielder to use.
   }
