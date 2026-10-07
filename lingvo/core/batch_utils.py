@@ -55,7 +55,13 @@ def scale_global_to_infeed(global_batch_size, use_per_host_infeed):
     if not py_utils.use_tpu():
       raise ValueError('Scaling to TPU hosts without TPUs. {}'.format(
           cluster.num_tpu_hosts))
-    return global_batch_size // cluster.num_tpu_hosts
+    infeed_batch_size, remainder = divmod(global_batch_size,
+                                          cluster.num_tpu_hosts)
+    if remainder:
+      raise ValueError(
+          f'global_batch_size {global_batch_size} did not divide evenly by '
+          f'{cluster.num_tpu_hosts} TPU hosts.')
+    return infeed_batch_size
   else:
     return global_batch_size
 

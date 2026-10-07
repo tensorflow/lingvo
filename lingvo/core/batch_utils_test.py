@@ -53,6 +53,27 @@ class BatchUtilsTest(tf.test.TestCase, parameterized.TestCase):
             1024 * num_infeeds)
 
   @parameterized.parameters(
+      (False, 16, 4, 16),
+      (True, 16, 4, 4),
+      (True, 10, 1, 10),
+  )
+  def testScaleGlobalToInfeed(self, use_per_host_infeed, global_batch_size,
+                              num_tpu_hosts, expected_infeed_batch_size):
+    with flagsaver.flagsaver(xla_device='tpu', enable_asserts=False):
+      with cluster_factory.ForTestingWorker(
+          tpus=128, num_tpu_hosts=num_tpu_hosts):
+        self.assertEqual(
+            batch_utils.scale_global_to_infeed(global_batch_size,
+                                              use_per_host_infeed),
+            expected_infeed_batch_size)
+
+  def testScaleGlobalToInfeedRejectsNonDivisiblePerHostBatch(self):
+    with flagsaver.flagsaver(xla_device='tpu', enable_asserts=False):
+      with cluster_factory.ForTestingWorker(tpus=128, num_tpu_hosts=4):
+        with self.assertRaisesRegex(ValueError, 'did not divide evenly'):
+          batch_utils.scale_global_to_infeed(10, use_per_host_infeed=True)
+
+  @parameterized.parameters(
       itertools.product(
           (False, True),  # use_per_host_infeed
           (1, 8)))  # split_size
