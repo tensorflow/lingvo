@@ -17,6 +17,8 @@ limitations under the License.
 #define LINGVO_CORE_OPS_SIMPLE_VOCAB_H_
 // TODO(zhifengc): Add comments for this class.
 
+#include <cstddef>
+#include <cstring>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -110,10 +112,12 @@ class Vocab {
   }
 
   std::vector<bool> GetBowTokenIds() const {
-    std::vector<bool> is_bow_token_id(id_to_token_.size(), false);
+    const size_t num_token_ids =
+        max_token_id_ < 0 ? 0 : static_cast<size_t>(max_token_id_) + 1;
+    std::vector<bool> is_bow_token_id(num_token_ids, false);
     static const int bowStrLen = strlen(kBowStr);
     for (auto const& kv : id_to_token_) {
-      if (kv.second.substr(0, bowStrLen) == kBowStr) {
+      if (kv.first >= 0 && kv.second.substr(0, bowStrLen) == kBowStr) {
         is_bow_token_id[kv.first] = true;
       }
     }
@@ -126,6 +130,7 @@ class Vocab {
   int32 unk_id_ = -1;
   int32 sow_id_ = -1;
   int32 eow_id_ = -1;
+  int32 max_token_id_ = -1;
   bool use_upper_token_symbols_ = false;
   std::unordered_map<int32, string> id_to_token_;
   std::unordered_map<string, int32> token_to_id_;
