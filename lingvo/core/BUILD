@@ -2528,6 +2528,16 @@ py_library(
     ],
 )
 
+py_test(
+    name = "program_utils_test",
+    srcs = ["program_utils_test.py"],
+    deps = [
+        ":program_utils",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
 py_library(
     name = "program_lib",
     srcs = ["program.py"],
