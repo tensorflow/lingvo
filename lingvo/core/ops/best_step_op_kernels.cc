@@ -43,16 +43,17 @@ class BestStepOp : public OpKernel {
     CHECK_GE(tol_, 0.0);
   }
 
-  void ExtractValueFromOneTfEvent(OpKernelContext* ctx, const string& filename,
+  void ExtractValueFromOneTfEvent(OpKernelContext* ctx,
+                                  const std::string& filename,
                                   std::map<int, float>* step_value,
-                                  const string& metric, bool minimize) {
+                                  const std::string& metric, bool minimize) {
     const absl::Status status = ctx->env()->FileExists(filename);
     if (status.ok()) {
       ::std::unique_ptr<RandomAccessFile> file;
       OP_REQUIRES_OK(ctx, ctx->env()->NewRandomAccessFile(filename, &file));
       ::std::unique_ptr<RecordReader> reader(new RecordReader(file.get()));
 
-      uint64 offset = 0;
+      uint64_t offset = 0;
       tstring raw_proto;
       while (reader->ReadRecord(&offset, &raw_proto).ok()) {
         Event event;
@@ -82,9 +83,10 @@ class BestStepOp : public OpKernel {
     }
   }
 
-  void ExtractValueFromTfEvents(OpKernelContext* ctx, const string& filename,
+  void ExtractValueFromTfEvents(OpKernelContext* ctx,
+                                const std::string& filename,
                                 std::map<int, float>* step_value) {
-    std::vector<string> tf_events;
+    std::vector<std::string> tf_events;
     const absl::Status status =
         ctx->env()->GetMatchingPaths(filename, &tf_events);
     if (!tf_events.empty()) {
@@ -98,7 +100,7 @@ class BestStepOp : public OpKernel {
     }
   }
 
-  void ExtractValueFromTxt(OpKernelContext* ctx, const string& filename,
+  void ExtractValueFromTxt(OpKernelContext* ctx, const std::string& filename,
                            std::map<int, float>* step_value) {
     const absl::Status status = ctx->env()->FileExists(filename);
     if (status.ok()) {
@@ -107,12 +109,12 @@ class BestStepOp : public OpKernel {
       std::unique_ptr<io::RandomAccessInputStream> input_stream(
           new io::RandomAccessInputStream(file.get()));
       io::BufferedInputStream in(input_stream.get(), 4 << 10);
-      string line;
+      std::string line;
       while (true) {
         const absl::Status s = in.ReadLine(&line);
         if (absl::IsOutOfRange(s)) break;
         TF_CHECK_OK(s);
-        std::vector<string> split_line = str_util::Split(line, ' ');
+        std::vector<std::string> split_line = str_util::Split(line, ' ');
         CHECK_EQ(split_line.size(), 2);
 
         int x;
@@ -158,8 +160,8 @@ class BestStepOp : public OpKernel {
   }
 
  private:
-  string hist_file_;
-  string metric_;
+  std::string hist_file_;
+  std::string metric_;
   float tol_ = 0.0;
   bool minimize_ = true;
 };

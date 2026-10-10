@@ -538,9 +538,9 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
 
       // Validate input tensor shapes.
       if (c->Rank(c->input(0)) != 2) {
-        return errors::InvalidArgument(
-            "input tensor `hyps` must have rank 2, got shape: ",
-            c->DebugString(c->input(0)));
+        return absl::InvalidArgumentError(
+            absl::StrCat("input tensor `hyps` must have rank 2, got shape: ",
+                         c->DebugString(c->input(0))));
       }
       const auto t = c->Dim(c->input(0), 0);
       const auto b_times_k = c->Dim(c->input(0), 1);
@@ -580,14 +580,14 @@ populate_topk_hyps: whether to populate `topk_hyps` with serialized protos. When
       int32_t k;
       TF_RETURN_IF_ERROR(c->GetAttr("num_hyps_per_beam", &k));
       if (k <= 0) {
-        return errors::InvalidArgument("Requires num_hyps_per_beam > 0, got: ",
-                                       k);
+        return absl::InvalidArgumentError(
+            absl::StrCat("Requires num_hyps_per_beam > 0, got: ", k));
       }
       int32_t max_length;
       TF_RETURN_IF_ERROR(c->GetAttr("max_seq_length", &max_length));
       if (max_length <= 0) {
-        return errors::InvalidArgument("Requires max_seq_length > 0, got: ",
-                                       max_length);
+        return absl::InvalidArgumentError(
+            absl::StrCat("Requires max_seq_length > 0, got: ", max_length));
       }
 
       shape_inference::DimensionHandle b;
@@ -1242,9 +1242,9 @@ REGISTER_OP("ApplyPacking")
       TF_RETURN_IF_ERROR(c->GetAttr("T", &dtype));
 
       if (c->Rank(c->input(1)) != 0) {
-        return errors::InvalidArgument(
-            "padding must be a scalar, got padding shape: ",
-            c->DebugString(c->input(1)));
+        return absl::InvalidArgumentError(
+            absl::StrCat("padding must be a scalar, got padding shape: ",
+                         c->DebugString(c->input(1))));
       }
 
       if (c->Rank(c->input(2)) != 2 || c->Rank(c->input(3)) != 2 ||
@@ -1252,10 +1252,10 @@ REGISTER_OP("ApplyPacking")
               c->Value(c->Dim(c->input(3), 0)) ||
           c->Value(c->Dim(c->input(2), 1)) !=
               c->Value(c->Dim(c->input(3), 1))) {
-        return errors::InvalidArgument(
+        return absl::InvalidArgumentError(absl::StrCat(
             "segment_ids and indices_in_input must be "
             "matrices of the same shape, got: ",
-            c->DebugString(c->input(2)), " vs. ", c->DebugString(c->input(3)));
+            c->DebugString(c->input(2)), " vs. ", c->DebugString(c->input(3))));
       }
 
       const auto batch_size = c->Dim(c->input(2), 0);

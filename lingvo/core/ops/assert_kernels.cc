@@ -35,9 +35,9 @@ class AssertShapeMatchOp : public OpKernel {
     const Tensor& x = ctx->input(0);
     const Tensor& y = ctx->input(1);
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(x.shape()),
-                errors::InvalidArgument("x must be a vector."));
+                absl::InvalidArgumentError("x must be a vector."));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(y.shape()),
-                errors::InvalidArgument("y must be a vector."));
+                absl::InvalidArgumentError("y must be a vector."));
     bool match = true;
     if (x.NumElements() != y.NumElements()) {
       match = false;
@@ -51,9 +51,9 @@ class AssertShapeMatchOp : public OpKernel {
       }
     }
     OP_REQUIRES(ctx, match,
-                errors::InvalidArgument(msg_, " mismatch shape: x=[",
-                                        x.SummarizeValue(10), "] y=[",
-                                        y.SummarizeValue(10), "]"));
+                absl::InvalidArgumentError(absl::StrCat(
+                    msg_, " mismatch shape: x=[", x.SummarizeValue(10), "] y=[",
+                    y.SummarizeValue(10), "]")));
   }
 
  private:
@@ -83,17 +83,18 @@ class AssertSameDim0Op : public OpKernel {
     }
     const auto& x = ctx->input(0);
     OP_REQUIRES(ctx, !TensorShapeUtils::IsScalar(x.shape()),
-                errors::InvalidArgument(msg_, " 0-th input is a scalar."));
+                absl::InvalidArgumentError(
+                    absl::StrCat(msg_, " 0-th input is a scalar.")));
     const auto dim0 = x.dim_size(0);
     for (int i = 1; i < ctx->num_inputs(); ++i) {
       const auto& y = ctx->input(i);
-      OP_REQUIRES(
-          ctx, !TensorShapeUtils::IsScalar(y.shape()),
-          errors::InvalidArgument(msg_, " ", i, "-th input is a scalar."));
+      OP_REQUIRES(ctx, !TensorShapeUtils::IsScalar(y.shape()),
+                  absl::InvalidArgumentError(
+                      absl::StrCat(msg_, " ", i, "-th input is a scalar.")));
       OP_REQUIRES(ctx, dim0 == y.dim_size(0),
-                  errors::InvalidArgument(
+                  absl::InvalidArgumentError(absl::StrCat(
                       msg_, " ", i, "-th input has a different dim0: ", dim0,
-                      " ", y.dim_size(0)));
+                      " ", y.dim_size(0))));
     }
   }
 

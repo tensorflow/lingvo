@@ -193,7 +193,7 @@ void BucketAdjuster::AdjustBuckets(std::vector<int64_t>& bucket_upper_bound) {
 
   // We keep the same maximum value that the user entered, but all other
   // boundaries are updated.
-  std::vector<string> bucket_strings;
+  std::vector<std::string> bucket_strings;
   for (int i = 0; i < buckets.size() - 1; i++) {
     bucket_upper_bound[i] = compact_histogram[buckets[i]].first;
     bucket_strings.push_back(absl::StrCat(bucket_upper_bound[i]));
@@ -484,9 +484,9 @@ void RecordBatcher::MergerLoop() {
     // batch unless flush_every_n is > 0.
     for (auto& p : to_flush) {
       const int64_t id = p.first;
-      const int32 num = p.second.size();
+      const int32_t num = p.second.size();
       Tensor bucket_keys(DT_INT32, {num});
-      auto t_bucket_keys = bucket_keys.flat<int32>();
+      auto t_bucket_keys = bucket_keys.flat<int32_t>();
       for (int i = 0; i < num; ++i) {
         auto processed = p.second[i];
         t_bucket_keys(i) = processed.bucket_key;

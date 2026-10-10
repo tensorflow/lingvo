@@ -43,7 +43,8 @@ class CachedCallOp : public AsyncOpKernel {
   explicit CachedCallOp(OpKernelConstruction* ctx)
       : AsyncOpKernel(ctx), not_initing_(this, &ME::NotIniting) {
     flib_ = ctx->function_library();
-    OP_REQUIRES(ctx, flib_ != nullptr, errors::Internal("No function library"));
+    OP_REQUIRES(ctx, flib_ != nullptr,
+                absl::InternalError("No function library"));
     const NameAttrList* func;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("f", &func));
     OP_REQUIRES_OK(ctx, flib_->Instantiate(func->name(),

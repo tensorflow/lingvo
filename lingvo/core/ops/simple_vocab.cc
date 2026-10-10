@@ -41,16 +41,16 @@ namespace debug {
 
 static Vocab* vocab = nullptr;
 
-void SetUpVocab(const string& vocab_filename) {
+void SetUpVocab(const std::string& vocab_filename) {
   if (vocab == nullptr) {
     vocab = new Vocab();
     TF_CHECK_OK(vocab->Load(vocab_filename));
   }
 }
 
-string IdsToStr(const std::vector<int32>& ids) {
+std::string IdsToStr(const std::vector<int32_t>& ids) {
   if (vocab != nullptr) {
-    const std::vector<string> toks = vocab->IdsToTokens(ids);
+    const std::vector<std::string> toks = vocab->IdsToTokens(ids);
     return absl::StrJoin(toks, " ");
   } else {
     return absl::StrJoin(ids, " ");
@@ -58,51 +58,51 @@ string IdsToStr(const std::vector<int32>& ids) {
 }
 }  // namespace debug
 
-absl::Status Vocab::Load(const string& vocab_glob, bool load_token_ids) {
-  std::vector<string> vocab_filenames;
+absl::Status Vocab::Load(const std::string& vocab_glob, bool load_token_ids) {
+  std::vector<std::string> vocab_filenames;
   TF_RETURN_IF_ERROR(
       Env::Default()->GetMatchingPaths(vocab_glob, &vocab_filenames));
   if (vocab_filenames.size() != 1) {
-    return errors::InvalidArgument(
-        "Did not match exactly one file with pattern: ", vocab_glob);
+    return absl::InvalidArgumentError(absl::StrCat(
+        "Did not match exactly one file with pattern: ", vocab_glob));
   }
-  const string& vocab_filename = vocab_filenames[0];
+  const std::string& vocab_filename = vocab_filenames[0];
 
   debug::SetUpVocab(vocab_filename);
 
-  string content;
+  std::string content;
   TF_RETURN_IF_ERROR(
       ReadFileToString(Env::Default(), vocab_filename, &content));
 
   return Load(str_util::Split(content, '\n'), load_token_ids);
 }
 
-absl::Status Vocab::Load(const std::vector<string>& lines,
+absl::Status Vocab::Load(const std::vector<std::string>& lines,
                          bool load_token_ids) {
   id_to_token_.clear();
   token_to_id_.clear();
-  int32 next_id = 0;
+  int32_t next_id = 0;
   for (absl::string_view line : lines) {
     if (line.empty()) continue;
-    const std::vector<string> parts = str_util::Split(line, '\t');
+    const std::vector<std::string> parts = str_util::Split(line, '\t');
     CHECK_GE(parts.size(), 1);
-    const string tok = parts[0];
+    const std::string tok = parts[0];
     if (!load_token_ids) {
       token_to_id_[tok] = next_id;
       id_to_token_[next_id] = tok;
       next_id++;
     } else {
       CHECK_GE(parts.size(), 2);
-      const int32 id = std::stoi(parts[1]);
+      const int32_t id = std::stoi(parts[1]);
       token_to_id_[tok] = id;
       id_to_token_[id] = tok;
     }
     VLOG(2) << "Vocab " << token_to_id_[tok] << " " << tok;
   }
   use_upper_token_symbols_ = false;
-  std::vector<string> expected_tokens = {kSosToken, kEosToken, kUnkToken};
-  std::vector<string> unexpected_tokens = {kSosTokenUpper, kEosTokenUpper,
-                                           kUnkTokenUpper};
+  std::vector<std::string> expected_tokens = {kSosToken, kEosToken, kUnkToken};
+  std::vector<std::string> unexpected_tokens = {kSosTokenUpper, kEosTokenUpper,
+                                                kUnkTokenUpper};
   if (token_to_id_.find(sos_token()) == token_to_id_.end()) {
     use_upper_token_symbols_ = true;
     expected_tokens.swap(unexpected_tokens);
@@ -111,13 +111,14 @@ absl::Status Vocab::Load(const std::vector<string>& lines,
 
   for (const auto& token : expected_tokens) {
     if (token_to_id_.find(token) == token_to_id_.end()) {
-      return errors::InvalidArgument(token, " is not found in the vocab.");
+      return absl::InvalidArgumentError(
+          absl::StrCat(token, " is not found in the vocab."));
     }
   }
   for (const auto& token : unexpected_tokens) {
     if (token_to_id_.find(token) != token_to_id_.end()) {
-      return errors::InvalidArgument("Invalid token ", token,
-                                     " is found in the vocab.");
+      return absl::InvalidArgumentError(
+          absl::StrCat("Invalid token ", token, " is found in the vocab."));
     }
   }
   unk_id_ = -1;
@@ -150,7 +151,7 @@ namespace {
 class VocabTokenToIdOp : public OpKernel {
  public:
   explicit VocabTokenToIdOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    std::vector<string> vocab;
+    std::vector<std::string> vocab;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab", &vocab));
     bool load_token_ids_from_vocab;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("load_token_ids_from_vocab",
@@ -164,13 +165,13 @@ class VocabTokenToIdOp : public OpKernel {
     Tensor* id;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("id", token->shape(), &id));
     if (token->dims() == 0) {
-      id->scalar<int32>()() = vocab_.TokenToId(token->scalar<tstring>()());
+      id->scalar<int32_t>()() = vocab_.TokenToId(token->scalar<tstring>()());
     } else {
       OP_REQUIRES(
           ctx, token->dims() == 1,
-          errors::InvalidArgument("Input must be a scalar or 1D tensor."));
+          absl::InvalidArgumentError("Input must be a scalar or 1D tensor."));
       for (int i = 0; i < token->dim_size(0); i++) {
-        id->vec<int32>()(i) = vocab_.TokenToId(token->vec<tstring>()(i));
+        id->vec<int32_t>()(i) = vocab_.TokenToId(token->vec<tstring>()(i));
       }
     }
   }
@@ -185,7 +186,7 @@ REGISTER_KERNEL_BUILDER(Name("VocabTokenToId").Device(DEVICE_CPU),
 class VocabIdToTokenOp : public OpKernel {
  public:
   explicit VocabIdToTokenOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    std::vector<string> vocab;
+    std::vector<std::string> vocab;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab", &vocab));
     bool load_token_ids_from_vocab;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("load_token_ids_from_vocab",
@@ -199,13 +200,13 @@ class VocabIdToTokenOp : public OpKernel {
     Tensor* token;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("token", id->shape(), &token));
     if (id->dims() == 0) {
-      token->scalar<tstring>()() = vocab_.IdToToken(id->scalar<int32>()());
+      token->scalar<tstring>()() = vocab_.IdToToken(id->scalar<int32_t>()());
     } else {
       OP_REQUIRES(
           ctx, id->dims() == 1,
-          errors::InvalidArgument("Input must be a scalar or 1D tensor."));
+          absl::InvalidArgumentError("Input must be a scalar or 1D tensor."));
       for (int i = 0; i < id->dim_size(0); i++) {
-        token->vec<tstring>()(i) = vocab_.IdToToken(id->vec<int32>()(i));
+        token->vec<tstring>()(i) = vocab_.IdToToken(id->vec<int32_t>()(i));
       }
     }
   }
@@ -220,7 +221,7 @@ REGISTER_KERNEL_BUILDER(Name("VocabIdToToken").Device(DEVICE_CPU),
 class TokenInVocabOp : public OpKernel {
  public:
   explicit TokenInVocabOp(OpKernelConstruction* ctx) : OpKernel(ctx) {
-    std::vector<string> vocab;
+    std::vector<std::string> vocab;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("vocab", &vocab));
     bool load_token_ids_from_vocab;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("load_token_ids_from_vocab",
@@ -239,7 +240,7 @@ class TokenInVocabOp : public OpKernel {
     } else {
       OP_REQUIRES(
           ctx, token->dims() == 1,
-          errors::InvalidArgument("Input must be a scalar or 1D tensor."));
+          absl::InvalidArgumentError("Input must be a scalar or 1D tensor."));
       for (int i = 0; i < token->dim_size(0); i++) {
         result->vec<bool>()(i) = vocab_.InVocab(token->vec<tstring>()(i));
       }

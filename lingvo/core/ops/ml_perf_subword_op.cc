@@ -101,18 +101,19 @@ class MlPerfSubwordIdToStringOp : public OpKernel {
     OP_REQUIRES_OK(ctx, ctx->input("token_ids", &token_ids));
     OP_REQUIRES_OK(ctx, ctx->input("seq_lengths", &seq_lengths));
     OP_REQUIRES(ctx, TensorShapeUtils::IsMatrix(token_ids->shape()),
-                errors::InvalidArgument("token_ids must be a matrix, but get ",
-                                        token_ids->shape().DebugString()));
-    OP_REQUIRES(
-        ctx, TensorShapeUtils::IsVector(seq_lengths->shape()),
-        errors::InvalidArgument("seq_lengths must be a vector, but get ",
-                                seq_lengths->shape().DebugString()));
+                absl::InvalidArgumentError(
+                    absl::StrCat("token_ids must be a matrix, but get ",
+                                 token_ids->shape().DebugString())));
+    OP_REQUIRES(ctx, TensorShapeUtils::IsVector(seq_lengths->shape()),
+                absl::InvalidArgumentError(
+                    absl::StrCat("seq_lengths must be a vector, but get ",
+                                 seq_lengths->shape().DebugString())));
 
     const int batch = seq_lengths->NumElements();
-    OP_REQUIRES(
-        ctx, batch == token_ids->dim_size(0),
-        errors::InvalidArgument("batch size has to match between token_ids and "
-                                "seq_lengths"));
+    OP_REQUIRES(ctx, batch == token_ids->dim_size(0),
+                absl::InvalidArgumentError(
+                    "batch size has to match between token_ids and "
+                    "seq_lengths"));
     Tensor* out;
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, TensorShape({batch}), &out));
     const auto& t_ids = token_ids->matrix<int32_t>();

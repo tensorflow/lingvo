@@ -147,22 +147,22 @@ void PackSequencesOp::ValidateInputs(OpKernelContext* ctx) {
   OP_REQUIRES(ctx,
               TensorShapeUtils::IsVector(src_actual_seq_len.shape()) &&
                   (src_actual_seq_len.dtype() == DataType::DT_INT32),
-              errors::InvalidArgument(
+              absl::InvalidArgumentError(absl::StrCat(
                   "src_actual_seq_len must be a vector of int32, got: ",
-                  src_actual_seq_len.DebugString()));
+                  src_actual_seq_len.DebugString())));
   const Tensor& tgt_actual_seq_len = ctx->input(1);
   OP_REQUIRES(ctx,
               TensorShapeUtils::IsVector(tgt_actual_seq_len.shape()) &&
                   (tgt_actual_seq_len.dtype() == DataType::DT_INT32),
-              errors::InvalidArgument(
+              absl::InvalidArgumentError(absl::StrCat(
                   "tgt_actual_seq_len must be a vector of int32, got: ",
-                  tgt_actual_seq_len.DebugString()));
+                  tgt_actual_seq_len.DebugString())));
   OP_REQUIRES(ctx, src_actual_seq_len.shape() == tgt_actual_seq_len.shape(),
-              errors::InvalidArgument(
+              absl::InvalidArgumentError(absl::StrCat(
                   "src_actual_seq_len must be the same shape as "
                   "tgt_actual_seq_len, got: src shape ",
                   src_actual_seq_len.shape().DebugString(), " vs. tgt shape ",
-                  tgt_actual_seq_len.shape().DebugString()));
+                  tgt_actual_seq_len.shape().DebugString())));
 }
 
 void PackSequencesOp::AllocateOutputs(OpKernelContext* ctx,
@@ -352,9 +352,9 @@ class PackSingleSequenceOp : public OpKernel {
       OP_REQUIRES(
           ctx,
           tensorflow::FastBoundsCheck(input_lengths(i), max_packed_length_ + 1),
-          errors::InvalidArgument(
+          absl::InvalidArgumentError(absl::StrCat(
               "Input length at index ", i, " is too long: ", input_lengths(i),
-              " vs max_packed_length ", max_packed_length_));
+              " vs max_packed_length ", max_packed_length_)));
     }
 
     // The index of the output to write to.
@@ -548,11 +548,11 @@ class ApplyPackingOp : public OpKernel {
                   tensorflow::FastBoundsCheck(index_in_input, input_rows) &&
                       tensorflow::FastBoundsCheck(actual_seq_len,
                                                   input_columns + 1),
-                  errors::InvalidArgument(
+                  absl::InvalidArgumentError(absl::StrCat(
                       "out of bound found packing at (", i, ", ", start,
                       ") for input index ", index_in_input, " with length ",
                       actual_seq_len, " where input shape is ",
-                      ctx->input(0).shape().DebugString()));
+                      ctx->input(0).shape().DebugString())));
               output_3d.slice(DSize<3>{i, start, 0},
                               DSize<3>{1, actual_seq_len, input_dim}) =
                   input.slice(DSize<3>{index_in_input, 0, 0},
@@ -577,10 +577,10 @@ class ApplyPackingOp : public OpKernel {
         if (segment_ids(i, j) &&
             (input_rows.empty() || input_rows.back() != row)) {
           OP_REQUIRES(ctx, tensorflow::FastBoundsCheck(row, num_input_rows),
-                      errors::InvalidArgument(
+                      absl::InvalidArgumentError(absl::StrCat(
                           "out of bound found packing at (", i, ", ", j,
                           ") for input index ", row, " where input shape is ",
-                          ctx->input(0).shape().DebugString()));
+                          ctx->input(0).shape().DebugString())));
           input_rows.push_back(row);
         }
       }
@@ -620,27 +620,27 @@ class ApplyPackingOp<::tensorflow::tstring> : public OpKernel {
   // Validates the shapes and types of inputs.
   void ValidateInputs(OpKernelContext* ctx) {
     const Tensor& input = ctx->input(0);
-    OP_REQUIRES(
-        ctx, TensorShapeUtils::IsVector(input.shape()),
-        errors::InvalidArgument("input must be a vector, got input shape: ",
-                                input.shape().DebugString()));
+    OP_REQUIRES(ctx, TensorShapeUtils::IsVector(input.shape()),
+                absl::InvalidArgumentError(
+                    absl::StrCat("input must be a vector, got input shape: ",
+                                 input.shape().DebugString())));
 
     const Tensor& padding = ctx->input(1);
-    OP_REQUIRES(
-        ctx, TensorShapeUtils::IsScalar(padding.shape()),
-        errors::InvalidArgument("padding must be a scalar, got padding shape: ",
-                                padding.shape().DebugString()));
+    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(padding.shape()),
+                absl::InvalidArgumentError(absl::StrCat(
+                    "padding must be a scalar, got padding shape: ",
+                    padding.shape().DebugString())));
 
     const Tensor& segment_ids = ctx->input(2);
     const Tensor& indices_in_input = ctx->input(3);
-    OP_REQUIRES(
-        ctx,
-        segment_ids.shape() == indices_in_input.shape() &&
-            TensorShapeUtils::IsMatrix(segment_ids.shape()),
-        errors::InvalidArgument("segment_ids and indices_in_input must be "
-                                "matrices of the same shape, got: ",
-                                segment_ids.shape().DebugString(), " vs. ",
-                                indices_in_input.shape().DebugString()));
+    OP_REQUIRES(ctx,
+                segment_ids.shape() == indices_in_input.shape() &&
+                    TensorShapeUtils::IsMatrix(segment_ids.shape()),
+                absl::InvalidArgumentError(
+                    absl::StrCat("segment_ids and indices_in_input must be "
+                                 "matrices of the same shape, got: ",
+                                 segment_ids.shape().DebugString(), " vs. ",
+                                 indices_in_input.shape().DebugString())));
   }
 
   void Apply(OpKernelContext* ctx, Tensor* output) {
@@ -659,10 +659,10 @@ class ApplyPackingOp<::tensorflow::tstring> : public OpKernel {
         if (segment_ids(i, j) &&
             (input_rows.empty() || input_rows.back() != row)) {
           OP_REQUIRES(ctx, tensorflow::FastBoundsCheck(row, num_input_rows),
-                      errors::InvalidArgument(
+                      absl::InvalidArgumentError(absl::StrCat(
                           "out of bound found packing at (", i, ", ", j,
                           ") for input index ", row, " where input shape is ",
-                          ctx->input(0).shape().DebugString()));
+                          ctx->input(0).shape().DebugString())));
           input_rows.push_back(row);
         }
       }

@@ -77,8 +77,8 @@ absl::Status SequentialRecordYielder::Yield(Record* record) {
     LOG(INFO) << "SequentialRecordYielder finished " << num_repeats_
               << " repeats.";
     if (repeat_count_ != kInfinite && num_repeats_ == repeat_count_) {
-      return errors::OutOfRange("SequentialRecordYielder reached ",
-                                repeat_count_, " repeats.");
+      return absl::OutOfRangeError(absl::StrCat(
+          "SequentialRecordYielder reached ", repeat_count_, " repeats."));
     }
   }
   record_iterator_ = std::unique_ptr<RecordIterator>(
