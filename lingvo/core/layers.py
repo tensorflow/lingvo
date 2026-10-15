@@ -1093,8 +1093,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     if p.apply_pruning:
       mask_var_name = 'mask'
       threshold_var_name = 'threshold'
-      self.CreateVariable(mask_var_name, mask_w_pc, trainable=False)
-      self.CreateVariable(threshold_var_name, threshold_w_pc, trainable=False)
+      self.CreateVariable(mask_var_name, mask_w_pc, trainable=False)  # pyrefly: ignore[bad-argument-type]
+      self.CreateVariable(threshold_var_name, threshold_w_pc, trainable=False)  # pyrefly: ignore[bad-argument-type]
 
       self.CreateVariable(weights_var_name, w_pc)
       pruning_utils.AddToPruningCollections(
@@ -1117,12 +1117,12 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.compression_op = pruning_utils.PruningOp.GetLastCompressionOp()
 
     if p.use_block_diagonal_matmul and p.use_bd_mix:
-      self.CreateVariable('mix_kernel', mix_kernel_pc)
+      self.CreateVariable('mix_kernel', mix_kernel_pc)  # pyrefly: ignore[bad-argument-type]
 
     if p.has_bias:
-      self.CreateVariable('b', b_pc)
+      self.CreateVariable('b', b_pc)  # pyrefly: ignore[bad-argument-type]
     if p.weight_norm:
-      self.CreateVariable('g', g_pc)
+      self.CreateVariable('g', g_pc)  # pyrefly: ignore[bad-argument-type]
 
     # Determine quantization needs based on whether fusing activation
     # or not.
@@ -1507,7 +1507,7 @@ class MultitaskProjectionEinsumLayer(quant_utils.QuantizableLayer):
     self.TrackQWeight(w_name, shape=w_pc.shape, feature_axis=-1)
 
     if p.has_bias:
-      self.CreateVariable('b', b_pc)
+      self.CreateVariable('b', b_pc)  # pyrefly: ignore[bad-argument-type]
 
   @classmethod
   def NumOutputNodes(cls, p):
@@ -1697,7 +1697,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     # Set has_bias to (not batch_norm) if None.
     for i in range(num_layers):
       if has_bias[i] is None:
-        has_bias[i] = (not batch_norm[i])
+        has_bias[i] = (not batch_norm[i])  # pyrefly: ignore[unsupported-operation]
 
     params_proj_layers = p.projection
     if isinstance(params_proj_layers, (list, tuple)):
@@ -1766,7 +1766,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
         params_i.qdomain.weight = p.qdomain.weight.Copy()
 
     self.CreateChildren('fc', params_fc_layers)
-    self.CreateChildren('dropout', params_dropout_layers)
+    self.CreateChildren('dropout', params_dropout_layers)  # pyrefly: ignore[bad-argument-type]
 
     if p.memory_augmentation:
       assert p.memory is not None
@@ -1950,7 +1950,7 @@ class MultitaskFeedForwardNet(base_layer.BaseLayer):
       in_dim = out_dim
 
     self.CreateChildren('fc', params_fc_layers)
-    self.CreateChildren('dropout', params_dropout_layers)
+    self.CreateChildren('dropout', params_dropout_layers)  # pyrefly: ignore[bad-argument-type]
 
   @property
   def output_dim(self):
@@ -3480,7 +3480,7 @@ class RotaryPositionalEmbeddingLayer(PositionalEmbeddingLayer):
   """
 
   # pylint: disable-next=arguments-renamed
-  def FProp(self, theta, inputs, position=None):
+  def FProp(self, theta, inputs, position=None):  # pyrefly: ignore[bad-override]
     """Generates a JTensor of sinusoids with different frequencies.
 
     Args:
@@ -3807,8 +3807,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
       if p.apply_pruning:
         mask_var_name = f'mask_{i}'
         threshold_var_name = f'threshold_{i}'
-        self.CreateVariable(mask_var_name, mask_pc, trainable=False)
-        self.CreateVariable(threshold_var_name, threshold_pc, trainable=False)
+        self.CreateVariable(mask_var_name, mask_pc, trainable=False)  # pyrefly: ignore[bad-argument-type]
+        self.CreateVariable(threshold_var_name, threshold_pc, trainable=False)  # pyrefly: ignore[bad-argument-type]
         self.CreateVariable(weights_var_name, pc)
         pruning_utils.AddToPruningCollections(
             getattr(self.vars, weights_var_name),
@@ -3968,7 +3968,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
     return self.QAct('logits', logits)
 
-  def Logits(self, theta, inputs):
+  def Logits(self, theta, inputs):  # pyrefly: ignore[bad-override]
     """Returns the logits computed before the softmax.
 
     Args:
@@ -4100,7 +4100,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
         total_weight=total_weights,
         avg_xent=total_xent / tf.maximum(total_weights, 1e-6))
 
-  def XentLossFromLogits(self,
+  def XentLossFromLogits(self,  # pyrefly: ignore[bad-override]
                          theta,
                          logits,
                          class_weights,
@@ -4523,7 +4523,7 @@ class SingleShardFullSoftmax(SoftmaxLayer):
   def DenseWeights(self, theta):
     return py_utils.NestedMap(wm=theta.linear.w, bias=theta.bias.b)
 
-  def Logits(self, theta, inputs):
+  def Logits(self, theta, inputs):  # pyrefly: ignore[bad-override]
     """Returns the logits computed before the softmax.
 
     Args:
@@ -4553,7 +4553,7 @@ class SingleShardFullSoftmax(SoftmaxLayer):
 
     return logits
 
-  def XentLossFromLogits(self,
+  def XentLossFromLogits(self,  # pyrefly: ignore[bad-override]
                          theta,
                          logits,
                          class_ids=None,
@@ -7241,7 +7241,7 @@ class MaskedLmDataAugmenter(base_layer.BaseLayer):
       replace_prob_ratio = 1.0
     total_replacement_prob = p.mask_prob + p.random_prob + p.same_prob
     # valid_tokens == 1.0 if the corresponding position is a valid token.
-    valid_tokens = tf.cast(1.0 - paddings, py_utils.FPropDtype(p))
+    valid_tokens = tf.cast(1.0 - paddings, py_utils.FPropDtype(p))  # pyrefly: ignore[unsupported-operation]
     # replacement == 1.0 if the corresponding token is to be replaced by
     # something else (mask, random, self).
     replacement_pos = valid_tokens * _UniformSample(

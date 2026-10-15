@@ -1820,7 +1820,7 @@ class ConvLayerTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
         loss = tf.reduce_sum(output1)
@@ -1833,7 +1833,7 @@ class ConvLayerTest(test_utils.TestCase):
         for v in all_vars:
           x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
 
-          @test_utils.DefineAndTrace(x)
+          @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
           def _Loss(x):
             v.assign(x)  # pylint: disable=cell-var-from-loop
             output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
@@ -2469,7 +2469,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
         loss = tf.reduce_sum(output1)
@@ -2481,7 +2481,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
         for v in all_vars:
           x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
 
-          @test_utils.DefineAndTrace(x)
+          @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
           def _Loss(x):
             v.assign(x)  # pylint: disable=cell-var-from-loop
             output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
@@ -2521,7 +2521,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output1 = proj_layer.FPropDefaultTheta(inputs1, in_padding1)
         loss = tf.reduce_sum(output1)
@@ -2756,7 +2756,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output = proj_layer.FPropDefaultTheta(inputs)
         loss = tf.reduce_sum(output)
@@ -2768,7 +2768,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
         for v in all_vars:
           x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
 
-          @test_utils.DefineAndTrace(x)
+          @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
           def _Loss(x):
             v.assign(x)  # pylint: disable=cell-var-from-loop
             output = proj_layer.FPropDefaultTheta(inputs)
@@ -3249,7 +3249,7 @@ class MultitaskProjectionEinsumLayerTest(
 
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output1 = proj_layer.FPropDefaultTheta(inputs1, tasks1, in_padding1)
         loss = tf.reduce_sum(output1)
@@ -3261,7 +3261,7 @@ class MultitaskProjectionEinsumLayerTest(
         for v in all_vars:
           x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
 
-          @test_utils.DefineAndTrace(x)
+          @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
           def _Loss(x):
             v.assign(x)  # pylint: disable=cell-var-from-loop
             output1 = proj_layer.FPropDefaultTheta(inputs1, tasks1, in_padding1)
@@ -3304,7 +3304,7 @@ class MultitaskProjectionEinsumLayerTest(
 
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output1 = proj_layer.FPropDefaultTheta(inputs1, tasks1, in_padding1)
         loss = tf.reduce_sum(output1)
@@ -4051,7 +4051,7 @@ class EmbeddingLayerTest(test_utils.TestCase, parameterized.TestCase):
       emb_layer = layers.SimpleEmbeddingLayer(params)
       ids = tf.constant([89, 100, 89, 89])
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _EmbGrad():
         embs = emb_layer.EmbLookupDefaultTheta(ids) * tf.constant(
             [[0.1], [0.2], [0.3], [0.4]])
@@ -4111,7 +4111,7 @@ class EmbeddingLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       simple = CreateSimple()
 
-      @test_utils.DefineAndTrace(ids)
+      @test_utils.DefineAndTrace(ids)  # pyrefly: ignore[bad-argument-type]
       def _FuncSimple(ids):
         simple_outs = simple.EmbLookupDefaultTheta(ids)
         simple_grad = tf.gradients(simple_outs, simple.vars.wm)[0]
@@ -4135,7 +4135,7 @@ class EmbeddingLayerTest(test_utils.TestCase, parameterized.TestCase):
       theta.wm = [weight]
       original = CreateOriginal()
 
-      @test_utils.DefineAndTrace(ids)
+      @test_utils.DefineAndTrace(ids)  # pyrefly: ignore[bad-argument-type]
       def _FuncOriginal(ids):
         original_outs = original.EmbLookup(theta, ids)
         original_grad = tf.gradients(original_outs, weight)[0]
@@ -4174,7 +4174,7 @@ class EmbeddingLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       simple = CreateSimpleMatMul()
 
-      @test_utils.DefineAndTrace(ids)
+      @test_utils.DefineAndTrace(ids)  # pyrefly: ignore[bad-argument-type]
       def _FuncSimple(ids):
         simple_outs = simple.EmbLookupDefaultTheta(ids)
         simple_grad = tf.gradients(simple_outs, simple.vars.wm)[0]
@@ -4195,7 +4195,7 @@ class EmbeddingLayerTest(test_utils.TestCase, parameterized.TestCase):
       einsum = CreateEinsum()
       weight = tf.identity(simple.vars.wm)
 
-      @test_utils.DefineAndTrace(ids)
+      @test_utils.DefineAndTrace(ids)  # pyrefly: ignore[bad-argument-type]
       def _FuncEinsum(ids):
         einsum_outs = einsum.EmbLookup(py_utils.NestedMap(wm=weight), ids)
         einsum_grad = tf.gradients(einsum_outs, weight)[0]
@@ -5102,7 +5102,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       net = self._BuildDummyStackedBNLayer(splits)
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Func():
         all_vars = _GetTrainableVars(net)
         logits = net.FPropDefaultTheta(inputs)
@@ -5345,7 +5345,7 @@ class LayerNormTest(test_utils.TestCase, parameterized.TestCase):
       all_vars = _GetTrainableVars(layer_norm)
       self.assertLen(all_vars, 2)
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output = layer_norm.FPropDefaultTheta(inputs)
         loss = tf.reduce_sum(output)
@@ -5359,7 +5359,7 @@ class LayerNormTest(test_utils.TestCase, parameterized.TestCase):
 
           x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
 
-          @test_utils.DefineAndTrace(x)
+          @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
           def _Loss(x):
             v.assign(x)  # pylint: disable=cell-var-from-loop
             output = layer_norm.FPropDefaultTheta(inputs)
@@ -5442,7 +5442,7 @@ class CategoricalLayerNormTest(test_utils.TestCase):
       all_vars = _GetTrainableVars(layer_norm)
       self.assertEqual(4, len(all_vars))
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output = layer_norm.FPropDefaultTheta(inputs)
         loss = tf.reduce_sum(output)
@@ -5455,7 +5455,7 @@ class CategoricalLayerNormTest(test_utils.TestCase):
 
           x = tf.TensorSpec(shape=v.shape, dtype=v.dtype)
 
-          @test_utils.DefineAndTrace(x)
+          @test_utils.DefineAndTrace(x)  # pyrefly: ignore[bad-argument-type]
           def _Loss(x):
             v.assign(x)  # pylint: disable=cell-var-from-loop
             output = layer_norm.FPropDefaultTheta(inputs)
@@ -5624,7 +5624,7 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Func():
         y = mdl.FPropDefaultTheta(x * w)
         # Construct loss function such that gradients = final activation.
@@ -5648,7 +5648,7 @@ class GradNormTrackerTest(test_utils.TestCase):
       grad_norm_tracker = p.Instantiate()
       grad_norm = tf.placeholder(tf.float32)
 
-      @test_utils.DefineAndTrace(grad_norm)
+      @test_utils.DefineAndTrace(grad_norm)  # pyrefly: ignore[bad-argument-type]
       def grad_norm_clip(grad_norm):  # pylint: disable=invalid-name
         return grad_norm_tracker.FPropDefaultTheta(grad_norm)
 
@@ -5679,7 +5679,7 @@ class GradNormTrackerTest(test_utils.TestCase):
       grad_norm_tracker = p.Instantiate()
       grad_norm = tf.placeholder(tf.float32)
 
-      @test_utils.DefineAndTrace(grad_norm)
+      @test_utils.DefineAndTrace(grad_norm)  # pyrefly: ignore[bad-argument-type]
       def grad_norm_clip(grad_norm):  # pylint: disable=invalid-name
         return grad_norm_tracker.FPropDefaultTheta(grad_norm)
 
@@ -5708,7 +5708,7 @@ class GradNormTrackerTest(test_utils.TestCase):
       grad_norm = tf.placeholder(tf.float32)
       has_nan = tf.cast(tf.ones([]), dtype=tf.bool)
 
-      @test_utils.DefineAndTrace(grad_norm)
+      @test_utils.DefineAndTrace(grad_norm)  # pyrefly: ignore[bad-argument-type]
       def grad_norm_clip(grad_norm):  # pylint: disable=invalid-name
         return grad_norm_tracker.FPropDefaultTheta(grad_norm, has_nan)
 
@@ -6301,7 +6301,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       all_vars = sorted(all_vars, key=lambda v: v.name)
       self.evaluate(tf.global_variables_initializer())
 
-      @test_utils.DefineAndTrace()
+      @test_utils.DefineAndTrace()  # pyrefly: ignore[bad-argument-type]
       def _Grads():
         output = adapter.FProp(adapter.theta, inputs, tasks)
         loss = tf.reduce_sum(output)
