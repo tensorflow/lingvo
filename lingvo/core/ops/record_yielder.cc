@@ -66,7 +66,7 @@ Factory* GetFactory() {
 // extension is optional. The number of shards shouldn't exceed 5 digits. A
 // wildcard is also support for the shards number: /path/name@*.sst is expanded
 // to /path/name-?????-of-?????.sst.
-Status MaybeExpandShardedFilePattern(StringPiece file_pattern,
+Status MaybeExpandShardedFilePattern(absl::string_view file_pattern,
                                      string* expanded) {
   for (int i = file_pattern.size() - 2; i >= 0; --i) {
     const char c = file_pattern[i];
@@ -77,13 +77,13 @@ Status MaybeExpandShardedFilePattern(StringPiece file_pattern,
     }
     if (c == '@') {
       if (file_pattern[i + 1] == '*') {
-        *expanded = strings::StrCat(file_pattern.substr(0, i),
-                                    "-\?\?\?\?\?-of-\?\?\?\?\?",
-                                    file_pattern.substr(i + 2));
+        *expanded =
+            absl::StrCat(file_pattern.substr(0, i), "-\?\?\?\?\?-of-\?\?\?\?\?",
+                         file_pattern.substr(i + 2));
         return Status();
       } else {
         uint64 num_shards = 0;
-        StringPiece suf = file_pattern.substr(i + 1);
+        absl::string_view suf = file_pattern.substr(i + 1);
         if (str_util::ConsumeLeadingDigits(&suf, &num_shards)) {
           if (num_shards <= 0 || num_shards > 99999) {
             return errors::InvalidArgument(
@@ -91,10 +91,10 @@ Status MaybeExpandShardedFilePattern(StringPiece file_pattern,
                                 "not exceed 5 digits: ",
                                 num_shards));
           }
-          const string shard_pattern = strings::Printf(
+          const string shard_pattern = absl::StrFormat(
               "-\?\?\?\?\?-of-%05d", static_cast<int>(num_shards));
           *expanded =
-              strings::StrCat(file_pattern.substr(0, i), shard_pattern, suf);
+              absl::StrCat(file_pattern.substr(0, i), shard_pattern, suf);
           return Status();
         }
       }
@@ -140,7 +140,7 @@ Status MatchParallelFilePattern(const string& parallel_file_pattern,
     for (auto it1 = parallel_filenames.begin(),
               it2 = filenames_per_pattern.begin();
          it1 != parallel_filenames.end(); ++it1, ++it2) {
-      strings::StrAppend(&(*it1), ";", *it2);
+      absl::StrAppend(&*it1, ";", *it2);
     }
   }
   filenames->insert(filenames->end(),
@@ -233,7 +233,7 @@ string RecordIterator::StripPrefixFromFilePattern(string* file_pattern) {
   return prefix;
 }
 
-bool HasFilePattern(StringPiece str) {
+bool HasFilePattern(absl::string_view str) {
   return absl::StrContains(str, "*") || absl::StrContains(str, "?") ||
          absl::StrContains(str, "@") || absl::StrContains(str, "[") ||
          absl::StrContains(str, "]");
@@ -286,7 +286,7 @@ class PlainTextIterator : public RecordIterator {
     Status s = buf_.ReadLine(&line_);
     if (absl::IsOutOfRange(s)) return false;
     TF_CHECK_OK(s);
-    *key = strings::Printf("%08lld", static_cast<long long>(num_++));
+    *key = absl::StrFormat("%08lld", static_cast<long long>(num_++));
     *value = line_;
     return true;
   }
@@ -308,7 +308,7 @@ class TFRecordIterator : public RecordIterator {
   bool Next(string* key, Rope* value) override {
     Status s = reader_.ReadRecord(&record_);
     if (absl::IsOutOfRange(s)) return false;
-    *key = strings::Printf("%08lld", static_cast<long long>(num_++));
+    *key = absl::StrFormat("%08lld", static_cast<long long>(num_++));
     *value = Rope(record_);
     return true;
   }
@@ -340,7 +340,7 @@ class IotaIterator : public RecordIterator {
     if (num_ >= max_) {
       return false;
     }
-    *key = strings::Printf("%010lld", static_cast<long long>(num_++));
+    *key = absl::StrFormat("%010lld", static_cast<long long>(num_++));
     *value = *key;
     return true;
   }
