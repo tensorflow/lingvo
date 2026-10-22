@@ -757,6 +757,236 @@ class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       print(f'np.sum(np.abs(actual)): {np.sum(np.abs(actual))}')
       self.assertAllClose(expected, actual, atol=1e-05)
 
+  @parameterized.named_parameters(
+      ('Batch1Stride1Window5Rank3', 1, 1, 2, 5, 3),
+      ('Batch1Stride1Window5Rank4', 1, 1, 2, 5, 4),
+      ('Batch1Stride2Window5Rank3', 1, 2, 2, 5, 3),
+      ('Batch1Stride2Window5Rank4', 1, 2, 2, 5, 4),
+      ('Batch1Stride4Window4Rank3', 1, 4, 2, 4, 3),
+      ('Batch1Stride4Window4Rank4', 1, 4, 2, 4, 4),
+      ('Batch1Stride4Window3Rank3', 1, 4, 2, 3, 3),
+      ('Batch1Stride4Window3Rank4', 1, 4, 2, 3, 4),
+      ('Batch2Stride1Window5Rank3', 2, 1, 2, 5, 3),
+      ('Batch2Stride1Window5Rank4', 2, 1, 2, 5, 4),
+      ('Batch2Stride2Window5Rank3', 2, 2, 2, 5, 3),
+      ('Batch2Stride2Window5Rank4', 2, 2, 2, 5, 4),
+      ('Batch2Stride4Window4Rank3', 2, 4, 2, 4, 3),
+      ('Batch2Stride4Window4Rank4', 2, 4, 2, 4, 4),
+      ('Batch2Stride4Window3Rank3', 2, 4, 2, 3, 3),
+      ('Batch2Stride4Window3Rank4', 2, 4, 2, 3, 4),
+  )
+  def testStreamStepCumSumWindowUnpadded(
+      self,
+      batch=2,
+      stride=1,
+      num_groups=2,
+      window_size=2,
+      input_rank=3,
+  ):
+    max_seqlen, input_dim = 16, 4
+    p = bn_layers.GroupNormLayer.Params().Set(
+        name='gn',
+        dim=input_dim,
+        num_groups=num_groups,
+        cumulative=True,
+        window_size=window_size,
+        input_rank=input_rank,
+    )
+
+    l = p.Instantiate()
+    init_op = tf.global_variables_initializer()
+
+    np.random.seed(None)
+    input_shape = (
+        [batch, max_seqlen, input_dim]
+        if input_rank == 3
+        else [batch, max_seqlen, 2, input_dim]
+    )
+    inputs = np.random.normal(0.1, 0.5, input_shape).astype(np.float32)
+    inputs = tf.convert_to_tensor(inputs)
+    zero_paddings = tf.zeros([batch, max_seqlen], dtype=tf.float32)
+    base_outs, _ = l.FProp(l.theta, inputs, zero_paddings)
+
+    # Runs N//stride step each with input seqlen=stride and paddings=None.
+    assert max_seqlen % stride == 0
+    actual_outs = []
+    state = l.zero_state(batch)
+    for i in range(max_seqlen // stride):
+      output, out_paddings, state = l.StreamStep(
+          l.theta,
+          inputs[:, stride * i : stride * (i + 1), ...],
+          None,
+          state,
+      )
+      self.assertIsNone(out_paddings)
+      actual_outs.append(output)
+    actual_outs = tf.concat(actual_outs, axis=1)
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(init_op)
+      expected, actual = sess.run([base_outs, actual_outs])
+      self.assertAllClose(expected, actual, atol=1e-05)
+
+  @parameterized.named_parameters(
+      ('Batch1Rank3', 1, 3),
+      ('Batch2Rank3', 2, 3),
+      ('Batch1Rank4', 1, 4),
+      ('Batch2Rank4', 2, 4),
+  )
+  def testStreamStepCumSumWindowDynamicTime(self, batch=1, input_rank=3):
+    stride, num_groups, window_size = 2, 2, 5
+    max_seqlen, input_dim = 8, 4
+    p = bn_layers.GroupNormLayer.Params().Set(
+        name='gn',
+        dim=input_dim,
+        num_groups=num_groups,
+        cumulative=True,
+        window_size=window_size,
+        input_rank=input_rank,
+    )
+    l = p.Instantiate()
+    state0 = l.zero_state(batch)
+    step_shape = (
+        [batch, None, input_dim]
+        if input_rank == 3
+        else [batch, None, 2, input_dim]
+    )
+    step_inputs = tf.placeholder(tf.float32, shape=step_shape)
+    cached_sums = tf.placeholder(
+        tf.float32, shape=state0.cached_sums.shape.as_list()
+    )
+    cached_vars = tf.placeholder(
+        tf.float32, shape=state0.cached_vars.shape.as_list()
+    )
+    cached_count = tf.placeholder(
+        tf.float32, shape=state0.cached_count.shape.as_list()
+    )
+
+    @test_utils.DefineAndTrace(  # pyrefly: ignore[bad-argument-type]
+        step_inputs, cached_sums, cached_vars, cached_count
+    )
+    def _Step(x, cached_sums, cached_vars, cached_count):
+      state = py_utils.NestedMap(
+          cached_sums=cached_sums,
+          cached_vars=cached_vars,
+          cached_count=cached_count,
+      )
+      output, out_paddings, state1 = l.StreamStep(l.theta, x, None, state)
+      self.assertIsNone(out_paddings)
+      self.assertEqual(
+          state1.cached_sums.shape.as_list(),
+          state0.cached_sums.shape.as_list(),
+      )
+      self.assertEqual(
+          state1.cached_vars.shape.as_list(),
+          state0.cached_vars.shape.as_list(),
+      )
+      self.assertEqual(
+          state1.cached_count.shape.as_list(),
+          state0.cached_count.shape.as_list(),
+      )
+      return output, state1
+
+    input_shape = (
+        [batch, max_seqlen, input_dim]
+        if input_rank == 3
+        else [batch, max_seqlen, 2, input_dim]
+    )
+    inputs_np = np.random.normal(0.1, 0.5, input_shape).astype(np.float32)
+    base_outs, _ = l.FProp(
+        l.theta,
+        tf.convert_to_tensor(inputs_np),
+        tf.zeros([batch, max_seqlen], dtype=tf.float32),
+    )
+
+    with self.session(use_gpu=False) as sess:
+      sess.run(tf.global_variables_initializer())
+      expected, state = sess.run([base_outs, state0])
+      actual_outs = []
+      for i in range(max_seqlen // stride):
+        output, state = sess.run(
+            _Step,
+            feed_dict={
+                step_inputs: inputs_np[:, stride * i : stride * (i + 1), ...],
+                cached_sums: state.cached_sums,
+                cached_vars: state.cached_vars,
+                cached_count: state.cached_count,
+            },
+        )
+        actual_outs.append(output)
+      actual = np.concatenate(actual_outs, axis=1)
+      self.assertAllClose(expected, actual, atol=1e-05)
+
+  @parameterized.named_parameters(
+      ('Stride1Rank3', 1, 3),
+      ('Stride2Rank3', 2, 3),
+      ('Stride1Rank4', 1, 4),
+  )
+  def testStreamStepCumSumWindowTFLiteStaticShapes(
+      self, stride=1, input_rank=3
+  ):
+    batch, num_groups, window_size, input_dim = 1, 2, 5, 4
+    p = bn_layers.GroupNormLayer.Params().Set(
+        name='gn',
+        dim=input_dim,
+        num_groups=num_groups,
+        cumulative=True,
+        window_size=window_size,
+        input_rank=input_rank,
+    )
+    l = p.Instantiate()
+    state0 = l.zero_state(batch)
+    step_shape = (
+        [batch, stride, input_dim]
+        if input_rank == 3
+        else [batch, stride, 2, input_dim]
+    )
+
+    inputs = [
+        tf.placeholder(tf.float32, shape=step_shape),
+        tf.placeholder(tf.float32, shape=state0.cached_sums.shape.as_list()),
+        tf.placeholder(tf.float32, shape=state0.cached_vars.shape.as_list()),
+        tf.placeholder(tf.float32, shape=state0.cached_count.shape.as_list()),
+    ]
+
+    @test_utils.DefineAndTrace(*inputs)  # pyrefly: ignore[bad-argument-type]
+    def _Step(x, cached_sums, cached_vars, cached_count):
+      state = py_utils.NestedMap(
+          cached_sums=cached_sums,
+          cached_vars=cached_vars,
+          cached_count=cached_count,
+      )
+      output, _, state1 = l.StreamStep(l.theta, x, None, state)
+      return (
+          output,
+          state1.cached_sums,
+          state1.cached_vars,
+          state1.cached_count,
+      )
+
+    if py_utils.IsEagerMode():
+      tflite_model = tf.lite.TFLiteConverter.from_concrete_functions(
+          [_Step], l
+      ).convert()
+    else:
+      with self.session(use_gpu=False) as sess:
+        sess.run(tf.global_variables_initializer())
+        tflite_model = tf.compat.v1.lite.TFLiteConverter.from_session(
+            sess, inputs, list(_Step)
+        ).convert()
+
+    interpreter = tf.lite.Interpreter(model_content=tflite_model)
+    interpreter.allocate_tensors()
+    for tensor_detail in interpreter.get_tensor_details():
+      shape_signature = tensor_detail.get(
+          'shape_signature', tensor_detail['shape']
+      )
+      self.assertNotIn(
+          -1,
+          list(shape_signature),
+          msg=f'Dynamic tensor found in TFLite graph: {tensor_detail}',
+      )
+
   def testStreamStepLeadingPaddings(self):
     """Tests leading paddings case, useful for local atten with right ctx."""
     stride, num_groups = 2, 2

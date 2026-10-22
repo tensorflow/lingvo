@@ -1007,8 +1007,6 @@ class GroupNormLayer(base_layer.BaseLayer):
       b, t, n, g = input_shape
       if paddings is not None:
         paddings = py_utils.HasShape(paddings, [b, t, 1, 1])
-      else:
-        paddings = tf.zeros([b, t, 1, 1], dtype=tf.float32)
       # Skip {B,T,N}. Reduce just {G}.
       sum_input_over_dims = [3]
       squeeze_dim_after_sum = None
@@ -1021,21 +1019,73 @@ class GroupNormLayer(base_layer.BaseLayer):
       b, t, f, n, g = input_shape
       if paddings is not None:
         paddings = py_utils.HasShape(paddings, [b, t, 1, 1, 1])
-      else:
-        paddings = tf.zeros([b, t, 1, 1, 1], dtype=tf.float32)
+        # Update paddings to -> [b, t, n, 1].
+        paddings = tf.squeeze(paddings, axis=[2])
       # Skip {B,T,N}. Reduce just {F,G}.
       sum_input_over_dims = [2, 4]
       # After summing input over [2, 4], we remove axis 2, and continue
       # processing like a 4-dim input.
       squeeze_dim_after_sum = [2]
       reduce_over_dims = [3]
-      # Update paddings to -> [b, t, n, 1].
-      paddings = tf.squeeze(paddings, axis=[2])
       multiplier = f * g
 
     cached_count = py_utils.HasShape(state.cached_count, [b, 1, 1, 1])
     cached_sums = py_utils.HasShape(state.cached_sums, [b, window_size, n, 1])
     cached_vars = py_utils.HasShape(state.cached_vars, [b, window_size, n, 1])
+
+    if paddings is None:
+
+      def _ComputeUnpaddedWindowedCumSum(current_input, cached):
+        current_input = tf.reduce_sum(
+            current_input, sum_input_over_dims, keepdims=True
+        )
+        if input_rank == 5:
+          current_input = tf.squeeze(current_input, axis=squeeze_dim_after_sum)
+        current_input = tf.math.cumsum(current_input, axis=seq_axis)
+        current_input += cached[:, -1:, :, :]
+        concat = tf.concat([cached, current_input], axis=seq_axis)
+        cumsum = current_input - concat[:, :t, :, :]
+        new_cached = tf.reshape(
+            concat[:, -window_size:, :, :], [b, window_size, n, 1]
+        )
+        return cumsum, new_cached
+
+      if isinstance(t, int) and t == 1:
+        count_v = tf.minimum(cached_count + 1, window_size)
+        new_cached_count = count_v
+      else:
+        step_counts = tf.reshape(
+            tf.cast(tf.range(1, t + 1), cached_count.dtype), [1, -1, 1, 1]
+        )
+        count_v = tf.minimum(cached_count + step_counts, window_size)
+        new_cached_count = tf.minimum(
+            cached_count + tf.cast(t, cached_count.dtype), window_size
+        )
+
+      denom = tf.maximum(count_v * multiplier, 1.0)
+      sum_v, new_cached_sums = _ComputeUnpaddedWindowedCumSum(
+          inputs, cached_sums
+      )
+      mean = sum_v / denom
+      if input_rank == 5:
+        mean = tf.expand_dims(mean, axis=2)
+
+      sum_vv, new_cached_vars = _ComputeUnpaddedWindowedCumSum(
+          tf.math.squared_difference(inputs, mean), cached_vars
+      )
+      variance = sum_vv / denom
+      if input_rank == 5:
+        variance = tf.expand_dims(variance, axis=2)
+
+      return (
+          mean,
+          variance,
+          py_utils.NestedMap(
+              cached_sums=new_cached_sums,
+              cached_vars=new_cached_vars,
+              cached_count=new_cached_count,
+          ),
+      )
     # NOTE: cached_count and cached paddings are squeezed to [b],
     # and [b, window_size], respectively.
     cached_count = tf.squeeze(cached_count, axis=[1, 2, 3])
