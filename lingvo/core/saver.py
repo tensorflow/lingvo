@@ -24,7 +24,7 @@ import time
 from lingvo import compat as tf
 from lingvo.core import py_utils
 import numpy as np
-from pkg_resources import parse_version
+from packaging import version
 from google.protobuf import text_format
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.eager import monitoring
@@ -52,8 +52,9 @@ _async_checkpoint_op_time_seconds = monitoring.Sampler(
 # TODO(lingvo-dev): Remove this and the related code once the TF build
 #                      version is bumped to 2.11.0 or later.
 _TF_METRIC_VERSION = "2.11.0"
-_SHOULD_RECORD_METRIC = parse_version(
-    tf.compat.v1.__version__) >= parse_version(_TF_METRIC_VERSION)
+_SHOULD_RECORD_METRIC = version.parse(
+    tf.compat.v1.__version__
+) >= version.parse(_TF_METRIC_VERSION)
 
 
 def _GetDurationMicroseconds(start_time_seconds, end_time_seconds):

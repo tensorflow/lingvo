@@ -1198,6 +1198,7 @@ py_library(
         # Implicit python proto dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
+        "//third_party/py/packaging",
     ],
 )
 
