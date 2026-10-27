@@ -2618,7 +2618,6 @@ pytype_strict_test(
         ":schedule",
         ":test_utils",
         "//lingvo:compat",
-        # Implicit mock dependency.
         # Implicit numpy dependency.
     ],
 )
@@ -2638,7 +2637,6 @@ pytype_strict_test(
         ":schedule",
         ":test_utils",
         "//lingvo:compat",
-        # Implicit mock dependency.
         # Implicit numpy dependency.
     ],
 )
