@@ -46,7 +46,7 @@ absl::Status CreateFunctionLibraryDefinition(
   DCHECK(lib_def != nullptr);
   const FunctionDef* fdef = lib_def->Find(func_name);
   if (TF_PREDICT_FALSE(fdef == nullptr)) {
-    return errors::FailedPrecondition(strings::StrCat(
+    return absl::FailedPreconditionError(strings::StrCat(
         "Could not find required function definition ", func_name));
   }
   *result = absl::make_unique<FunctionLibraryDefinition>(
