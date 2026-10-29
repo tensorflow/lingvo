@@ -1206,9 +1206,9 @@ class HypsFromBeamSearchOuts : public OpKernel {
             prev_hyps.dims()));
     OP_REQUIRES(
         ctx, done_hyps.dims() == 2,
-        errors::InvalidArgument(
+        absl::InvalidArgumentError(absl::StrCat(
             "Failed tensor shape sanity check. done_hyps.dims() == 2. Got ",
-            done_hyps.dims()));
+            done_hyps.dims())));
     OP_REQUIRES(
         ctx, scores.dims() == 2,
         errors::InvalidArgument(
